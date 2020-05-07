@@ -3,6 +3,7 @@ using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
 {
+    [ApiController]
     public class ServiceController : ControllerBase
     {
         [Route("service/helloworld/{id}")]
