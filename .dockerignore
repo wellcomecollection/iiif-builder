@@ -1,0 +1,9 @@
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+bin\
+obj\
+README.md
+LICENSE
+.idea

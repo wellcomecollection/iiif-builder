@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
+using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
 {
@@ -17,6 +21,8 @@ namespace Wellcome.Dds.Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddSwagger();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -27,6 +33,7 @@ namespace Wellcome.Dds.Server
                 app.UseDeveloperExceptionPage();
             }
 
+            app.SetupSwagger();
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
