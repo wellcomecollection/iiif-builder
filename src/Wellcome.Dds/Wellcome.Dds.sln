@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.AssetDomain", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DlcsWebClient", "DlcsWebClient\DlcsWebClient.csproj", "{0BE3069E-FF83-4482-825A-03D642B7403D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds", "Wellcome.Dds\Wellcome.Dds.csproj", "{5DA8E1F3-BA02-44EC-B562-D51A05461F13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,10 @@ Global
 		{0BE3069E-FF83-4482-825A-03D642B7403D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BE3069E-FF83-4482-825A-03D642B7403D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BE3069E-FF83-4482-825A-03D642B7403D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DA8E1F3-BA02-44EC-B562-D51A05461F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DA8E1F3-BA02-44EC-B562-D51A05461F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DA8E1F3-BA02-44EC-B562-D51A05461F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DA8E1F3-BA02-44EC-B562-D51A05461F13}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
