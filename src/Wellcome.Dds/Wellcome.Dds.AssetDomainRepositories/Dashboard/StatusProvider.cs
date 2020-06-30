@@ -1,18 +1,24 @@
-﻿using System;
+﻿using Microsoft.Extensions.Options;
+using System;
 using System.Globalization;
 using System.IO;
-using Digirati.Util;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
+    /// <summary>
+    /// TODO - we need a new impl of this class with S3-backed sentinels
+    /// </summary>
     public class StatusProvider : IStatusProvider
     {
-        private static readonly string DdsGoFile = StringUtils.GetAppSetting("DDS-GO-FILE", null);
-        private static readonly string HeartbeatFile = StringUtils.GetAppSetting("StatusProvider-Heartbeat", null);
-        private static readonly string LogSpecialFile = StringUtils.GetAppSetting("StatusProvider-LogSpecialFile", null);
-        private static readonly DateTime? StartCutOff = StringUtils.GetNullableDateFromAppSetting("Dashboard-Earliest-Job-DateTime");
-        private static readonly int MinimumJobAgeMinutes = StringUtils.GetInt32FromAppSetting("Dashboard-Minimum-Job-Age-Minutes", 0);
+        private DdsOptions ddsOptions;
+
+        public StatusProvider(IOptions<DdsOptions> ddsOptions)
+        {
+            this.ddsOptions = ddsOptions.Value;
+        }
 
         private const string GoFileText = @"
 This file needs to be present and have something in for the DDS to run DLCS ingest and dashboard processes.
@@ -23,9 +29,9 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
         {
             try
             {
-                if (File.Exists(DdsGoFile))
+                if (File.Exists(ddsOptions.GoFile))
                 {
-                    File.Delete(DdsGoFile);
+                    File.Delete(ddsOptions.GoFile);
                 }
                 return true;
             }
@@ -41,7 +47,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             {
                 if (Stop())
                 {
-                    File.WriteAllText(DdsGoFile, GoFileText);
+                    File.WriteAllText(ddsOptions.GoFile, GoFileText);
                     return true;
                 }
             }
@@ -56,11 +62,11 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
         {
             get
             {
-                if (!File.Exists(DdsGoFile))
+                if (!File.Exists(ddsOptions.GoFile))
                 {
                     return false;
                 }
-                if (new FileInfo(DdsGoFile).Length == 0)
+                if (new FileInfo(ddsOptions.GoFile).Length == 0)
                 {
                     return false;
                 }
@@ -72,7 +78,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
         {
             get
             {
-                return StartCutOff;
+                return StringUtils.GetNullableDateTime(ddsOptions.EarliestJobDateTime);
             }
         }
 
@@ -80,9 +86,9 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
         {
             get
             {
-                if (MinimumJobAgeMinutes > 0)
+                if (ddsOptions.MinimumJobAgeMinutes > 0)
                 {
-                    return DateTime.Now.AddMinutes(0 - MinimumJobAgeMinutes);
+                    return DateTime.Now.AddMinutes(0 - ddsOptions.MinimumJobAgeMinutes);
                 }
                 return null; 
             }
@@ -91,7 +97,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         public DateTime? WriteHeartbeat()
         {
-            if (string.IsNullOrWhiteSpace(HeartbeatFile))
+            if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
                 return null;
             }
@@ -99,7 +105,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             var value = now.ToString("F", CultureInfo.CurrentCulture);
             try
             {
-                File.WriteAllText(HeartbeatFile, value);
+                File.WriteAllText(ddsOptions.StatusProviderHeartbeat, value);
             }
             catch
             {
@@ -110,14 +116,14 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         public DateTime? GetHeartbeat()
         {
-            if (string.IsNullOrWhiteSpace(HeartbeatFile))
+            if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
                 return null;
             }
-            if (File.Exists(HeartbeatFile))
+            if (File.Exists(ddsOptions.StatusProviderHeartbeat))
             {
                 DateTime dt;
-                var value = File.ReadAllText(HeartbeatFile).Trim();
+                var value = File.ReadAllText(ddsOptions.StatusProviderHeartbeat).Trim();
                 if (DateTime.TryParseExact(value, "F", CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
                 {
                     return dt;
@@ -128,10 +134,10 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         public bool LogSpecial(string message)
         {
-            if (!File.Exists(LogSpecialFile)) return false;
+            if (!File.Exists(ddsOptions.StatusProviderLogSpecialFile)) return false;
             try
             {
-                File.AppendAllText(LogSpecialFile, message + Environment.NewLine);
+                File.AppendAllText(ddsOptions.StatusProviderLogSpecialFile, message + Environment.NewLine);
                 return true;
             }
             catch

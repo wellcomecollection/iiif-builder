@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Digirati.Util;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -10,11 +10,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
     public class DigitisedManifestation : BaseDigitisedResource, IDigitisedManifestation
     {
-        public static readonly string AVDerivativeTemplateVideo =
-            StringUtils.GetAppSetting("dlcs-avDerivativeTemplateVideo", null);
-        public static readonly string AVDerivativeTemplateAudio =
-            StringUtils.GetAppSetting("dlcs-avDerivativeTemplateAudio", null);
-
         public IManifestation MetsManifestation { get; set; }
         /// <summary>
         /// The images already on the DLCS for this manifestation
@@ -93,7 +88,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return true;
         }
 
-        public AVDerviative[] GetAVDerivatives()
+        // TODO - this method doesn't belong here.
+        // The dashboard knows about the DLCS, and uses it for rendering the AV derivatives.
+        // The dashboard should give this method the two templates (now added to the method signature).
+        public AVDerviative[] GetAVDerivatives(
+            string avDerivativeTemplateVideo,
+            string avDerivativeTemplateAudio)
         {
             // TODO - this information needs to come from the DLCS via info.json
             var derivs = new List<AVDerviative>();
@@ -101,12 +101,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             {
                 if (asset.MediaType.StartsWith("video"))
                 {
-                    derivs.Add(new AVDerviative { Id = string.Format(AVDerivativeTemplateVideo, asset.StorageIdentifier, "mp4"), Label = "mp4" });
-                    derivs.Add(new AVDerviative { Id = string.Format(AVDerivativeTemplateVideo, asset.StorageIdentifier, "webm"), Label = "webm" });
+                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateVideo, asset.StorageIdentifier, "mp4"), Label = "mp4" });
+                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateVideo, asset.StorageIdentifier, "webm"), Label = "webm" });
                 }
                 if (asset.MediaType.Contains("audio"))
                 {
-                    derivs.Add(new AVDerviative { Id = string.Format(AVDerivativeTemplateAudio, asset.StorageIdentifier, "mp3"), Label = "mp3" });
+                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateAudio, asset.StorageIdentifier, "mp3"), Label = "mp3" });
                 }
             }
             return derivs.ToArray();

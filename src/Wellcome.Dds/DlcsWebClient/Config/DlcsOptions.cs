@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DlcsWebClient.Config
+﻿namespace DlcsWebClient.Config
 {
     public class DlcsOptions
     {
@@ -13,6 +9,7 @@ namespace DlcsWebClient.Config
         public int CustomerDefaultSpace { get; set; }
         public string ApiEntryPoint { get; set; }
         public string ResourceEntryPoint { get; set; }
-        // The non-api root. Also, eventually, used for CRUD on IIIF resources directly, rather than API round the back.
+        public int BatchSize { get; set; } = 100;
+        public bool PreventSynchronisation { get; set; } = false;
     }
 }

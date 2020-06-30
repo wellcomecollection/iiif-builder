@@ -25,7 +25,11 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
 
         string DlcsStatus { get; set; }
         string DlcsResponse { get; set; }
-        AVDerviative[] GetAVDerivatives();
+
+        // See note in implementation - we want to move this method out of this interface, not the right place for it.
+        AVDerviative[] GetAVDerivatives(
+            string avDerivativeTemplateVideo,
+            string avDerivativeTemplateAudio);
     }
 
 }

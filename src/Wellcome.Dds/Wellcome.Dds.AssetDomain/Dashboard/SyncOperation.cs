@@ -38,7 +38,6 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         /// Not every PhysicalFile needs to be synced with the DLCS
         /// </summary>
         public List<string> StorageIdentifiersToIgnore { get; set; }
-        public string OriginTemplate { get; set; }
 
         public bool RequiresSync
         {

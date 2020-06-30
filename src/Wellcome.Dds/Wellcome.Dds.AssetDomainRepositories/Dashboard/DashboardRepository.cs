@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
-using System.Reflection;
 using Utils;
-using Wellcome.Dds.AssetDomain.AssetManagement;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -20,29 +18,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
     public class DashboardRepository : IDashboardRepository
     {
         private ILogger<DashboardRepository> logger;
+        private DdsOptions ddsOptions;
 
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
-
-        private static readonly string PersistentUri = StringUtils.GetAppSetting("PersistentPlayerUri", null);
-        private static readonly string PersistentCatalogueRecord = StringUtils.GetAppSetting("PersistentCatalogueRecord", null);
-        private static readonly string EncoreBibDataFormat = StringUtils.GetAppSetting("EncoreBibliographicData", null);
-        private static readonly string OriginTemplate = StringUtils.GetAppSetting(
-            "LinkedDataDomain", "https://wellcomelibrary.org").Replace("http:", "https:") + "/service/asset/{0}";
-        private static readonly string ManifestTemplate = StringUtils.GetAppSetting(
-            "LinkedDataDomain", "https://wellcomelibrary.org") + "/iiif/{0}/manifest";
-        private static readonly int BatchSize = StringUtils.GetInt32FromAppSetting("dlcs-BatchSize", 100);
-        private static readonly string ExpectedOriginBucketName = StringUtils.GetAppSetting("ArchiveStorage-ExpectedOriginBucketName", null);
-        private static readonly string ExpectedStagingOriginBucketName = StringUtils.GetAppSetting("ArchiveStorage-ExpectedStagingOriginBucketName", null);
-        private static readonly bool PreventSynchronisation = StringUtils.GetBoolFromAppSetting("ArchiveStorage-PreventSynchronisation", false);
 
         public int DefaultSpace { get; set; }
 
         public DashboardRepository(
             ILogger<DashboardRepository> logger,
+            IOptions<DdsOptions> ddsOptions,
             IDlcs dlcs, 
             IMetsRepository metsRepository)
         {
+            this.logger = logger;
+            this.ddsOptions = ddsOptions.Value;
             this.dlcs = dlcs;
             DefaultSpace = dlcs.DefaultSpace;
             this.metsRepository = metsRepository;
@@ -124,22 +114,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             {
                 BNumber = bNumber,
                 DisplayTitle = label,
-                EncoreRecordUrl = string.Format(PersistentCatalogueRecord, shortB),
-                ItemPageUrl = string.Format(PersistentUri.Replace("/player/", "/item/"), bNumber),
-                ManifestUrl = string.Format(ManifestTemplate, bNumber),
-                EncoreBiblioRecordUrl = string.Format(EncoreBibDataFormat, shortB)
+                EncoreRecordUrl = string.Format(ddsOptions.PersistentCatalogueRecord, shortB),
+                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri.Replace("/player/", "/item/"), bNumber),
+                ManifestUrl = string.Format(ddsOptions.ManifestTemplate, bNumber),
+                EncoreBiblioRecordUrl = string.Format(ddsOptions.EncoreBibliographicData, shortB)
             };
         }
 
         public void ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue)
         {
-            const string syncError =
-                @"Configuration prevents this application from synchronising with the DLCS. Is it a staging test environment for archive storage?";
-            if (PreventSynchronisation)
+            if (dlcs.PreventSynchronisation)
             {
+                const string syncError =
+                    @"Configuration prevents this application from synchronising with the DLCS. Is it a staging test environment for archive storage?";
                 throw new InvalidOperationException(syncError);
             }
-
             logger.LogInformation("Registering BATCH INGESTS for METS resource (manifestation) with Id {0}", syncOperation.ManifestationIdentifier);
             DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue);
 
@@ -191,7 +180,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
             // Get the manifestation level metadata that each image is going to need
             syncOperation.LegacySequenceIndex = metsRepository.FindSequenceIndex(metsManifestation.Id);
-            syncOperation.OriginTemplate = OriginTemplate; // GetOriginTemplate(metsManifestation.SignificantSequence[0].StorageIdentifier);
             var ddsId = new DdsIdentifier(metsManifestation.Id);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
@@ -215,7 +203,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
-                var newDlcsImage = MakeDlcsImage(physicalFile, syncOperation.OriginTemplate, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
+                var newDlcsImage = MakeDlcsImage(physicalFile, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
                 var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[physicalFile.StorageIdentifier];
 
                 if (assetsToIngest.Contains(physicalFile))
@@ -305,7 +293,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         private void DoBatchPatch(List<Image> dlcsImagesToPatch, SyncOperation syncOperation)
         {
             // TODO - refactor this and DoBatchIngest - They use a different kind of Operation
-            foreach (var batch in dlcsImagesToPatch.Batch(BatchSize))
+            foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
             {
                 var imagePatches = batch.ToArray();
                 logger.LogInformation("Batch of {0}", imagePatches.Length);
@@ -341,7 +329,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         private void DoBatchIngest(List<Image> dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
         {
-            foreach (var batch in dlcsImagesToIngest.Batch(BatchSize))
+            foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
                 var imageRegistrations = batch.ToArray();
                 logger.LogInformation("Batch of {0}", imageRegistrations.Length);
@@ -393,20 +381,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             if (existingDlcsImage.Origin != newDlcsImage.Origin)
             {
                 return newDlcsImage;
-                // don't mess about with matching bucket names, now that the paths are versioned.
-                // we need to know about any difference.
-                // This still might be OK if the mismatch is bucket name only
-                //if (!ExpectedStagingOriginBucketName.HasText())
-                //{
-                //    throw new ArgumentNullException("ExpectedStagingOriginBucketName", "Must be supplied");
-                //}
-                //var possibleProductionOrigin = newDlcsImage.Origin.Replace(ExpectedStagingOriginBucketName,
-                //    ExpectedOriginBucketName);
-                //if (existingDlcsImage.Origin != possibleProductionOrigin)
-                //{
-                //    // This really does require patching.
-                //    return newDlcsImage;
-                //}
             }
             if (existingDlcsImage.String1 != newDlcsImage.String1)
                 return newDlcsImage;
@@ -458,20 +432,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         private Image MakeDlcsImage(
             IPhysicalFile asset, 
-            string originTemplate, 
             DdsIdentifier ddsId, 
             int sequenceIndex,
             int maxUnauthorised)
         {
-            string origin;
-            if (originTemplate.HasText())
-            {
-                origin = string.Format(originTemplate, asset.StorageIdentifier);
-            }
-            else
-            {
-                origin = asset.GetStoredFileInfo().Uri;
-            }
+            string origin = asset.GetStoredFileInfo().Uri;
             var imageRegistration = new Image
             {
                 StorageIdentifier = asset.StorageIdentifier,

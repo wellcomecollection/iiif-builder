@@ -89,6 +89,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         IPdf GetPdfDetails(string string1, int number1);
         bool DeletePdf(string string1, int number1);
         int DefaultSpace { get; }
+        int BatchSize { get; }
+        bool PreventSynchronisation { get; }
         List<Batch> GetTestedImageBatches(List<Batch> imageBatches);
         Dictionary<string, long> GetDlcsQueueLevel();
     }

@@ -646,7 +646,14 @@ namespace DlcsWebClient.Dlcs
         {
             get { return options.CustomerDefaultSpace; }
         }
-
+        public int BatchSize
+        {
+            get { return options.BatchSize; }
+        }
+        public bool PreventSynchronisation
+        {
+            get { return options.PreventSynchronisation; }
+        }
 
         public Dictionary<string, long> GetDlcsQueueLevel()
         {

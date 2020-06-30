@@ -1,3 +1,5 @@
+using System;
+
 namespace Utils
 {
     public static class StringUtils
@@ -33,6 +35,19 @@ namespace Utils
             }
 
             return str;
+        }
+
+        public static DateTime? GetNullableDateTime(string s)
+        {
+            DateTime date;
+            if (DateTime.TryParse(s, out date))
+            {
+                return date;
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
