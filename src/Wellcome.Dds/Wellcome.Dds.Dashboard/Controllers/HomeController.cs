@@ -18,7 +18,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dashboardRepository = dashboardRepository;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             var queueLevel = dashboardRepository.GetDlcsQueueLevel();
             return View((object)$"{queueLevel.Keys.First()} : {queueLevel.Values.First()}");

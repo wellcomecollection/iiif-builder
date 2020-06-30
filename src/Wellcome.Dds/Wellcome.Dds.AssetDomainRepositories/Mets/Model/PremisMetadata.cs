@@ -78,8 +78,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public int GetNumberOfImages()
         {
             throw new NotImplementedException();
-            var num = GetInt32FilePropertyValue("Number of Images");
-            return num ?? 0;
         }
 
         public int GetImageWidth()
