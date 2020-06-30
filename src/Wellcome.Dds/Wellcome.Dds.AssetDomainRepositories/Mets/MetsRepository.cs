@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain;
@@ -27,7 +28,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             this.issueCacheDirectory = issueCacheDirectory;
         }
 
-        public IMetsResource Get(string identifier)
+        public async Task<IMetsResource> GetAsync(string identifier)
         {
             // forms:
             // b12345678 - could be an anchor file or a single manifestation work. 
@@ -52,15 +53,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = GetFileStructMap(ddsId.BNumber, workStore);
+                    structMap = await GetFileStructMapAsync(ddsId.BNumber, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
-                    structMap = GetLinkedStructMap(ddsId.VolumePart, workStore);
+                    structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return GetMetsResourceByIndex(ddsId.BNumber, ddsId.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndexAsync(ddsId.BNumber, ddsId.SequenceIndex, workStore);
                 case IdentifierType.Issue:
-                    structMap = GetLinkedStructMap(ddsId.VolumePart, workStore);
+                    structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     // we only want a specific issue
                     var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
                     return new Manifestation(issueStruct, structMap);
@@ -69,9 +70,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             throw new NotSupportedException("Unknown identifier");
         }
 
-        public IEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
+        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContextAsync(string identifier)
         {
-            var rootMets = Get(identifier);
+            var rootMets = await GetAsync(identifier);
             int sequenceIndex = 0;
             if (rootMets is IManifestation)
             {
@@ -105,7 +106,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections)
                     {
-                        var volume = Get(partialVolume.Id) as ICollection;
+                        var volume = GetAsync(partialVolume.Id) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations)
                         {
@@ -149,10 +150,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// <param name="index"></param>
         /// <param name="workStore"></param>
         /// <returns></returns>
-        private IMetsResource GetMetsResourceByIndex(string bNumber, int index, IWorkStore workStore)
+        private async Task<IMetsResource> GetMetsResourceByIndexAsync(string bNumber, int index, IWorkStore workStore)
         {
             // 
-            var structMap = GetFileStructMap(bNumber, workStore);
+            var structMap = await GetFileStructMapAsync(bNumber, workStore);
             if (structMap.IsManifestation)
             {
                 return GetMetsResource(structMap, workStore);
@@ -163,7 +164,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 var child = structMap.Children[index];
                 if (child.IsManifestation)
                 {
-                    structMap = GetLinkedStructMap(child.LinkId, workStore);
+                    structMap = await GetLinkedStructMapAsync(child.LinkId, workStore);
                     return GetMetsResource(structMap, workStore);
                 }
                 return null;
@@ -172,7 +173,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             int counter = 0;
             foreach (var structDiv in structMap.Children)
             {
-                var pdVolume = GetLinkedStructMap(structDiv.LinkId, workStore);
+                var pdVolume = await GetLinkedStructMapAsync(structDiv.LinkId, workStore);
                 foreach (var pdIssue in pdVolume.Children)
                 {
                     if (counter++ == index)
@@ -193,7 +194,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumber:
                     return 0;
                 case IdentifierType.Volume:
-                    var anchor = Get(ddsId.BNumber) as ICollection;
+                    var anchor = GetAsync(ddsId.BNumber) as ICollection;
                     foreach (var manif in anchor.Manifestations)
                     {
                         if (manif.Id == identifier)
@@ -260,10 +261,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
             int sequenceIndex = 0;
             IssueCache[bNumber] = new Dictionary<string, int>();
-            var rootCollection = Get(bNumber) as ICollection;
+            var rootCollection = GetAsync(bNumber) as ICollection;
             foreach (var partialVolume in rootCollection.Collections)
             {
-                var volume = Get(partialVolume.Id) as ICollection;
+                var volume = GetAsync(partialVolume.Id) as ICollection;
                 foreach (var issue in volume.Manifestations)
                 {
                     IssueCache[bNumber][issue.Id] = sequenceIndex++;
@@ -277,9 +278,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
         }
 
-        private ILogicalStructDiv GetFileStructMap(string identifier, IWorkStore workStore)
+        private async Task<ILogicalStructDiv> GetFileStructMapAsync(string identifier, IWorkStore workStore)
         {
-            var metsXml = workStore.LoadXmlForIdentifier(identifier);
+            var metsXml = await workStore.LoadXmlForIdentifierAsync(identifier);
             return GetLogicalStructDiv(metsXml, identifier, workStore);
         }
 
@@ -329,9 +330,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         //    return GetLinkedStructMap(mmIdentifier, bNumberHomeDirectory);
         //}
 
-        private static ILogicalStructDiv GetLinkedStructMap(string mmIdentifier, IWorkStore workStore)
+        private static async Task<ILogicalStructDiv> GetLinkedStructMapAsync(string mmIdentifier, IWorkStore workStore)
         {
-            var metsXml = workStore.LoadXmlForIdentifier(mmIdentifier);
+            var metsXml = await workStore.LoadXmlForIdentifierAsync(mmIdentifier);
             var structMap = GetLogicalStructDiv(metsXml, mmIdentifier, workStore);
             // Move to first child (the root structMap is the MM container, the anchor)
             return structMap.Children.First();

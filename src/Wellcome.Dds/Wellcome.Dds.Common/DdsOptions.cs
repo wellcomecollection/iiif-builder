@@ -15,5 +15,7 @@
         public int MinimumJobAgeMinutes { get; set; }
         public string JobProcessorLog { get; set; }
         public string WorkflowProcessorLog { get; set; }
+        public string DashBodyInject { get; set; } = "";
+        public string GoobiCall { get; set; }
     }
 }

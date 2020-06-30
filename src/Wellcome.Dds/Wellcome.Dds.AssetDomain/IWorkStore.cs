@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Wellcome.Dds.AssetDomain.Mets;
 
@@ -8,13 +9,13 @@ namespace Wellcome.Dds.AssetDomain
     {
         string Identifier { get; set; }
         string FileUri(string relativePath);
-        XmlSource LoadXmlForPath(string relativePath);
-        XmlSource LoadXmlForPath(string relativePath, bool useCache);
-        XmlSource LoadXmlForIdentifier(string identifier);
-        IStoredFileInfo GetFileInfoForIdentifier(string identifier);
-        IStoredFileInfo GetFileInfoForPath(string relativePath);
-        Stream GetStreamForPath(string relativePath);
-        void WriteFile(string relativePath, string destination);
+        Task<XmlSource> LoadXmlForPathAsync(string relativePath);
+        Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache);
+        Task<XmlSource> LoadXmlForIdentifierAsync(string identifier);
+        IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier);
+        IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath);
+        Task<Stream> GetStreamForPathAsync(string relativePath);
+        Task WriteFileAsync(string relativePath, string destination);
         bool IsKnownFile(string relativePath);
 
         /// <summary>

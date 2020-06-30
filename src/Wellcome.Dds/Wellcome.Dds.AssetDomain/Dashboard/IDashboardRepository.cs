@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -7,7 +8,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
 {
     public interface IDashboardRepository
     {
-        IDigitisedResource GetDigitisedResource(string identifier);
+        Task<IDigitisedResource> GetDigitisedResourceAsync(string identifier);
         SyncOperation GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation, bool reIngestErrorImages);
         void ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);
         int DefaultSpace { get; set; }

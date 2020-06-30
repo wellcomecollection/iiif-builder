@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Utils.Storage;
 
 namespace Wellcome.Dds.AssetDomain.Mets
 {
@@ -16,6 +12,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         IWorkStore WorkStore { get; set; }
         IAssetMetadata AssetMetadata { get; set; }
         string RelativePath { get; set; }
-        IStoredFileInfo GetStoredFileInfo();
+        IArchiveStorageStoredFileInfo GetStoredFileInfo();
     }
 }

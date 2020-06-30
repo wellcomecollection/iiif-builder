@@ -2,7 +2,7 @@
 
 namespace Wellcome.Dds.AssetDomain
 {
-    public interface IStoredFileInfo
+    public interface IArchiveStorageStoredFileInfo
     {
         // fill this out with what callers need
         // could be backed by S3, file system.

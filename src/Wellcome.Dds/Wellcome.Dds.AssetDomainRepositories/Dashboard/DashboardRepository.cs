@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -47,10 +48,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// </summary>
         /// <param name="identifier">Same as used for METS</param>
         /// <returns></returns>
-        public IDigitisedResource GetDigitisedResource(string identifier)
+        public async Task<IDigitisedResource> GetDigitisedResourceAsync(string identifier)
         {
             IDigitisedResource digResource;
-            var metsResource = metsRepository.Get(identifier);
+            var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation)
             {
                 digResource = MakeDigitisedManifestation(metsResource as IManifestation);
@@ -695,7 +696,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public int DeleteOrphans(string id)
         {
-            var manif = (IDigitisedManifestation)GetDigitisedResource(id);
+            var manif = (IDigitisedManifestation)GetDigitisedResourceAsync(id);
             var syncOp = GetDlcsSyncOperation(manif, false);
             return dlcs.DeleteImages(syncOp.Orphans);
         }

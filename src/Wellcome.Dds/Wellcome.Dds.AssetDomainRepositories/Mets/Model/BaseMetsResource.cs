@@ -1,4 +1,5 @@
 ﻿using Utils;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 
@@ -12,7 +13,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public int? Order { get; set; }
         public IModsData ModsData { get; set; }
         public IModsData ParentModsData { get; set; }
-        public IStoredFileInfo SourceFile { get; set; }
+        public IArchiveStorageStoredFileInfo SourceFile { get; set; }
         public bool Partial { get; set; }
         
         protected string GetLabel(ILogicalStructDiv div, IModsData mods)

@@ -1,4 +1,5 @@
 ﻿using System;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomain.Mets
@@ -31,7 +32,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
 
         AssetFamily Family { get; set; }
 
-        IStoredFileInfo GetStoredFileInfo();
-        IStoredFileInfo GetStoredAltoFileInfo();
+        IArchiveStorageStoredFileInfo GetStoredFileInfo();
+        IArchiveStorageStoredFileInfo GetStoredAltoFileInfo();
     }
 }

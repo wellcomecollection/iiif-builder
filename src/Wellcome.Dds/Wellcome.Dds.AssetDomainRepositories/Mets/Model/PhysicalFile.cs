@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using Utils;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -123,12 +124,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public AssetFamily Family { get; set; }
 
-        public IStoredFileInfo GetStoredFileInfo()
+        public IArchiveStorageStoredFileInfo GetStoredFileInfo()
         {
             return WorkStore.GetFileInfoForPath(RelativePath);
         }
 
-        public IStoredFileInfo GetStoredAltoFileInfo()
+        public IArchiveStorageStoredFileInfo GetStoredAltoFileInfo()
         {
             if (!RelativeAltoPath.HasText())
             {

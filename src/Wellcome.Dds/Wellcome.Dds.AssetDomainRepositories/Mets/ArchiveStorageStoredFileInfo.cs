@@ -1,9 +1,9 @@
 ﻿using System;
 using Wellcome.Dds.AssetDomain;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Mets
+namespace Wellcome.Dds.AssetDomainRepositories
 {
-    public class ArchiveStorageStoredFileInfo : IStoredFileInfo
+    public class ArchiveStorageStoredFileInfo : IArchiveStorageStoredFileInfo
     {
         public ArchiveStorageStoredFileInfo(DateTime lastWriteTime, string uri, string relativePath)
         {

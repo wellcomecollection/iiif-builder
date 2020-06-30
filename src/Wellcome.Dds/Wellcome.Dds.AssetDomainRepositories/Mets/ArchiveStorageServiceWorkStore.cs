@@ -1,11 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Xml.Linq;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
@@ -84,21 +86,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return string.Format(fullUriTemplate, ArchiveStorageMap.BucketName, foundKey);
         }
 
-        public XmlSource LoadXmlForPath(string relativePath)
+        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForPathAsync(string relativePath)
         {
-            return LoadXmlForPath(relativePath, true);
+            return await LoadXmlForPathAsync(relativePath, true);
         }
 
-        public XmlSource LoadXmlForPath(string relativePath, bool useCache)
+        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache)
         {
             XElement metsXml;
             if (useCache)
             {
-                metsXml = factory.Cache.GetCached(factory.CacheTimeSeconds, relativePath, () => LoadXElement(relativePath));
+                metsXml = await factory.Cache.GetCached(factory.CacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
             }
             else
             {
-                metsXml = LoadXElement(relativePath);
+                metsXml = await LoadXElementAsync(relativePath);
             }
             return new XmlSource
             {
@@ -107,19 +109,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        public XmlSource LoadXmlForIdentifier(string identifier)
+        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForIdentifierAsync(string identifier)
         {
             string relativePath = identifier + ".xml";
-            return LoadXmlForPath(relativePath);
+            return await LoadXmlForPathAsync(relativePath);
         }
 
-        public IStoredFileInfo GetFileInfoForIdentifier(string identifier)
+        public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)
         {
             var relativePath = identifier + ".xml";
             return GetFileInfoForPath(relativePath);
         }
 
-        public IStoredFileInfo GetFileInfoForPath(string relativePath)
+        public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
         {
             return new ArchiveStorageStoredFileInfo(
                 ArchiveStorageMap.StorageManifestCreated, 
@@ -127,10 +129,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 relativePath);
         }
 
-        public Stream GetStreamForPath(string relativePath)
+        public async System.Threading.Tasks.Task<Stream> GetStreamForPathAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = GetS3Client().GetObject(req))
+            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
             using (Stream responseStream = response.ResponseStream)
             {
                 MemoryStream stream = new MemoryStream();
@@ -149,10 +151,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        private XElement LoadXElement(string relativePath)
+        private async System.Threading.Tasks.Task<XElement> LoadXElementAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = GetS3Client().GetObject(req))
+            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
             using (Stream responseStream = response.ResponseStream)
             {
                 return XElement.Load(responseStream);
@@ -169,12 +171,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return factory.GetStorageManifest(Identifier);
         }
 
-        public void WriteFile(string relativePath, string destination)
+        public async System.Threading.Tasks.Task WriteFileAsync(string relativePath, string destination)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = GetS3Client().GetObject(req))
+            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
             {
-                response.WriteResponseStreamToFile(destination);
+                // TODO: What should the cancellation token be?
+                await response.WriteResponseStreamToFileAsync(destination, false, CancellationToken.None);
             }
         }
     }

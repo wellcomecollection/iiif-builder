@@ -7,10 +7,12 @@ using System.Net;
 using System.Net.Cache;
 using System.Text;
 using System.Threading;
-using Digirati.Util;
 using Digirati.Util.Caching;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
+using Utils;
+using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
@@ -18,60 +20,42 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     public class ArchiveStorageServiceWorkStorageFactory : IWorkStorageFactory
     {
         private ILogger<ArchiveStorageServiceWorkStorageFactory> logger;
-
+        private StorageOptions storageOptions;
         internal readonly ISimpleCache Cache;
+        private readonly IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache;
+        private WellcomeApiToken Token { get; set; }
 
-        private readonly BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap> storageMapCache;
+        //private readonly BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         // if using with a shared cache. But you should really only use this with a request.items cache.
         internal readonly int CacheTimeSeconds = 60;
-        
-        private static readonly string ClientId = StringUtils.GetAppSetting("ArchiveStorage-ClientId", null);
-        private static readonly string ClientSecret = StringUtils.GetAppSetting("ArchiveStorage-ClientSecret", null);
-        private static readonly string StorageApiTemplate = StringUtils.GetAppSetting("ArchiveStorage-StorageApiTemplate", null);
-        private static readonly string TokenEndPoint = StringUtils.GetAppSetting("ArchiveStorage-TokenEndPoint", null);
-        private static readonly string Scope = StringUtils.GetAppSetting("ArchiveStorage-Scope", null);
-
-
-        // This is the length of the substring "data/"
+        //// This is the length of the substring "data/"
         private const int DataPathElementOffset = 5;
 
-        private static readonly bool PreferCachedStorageMap =
-            StringUtils.GetBoolFromAppSetting("ArchiveStorage-PreferCachedStorageMap", true);
-        private static readonly int MaxAgeStorageMap =
-            StringUtils.GetInt32FromAppSetting("ArchiveStorage-MaxAgeStorageMap", -1);
-
-        // for migration:
-        private static readonly string IngestScope = StringUtils.GetAppSetting("ArchiveStorage-ScopeIngest", null);
-        private static readonly string IngestTemplate = StringUtils.GetAppSetting("ArchiveStorage-StorageApiTemplateIngest", null);
-
-        private static readonly string IngestsForIdTemplate =
-            StringUtils.GetAppSetting("ArchiveStorage-StorageApiIngestsForIdTemplate", null);
-            
-        private WellcomeApiToken Token { get; set; }
-        
         public ArchiveStorageServiceWorkStorageFactory(
             ILogger<ArchiveStorageServiceWorkStorageFactory> logger,
-            ISimpleCache cache,
-            string cacheFolder,
-            int httpRuntimeCacheSeconds)
+            IOptions<StorageOptions> storageOptions,
+            IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache,
+            ISimpleCache cache)
         {
             this.logger = logger;
+            this.storageOptions = storageOptions.Value;
+            this.storageMapCache = storageMapCache;
             Cache = cache;
-            storageMapCache = new BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap>(cacheFolder, "storagemap_", httpRuntimeCacheSeconds);
+            // storageMapCache = new BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap>(cacheFolder, "storagemap_", httpRuntimeCacheSeconds);
         }
 
         private bool NeedsRebuilding (WellcomeBagAwareArchiveStorageMap map)
         {
-            if (PreferCachedStorageMap)
+            if (storageOptions.PreferCachedStorageMap)
             {
                 return false;
             }
-            if (MaxAgeStorageMap < 0)
+            if (storageOptions.MaxAgeStorageMap < 0)
             {
                 return false;
             }
             var age = DateTime.Now - map.Built;
-            return age.TotalSeconds > MaxAgeStorageMap;
+            return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
         }
 
         public IWorkStore GetWorkStore(string identifier)
@@ -140,10 +124,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     if (!IsProtocolError(ex))
                     {
-                        Log.Error("Could not get storage manifest", ex);
+                        logger.LogError("Could not get storage manifest", ex);
                         throw;
                     }
-                    Log.Warn("Protocol exception fetching storage manifest, will retry");
+                    logger.LogWarning("Protocol exception fetching storage manifest, will retry");
                     apiException = ex;
                     Thread.Sleep(tries*tries*1000);
                 }
@@ -153,11 +137,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 if (apiException != null)
                 {
-                    Log.Error("Unable to load storage manifest for " + identifier, apiException);
+                    logger.LogError("Unable to load storage manifest for " + identifier, apiException);
                     throw new ApplicationException("Unable to load storage manifest for "
                                                    + identifier + " - " + apiException.Message, apiException);
                 }
-                Log.Error("Unable to load storage manifest for " + identifier);
+                logger.LogError("Unable to load storage manifest for " + identifier);
                 throw new ApplicationException("Unable to load storage manifest for " + identifier);
             }
             return storageManifest;
@@ -178,7 +162,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public JObject GetStorageManifest(string identifier)
         {
-            var storageManifestUrl = String.Format(StorageApiTemplate, identifier);
+            var storageManifestUrl = String.Format(storageOptions.StorageApiTemplate, identifier);
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += "?ts=" + DateTime.Now.Ticks;
             return (JObject)GetOAuthedJToken(storageManifestUrl);
@@ -227,11 +211,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     var data = new NameValueCollection();
                     data["grant_type"] = "client_credentials";
-                    data["client_id"] = ClientId;
-                    data["client_secret"] = ClientSecret;
-                    if (scope == null) scope = Scope;
+                    data["client_id"] = storageOptions.ClientId;
+                    data["client_secret"] = storageOptions.ClientSecret;
+                    if (scope == null) scope = storageOptions.Scope;
                     data["scope"] = scope;
-                    var response = wb.UploadValues(TokenEndPoint, "POST", data);
+                    var response = wb.UploadValues(storageOptions.TokenEndPoint, "POST", data);
                     responseString = Encoding.UTF8.GetString(response);
                 }
                
@@ -249,23 +233,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public JObject GetIngest(string ingestId)
         {
-            var url = IngestTemplate + "/" + ingestId;
-            return (JObject)GetOAuthedJToken(url, IngestScope);
+            var url = storageOptions.StorageApiTemplateIngest + "/" + ingestId;
+            return (JObject)GetOAuthedJToken(url, storageOptions.ScopeIngest);
         }
 
-        public JToken GetIngestsForIdentifier(string identifier)
-        {
-            var url = string.Format(IngestsForIdTemplate, identifier);
-            return GetOAuthedJToken(url, IngestScope);
-        }
+        // This API has been retired
+        //public JToken GetIngestsForIdentifier(string identifier)
+        //{
+        //    var url = string.Format(storageOptions. IngestsForIdTemplate, identifier);
+        //    return GetOAuthedJToken(url, IngestScope);
+        //}
 
         public JObject PostIngest(string body)
         {
-            var accessToken = GetToken(IngestScope).AccessToken;
+            var accessToken = GetToken(storageOptions.ScopeIngest).AccessToken;
             using (WebClient client = WebClientProvider.GetWebClient())
             {
                 client.Headers[HttpRequestHeader.Authorization] = "Bearer " + accessToken;
-                var jsonStr = client.UploadString(IngestTemplate, body);
+                var jsonStr = client.UploadString(storageOptions.StorageApiTemplateIngest, body);
                 return JObject.Parse(jsonStr);
             }
         }
