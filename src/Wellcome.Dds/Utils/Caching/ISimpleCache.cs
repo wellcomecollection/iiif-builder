@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Digirati.Util.Caching
+namespace Utils.Caching
 {
     /// <summary>
     /// This interface encapsulates what we usually want to do with a cache in simple terms.

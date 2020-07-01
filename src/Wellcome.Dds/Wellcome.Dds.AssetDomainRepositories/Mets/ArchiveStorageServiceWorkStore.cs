@@ -16,7 +16,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
     public class ArchiveStorageServiceWorkStore : IWorkStore
     {
-        private AmazonS3Client s3Client;
+        private IAmazonS3 storageServiceS3;
         private readonly ArchiveStorageServiceWorkStorageFactory factory;
 
         public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; private set; }
@@ -24,7 +24,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public ArchiveStorageServiceWorkStore(
             string identifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
-            ArchiveStorageServiceWorkStorageFactory factory)
+            ArchiveStorageServiceWorkStorageFactory factory,
+            IAmazonS3 storageServiceS3)
         {
             if (archiveStorageMap == null)
             {
@@ -34,19 +35,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             Identifier = identifier;
             this.factory = factory;
             ArchiveStorageMap = archiveStorageMap;
+            this.storageServiceS3 = storageServiceS3;
         }
-
-        private AmazonS3Client GetS3Client()
-        {
-            if (s3Client == null)
-            {
-                var credentials = new StoredProfileAWSCredentials("storage");
-                s3Client = new AmazonS3Client(credentials, RegionEndpoint.EUWest1);
-            }
-            return s3Client;
-        }
-
-        
+               
 
         public string Identifier { get; set; }
 
@@ -132,7 +123,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public async System.Threading.Tasks.Task<Stream> GetStreamForPathAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
+            using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
             using (Stream responseStream = response.ResponseStream)
             {
                 MemoryStream stream = new MemoryStream();
@@ -154,7 +145,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private async System.Threading.Tasks.Task<XElement> LoadXElementAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
+            using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
             using (Stream responseStream = response.ResponseStream)
             {
                 return XElement.Load(responseStream);
@@ -174,7 +165,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public async System.Threading.Tasks.Task WriteFileAsync(string relativePath, string destination)
         {
             var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = await GetS3Client().GetObjectAsync(req))
+            using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
             {
                 // TODO: What should the cancellation token be?
                 await response.WriteResponseStreamToFileAsync(destination, false, CancellationToken.None);

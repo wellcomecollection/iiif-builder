@@ -1,8 +1,25 @@
-﻿@model string
+﻿@using Wellcome.Dds.AssetDomain.Mets
+
+@model Wellcome.Dds.Dashboard.Models.TestModel
 <!DOCTYPE html>
 <html>
 <body>
     <p>Hello from Wellcome.Dds.Dashboard</p>
-    <p>Queue level (fake) is @Model</p>
+    @if (Model.Message != null)
+    {
+<p>@Model.Message</p>
+    }
+    else
+    {
+<h2>@Model.Manifestation.MetsManifestation.Label</h2>
+
+<ul>
+    @foreach (IPhysicalFile f in Model.Manifestation.MetsManifestation.Sequence)
+    {
+        <li>(@f.AccessCondition) | @f.RelativePath has text @f.RelativeAltoPath</li>
+    }
+
+</ul>
+}
 </body>
 </html>

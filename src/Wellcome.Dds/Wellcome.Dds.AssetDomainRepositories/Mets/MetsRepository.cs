@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Utils;
@@ -16,16 +14,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
     public class MetsRepository : IMetsRepository
     {
-        private readonly ReaderWriterLockSlim issueCacheLock = new ReaderWriterLockSlim();
-        private static readonly Dictionary<string, Dictionary<string, int>> IssueCache = new Dictionary<string, Dictionary<string, int>>();
-        private readonly string issueCacheDirectory;
+        // private readonly ReaderWriterLockSlim issueCacheLock = new ReaderWriterLockSlim();
+        // private static readonly Dictionary<string, Dictionary<string, int>> IssueCache = new Dictionary<string, Dictionary<string, int>>();
+        // private readonly string issueCacheDirectory;
 
         private readonly IWorkStorageFactory workStorageFactory;
 
-        public MetsRepository(IWorkStorageFactory workStorageFactory, string issueCacheDirectory)
+        public MetsRepository(IWorkStorageFactory workStorageFactory) //, string issueCacheDirectory)
         {
+            // Ignore Chemist and Druggist for now, come back to this later
             this.workStorageFactory = workStorageFactory;
-            this.issueCacheDirectory = issueCacheDirectory;
+            // this.issueCacheDirectory = issueCacheDirectory;
         }
 
         public async Task<IMetsResource> GetAsync(string identifier)
@@ -207,76 +206,77 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumberAndSequenceIndex:
                     throw new ArgumentException("Identifier already assumes sequence index");
                 case IdentifierType.Issue:
-                    return GetCachedIssueSequenceIndex(ddsId);
+                    throw new NotImplementedException("TODO - restore issue cache mechanism");
+                    // return GetCachedIssueSequenceIndex(ddsId);
             }
 
             throw new NotSupportedException("Unknown identifier");
         }
 
-        private int GetCachedIssueSequenceIndex(DdsIdentifier ddsIdentifier)
-        {
-            issueCacheLock.EnterUpgradeableReadLock();
-            try
-            {
-                if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
-                {
-                    issueCacheLock.EnterWriteLock();
-                    try
-                    {
-                        if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
-                        {
-                            BuildIssueCache(ddsIdentifier.BNumber);
-                        }
-                    }
-                    finally
-                    {
-                        issueCacheLock.ExitWriteLock();
-                    }
-                }
-            }
-            finally
-            {
-                issueCacheLock.ExitUpgradeableReadLock();
-            }
-            return IssueCache[ddsIdentifier.BNumber][ddsIdentifier];
-        }
+        //private int GetCachedIssueSequenceIndex(DdsIdentifier ddsIdentifier)
+        //{
+        //    issueCacheLock.EnterUpgradeableReadLock();
+        //    try
+        //    {
+        //        if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
+        //        {
+        //            issueCacheLock.EnterWriteLock();
+        //            try
+        //            {
+        //                if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
+        //                {
+        //                    BuildIssueCache(ddsIdentifier.BNumber);
+        //                }
+        //            }
+        //            finally
+        //            {
+        //                issueCacheLock.ExitWriteLock();
+        //            }
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        issueCacheLock.ExitUpgradeableReadLock();
+        //    }
+        //    return IssueCache[ddsIdentifier.BNumber][ddsIdentifier];
+        //}
 
-        private void BuildIssueCache(string bNumber, bool diskCacheStale = false)
-        {
-            // TODO: job that rebuilds on new thread if older than X ? rebuild nightly?
+        //private void BuildIssueCache(string bNumber, bool diskCacheStale = false)
+        //{
+        //    // TODO: job that rebuilds on new thread if older than X ? rebuild nightly?
 
-            XmlSerializer serializer = new XmlSerializer(typeof (IssueDictItem[]),
-                new XmlRootAttribute {ElementName = "items"});
-            // Note to self - this file op is local to the DDS, not in the METS storage.
-            // TODO - pull out this cache file system ops.
-            var serialised = Path.Combine(issueCacheDirectory, bNumber + ".xml");
-            if (File.Exists(serialised) && !diskCacheStale)
-            {
-                using (TextReader reader = File.OpenText(serialised))
-                {
-                    IssueCache[bNumber] = ((IssueDictItem[]) serializer.Deserialize(reader))
-                        .ToDictionary(i => i.Identifier, i => i.SequenceIndex);
-                }
-                return;
-            }
-            int sequenceIndex = 0;
-            IssueCache[bNumber] = new Dictionary<string, int>();
-            var rootCollection = GetAsync(bNumber) as ICollection;
-            foreach (var partialVolume in rootCollection.Collections)
-            {
-                var volume = GetAsync(partialVolume.Id) as ICollection;
-                foreach (var issue in volume.Manifestations)
-                {
-                    IssueCache[bNumber][issue.Id] = sequenceIndex++;
-                }
-            }
-            using (FileStream fs = File.OpenWrite(serialised))
-            {
-                serializer.Serialize(fs,
-                    IssueCache[bNumber].Select(kv => new IssueDictItem {Identifier = kv.Key, SequenceIndex = kv.Value})
-                        .ToArray());
-            }
-        }
+        //    XmlSerializer serializer = new XmlSerializer(typeof (IssueDictItem[]),
+        //        new XmlRootAttribute {ElementName = "items"});
+        //    // Note to self - this file op is local to the DDS, not in the METS storage.
+        //    // TODO - pull out this cache file system ops.
+        //    var serialised = Path.Combine(issueCacheDirectory, bNumber + ".xml");
+        //    if (File.Exists(serialised) && !diskCacheStale)
+        //    {
+        //        using (TextReader reader = File.OpenText(serialised))
+        //        {
+        //            IssueCache[bNumber] = ((IssueDictItem[]) serializer.Deserialize(reader))
+        //                .ToDictionary(i => i.Identifier, i => i.SequenceIndex);
+        //        }
+        //        return;
+        //    }
+        //    int sequenceIndex = 0;
+        //    IssueCache[bNumber] = new Dictionary<string, int>();
+        //    var rootCollection = GetAsync(bNumber) as ICollection;
+        //    foreach (var partialVolume in rootCollection.Collections)
+        //    {
+        //        var volume = GetAsync(partialVolume.Id) as ICollection;
+        //        foreach (var issue in volume.Manifestations)
+        //        {
+        //            IssueCache[bNumber][issue.Id] = sequenceIndex++;
+        //        }
+        //    }
+        //    using (FileStream fs = File.OpenWrite(serialised))
+        //    {
+        //        serializer.Serialize(fs,
+        //            IssueCache[bNumber].Select(kv => new IssueDictItem {Identifier = kv.Key, SequenceIndex = kv.Value})
+        //                .ToArray());
+        //    }
+        //}
 
         private async Task<ILogicalStructDiv> GetFileStructMapAsync(string identifier, IWorkStore workStore)
         {

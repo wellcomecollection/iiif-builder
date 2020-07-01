@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Cache;
 using System.Text;
 using System.Threading;
-using Digirati.Util.Caching;
+using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
@@ -19,6 +19,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
     public class ArchiveStorageServiceWorkStorageFactory : IWorkStorageFactory
     {
+        private IAmazonS3 storageServiceS3;
         private ILogger<ArchiveStorageServiceWorkStorageFactory> logger;
         private StorageOptions storageOptions;
         internal readonly ISimpleCache Cache;
@@ -35,12 +36,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             ILogger<ArchiveStorageServiceWorkStorageFactory> logger,
             IOptions<StorageOptions> storageOptions,
             IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache,
-            ISimpleCache cache)
+            ISimpleCache cache,
+            IAmazonS3 storageServiceS3)
         {
             this.logger = logger;
             this.storageOptions = storageOptions.Value;
             this.storageMapCache = storageMapCache;
             Cache = cache;
+            this.storageServiceS3 = storageServiceS3;
             // storageMapCache = new BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap>(cacheFolder, "storagemap_", httpRuntimeCacheSeconds);
         }
 
@@ -63,7 +66,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             Func<WellcomeBagAwareArchiveStorageMap> getFromSource = () => BuildStorageMap(identifier);
             logger.LogInformation("Getting IWorkStore for " + identifier);
             WellcomeBagAwareArchiveStorageMap storageMap = storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
-            return new ArchiveStorageServiceWorkStore(identifier, storageMap, this);
+            return new ArchiveStorageServiceWorkStore(identifier, storageMap, this, storageServiceS3);
         }
 
         private WellcomeBagAwareArchiveStorageMap BuildStorageMap(string identifier)

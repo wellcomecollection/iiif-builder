@@ -3,9 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
+using Wellcome.Dds.Common;
+using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -18,10 +21,24 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dashboardRepository = dashboardRepository;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> IndexAsync(string id)
         {
-            var queueLevel = dashboardRepository.GetDlcsQueueLevel();
-            return View((object)$"{queueLevel.Keys.First()} : {queueLevel.Values.First()}");
+            if(!id.HasText())
+            {
+                return RedirectToAction("Index", new { id = "b28047345" });
+            }
+            IDigitisedResource dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+            if (!(dgResource is IDigitisedManifestation))
+            {
+                var model = new TestModel { Message = "Only manifestations so far, no collections" };
+                return View(model);
+            }
+            else
+            {
+                var model = new TestModel { Manifestation = dgResource as IDigitisedManifestation };
+                return View(model);
+            }
+
         }
     }
 }
