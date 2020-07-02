@@ -48,31 +48,6 @@ namespace Wellcome.Dds.Server.Controllers
             }
         }
 
-        [Route("service/env")]
-        [HttpGet]
-        public IActionResult EnvCheck()
-        {
-            var list = string.Join(",", _config.GetChildren().Select(c => c.Key));
-            try
-            {
-                var x  = _config.GetConnectionString("Dds").Substring(0, 10);
-                var s = _config.GetConnectionString("DdsInstrumentation").Substring(0, 10);
-                return Ok(new
-                {
-                    dds = x,
-                    ddsInstr = s,
-                    list
-                });
-            }
-            catch (Exception e)
-            {
-                return Ok(new
-                {
-                    list
-                });
-            }
-        }
-
         [Route("service/conn/{name}")]
         [HttpGet]
         public IActionResult ConnCheck(string name)
