@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
@@ -6,6 +7,13 @@ namespace Wellcome.Dds.Server.Controllers
     [ApiController]
     public class ServiceController : ControllerBase
     {
+        private readonly IConfiguration _config;
+
+        public ServiceController(IConfiguration config)
+        {
+            _config = config;
+        }
+        
         /// <summary>
         /// Test HelloWorld action method. Takes a bnumber and tries to normalise it.
         /// </summary>
@@ -35,6 +43,20 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 return Ok($"I know what you mean, but {normalised} is the canonical form of {id}.");
             }
+        }
+
+        [Route("service/env")]
+        [HttpGet]
+        public IActionResult EnvCheck()
+        {
+            var xx = _config;
+            var x  = _config.GetConnectionString("Dds").Substring(0, 10);
+            var s = _config.GetConnectionString("DdsInstrumentation").Substring(0, 10);
+            return Ok(new
+            {
+                dds = x,
+                ddsInstr = s,
+            });
         }
     }
 }
