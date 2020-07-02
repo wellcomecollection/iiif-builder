@@ -24,9 +24,9 @@ namespace Wellcome.Dds.Server
 
             services.AddSwagger();
 
-            services.AddHealthChecks()
-                .AddNpgSql(Configuration.GetConnectionString("Dds"), name: "Dds_DB")
-                .AddNpgSql(Configuration.GetConnectionString("DdsInstrumentation"), name: "DdsInstrumentation_DB");
+            services.AddHealthChecks();
+            //.AddNpgSql(Configuration.GetConnectionString("Dds"), name: "Dds_DB")
+            //.AddNpgSql(Configuration.GetConnectionString("DdsInstrumentation"), name: "DdsInstrumentation_DB");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
