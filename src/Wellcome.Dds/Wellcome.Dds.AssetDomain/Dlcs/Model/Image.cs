@@ -120,5 +120,53 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 81, PropertyName = "thumbnailPolicy")]
         public string ThumbnailPolicy { get; set; }
 
+        /// <summary>
+        /// Get a suitable thumbnail for this image.
+        /// If you want to use a fast thumb at a different size,
+        /// this will work out the scaled dimensions.
+        /// </summary>
+        /// <param name="actualBoundingSize">One of the known optimised thumbnail sizes</param>
+        /// <param name="scaledBoundingSize">The size you want to use it at</param>
+        /// <param name="defaultSpace">BUG - Images are coming back from DLCS without space populated.</param>
+        /// <returns></returns>
+        public Thumbnail GetThumbnail(int actualBoundingSize, int scaledBoundingSize, int defaultSpace)
+        {
+            var iiifArgs = $"/full/!{actualBoundingSize},{actualBoundingSize}/0/default.jpg";
+            var src = GetIIIFImageService("thumbs", defaultSpace) + iiifArgs;
+            if (Width <= scaledBoundingSize && Height <= scaledBoundingSize)
+            {
+                return new Thumbnail
+                {
+                    Width = scaledBoundingSize,
+                    Height = scaledBoundingSize,
+                    Src = src
+                };
+            }
+            var scaleW = scaledBoundingSize / (double)Width;
+            var scaleH = scaledBoundingSize / (double)Height;
+            var scale = Math.Min(scaleW, scaleH);
+            return new Thumbnail
+            {
+                Width = (int)Math.Round((Width.Value * scale)),
+                Height = (int)Math.Round((Height.Value * scale)),
+                Src = src
+            };
+        }
+
+
+        public string GetIIIFImageService(string serviceType, int defaultSpace)
+        {
+            int? space = Space ?? defaultSpace; // TODO - we shouldn't need this. DLCS should return space populated.
+            const string template = "https://dlcs.io/{0}/{1}/{2}/{3}"; // ALSO don't hard code this!
+            return string.Format(template, serviceType, 2, space, StorageIdentifier);
+        }
+
+    }
+
+    public class Thumbnail
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string Src { get; set; }
     }
 }

@@ -25,9 +25,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             if(!id.HasText())
             {
-                return RedirectToAction("Index", new { id = "b28047345" });
+                return RedirectToAction("Index", new { id = "b18402768" });
             }
             IDigitisedResource dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+
             if (!(dgResource is IDigitisedManifestation))
             {
                 var model = new TestModel { Message = "Only manifestations so far, no collections" };
@@ -35,7 +36,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             else
             {
-                var model = new TestModel { Manifestation = dgResource as IDigitisedManifestation };
+                var dgManifestation = dgResource as IDigitisedManifestation;
+                var syncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                // We want to have these running AT THE SAME TIME...
+                // Not sure that's possible as we need the image list.
+                // still, there are other things that can be async.
+                var model = new TestModel { 
+                    Manifestation = dgResource as IDigitisedManifestation,
+                    SyncOperation = syncOperation,
+                    DefaultSpace = dashboardRepository.DefaultSpace
+                };
                 return View(model);
             }
 

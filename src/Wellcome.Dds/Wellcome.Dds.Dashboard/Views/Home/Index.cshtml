@@ -1,25 +1,75 @@
 ﻿@using Wellcome.Dds.AssetDomain.Mets
+@using Utils
 
 @model Wellcome.Dds.Dashboard.Models.TestModel
 <!DOCTYPE html>
 <html>
+<head>
+    <style>
+        body {
+            font-family:sans-serif;
+        }
+        td {
+            border-bottom: 1px solid lightgray;
+        }
+    </style>
+</head>
 <body>
-    <p>Hello from Wellcome.Dds.Dashboard</p>
+    <p>Hello from Wellcome.Dds.Dashboard! This demo only works for image-based resources. For now.</p>
     @if (Model.Message != null)
     {
-<p>@Model.Message</p>
+        <p>@Model.Message</p>
     }
     else
     {
-<h2>@Model.Manifestation.MetsManifestation.Label</h2>
+        <h2>@Model.Manifestation.MetsManifestation.Label</h2>
 
-<ul>
-    @foreach (IPhysicalFile f in Model.Manifestation.MetsManifestation.Sequence)
-    {
-        <li>(@f.AccessCondition) | @f.RelativePath has text @f.RelativeAltoPath</li>
-    }
+        
+        <table cellpadding="5">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Label</th>
+                    <th>Dimensions</th>
+                    <th>Access</th>
+                    <th>ALTO</th>
+                    <th>DLCS</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
 
-</ul>
-}
-</body>
+                @foreach (IPhysicalFile pf in Model.Manifestation.MetsManifestation.Sequence)
+                {
+                    var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
+                    <tr>
+                        <td>@pf.Order</td>
+                            <td>@pf.OrderLabel</td>
+                            <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
+                            <td>@pf.AccessCondition</td>
+                            <td>@pf.RelativeAltoPath</td>
+                        @{
+                            if (dlcsImage != null)
+                            {
+                                <td>
+                                    <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>@pf.StorageIdentifier</td>
+                            }
+                        }
+                        <td>
+                            @{
+                                var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                            }
+                                <img width="@thumb24.Width" height="@thumb24.Height" src="@thumb24.Src" />
+                        </td>
+                    </tr>
+                                }
+            </tbody>
+        </table>
+                                }
+    </body>
 </html>

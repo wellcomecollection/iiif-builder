@@ -19,6 +19,10 @@ namespace Wellcome.Dds.AssetDomainRepositories
     /// </summary>
     public class DdsInstrumentationContext : DbContext
     {
+        public DdsInstrumentationContext(DbContextOptions<DdsInstrumentationContext> options) : base(options)
+        { }
+
+
         // From CloudIngestContext:
         public DbSet<DlcsIngestJob> DlcsIngestJobs { get; set; }
         public DbSet<DlcsBatch> DlcsBatches { get; set; }

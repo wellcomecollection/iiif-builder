@@ -66,7 +66,7 @@ namespace Wellcome.Dds.Dashboard
             // This is the one that needss an IAmazonS3 with the storage profile
             services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
-            services.AddSingleton<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
         }
 
