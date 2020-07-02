@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Wellcome.Dds.Common;
@@ -49,14 +51,25 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet]
         public IActionResult EnvCheck()
         {
-            var xx = _config;
-            var x  = _config.GetConnectionString("Dds").Substring(0, 10);
-            var s = _config.GetConnectionString("DdsInstrumentation").Substring(0, 10);
-            return Ok(new
+            var list = string.Join(",", _config.GetChildren().Select(c => c.Key));
+            try
             {
-                dds = x,
-                ddsInstr = s,
-            });
+                var x  = _config.GetConnectionString("Dds").Substring(0, 10);
+                var s = _config.GetConnectionString("DdsInstrumentation").Substring(0, 10);
+                return Ok(new
+                {
+                    dds = x,
+                    ddsInstr = s,
+                    list
+                });
+            }
+            catch (Exception e)
+            {
+                return Ok(new
+                {
+                    list
+                });
+            }
         }
     }
 }
