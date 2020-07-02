@@ -8,6 +8,7 @@ using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,9 +19,9 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
-using Wellcome.Dds.AssetDomainRepositories.WorkflowJobs;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard
@@ -37,7 +38,10 @@ namespace Wellcome.Dds.Dashboard
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<WorkflowContext>(); 
+            services.AddDbContext<DdsInstrumentationContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+
             // How do we have more than one IAmazonS3 - we have two different profiles
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Storage-AWS"));
             services.AddAWSService<IAmazonS3>();

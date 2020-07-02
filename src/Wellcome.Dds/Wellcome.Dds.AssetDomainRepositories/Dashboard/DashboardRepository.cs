@@ -11,7 +11,6 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.AssetDomainRepositories.DlcsJobs;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
@@ -20,9 +19,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
     {
         private ILogger<DashboardRepository> logger;
         private DdsOptions ddsOptions;
-
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
+        private DdsInstrumentationContext ddsInstrumentationContext;
 
         public int DefaultSpace { get; set; }
 
@@ -30,13 +29,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             ILogger<DashboardRepository> logger,
             IOptions<DdsOptions> ddsOptions,
             IDlcs dlcs, 
-            IMetsRepository metsRepository)
+            IMetsRepository metsRepository,
+            DdsInstrumentationContext ddsInstrumentationContext)
         {
             this.logger = logger;
             this.ddsOptions = ddsOptions.Value;
             this.dlcs = dlcs;
             DefaultSpace = dlcs.DefaultSpace;
             this.metsRepository = metsRepository;
+            this.ddsInstrumentationContext = ddsInstrumentationContext;
         }
 
         // make all the things, then hand back to DashboarcCloudServicesJobProcessor process job.
@@ -484,20 +485,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public IEnumerable<DlcsIngestJob> GetMostRecentIngestJobs(string identifier, int number)
         {
             int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
-
-            using (var ctx = new CloudIngestContext())
+            var jobQuery = GetJobQuery(identifier, legacySequenceIndex: sequenceIndex);
+            if (jobQuery == null)
             {
-                var jobQuery = GetJobQuery(identifier, ctx, legacySequenceIndex: sequenceIndex);
-                if (jobQuery == null)
-                {
-                    return new DlcsIngestJob[0];
-                }
-                return jobQuery
-                    .Include(j => j.DlcsBatches)
-                    .OrderByDescending(j => j.Created)
-                    .Take(number)
-                    .ToList();
+                return new DlcsIngestJob[0];
             }
+            return jobQuery
+                .Include(j => j.DlcsBatches)
+                .OrderByDescending(j => j.Created)
+                .Take(number)
+                .ToList();
         }
 
         public JobActivity GetRationalisedJobActivity(SyncOperation syncOperation)
@@ -516,26 +513,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public int RemoveOldJobs(string id)
         {
             int sequenceIndex = metsRepository.FindSequenceIndex(id);
-
-            using (var ctx = new CloudIngestContext())
+            var jobQuery = GetJobQuery(id, legacySequenceIndex: sequenceIndex);
+            if (jobQuery == null)
             {
-                var jobQuery = GetJobQuery(id, ctx, legacySequenceIndex: sequenceIndex);
-                if (jobQuery == null)
-                {
-                    return 0;
-                }
-                var jobs = jobQuery.OrderByDescending(j => j.Created).Skip(1).ToList();
-                int num = jobs.Count;
-                if (num > 0)
-                {
-                    foreach (var jobToRemove in jobs)
-                    {
-                        ctx.DlcsIngestJobs.Remove(jobToRemove);
-                    }
-                    ctx.SaveChanges();
-                }
-                return num;
+                return 0;
             }
+            var jobs = jobQuery.OrderByDescending(j => j.Created).Skip(1).ToList();
+            int num = jobs.Count;
+            if (num > 0)
+            {
+                foreach (var jobToRemove in jobs)
+                {
+                    ddsInstrumentationContext.DlcsIngestJobs.Remove(jobToRemove);
+                }
+                ddsInstrumentationContext.SaveChanges();
+            }
+            return num;
         }
 
 
@@ -550,57 +543,57 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <returns></returns>
         private IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(SyncOperation syncOperation, List<Batch> activeBatches)
         {
-            using (var ctx = new CloudIngestContext())
+            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier, legacySequenceIndex: syncOperation.LegacySequenceIndex);
+            if (jobQuery == null)
             {
-                var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier, ctx, legacySequenceIndex: syncOperation.LegacySequenceIndex);
-                if (jobQuery == null)
-                {
-                    return new DlcsIngestJob[0];
-                }
-                var jobs = jobQuery
-                    .Include(j => j.DlcsBatches)
-                    .OrderByDescending(j => j.Created)
-                    .ToList();
-                if (syncOperation.RequiresSync == false && !activeBatches.HasItems())
-                {
-                    bool flag = false;
-                    foreach (var job in jobs)
-                    {
-                        if (job.EndProcessed.HasValue && job.Succeeded == false)
-                        {
-                            flag = true;
-                            job.Succeeded = true;
-                        }
-                    }
-                    if (flag)
-                    {
-                        ctx.SaveChanges();
-                    }
-                }
-                return jobs;
+                return new DlcsIngestJob[0];
             }
+            var jobs = jobQuery
+                .Include(j => j.DlcsBatches)
+                .OrderByDescending(j => j.Created)
+                .ToList();
+            if (syncOperation.RequiresSync == false && !activeBatches.HasItems())
+            {
+                bool flag = false;
+                foreach (var job in jobs)
+                {
+                    if (job.EndProcessed.HasValue && job.Succeeded == false)
+                    {
+                        flag = true;
+                        job.Succeeded = true;
+                    }
+                }
+                if (flag)
+                {
+                    ddsInstrumentationContext.SaveChanges();
+                }
+            }
+            return jobs;
         }
 
-        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier, CloudIngestContext ctx, int legacySequenceIndex = -1)
+        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier, int legacySequenceIndex = -1)
         {
             var ddsId = new DdsIdentifier(identifier);            
             IQueryable<DlcsIngestJob> jobQuery = null;
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    jobQuery = ctx.DlcsIngestJobs.Where(j => j.Identifier == identifier);
+                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
+                        .Where(j => j.Identifier == identifier);
                     break;
                 case IdentifierType.Volume:
                     //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
-                    jobQuery = ctx.DlcsIngestJobs.Where(j => (j.VolumePart != null && j.VolumePart == identifier)
-                    || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
+                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
+                        .Where(j => (j.VolumePart != null && j.VolumePart == identifier)
+                        || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
                     break;
                 case IdentifierType.BNumberAndSequenceIndex:
-                    jobQuery =
-                        ctx.DlcsIngestJobs.Where(j => j.Identifier == ddsId.BNumber && j.SequenceIndex == ddsId.SequenceIndex);
+                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
+                        .Where(j => j.Identifier == ddsId.BNumber && j.SequenceIndex == ddsId.SequenceIndex);
                     break;
                 case IdentifierType.Issue:
-                    jobQuery = ctx.DlcsIngestJobs.Where(j => j.IssuePart == identifier);
+                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
+                        .Where(j => j.IssuePart == identifier);
                     break;
             }
             return jobQuery;
@@ -629,16 +622,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 }
             }
         }
-
-        private static readonly char[] SlashSeparator = new [] {'/'};
-
-        private Guid GetLocalGuid(string id)
-        {
-            // This relies on the fact that all Preservica / Wellcome IDs have a GUID as their last component
-            var last = id.Split(SlashSeparator).Last();
-            return new Guid(last);
-        }
-
 
         private string[] GetRoles(IPhysicalFile asset)
         {
@@ -703,34 +686,29 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null)
         {
-            using (var ctx = new CloudIngestContext())
+            var ia = new IngestAction
             {
-                var ia = new IngestAction
-                {
-                    Action = action,
-                    Description = description,
-                    JobId = jobId,
-                    ManifestationId = manifestationId,
-                    Performed = DateTime.Now,
-                    Username = userName
-                };
-                ctx.IngestActions.Add(ia);
-                ctx.SaveChanges();
-                return ia;
-            }
+                Action = action,
+                Description = description,
+                JobId = jobId,
+                ManifestationId = manifestationId,
+                Performed = DateTime.Now,
+                Username = userName
+            };
+            ddsInstrumentationContext.IngestActions.Add(ia);
+            ddsInstrumentationContext.SaveChanges();
+            return ia;
         }
 
         public IEnumerable<IngestAction> GetRecentActions(int count, string user = null)
         {
-            using (var ctx = new CloudIngestContext())
+            IQueryable<IngestAction> q = ddsInstrumentationContext
+                .IngestActions.OrderByDescending(ia => ia.Id);
+            if (user.HasText())
             {
-                IQueryable<IngestAction> q = ctx.IngestActions.OrderByDescending(ia => ia.Id);
-                if (user.HasText())
-                {
-                    q = q.Where(ia => ia.Username == user);
-                }
-                return q.Take(count).ToList();
+                q = q.Where(ia => ia.Username == user);
             }
+            return q.Take(count).ToList();
         }
 
         public Dictionary<string, long> GetDlcsQueueLevel()
