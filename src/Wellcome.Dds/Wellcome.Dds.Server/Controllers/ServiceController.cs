@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
@@ -69,6 +70,23 @@ namespace Wellcome.Dds.Server.Controllers
                 {
                     list
                 });
+            }
+        }
+
+        [Route("service/conn/{name}")]
+        [HttpGet]
+        public IActionResult ConnCheck(string name)
+        {
+            try
+            {
+                var conn = _config.GetConnectionString(name);
+                var connection = new NpgsqlConnection(conn);
+                connection.Open();
+                return Ok("Connected");
+            }
+            catch (Exception e)
+            {
+                return Problem(detail: e.Message, statusCode: 500, title: "Fail");
             }
         }
     }
