@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.5" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj" />
+    <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
+  </ItemGroup>
+
+</Project>
