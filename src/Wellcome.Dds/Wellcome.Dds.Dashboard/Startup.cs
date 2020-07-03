@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,6 +82,14 @@ namespace Wellcome.Dds.Dashboard
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            // This is required for ADAuth on linux containers. When hosting in ECS we are doing ssl termination
+            // at load-balancer, so by default redirect will be http - this ensures https
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedProto
+            });
+            
             app.UseStaticFiles();
             app.UseRouting();
             
