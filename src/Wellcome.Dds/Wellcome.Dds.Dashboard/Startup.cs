@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -42,6 +40,9 @@ namespace Wellcome.Dds.Dashboard
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
 
+            services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
+                .AddAzureAD(opts => Configuration.Bind("AzureAd", opts));
+            
             // How do we have more than one IAmazonS3 - we have two different profiles
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Storage-AWS"));
             services.AddAWSService<IAmazonS3>();
@@ -79,6 +80,10 @@ namespace Wellcome.Dds.Dashboard
             }
             app.UseStaticFiles();
             app.UseRouting();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+            
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
                 endpoints.MapDefaultControllerRoute();

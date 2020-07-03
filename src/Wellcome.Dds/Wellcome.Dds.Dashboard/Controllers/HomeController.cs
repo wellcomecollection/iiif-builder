@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -21,6 +22,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dashboardRepository = dashboardRepository;
         }
 
+        [Authorize]
         public async Task<IActionResult> IndexAsync(string id)
         {
             if(!id.HasText())
@@ -48,7 +50,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 };
                 return View(model);
             }
-
         }
+
+        public IActionResult Open() => Ok("Everyone can see this");
     }
 }
