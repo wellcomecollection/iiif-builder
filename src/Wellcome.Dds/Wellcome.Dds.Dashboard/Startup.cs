@@ -69,6 +69,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
+            // TODO - add DB health check
+            services.AddHealthChecks();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -87,6 +90,7 @@ namespace Wellcome.Dds.Dashboard
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
                 endpoints.MapDefaultControllerRoute();
+                endpoints.MapHealthChecks("/management/healthcheck");
             });
         }
     }

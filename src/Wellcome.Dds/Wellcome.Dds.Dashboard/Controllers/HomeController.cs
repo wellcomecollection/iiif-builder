@@ -29,27 +29,29 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 return RedirectToAction("Index", new { id = "b18402768" });
             }
-            IDigitisedResource dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
-
-            if (!(dgResource is IDigitisedManifestation))
-            {
-                var model = new TestModel { Message = "Only manifestations so far, no collections" };
-                return View(model);
-            }
-            else
-            {
-                var dgManifestation = dgResource as IDigitisedManifestation;
-                var syncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
-                // We want to have these running AT THE SAME TIME...
-                // Not sure that's possible as we need the image list.
-                // still, there are other things that can be async.
-                var model = new TestModel { 
-                    Manifestation = dgResource as IDigitisedManifestation,
-                    SyncOperation = syncOperation,
-                    DefaultSpace = dashboardRepository.DefaultSpace
-                };
-                return View(model);
-            }
+            
+            return Ok($"You asked for {id}");
+            // IDigitisedResource dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+            //
+            // if (!(dgResource is IDigitisedManifestation))
+            // {
+            //     var model = new TestModel { Message = "Only manifestations so far, no collections" };
+            //     return View(model);
+            // }
+            // else
+            // {
+            //     var dgManifestation = dgResource as IDigitisedManifestation;
+            //     var syncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+            //     // We want to have these running AT THE SAME TIME...
+            //     // Not sure that's possible as we need the image list.
+            //     // still, there are other things that can be async.
+            //     var model = new TestModel { 
+            //         Manifestation = dgResource as IDigitisedManifestation,
+            //         SyncOperation = syncOperation,
+            //         DefaultSpace = dashboardRepository.DefaultSpace
+            //     };
+            //     return View(model);
+            // }
         }
 
         public IActionResult Open() => Ok("Everyone can see this");
