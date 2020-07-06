@@ -4,13 +4,13 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace Utils.Storage.StorageImpl
+namespace Utils.Storage.FileSystem
 {
-    public class FileSystemStorage : IStorage
+    public class FileSystemCacheStorage : ICacheStorage
     {
-        private ILogger<FileSystemStorage> logger;
+        private ILogger<FileSystemCacheStorage> logger;
 
-        public FileSystemStorage(ILogger<FileSystemStorage> logger)
+        public FileSystemCacheStorage(ILogger<FileSystemCacheStorage> logger)
         {
             this.logger = logger;
         }

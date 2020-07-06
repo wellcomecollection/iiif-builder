@@ -10,14 +10,14 @@ namespace Utils.Caching
     {
         private ILogger<BinaryObjectCache<T>> logger;
         private BinaryObjectCacheOptions options;
-        private IStorage storage;
+        private ICacheStorage storage;
         private IMemoryCache memoryCache;
         private TimeSpan cacheDuration;
 
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
             IOptions<BinaryObjectCacheOptions> options,
-            IStorage storage,
+            ICacheStorage storage,
             IMemoryCache memoryCache
             )
         {

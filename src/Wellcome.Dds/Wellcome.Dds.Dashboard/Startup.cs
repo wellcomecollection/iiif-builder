@@ -1,20 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Utils.Caching;
 using Utils.Storage;
-using Utils.Storage.StorageImpl;
+using Utils.Storage.FileSystem;
+using Utils.Storage.S3;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -42,9 +38,19 @@ namespace Wellcome.Dds.Dashboard
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
 
+            var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var storageAwsOptions = Configuration.GetAWSOptions("Storage-AWS");
             // How do we have more than one IAmazonS3 - we have two different profiles
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Storage-AWS"));
-            services.AddAWSService<IAmazonS3>();
+
+            // method 1 - doesn't work because you need IAmazonS3 here:
+            // https://github.com/aws/aws-sdk-net/blob/master/extensions/src/AWSSDK.Extensions.NETCore.Setup/ClientFactory.cs#L171
+            // services.AddAWSService<IAmazonS3ForCacheStorage>(ddsAwsOptions);
+            // services.AddAWSService<IAmazonS3ForWellcomeStorageService>(storageAwsOptions);
+
+            // method 2, and inject IEnumerable<IAmazonS3>
+            // it sets it up OK, but there's noting to distinguish the 
+            services.AddAWSService<IAmazonS3>(ddsAwsOptions);
+            services.AddAWSService<IAmazonS3>(storageAwsOptions);
 
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
@@ -54,7 +60,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
 
             // This will require an S3 implementation in production
-            services.AddSingleton<IStorage, FileSystemStorage>();
+            services.AddSingleton<ICacheStorage, FileSystemCacheStorage>();
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
 

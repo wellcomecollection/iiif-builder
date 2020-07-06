@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Utils.Storage.StorageImpl
+namespace Utils.Storage.S3
 {
     /// <summary>
     // This returns an object that doesn't talk to S3 unless it needs to.

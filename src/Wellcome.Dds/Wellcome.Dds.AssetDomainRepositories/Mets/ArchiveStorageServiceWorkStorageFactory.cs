@@ -37,14 +37,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             IOptions<StorageOptions> storageOptions,
             IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache,
             ISimpleCache cache,
-            IAmazonS3 storageServiceS3)
+            IEnumerable<IAmazonS3> s3Services) //,
+            // IAmazonS3ForWellcomeStorageService storageServiceS3) // explicit interface method 1
         {
             this.logger = logger;
             this.storageOptions = storageOptions.Value;
             this.storageMapCache = storageMapCache;
             Cache = cache;
-            this.storageServiceS3 = storageServiceS3;
-            // storageMapCache = new BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap>(cacheFolder, "storagemap_", httpRuntimeCacheSeconds);
+            foreach(var s3Service in s3Services)
+            {
+                // for example - but what would actually distinguish these?
+                // there's no Config.Profile
+                logger.LogInformation(s3Service.Config.ServiceVersion);
+            }
+            // And this method fails to be injected
+            //this.storageServiceS3 = storageServiceS3;
         }
 
         private bool NeedsRebuilding (WellcomeBagAwareArchiveStorageMap map)

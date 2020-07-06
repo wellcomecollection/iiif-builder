@@ -1,6 +1,6 @@
 ﻿namespace Utils.Storage
 {
-    public interface IStorage
+    public interface ICacheStorage
     {
         // This might be a bucket, or a filesystem location
         public string Folder { get; set; }
