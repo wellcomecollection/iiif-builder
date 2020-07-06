@@ -7,3 +7,4 @@ obj\
 README.md
 LICENSE
 .idea
+appsettings.Development.Example.json
