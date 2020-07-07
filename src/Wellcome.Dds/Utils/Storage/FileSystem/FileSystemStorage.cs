@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace Utils.Storage.StorageImpl
+namespace Utils.Storage.FileSystem
 {
     public class FileSystemStorage : IStorage
     {
