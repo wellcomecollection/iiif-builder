@@ -1,13 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +41,9 @@ namespace Wellcome.Dds.Dashboard
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
 
+            services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
+                .AddAzureAD(opts => Configuration.Bind("AzureAd", opts));
+            
             // How do we have more than one IAmazonS3 - we have two different profiles
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Storage-AWS"));
             services.AddAWSService<IAmazonS3>();
@@ -68,6 +70,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
+            // TODO - add DB health check
+            services.AddHealthChecks();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -77,11 +82,24 @@ namespace Wellcome.Dds.Dashboard
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            // This is required for ADAuth on linux containers. When hosting in ECS we are doing ssl termination
+            // at load-balancer, so by default redirect will be http - this ensures https
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedProto
+            });
+            
             app.UseStaticFiles();
             app.UseRouting();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+            
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
                 endpoints.MapDefaultControllerRoute();
+                endpoints.MapHealthChecks("/management/healthcheck");
             });
         }
     }

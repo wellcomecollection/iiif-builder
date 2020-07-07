@@ -1,0 +1,33 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+WORKDIR /src
+
+COPY src/Wellcome.Dds/Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj Wellcome.Dds.Dashboard/
+COPY src/Wellcome.Dds/DlcsWebClient/DlcsWebClient.csproj DlcsWebClient/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories/Wellcome.Dds.AssetDomainRepositories.csproj Wellcome.Dds.AssetDomainRepositories/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomain/Wellcome.Dds.AssetDomain.csproj Wellcome.Dds.AssetDomain/
+COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dds.Common/
+COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
+COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
+
+RUN dotnet restore "Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj"
+
+# Copy everything else
+COPY src/Wellcome.Dds/ ./
+WORKDIR "/src/Wellcome.Dds.Dashboard"
+RUN dotnet build "Wellcome.Dds.Dashboard.csproj" -c Release
+
+FROM build AS testrunner
+WORKDIR "/src"
+RUN dotnet test "Utils.Tests/Utils.Tests.csproj"
+
+FROM build AS publish
+WORKDIR "/src/Wellcome.Dds.Dashboard"
+RUN dotnet publish "Wellcome.Dds.Dashboard.csproj" -c Release -o /app/publish
+
+# Runtime image
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim
+WORKDIR /app
+
+EXPOSE 80
+COPY --from=publish /app/publish .
+ENTRYPOINT [ "dotnet", "Wellcome.Dds.Dashboard.dll" ]
