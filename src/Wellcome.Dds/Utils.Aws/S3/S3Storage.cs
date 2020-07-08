@@ -1,6 +1,7 @@
 ﻿using System;
+using Utils.Storage;
 
-namespace Utils.Storage.S3
+namespace Utils.Aws.S3
 {
     public class S3Storage : IStorage
     {

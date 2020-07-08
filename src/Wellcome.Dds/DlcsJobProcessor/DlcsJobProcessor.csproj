@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <None Remove="appsettings.Development.Example.json" />
-    <None Remove="appsettings.Development.json" />
     <None Remove="appsettings.json" />
   </ItemGroup>
 

@@ -1,5 +1,3 @@
-using Amazon.Extensions.NETCore.Setup;
-using Amazon.Runtime;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
@@ -12,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Utils;
+using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Utils.Storage.FileSystem;

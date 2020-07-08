@@ -1,6 +1,6 @@
 ﻿using Amazon.S3;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Mets
+namespace Utils.Aws.S3
 {
     /// <summary>
     /// Interface to support managing named <see cref="IAmazonS3"/> clients.

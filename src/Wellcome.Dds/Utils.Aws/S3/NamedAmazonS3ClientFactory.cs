@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Amazon.S3;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Mets
+namespace Utils.Aws.S3
 {
     /// <summary>
     /// Support managing named <see cref="IAmazonS3"/> clients.
