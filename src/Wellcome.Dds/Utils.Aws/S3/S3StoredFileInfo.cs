@@ -1,6 +1,7 @@
 ﻿using System;
+using Utils.Storage;
 
-namespace Utils.Storage.S3
+namespace Utils.Aws.S3
 {
     /// <summary>
     // This returns an object that doesn't talk to S3 unless it needs to.

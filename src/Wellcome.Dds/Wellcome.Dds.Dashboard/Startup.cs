@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Utils.Storage.FileSystem;
@@ -26,7 +27,7 @@ namespace Wellcome.Dds.Dashboard
 {
     public class Startup
     {
-        private IConfiguration Configuration { get; set; }
+        private IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration)
         {
@@ -43,9 +44,17 @@ namespace Wellcome.Dds.Dashboard
             services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
                 .AddAzureAD(opts => Configuration.Bind("AzureAd", opts));
             
+            var awsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var storageOptions = Configuration.GetAWSOptions("Storage-AWS");
+
             // How do we have more than one IAmazonS3 - we have two different profiles
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Storage-AWS"));
-            services.AddAWSService<IAmazonS3>();
+            var factory = new NamedAmazonS3ClientFactory();
+            factory.Add("Dds", awsOptions.CreateServiceClient<IAmazonS3>());
+            factory.Add("Storage", storageOptions.CreateServiceClient<IAmazonS3>());
+
+            services.AddSingleton<INamedAmazonS3ClientFactory>(factory);
+            
+            services.AddDefaultAWSOptions(awsOptions);
 
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
@@ -65,7 +74,9 @@ namespace Wellcome.Dds.Dashboard
             // Need an HTTPClient to be injected into Dlcs - not WebClient
             services.AddSingleton<IDlcs, Dlcs>();
             // This is the one that needss an IAmazonS3 with the storage profile
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
+                ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
+                    factory.Get("Storage")));
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
