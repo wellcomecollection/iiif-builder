@@ -23,7 +23,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dashboardRepository = dashboardRepository;
         }
         
-        public async Task<IActionResult> IndexAsync(string id)
+        public async Task<IActionResult> Index(string id)
         {
             if(!id.HasText())
             {
