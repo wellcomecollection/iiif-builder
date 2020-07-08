@@ -19,4 +19,4 @@
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
   </ItemGroup>
 
-</Project>
+ </Project>
