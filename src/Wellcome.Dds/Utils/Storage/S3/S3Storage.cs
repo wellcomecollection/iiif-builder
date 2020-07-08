@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Utils.Storage.StorageImpl
+namespace Utils.Storage.S3
 {
     public class S3Storage : IStorage
     {
