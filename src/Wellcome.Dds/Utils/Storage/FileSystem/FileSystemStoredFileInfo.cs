@@ -12,19 +12,14 @@ namespace Utils.Storage.FileSystem
             this.fileInfo = fileInfo;
         }
 
-        public DateTime LastWriteTime
-        {
-            get { return fileInfo.LastWriteTime; }
-        }
+        public DateTime LastWriteTime => fileInfo.LastWriteTime;
 
-        public string Uri
-        {
-            get { return fileInfo.FullName; }
-        }
+        public string Uri => fileInfo.FullName;
 
-        public bool Exists
-        {
-            get { return fileInfo.Exists; }
-        }
+        public bool Exists => fileInfo.Exists;
+
+        public string Container => fileInfo.DirectoryName;
+
+        public string Path => fileInfo.Name;
     }
 }

@@ -24,7 +24,7 @@ namespace Utils.Caching
             this.logger = logger;
             this.options = options.Value;
             this.storage = storage;
-            this.storage.Folder = this.options.Folder; // not sure about setting this here
+            this.storage.Container = this.options.Folder; // not sure about setting this here
             this.memoryCache = memoryCache;
             cacheDuration = new TimeSpan(0, 0, this.options.MemoryCacheSeconds);
         }
@@ -102,7 +102,8 @@ namespace Utils.Caching
                         {
                             logger.LogDebug("Cache MISS for {0}, will attempt read from disk", memoryCacheKey);
                         }
-                        t = storage.Read<T>(cachedFile);
+                        // cannot await in the body of a lock statement
+                        t = storage.Read<T>(cachedFile).Result;
                     }
                     if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
                     {
