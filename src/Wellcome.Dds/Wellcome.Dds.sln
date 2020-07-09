@@ -33,6 +33,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils.Aws", "Utils.Aws\Util
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Repositories", "Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj", "{0E0B5C54-0552-4613-9739-79A0C1487F3D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DlcsWebClient.Tests", "DlcsWebClient.Tests\DlcsWebClient.Tests.csproj", "{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,12 +97,17 @@ Global
 		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B48B1C44-A7FB-4472-92C8-195F69E75CF0} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
+		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2745EEFB-05EA-40E0-BECC-7F24548F7DE7}

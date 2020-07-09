@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Text;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
@@ -40,7 +44,7 @@ namespace Wellcome.Dds.Dashboard
             Configuration = configuration;
             WebHostEnvironment = webHostEnvironment;
         }
-
+        
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -68,7 +72,10 @@ namespace Wellcome.Dds.Dashboard
             
             services.AddDefaultAWSOptions(awsOptions);
 
-            services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
+            var dlcsSection = Configuration.GetSection("Dlcs");
+            var dlcsOptions = dlcsSection.Get<DlcsOptions>();
+            
+            services.Configure<DlcsOptions>(dlcsSection);
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage-Production"));
 
@@ -86,8 +93,37 @@ namespace Wellcome.Dds.Dashboard
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
-            // Need an HTTPClient to be injected into Dlcs - not WebClient
-            services.AddSingleton<IDlcs, Dlcs>();
+            services.AddHttpClient<IDlcs, Dlcs>(client =>
+            {
+                var creds = Convert.ToBase64String(
+                    Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
+                client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+                //client.BaseAddress = new Uri(dlcsOptions.ApiEntryPoint);
+                client.Timeout = TimeSpan.FromMilliseconds(360000);
+            });
+
+            // services.AddHttpClient(DlcsClients.Api, client =>
+            // {
+            //     var creds = Convert.ToBase64String(
+            //         Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
+            //     client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+            //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+            //     client.BaseAddress = new Uri(dlcsOptions.ApiEntryPoint);
+            // });
+            //
+            // services.AddHttpClient(DlcsClients.Resource, client =>
+            // {
+            //     var creds = Convert.ToBase64String(
+            //         Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
+            //     client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+            //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+            //     client.BaseAddress = new Uri(dlcsOptions.ResourceEntryPoint);
+            // });
+            //
+            // // Need an HTTPClient to be injected into Dlcs - not WebClient
+            // services.AddSingleton<IDlcs, Dlcs>();
+            
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
                 ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -21,10 +22,15 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         /// </summary>
         int SequenceIndex { get; set; }
 
-        IPdf Pdf { get; }
-
         string DlcsStatus { get; set; }
         string DlcsResponse { get; set; }
+        
+        Task<IPdf> GetPdf();
+
+        // See note in implementation - we want to move this method out of this interface, not the right place for it.
+        AVDerviative[] GetAVDerivatives(
+            string avDerivativeTemplateVideo,
+            string avDerivativeTemplateAudio);
     }
 
 }

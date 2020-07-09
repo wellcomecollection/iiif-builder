@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;
@@ -19,8 +20,9 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         /// <param name="images"></param>
         /// <param name="priority">add the jobs to the priority queue rather than the default</param>
         /// <returns></returns>
-        Operation<HydraImageCollection, Batch> RegisterImages(HydraImageCollection images, bool priority = false);
-        Operation<HydraImageCollection, HydraImageCollection> PatchImages(HydraImageCollection images);
+        Task<Operation<HydraImageCollection, Batch>> RegisterImages(HydraImageCollection images, bool priority = false);
+        
+        Task<Operation<HydraImageCollection, HydraImageCollection>> PatchImages(HydraImageCollection images);
 
         /// <summary>
         /// Query the queue for ingest status
@@ -29,12 +31,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         /// <param name="query"></param>
         /// <param name="defaultSpace"></param>
         /// <returns></returns>
-        Operation<ImageQuery, HydraImageCollection> GetImages(ImageQuery query, int defaultSpace);
+        Task<Operation<ImageQuery, HydraImageCollection>> GetImages(ImageQuery query, int defaultSpace);
 
+        Task<Operation<ImageQuery, HydraImageCollection>> GetImages(string nextUri);
 
-        Operation<ImageQuery, HydraImageCollection> GetImages(string nextUri);
-
-        Operation<string, Batch> GetBatch(string batchId); 
+        Task<Operation<string, Batch>> GetBatch(string batchId); 
 
         string GetRoleUri(string accessCondition);
 
@@ -45,18 +46,22 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         // these methods give us our images back for checking
 
         // any identifier - delegate to any of the FOUR following by same logic as metsrepository
-        IEnumerable<Image> GetImagesForIdentifier(string anyIdentifier);
+        Task<IEnumerable<Image>> GetImagesForIdentifier(string anyIdentifier);
+        
         // string 3
-        IEnumerable<Image> GetImagesForIssue(string issueIdentfier);
+        Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentfier);
 
-        IEnumerable<Image> GetImagesForString3(string identfier);
+        Task<IEnumerable<Image>> GetImagesForString3(string identfier);
+        
         // string 2
-        IEnumerable<Image> GetImagesForVolume(string volumeIdentifier);
+        Task<IEnumerable<Image>> GetImagesForVolume(string volumeIdentifier);
+        
         // string 1
-        IEnumerable<Image> GetImagesForBNumber(string identfier);
+        Task<IEnumerable<Image>> GetImagesForBNumber(string identfier);
 
-        IEnumerable<ErrorByMetadata> GetErrorsByMetadata();
-        Page<ErrorByMetadata> GetErrorsByMetadata(int page);
+        Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata();
+        
+        Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page);
 
         /// <summary>
         /// Used for images in the DLCS without string2 and string3 (volume and issue identifiers)
@@ -64,10 +69,9 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         /// <param name="identifier"></param>
         /// <param name="sequenceIndex"></param>
         /// <returns></returns>
-        IEnumerable<Image> GetImagesBySequenceIndex(string identifier, int sequenceIndex);
+        Task<IEnumerable<Image>> GetImagesBySequenceIndex(string identifier, int sequenceIndex);
 
-        IEnumerable<Image> GetImagesByDlcsIdentifiers(List<string> identifiers);
-        
+        Task<IEnumerable<Image>> GetImagesByDlcsIdentifiers(List<string> identifiers);
 
         // If you have a lot of images to register, in batches, call RegisterImages above.
         // and this is for new Tizer ingests - where the DLCS does not have these images yet.
@@ -81,18 +85,22 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         // Any in the first that are not in the second can be deleted safely.
         // This probably can only run as a background job, unless it's a single b number. But for a single
         // b number, this kind of misalignment is unlikely.
-        int DeleteImages(List<Image> images);
+        Task<int> DeleteImages(List<Image> images);
 
         /// <summary>
         /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
         /// </summary>
-        IPdf GetPdfDetails(string string1, int number1);
-        bool DeletePdf(string string1, int number1);
+        Task<IPdf> GetPdfDetails(string string1, int number1);
+        
+        Task<bool> DeletePdf(string string1, int number1);
+        
         int DefaultSpace { get; }
+        
         int BatchSize { get; }
+        
         bool PreventSynchronisation { get; }
-        List<Batch> GetTestedImageBatches(List<Batch> imageBatches);
-        Dictionary<string, long> GetDlcsQueueLevel();
+        Task<List<Batch>> GetTestedImageBatches(List<Batch> imageBatches);
+        Task<Dictionary<string, long>> GetDlcsQueueLevel();
 
         List<AVDerivative> GetAVDerivatives(Image dlcsImage);
     }
