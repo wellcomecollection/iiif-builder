@@ -106,8 +106,7 @@ namespace Utils.Caching
                         {
                             logger.LogDebug("Cache MISS for {0}, will attempt read from disk", memoryCacheKey);
                         }
-                        // cannot await in the body of a lock statement
-                        t = storage.Read<T>(cachedFile).Result;
+                        t = await storage.Read<T>(cachedFile);
                     }
                     if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
                     {

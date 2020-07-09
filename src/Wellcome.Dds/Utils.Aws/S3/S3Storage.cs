@@ -48,7 +48,6 @@ namespace Utils.Aws.S3
                 await using (var stream = getResponse.ResponseStream)
                 {
                     IFormatter formatter = new BinaryFormatter();
-                    stream.Position = 0;
                     t = formatter.Deserialize(stream) as T;
                     stream.Close();
                 }
@@ -78,7 +77,7 @@ namespace Utils.Aws.S3
                 await using (request.InputStream =  new MemoryStream())
                 {
                     formatter.Serialize(request.InputStream, t);
-                    var response = await amazonS3.PutObjectAsync(request);
+                    await amazonS3.PutObjectAsync(request);
                 }
             }
             catch (Exception ex)
