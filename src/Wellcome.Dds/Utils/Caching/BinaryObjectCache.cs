@@ -76,7 +76,7 @@ namespace Utils.Caching
                     t = getFromSource();
                     if (t != null && !options.AvoidSaving)
                     {
-                        storage.Write(t, GetCachedFile(key), options.WriteFailThrowsException);
+                        await storage.Write(t, GetCachedFile(key), options.WriteFailThrowsException);
                     }
                 }
                 return t;
@@ -124,7 +124,7 @@ namespace Utils.Caching
                             t = getFromSource();
                             if (t != null)
                             {
-                                storage.Write(t, cachedFile, options.WriteFailThrowsException);
+                                await storage.Write(t, cachedFile, options.WriteFailThrowsException);
                             }
                         }
                     }
