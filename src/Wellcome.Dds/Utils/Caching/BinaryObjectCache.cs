@@ -28,7 +28,7 @@ namespace Utils.Caching
             this.logger = logger;
             this.options = options.Value;
             this.storage = storage;
-            this.storage.Container = this.options.Folder; // not sure about setting this here
+            this.storage.Container = this.options.Container; // not sure about setting this here
             this.memoryCache = memoryCache;
             cacheDuration = new TimeSpan(0, 0, this.options.MemoryCacheSeconds);
         }
