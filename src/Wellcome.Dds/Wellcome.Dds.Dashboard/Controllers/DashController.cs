@@ -1,0 +1,859 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
+using Utils;
+using Utils.Caching;
+using Utils.Logging;
+using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Dlcs;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Common;
+using Wellcome.Dds.Dashboard.Models;
+using Wellcome.Dds.Data;
+
+namespace Wellcome.Dds.Dashboard.Controllers
+{
+    [Authorize]
+    public class DashController : Controller
+    {
+        private readonly IDashboardRepository dashboardRepository;
+        private readonly IIngestJobRegistry jobRegistry;
+        private readonly IIngestJobProcessor jobProcessor;
+        private readonly ISimpleCache cache;
+        private readonly IStatusProvider statusProvider;
+        private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
+        private readonly IWorkStorageFactory workStorageFactory;
+        private readonly CacheBuster cacheBuster;
+        private readonly DdsOptions ddsOptions;
+        private readonly DdsContext ddsContext;
+        private readonly DdsInstrumentationContext ddsInstrumentationContext;
+
+        const string CacheKeyPrefix = "dashcontroller_";
+        const int CacheSeconds = 5;
+        private Synchroniser synchroniser;
+
+        public DashController(
+            IDashboardRepository dashboardRepository,
+            ISimpleCache cache,
+            IIngestJobRegistry jobRegistry,
+            IIngestJobProcessor jobProcessor,
+            IStatusProvider statusProvider,
+            Synchroniser synchroniser,
+            IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
+            IWorkStorageFactory workStorageFactory,
+            CacheBuster cacheBuster,
+            IOptions<DdsOptions> ddsOptions,
+            DdsContext ddsContext,
+            DdsInstrumentationContext ddsInstrumentationContext)
+        {
+            this.dashboardRepository = dashboardRepository;
+            this.cache = cache;
+            this.jobRegistry = jobRegistry;
+            this.jobProcessor = jobProcessor;
+            this.statusProvider = statusProvider;
+            this.synchroniser = synchroniser;
+            this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
+            this.workStorageFactory = workStorageFactory;
+            this.cacheBuster = cacheBuster;
+            this.ddsOptions = ddsOptions.Value;
+            this.ddsContext = ddsContext;
+            this.ddsInstrumentationContext = ddsInstrumentationContext;
+            //this.cachingPackageProvider = cachingPackageProvider;
+            //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
+            //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
+        }
+
+        public ActionResult Index()
+        {
+            var recent = recentlyDigitisedIdentifierProvider.GetDatedIdentifiers(100);
+            return View(recent);
+        }
+
+        public ActionResult Status(int page = 1)
+        {
+            var problemJobs = jobRegistry.GetProblems(statusProvider.EarliestJobToTake);
+            Page<ErrorByMetadata> errorsByMetadataPage;
+            try
+            {
+                errorsByMetadataPage = dashboardRepository.GetErrorsByMetadata(page);
+            }
+            catch (Exception)
+            {
+                errorsByMetadataPage = new Page<ErrorByMetadata> { Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1 };
+            }
+            var recentActions = dashboardRepository.GetRecentActions(200);
+            var model = new HomeModel
+            {
+                ProblemJobs = new JobsModel { Jobs = problemJobs.ToArray() },
+                ErrorsByMetadataPage = errorsByMetadataPage,
+                IngestActions = GetIngestActionDictionary(recentActions),
+                BodyInject = ddsOptions.DashBodyInject
+            };
+            return View(model);
+        }
+
+        private Dictionary<string, IngestAction> GetIngestActionDictionary(IEnumerable<IngestAction> recentActions)
+        {
+            var dict = new Dictionary<string, IngestAction>();
+            foreach (var recentAction in recentActions)
+            {
+                if (recentAction.ManifestationId == null)
+                {
+                    continue;
+                }
+                if (dict.ContainsKey(recentAction.ManifestationId))
+                {
+                    if (dict[recentAction.ManifestationId].Performed < recentAction.Performed)
+                    {
+                        dict[recentAction.ManifestationId] = recentAction;
+                    }
+                }
+                else
+                {
+                    dict[recentAction.ManifestationId] = recentAction;
+                }
+            }
+            return dict;
+        }
+
+        // GET: Dash
+        public async Task<ActionResult> ManifestationAsync(string id)
+        {
+            var json = AskedForJson();
+            var logger = new SmallJobLogger("", null);
+            logger.Start();
+            IDigitisedResource dgResource;
+            SyncOperation syncOperation;
+            DdsIdentifier ddsId = null;
+            try
+            {
+                ddsId = new DdsIdentifier(id);
+                ViewBag.DdsId = ddsId;
+                logger.Log("Start dashboardRepository.GetDigitisedResource(id)");
+                dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+                logger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Message = "No digitised resource found for identifier " + id;
+                ViewBag.Message += ". ";
+                ViewBag.Message += ex.Message;
+                if (ddsId != null)
+                {
+                    ViewBag.TryInstead = ddsId.BNumber;
+                }
+                if (json)
+                {
+                    return NotFound(ViewBag.Message);
+                }
+                return View("ManifestationError");
+            }
+            if (dgResource is IDigitisedManifestation)
+            {
+                var dgManifestation = dgResource as IDigitisedManifestation;
+
+                // ***************************************************
+                // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
+                // IT MUST GO AS SOON AS THE IIIF MANIFEST KNOWS String3
+                logger.Log("Start dashboardRepository.FindSequenceIndex(id)");
+                dgManifestation.SequenceIndex = await dashboardRepository.FindSequenceIndex(id);
+                logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
+                // represents the set of differences between the METS view of the world and the DLCS view
+                logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
+                syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                logger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
+
+                IDigitisedCollection parent;
+                IDigitisedCollection grandparent;
+                // We need to show the manifestation with information about its parents, it it has any.
+                // this allows navigation through multiple manifs
+                switch (ddsId.IdentifierType)
+                {
+                    case IdentifierType.BNumber:
+                        parent = null;
+                        grandparent = null;
+                        break;
+                    case IdentifierType.Volume:
+                        parent = GetCachedCollection(ddsId.BNumber);
+                        grandparent = null;
+                        break;
+                    case IdentifierType.Issue:
+                        parent = GetCachedCollection(ddsId.VolumePart);
+                        grandparent = GetCachedCollection(ddsId.BNumber);
+                        break;
+                    case IdentifierType.BNumberAndSequenceIndex:
+                        throw new ArgumentException("id", "Can't use an index-based ID here: " + id);
+                    default:
+                        throw new ArgumentException("id", "Could not get resource for identifier " + id);
+                }
+                var model = new ManifestationModel
+                {
+                    DefaultSpace = dashboardRepository.DefaultSpace,
+                    Url = Url,
+                    DdsIdentifier = ddsId,
+                    DigitisedManifestation = dgManifestation,
+                    Parent = parent,
+                    GrandParent = grandparent,
+                    SyncOperation = syncOperation
+                };
+                model.MakeManifestationNavData();
+                logger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
+                var jobActivity = dashboardRepository.GetRationalisedJobActivity(syncOperation);
+                logger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
+                model.IngestJobs = jobActivity.UpdatedJobs;
+                model.BatchesForImages = jobActivity.BatchesForCurrentImages;
+
+                model.DbJobIdsToActiveBatches = new Dictionary<int, List<Batch>>();
+                foreach (var dlcsIngestJob in model.IngestJobs)
+                {
+                    if (!model.DbJobIdsToActiveBatches.ContainsKey(dlcsIngestJob.Id))
+                    {
+                        model.DbJobIdsToActiveBatches[dlcsIngestJob.Id] = new List<Batch>();
+                    }
+                    logger.Log("Start enumerating job batches");
+                    foreach (var dbBatch in dlcsIngestJob.DlcsBatches)
+                    {
+                        // Move this to the repository
+                        if (dbBatch.ResponseBody.HasText())
+                        {
+                            var reportedBatch = JsonConvert.DeserializeObject<Batch>(dbBatch.ResponseBody);
+                            var activeBatch = model.BatchesForImages.SingleOrDefault(b => b.Id == reportedBatch.Id);
+                            if (activeBatch != null)
+                            {
+                                if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Exists(b => b.Id == activeBatch.Id))
+                                {
+                                    model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Add(activeBatch);
+                                }
+                            }
+                        }
+                    }
+                    logger.Log("Finished enumerating job batches");
+                }
+                model.IsRunning = syncOperation.DlcsImagesCurrentlyIngesting.Count > 0;
+
+                // TODO - make these client side calls to the same services
+                // will speed up dahboard page generation 
+                logger.Log("Start cacheBuster queries");
+                model.CachedPackageFileInfo = cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber);
+                logger.Log("Finished cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber)");
+                model.CachedTextModelFileInfo = cacheBuster.GetAltoSearchTextCacheFileInfo(
+                    ddsId.BNumber, dgManifestation.SequenceIndex);
+                logger.Log("Finished cacheBuster.GetAltoSearchTextCacheFileInfo(..)");
+                model.CachedAltoAnnotationsFileInfo = cacheBuster.GetAllAnnotationsCacheFileInfo(
+                    ddsId.BNumber, dgManifestation.SequenceIndex);
+                logger.Log("Finished cacheBuster.GetAllAnnotationsCacheFileInfo(..)");
+                ViewBag.Log = LoggingEvent.FromTuples(logger.GetEvents());
+                if (json)
+                {
+                    return AsJson(model.GetJsonModel());
+                }
+                return View("Manifestation", model);
+            }
+            if (dgResource is IDigitisedCollection)
+            {
+                // This is the manifestation controller, not the volume or issue controller.
+                // So redirect to the first manifestation that we can find for this collection.
+                // Put this and any intermediary collections in the short term cache,
+                // so that we don't need to build them from scratch after the redirect.
+                var dgCollection = dgResource as IDigitisedCollection;
+                string redirectId;
+                PutCollectionInShortTermCache(dgCollection);
+                if (dgCollection.MetsCollection.Manifestations.HasItems())
+                {
+                    // a normal multiple manifestation, or possibly a periodical volume?
+                    if (json)
+                    {
+                        return RedirectToAction("Collection", "Dash", new { id = ddsId.BNumber, json = "json" });
+                    }
+                    redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
+                    return RedirectToAction("Manifestation", "Dash", new { id = redirectId });
+                }
+                // a periodical, I think - but go to volume controller for this.
+                redirectId = dgCollection.MetsCollection.GetRootId();
+                if (json)
+                {
+                    return RedirectToAction("Collection", "Dash", new { id = redirectId, json = "json" });
+                }
+                return RedirectToAction("Collection", "Dash", new { id = redirectId });
+            }
+            ViewBag.Message = "Unknown type of resource found for identifier " + id;
+            if (json)
+            {
+                return NotFound(ViewBag.Message);
+            }
+            return View("ManifestationError");
+        }
+
+
+        private IDigitisedCollection GetCachedCollection(string identifier)
+        {
+            return cache.GetCached(
+                CacheSeconds,
+                CacheKeyPrefix + identifier,
+                () => dashboardRepository.GetDigitisedResourceAsync(identifier) as IDigitisedCollection);
+        }
+
+        private void PutCollectionInShortTermCache(IDigitisedCollection collection)
+        {
+            // (in order to PUT this in the cache, we need to retrieve it...
+            var key = CacheKeyPrefix + collection.Identifier;
+            cache.Remove(key);
+            cache.GetCached(CacheSeconds, key, () => collection);
+        }
+
+        private ActionResult ShowManifestation(
+            IDigitisedManifestation dgManifestation,
+            IDigitisedCollection parent,
+            IDigitisedCollection grandparent)
+        {
+            return View(dgManifestation);
+        }
+
+        public async Task<ActionResult> CollectionAsync(string id)
+        {
+            var json = AskedForJson();
+            IDigitisedCollection collection = null;
+            DdsIdentifier ddsId = null;
+            bool showError = false;
+            try
+            {
+                ddsId = new DdsIdentifier(id);
+                ViewBag.DdsId = ddsId;
+                collection = await dashboardRepository.GetDigitisedResourceAsync(id) as IDigitisedCollection;
+            }
+            catch (Exception metsEx)
+            {
+                showError = true;
+                ViewBag.MetsError = metsEx;
+            }
+            if (showError || collection == null)
+            {
+                ViewBag.Message = "No digitised collection (multiple manifestation) found for identifier " + id;
+                if (id != ddsId.BNumber)
+                {
+                    ViewBag.TryInstead = ddsId.BNumber;
+                }
+                return View("ManifestationError");
+            }
+            if (json)
+            {
+                var simpleCollection = MakeSimpleCollectionModel(collection);
+                return AsJson(simpleCollection);
+            }
+            return View("Collection", collection);
+        }
+
+        private SimpleCollectionModel MakeSimpleCollectionModel(IDigitisedCollection collection)
+        {
+            var simpleCollection = new SimpleCollectionModel();
+            if (collection.Collections.HasItems())
+            {
+                simpleCollection.Collections = new List<SimpleLink>();
+                foreach (var coll in collection.Collections)
+                {
+                    simpleCollection.Collections.Add(new SimpleLink
+                    {
+                        Label = coll.Identifier + ": " + coll.MetsCollection.Label,
+                        Url = Url.Action("Collection", "Dash", new { id = coll.Identifier })
+                    });
+                }
+            }
+            if (collection.Manifestations.HasItems())
+            {
+                simpleCollection.Manifestations = new List<SimpleLink>();
+                foreach (var manif in collection.Manifestations)
+                {
+                    simpleCollection.Manifestations.Add(new SimpleLink
+                    {
+                        Label = manif.Identifier + ": " + manif.MetsManifestation.Label,
+                        Url = Url.Action("Manifestation", "Dash", new { id = manif.Identifier })
+                    });
+                }
+            }
+            return simpleCollection;
+        }
+
+        public ActionResult ManifestationSearch(string q)
+        {
+            try
+            {
+                DdsIdentifier ddsId = new DdsIdentifier(q);
+                if (ddsId.IdentifierType == IdentifierType.Volume || ddsId.IdentifierType == IdentifierType.Issue)
+                {
+                    return RedirectToAction("Manifestation", new { id = ddsId.ToString() });
+                }
+                // for now, just try to turn it into a b number and redirect
+                var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
+                return RedirectToAction("Manifestation", new { id = bnumber });
+            }
+            catch (Exception ex)
+            {
+                return RedirectToAction("ManifestationSearchError", q);
+            }
+        }
+
+        public ActionResult Sync(string id)
+        {
+            return CreateAndProcessJob(id, false, false, "Sync");
+        }
+
+        public ActionResult Resubmit(string id)
+        {
+            return CreateAndProcessJob(id, true, false, "Resubmit");
+        }
+
+        public ActionResult ForceReingest(string id)
+        {
+            return CreateAndProcessJob(id, true, true, "Force reingest");
+        }
+
+        public ActionResult SyncAllManifestations(string id)
+        {
+            return CreateAndProcessJobs(id, false, false, "Sync all manifestations");
+        }
+
+        public ActionResult ForceReingestAllManifestations(string id)
+        {
+            return CreateAndProcessJobs(id, true, true, "Force reingest of all manifestations");
+        }
+
+        private ActionResult CreateAndProcessJob(string id, bool includeIngestingImages, bool forceReingest, string action)
+        {
+            // this needs to create a job and then immediately process it.
+            var job = jobRegistry.RegisterImagesForImmediateStart(id).Single();
+            dashboardRepository.LogAction(id, job.Id, User.Identity.Name, action);
+            jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
+            synchroniser.RefreshFlatManifestations(id);
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+        private ActionResult CreateAndProcessJobs(string bNumber, bool includeIngestingImages, bool forceReingest, string action)
+        {
+            var jobs = jobRegistry.RegisterImagesForImmediateStart(bNumber);
+            foreach (var job in jobs)
+            {
+                dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
+                jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
+            }
+            synchroniser.RefreshFlatManifestations(bNumber);
+            return RedirectToAction("Manifestation", new { id = bNumber });
+        }
+
+        public ActionResult Jobs()
+        {
+            var jobs = jobRegistry.GetJobs(500);
+            var model = new JobsModel { Jobs = jobs.ToArray() };
+            return View(model);
+        }
+
+        public ActionResult Queue()
+        {
+            var queue = jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
+            var model = new JobsModel { Jobs = queue.ToArray() };
+            return View(model);
+        }
+
+
+
+        public ActionResult AssetType(string id = "video/mpeg")
+        {
+            var type = id.ReplaceFirst("-", "/");
+            var model = new AssetTypeModel
+            {
+                Type = type,
+                FlatManifestations = ddsContext.GetByAssetType(type),
+                TotalsByAssetType = ddsContext.GetTotalsByAssetType()
+            };
+            return View(model);
+        }
+
+
+        public ActionResult RecentActions()
+        {
+            var recentActions = dashboardRepository.GetRecentActions(200);
+            return View(recentActions);
+        }
+
+        public ActionResult StopStatus()
+        {
+            ViewBag.Message = "Your application description page.";
+            ViewBag.RunProcesses = statusProvider.RunProcesses;
+            DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.Now;
+            ViewBag.JobDelay = (DateTime.Now - cutoff).Minutes;
+            return View("StopStatus");
+        }
+
+        public ActionResult Job(int id)
+        {
+            var job = jobRegistry.GetJob(id);
+            var model = new JobsModel { Jobs = new[] { job } };
+            return View(model);
+        }
+
+
+        public ActionResult UV(string id)
+        {
+            return View(dashboardRepository.GetBNumberModel(id, id));
+        }
+
+
+        public async Task<ActionResult> StorageMapAsync(string id, string resolveRelativePath = null)
+        {
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
+            if (!resolveRelativePath.HasText())
+            {
+                resolveRelativePath = id + ".xml";
+            }
+            var model = new StorageMapModel
+            {
+                BNumber = id,
+                StorageMap = archiveStore.ArchiveStorageMap,
+                PathToResolve = resolveRelativePath
+            };
+            try
+            {
+                model.ResolvedAwsKey = archiveStore.GetAwsKey(resolveRelativePath);
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage = ex.Message;
+            }
+            return View(model);
+        }
+
+        public async Task<ActionResult> StorageManifestAsync(string id)
+        {
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
+
+            string errorMessage = null;
+            string jsonAsString = "";
+            try
+            {
+                jsonAsString = archiveStore.GetStorageManifest().ToString(Formatting.Indented);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var model = new JsonModel
+            {
+                BNumber = id,
+                JsonAsString = jsonAsString,
+                ErrorMessage = errorMessage
+            };
+            return View(model);
+
+        }
+
+        public async Task<ActionResult> XmlViewAsync(string id, string parts)
+        {
+            var store = await workStorageFactory.GetWorkStore(id);
+            string errorMessage = null;
+            string xmlAsString = "";
+            try
+            {
+                var xmlSource = await store.LoadXmlForPathAsync(parts);
+                xmlAsString = xmlSource.XElement.ToString();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var model = new XmlModel
+            {
+                BNumber = id,
+                RelativePath = parts,
+                XmlAsString = xmlAsString,
+                ErrorMessage = errorMessage
+            };
+            return View(model);
+        }
+
+        public ActionResult CacheBust(string id)
+        {
+            var bNumber = new DdsIdentifier(id).BNumber;
+
+            // we won't clean this up, for now. Sorry.
+            //cachingDipProvider.DeleteDipCacheFile(bNumber);
+            bool success = true;
+            string message = null;
+            CacheBustResult cacheBustResult = null;
+            try
+            {
+                cacheBustResult = cacheBuster.BustPackage(bNumber);
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = ex.Message;
+            }
+            TempData["CacheBustResult"] = new DeleteResult
+            {
+                Success = success,
+                Message = message,
+                CacheBustResult = cacheBustResult
+            };
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+        public ActionResult CacheBustAlto(string id)
+        {
+            var seqIndex = dashboardRepository.FindSequenceIndex(id);
+            var ddsId = new DdsIdentifier(id);
+            var textCbr = cacheBuster.BustAltoSearchText(ddsId.BNumber, seqIndex);
+            cacheBuster.BustAllAnnotations(ddsId.BNumber, seqIndex);
+            TempData["AltoCacheBustResult"] = new DeleteResult { Success = true, CacheBustResult = textCbr };
+            dashboardRepository.LogAction(id, null, User.Identity.Name, "Cache Bust Alto");
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+        public async Task<ActionResult> DeletePdfAsync(string id)
+        {
+            var seqIndex = await dashboardRepository.FindSequenceIndex(id);
+            var deleteResult = new DeleteResult { Success = dashboardRepository.DeletePdf(new DdsIdentifier(id).BNumber, seqIndex) };
+            TempData["PdfDeletion"] = deleteResult;
+            dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete PDF");
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+        public ActionResult DoStop(object id)
+        {
+            dashboardRepository.LogAction(null, null, User.Identity.Name, "STOP services");
+            TempData["stop-result"] = statusProvider.Stop();
+            return RedirectToAction("StopStatus");
+        }
+
+        public ActionResult DoStart(object id)
+        {
+            dashboardRepository.LogAction(null, null, User.Identity.Name, "START services");
+            TempData["start-result"] = statusProvider.Start();
+            return RedirectToAction("StopStatus");
+        }
+
+        public async Task<ActionResult> CleanOldJobsAsync(string id)
+        {
+            int removed = await dashboardRepository.RemoveOldJobs(id);
+            TempData["remove-old-jobs"] = removed;
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+
+
+        public Dictionary<string, long> GetDlcsQueueLevel()
+        {
+            return dashboardRepository.GetDlcsQueueLevel();
+        }
+
+        public async Task<ActionResult> DeleteOrphansAsync(string id)
+        {
+            dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
+            int removed = await dashboardRepository.DeleteOrphans(id);
+            TempData["orphans-deleted"] = removed;
+            return RedirectToAction("Manifestation", new { id });
+        }
+
+
+        public ActionResult TailJobProcessor(int id = 60)
+        {
+            var model = GetLogTailModel(ddsOptions.JobProcessorLog, id);
+            return View(model);
+        }
+
+
+        public ActionResult TailWorkflowProcessor(int id = 60)
+        {
+            var model = GetLogTailModel(ddsOptions.WorkflowProcessorLog, id);
+            return View(model);
+        }
+
+        private string[] GetLogTailModel(string path, int lines)
+        {
+            ViewBag.LogFilePath = path;
+            string[] model = { "Unable to read log at " + path };
+            if (path != null && System.IO.File.Exists(path))
+            {
+                // not suitable for huge log files, but simple
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sr = new StreamReader(fs))
+                {
+                    List<string> file = new List<string>();
+                    while (!sr.EndOfStream)
+                    {
+                        file.Add(sr.ReadLine());
+                    }
+                    var log = file.ToArray();
+                    var start = Math.Max(0, log.Length - lines);
+                    model = log.Skip(start).ToArray();
+                }
+            }
+            return model;
+        }
+
+        public JsonResult AutoComplete(string id)
+        {
+            var suggestions = ddsContext.AutoComplete(id);
+                return Json(suggestions.Select(fm => new AutoCompleteSuggestion
+                {
+                    id = fm.PackageIdentifier,
+                    label = fm.Label
+                }).ToArray());
+        }
+
+        public ActionResult ManifestationSearchError(string q)
+        {
+            return View(q);
+        }
+
+        public ActionResult GoobiCall(string id = null)
+        {
+            var goobiCallSupport = new GoobiCallSupport(ddsInstrumentationContext);
+            if (id == null)
+            {
+                ViewBag.IsErrorList = false;
+                var top100 = goobiCallSupport.GetRecent();
+                return View("GoobiCallList", top100);
+            }
+            if (id == "errors")
+            {
+                ViewBag.IsErrorList = true;
+                var top100 = goobiCallSupport.GetRecentErrors();
+                return View("GoobiCallList", top100);
+            }
+            if (id == "stats")
+            {
+                var stats = goobiCallSupport.GetStatsModel();
+                return View("Stats", stats);
+            }
+            var job = goobiCallSupport.GetWorkflowJob(id);
+            if (job == null)
+            {
+                return NotFound();
+            }
+            if (AskedForJson())
+            {
+                return AsJson(job);
+            }
+            return View(job);
+        }
+
+        public bool AskedForJson()
+        {
+            // TODO: this should be done in a .NET Core way
+            if(Request.GetTypedHeaders().Accept.Any(a => a.MediaType == "application/json"))
+            {
+                return true;
+            }
+            if (Request.QueryString.Value.Contains("json"))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public ActionResult AsJson(object model)
+        {
+            var result = JsonConvert.SerializeObject(model, Formatting.Indented,
+                new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                });
+            return Content(result, "application/json");
+            // return Json(result, JsonRequestBehavior.AllowGet);
+        }
+
+
+        public ActionResult StorageIngest(string id)
+        {
+            var archivalStorageFactory = workStorageFactory as ArchiveStorageServiceWorkStorageFactory;
+            if (archivalStorageFactory == null)
+            {
+                throw new NotSupportedException("This page only works with the new storage service");
+            }
+            var ingest = archivalStorageFactory.GetIngest(id);
+            return View(Models.Ingest.FromJObject(ingest));
+        }
+
+
+
+        public ActionResult DdsCall(string id)
+        {
+            throw new NotImplementedException("Make an API call to DDS, as Goobi does. Not implemented because we want to change this, probably to a queue");
+            // TempData["DdsCallResult"] = MigrationSupport.GoobiCall(id);
+            return RedirectToAction("Migration", new { id });
+        }
+
+        public ActionResult Settings()
+        {
+            var settings = new List<KeyValuePair<string, string>>();
+            AddSetting(settings, "StatusProvider-Heartbeat");
+            AddSetting(settings, "cachebuster-packageBustUrl");
+            AddSetting(settings, "LinkedDataDomain");
+            AddSetting(settings, "dlcs-CustomerDefaultSpace");
+            AddSetting(settings, "ArchiveStorage-PreventSynchronisation");
+            AddSetting(settings, "ArchiveStorage-StorageApiTemplate");
+            AddSetting(settings, "ArchiveStorage-TokenEndPoint");
+            AddSetting(settings, "ArchiveStorage-StorageMapCache");
+            AddSetting(settings, "ArchiveStorage-PreferCachedStorageMap");
+            AddSetting(settings, "ArchiveStorage-MapHttpRuntimeCacheSeconds");
+            AddSetting(settings, "ArchiveStorage-MaxAgeStorageMap");
+            AddSetting(settings, "ArchiveStorage-GoobiCall");
+            AddConnstr(settings, "DdsContext");
+            AddConnstr(settings, "WorkflowContext");
+            AddConnstr(settings, "CloudIngestContext");
+            return View(settings);
+        }
+
+        private void AddSetting(List<KeyValuePair<string, string>> settings, string name)
+        {
+            settings.Add(new KeyValuePair<string, string>(
+                name, StringUtils.GetAppSetting(name, "#### MISSING ####")));
+        }
+
+        private void AddConnstr(List<KeyValuePair<string, string>> settings, string name)
+        {
+            var connStr = ConfigurationManager.ConnectionStrings[name];
+            var parts = connStr.ConnectionString.SplitByDelimiter(';');
+            var safeParts = parts.Where(p => !p.Contains("password"));
+            var newConnStr = String.Join(";", safeParts) + ";---(hidden)---";
+            settings.Add(new KeyValuePair<string, string>("(DB) " + name, newConnStr));
+        }
+
+    }
+
+    public class AutoCompleteSuggestion
+    {
+        public string id { get; set; }
+
+        public string label { get; set; }
+    }
+
+
+    public class AssetTypeModel
+    {
+        public string Type { get; set; }
+        public List<Manifestation> FlatManifestations { get; set; }
+        public Dictionary<string, int> TotalsByAssetType { get; set; }
+    }
+
+    /// <summary>
+    /// for use with legacy dashboard call
+    /// </summary>
+    public class DeleteResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public CacheBustResult CacheBustResult { get; set; }
+    }
+}

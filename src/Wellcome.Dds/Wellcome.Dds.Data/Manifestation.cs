@@ -10,5 +10,6 @@
         public string Id { get; set; }
         public string PackageIdentifier { get; set; }
         public int PackageShortBNumber { get; set; }
+        public string Label { get; set; }
     }
 }

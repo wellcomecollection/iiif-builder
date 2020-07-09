@@ -142,5 +142,81 @@ namespace Utils
             }
             return s;
         }
+
+
+        /// <summary>
+        /// Create a nice display format for file size given a raw byte value
+        /// 
+        /// 42 => "42 B"
+        /// 1100 => "1.07 KB"
+        /// 6958472 => "6.37 MB"
+        /// 
+        /// </summary>
+        /// <param name="sizeInBytes"></param>
+        /// <returns></returns>
+        public static string FormatFileSize(long sizeInBytes)
+        {
+            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            if (sizeInBytes == 0)
+                return "0" + suf[0];
+            long bytes = Math.Abs(sizeInBytes);
+            int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
+            double num = Math.Round(bytes / Math.Pow(1024, place), 1);
+            return (Math.Sign(sizeInBytes) * num) + suf[place];
+        }
+
+
+        /// <summary>
+        /// like String.Replace, but only replaces the first instance of search in str
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="search"></param>
+        /// <param name="replace"></param>
+        /// <returns></returns>
+        public static string ReplaceFirst(this string str, string search, string replace)
+        {
+            if (String.IsNullOrEmpty(search))
+            {
+                return str;
+            }
+            int pos = str.IndexOf(search, StringComparison.Ordinal);
+            if (pos < 0)
+            {
+                return str;
+            }
+            return str.Substring(0, pos) + replace + str.Substring(pos + search.Length);
+        }
+
+
+        public static string GetFriendlyAge(DateTime? dtn)
+        {
+            if (dtn.HasValue)
+            {
+                return GetFriendlyAge(dtn.Value);
+            }
+            return "(no date)";
+        }
+
+        public static string GetFriendlyAge(DateTime dt)
+        {
+            DateTime dttz = dt.ToLocalTime();
+            var s = dttz.ToString("yyyy-MM-dd HH:mm:ss") + " (";
+            var dtNow = DateTime.Now;
+            if (dttz.Date == dtNow.Date)
+            {
+                s += "today";
+            }
+            else if (dttz.Date == dtNow.AddDays(-1).Date)
+            {
+                s += "yesterday";
+            }
+            else
+            {
+                var td = (dtNow.Date - dttz).TotalDays;
+                var d = Math.Ceiling(td);
+                s += d + " days ago";
+            }
+            return s + ")";
+        }
     }
 }
