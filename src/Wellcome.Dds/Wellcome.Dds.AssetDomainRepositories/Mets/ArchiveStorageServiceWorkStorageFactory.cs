@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Cache;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -61,11 +62,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
         }
 
-        public IWorkStore GetWorkStore(string identifier)
+        public async Task<IWorkStore> GetWorkStore(string identifier)
         {
             Func<WellcomeBagAwareArchiveStorageMap> getFromSource = () => BuildStorageMap(identifier);
             logger.LogInformation("Getting IWorkStore for " + identifier);
-            WellcomeBagAwareArchiveStorageMap storageMap = storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
+            WellcomeBagAwareArchiveStorageMap storageMap = await storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
             return new ArchiveStorageServiceWorkStore(identifier, storageMap, this, storageServiceS3);
         }
 

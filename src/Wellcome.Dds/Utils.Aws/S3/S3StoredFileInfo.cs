@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Utils.Storage;
@@ -28,16 +29,14 @@ namespace Utils.Aws.S3
             Uri = $"s3://{bucket}/{key}";
         }
 
-        private void EnsureObjectMetadata()
+        private async Task EnsureObjectMetadata()
         {
             if (exists.HasValue)
             {
                 return;
             }
 
-            var resp = amazonS3.GetObjectMetadataAsync(bucket, key);
-            // OK, not async here...
-            var metadataResult = resp.Result;
+            var metadataResult = await amazonS3.GetObjectMetadataAsync(bucket, key);
             if (metadataResult.HttpStatusCode == HttpStatusCode.OK)
             {
                 exists = true;
@@ -53,7 +52,7 @@ namespace Utils.Aws.S3
         {
             get
             {
-                EnsureObjectMetadata();
+                EnsureObjectMetadata().RunSynchronously();
                 return lastWriteTime ?? DateTime.MinValue;
             }
         }
@@ -62,7 +61,7 @@ namespace Utils.Aws.S3
         {
             get
             {
-                EnsureObjectMetadata();
+                EnsureObjectMetadata().RunSynchronously();
                 return exists != null && exists.Value;
             }
         }

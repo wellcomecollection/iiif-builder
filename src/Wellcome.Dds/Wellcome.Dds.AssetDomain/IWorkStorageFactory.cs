@@ -1,7 +1,9 @@
-﻿namespace Wellcome.Dds.AssetDomain
+﻿using System.Threading.Tasks;
+
+namespace Wellcome.Dds.AssetDomain
 {
     public interface IWorkStorageFactory
     {
-        IWorkStore GetWorkStore(string identifier);
+        Task<IWorkStore> GetWorkStore(string identifier);
     }
 }

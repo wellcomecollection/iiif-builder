@@ -40,7 +40,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             else
             {
                 var dgManifestation = dgResource as IDigitisedManifestation;
-                var syncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
                 // We want to have these running AT THE SAME TIME...
                 // Not sure that's possible as we need the image list.
                 // still, there are other things that can be async.

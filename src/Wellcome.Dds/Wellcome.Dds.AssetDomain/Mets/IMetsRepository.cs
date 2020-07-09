@@ -9,6 +9,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
 
         IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContextAsync(string identifier);
          
-        int FindSequenceIndex(string identifier);
+        Task<int> FindSequenceIndex(string identifier);
     }
 }

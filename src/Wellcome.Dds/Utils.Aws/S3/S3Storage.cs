@@ -59,7 +59,7 @@ namespace Utils.Aws.S3
             }
             catch (Exception e)
             {
-                logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed.", e);
+                logger.LogError(e, "Attempt to deserialize '{Uri}' from S3 failed.", fileInfo.Uri);
             }
             return t;
         }

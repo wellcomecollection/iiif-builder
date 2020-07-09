@@ -148,7 +148,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <param name="digitisedManifestation"></param>
         /// <param name="reIngestErrorImages"></param>
         /// <returns></returns>
-        public SyncOperation GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation, bool reIngestErrorImages)
+        public async Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
+            bool reIngestErrorImages)
         {
             // TODO - some of this can go inside IDigitisedManifestation
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -181,7 +182,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             }
 
             // Get the manifestation level metadata that each image is going to need
-            syncOperation.LegacySequenceIndex = metsRepository.FindSequenceIndex(metsManifestation.Id);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Id);
             var ddsId = new DdsIdentifier(metsManifestation.Id);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
@@ -482,9 +483,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return imageRegistration;
         }
 
-        public IEnumerable<DlcsIngestJob> GetMostRecentIngestJobs(string identifier, int number)
+        public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
         {
-            int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
+            int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);
             var jobQuery = GetJobQuery(identifier, legacySequenceIndex: sequenceIndex);
             if (jobQuery == null)
             {
@@ -510,9 +511,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return new JobActivity {BatchesForCurrentImages = imageBatches, UpdatedJobs = updatedJobs};
         }
 
-        public int RemoveOldJobs(string id)
+        public async Task<int> RemoveOldJobs(string id)
         {
-            int sequenceIndex = metsRepository.FindSequenceIndex(id);
+            int sequenceIndex = await metsRepository.FindSequenceIndex(id);
             var jobQuery = GetJobQuery(id, legacySequenceIndex: sequenceIndex);
             if (jobQuery == null)
             {
@@ -667,9 +668,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
-        public int FindSequenceIndex(string identifier)
+        public async Task<int> FindSequenceIndex(string identifier)
         {
-            return metsRepository.FindSequenceIndex(identifier);
+            return await metsRepository.FindSequenceIndex(identifier);
         }
 
         public bool DeletePdf(string string1, int number1)
@@ -677,10 +678,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return dlcs.DeletePdf(string1, number1);
         }
 
-        public int DeleteOrphans(string id)
+        public async Task<int> DeleteOrphans(string id)
         {
-            var manif = (IDigitisedManifestation)GetDigitisedResourceAsync(id);
-            var syncOp = GetDlcsSyncOperation(manif, false);
+            var manifestation = await GetDigitisedResourceAsync(id) as IDigitisedManifestation;
+            var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return dlcs.DeleteImages(syncOp.Orphans);
         }
 

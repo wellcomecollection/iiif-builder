@@ -9,10 +9,11 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
     public interface IDashboardRepository
     {
         Task<IDigitisedResource> GetDigitisedResourceAsync(string identifier);
-        SyncOperation GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation, bool reIngestErrorImages);
+        Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
+            bool reIngestErrorImages);
         void ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);
         int DefaultSpace { get; set; }
-        IEnumerable<DlcsIngestJob> GetMostRecentIngestJobs(string identifier, int number);
+        Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number);
         //IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(string identifier, SyncOperation syncOperation);
         Batch GetBatch(string batchId);
 
@@ -22,10 +23,10 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         IEnumerable<ErrorByMetadata> GetErrorsByMetadata();
         Page<ErrorByMetadata> GetErrorsByMetadata(int page);
 
-        int FindSequenceIndex(string identifier);
+        Task<int> FindSequenceIndex(string identifier);
         bool DeletePdf(string string1, int number1);
-        int RemoveOldJobs(string id);
-        int DeleteOrphans(string id);
+        Task<int> RemoveOldJobs(string id);
+        Task<int> DeleteOrphans(string id);
         
         IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null);
         IEnumerable<IngestAction> GetRecentActions(int count, string user = null);

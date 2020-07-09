@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading.Tasks;
 using Utils.Storage;
+using Utils.Threading;
 
 namespace Utils.Caching
 {
@@ -13,6 +15,8 @@ namespace Utils.Caching
         private IStorage storage;
         private IMemoryCache memoryCache;
         private TimeSpan cacheDuration;
+
+        private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
 
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
@@ -57,12 +61,12 @@ namespace Utils.Caching
         }
 
 
-        public T GetCachedObject(string key, Func<T> getFromSource)
+        public Task<T> GetCachedObject(string key, Func<T> getFromSource)
         {
             return GetCachedObject(key, getFromSource, null);
         }
 
-        public T GetCachedObject(string key, Func<T> getFromSource, Predicate<T> storedVersionIsStale)
+        public async Task<T> GetCachedObject(string key, Func<T> getFromSource, Predicate<T> storedVersionIsStale)
         {
             T t = default(T);
             if (options.AvoidCaching)
@@ -87,7 +91,7 @@ namespace Utils.Caching
             }
             if (t == null)
             {
-                lock (String.Intern(key))
+                using (var processLock = await asyncLocker.LockAsync(String.Intern(key)))
                 {
                     // check in memoryCache cache again
                     if (memoryCache != null)
