@@ -1,0 +1,23 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+WORKDIR /src
+
+COPY src/Wellcome.Dds/WorkflowProcessor/WorkflowProcessor.csproj WorkflowProcessor/
+
+RUN dotnet restore "WorkflowProcessor/WorkflowProcessor.csproj"
+
+# Copy everything else
+COPY src/Wellcome.Dds/ ./
+WORKDIR "/src/WorkflowProcessor"
+RUN dotnet build "WorkflowProcessor.csproj" -c Release
+
+FROM build AS publish
+WORKDIR "/src/WorkflowProcessor"
+RUN dotnet publish "WorkflowProcessor.csproj" -c Release -o /app/publish
+
+# Runtime image
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim
+WORKDIR /app
+
+EXPOSE 80
+COPY --from=publish /app/publish .
+ENTRYPOINT [ "dotnet", "WorkflowProcessor.dll" ]
