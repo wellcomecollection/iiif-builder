@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading.Tasks;
 using Utils.Storage;
+using Utils.Threading;
 
 namespace Utils.Caching
 {
@@ -14,6 +16,8 @@ namespace Utils.Caching
         private IMemoryCache memoryCache;
         private TimeSpan cacheDuration;
 
+        private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
+
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
             IOptions<BinaryObjectCacheOptions> options,
@@ -24,7 +28,7 @@ namespace Utils.Caching
             this.logger = logger;
             this.options = options.Value;
             this.storage = storage;
-            this.storage.Folder = this.options.Folder; // not sure about setting this here
+            this.storage.Container = this.options.Container; // not sure about setting this here
             this.memoryCache = memoryCache;
             cacheDuration = new TimeSpan(0, 0, this.options.MemoryCacheSeconds);
         }
@@ -57,12 +61,12 @@ namespace Utils.Caching
         }
 
 
-        public T GetCachedObject(string key, Func<T> getFromSource)
+        public Task<T> GetCachedObject(string key, Func<T> getFromSource)
         {
             return GetCachedObject(key, getFromSource, null);
         }
 
-        public T GetCachedObject(string key, Func<T> getFromSource, Predicate<T> storedVersionIsStale)
+        public async Task<T> GetCachedObject(string key, Func<T> getFromSource, Predicate<T> storedVersionIsStale)
         {
             T t = default(T);
             if (options.AvoidCaching)
@@ -72,7 +76,7 @@ namespace Utils.Caching
                     t = getFromSource();
                     if (t != null && !options.AvoidSaving)
                     {
-                        storage.Write(t, GetCachedFile(key), options.WriteFailThrowsException);
+                        await storage.Write(t, GetCachedFile(key), options.WriteFailThrowsException);
                     }
                 }
                 return t;
@@ -87,7 +91,7 @@ namespace Utils.Caching
             }
             if (t == null)
             {
-                lock (String.Intern(key))
+                using (var processLock = await asyncLocker.LockAsync(String.Intern(key)))
                 {
                     // check in memoryCache cache again
                     if (memoryCache != null)
@@ -102,7 +106,8 @@ namespace Utils.Caching
                         {
                             logger.LogDebug("Cache MISS for {0}, will attempt read from disk", memoryCacheKey);
                         }
-                        t = storage.Read<T>(cachedFile);
+                        // cannot await in the body of a lock statement
+                        t = storage.Read<T>(cachedFile).Result;
                     }
                     if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
                     {
@@ -119,7 +124,7 @@ namespace Utils.Caching
                             t = getFromSource();
                             if (t != null)
                             {
-                                storage.Write(t, cachedFile, options.WriteFailThrowsException);
+                                await storage.Write(t, cachedFile, options.WriteFailThrowsException);
                             }
                         }
                     }

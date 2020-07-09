@@ -44,10 +44,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             if (!ddsId.BNumber.IsBNumber())
             {
-                throw new ArgumentException(ddsId.BNumber + " is not a b number", "identifier");
+                throw new ArgumentException(ddsId.BNumber + " is not a b number", nameof(identifier));
             }
 
-            IWorkStore workStore = workStorageFactory.GetWorkStore(ddsId.BNumber);
+            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
             ILogicalStructDiv structMap;
             switch (ddsId.IdentifierType)
             {
@@ -81,12 +81,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     case IdentifierType.Volume:
                         volumeIdentifier = identifier;
-                        sequenceIndex = FindSequenceIndex(ddsId);
+                        sequenceIndex = await FindSequenceIndex(ddsId);
                         break;
                     case IdentifierType.Issue:
                         volumeIdentifier = ddsId.VolumePart;
                         issueIdentifier = identifier;
-                        sequenceIndex = FindSequenceIndex(ddsId);
+                        sequenceIndex = await FindSequenceIndex(ddsId);
                         break;
                 }
                 yield return new ManifestationInContext
@@ -105,7 +105,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections)
                     {
-                        var volume = GetAsync(partialVolume.Id) as ICollection;
+                        var volume = await GetAsync(partialVolume.Id) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations)
                         {
@@ -184,7 +184,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return null;
         }
 
-        public int FindSequenceIndex(string identifier)
+        public async Task<int> FindSequenceIndex(string identifier)
         {
             int sequenceIndex = 0;
             var ddsId = new DdsIdentifier(identifier);
@@ -193,10 +193,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumber:
                     return 0;
                 case IdentifierType.Volume:
-                    var anchor = GetAsync(ddsId.BNumber) as ICollection;
-                    foreach (var manif in anchor.Manifestations)
+                    var anchor = await GetAsync(ddsId.BNumber) as ICollection;
+                    if (anchor == null) return -1;
+                    foreach (var manifestation in anchor.Manifestations)
                     {
-                        if (manif.Id == identifier)
+                        if (manifestation.Id == identifier)
                         {
                             return sequenceIndex;
                         }

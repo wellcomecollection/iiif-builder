@@ -64,7 +64,10 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
 
             // This will require an S3 implementation in production
-            services.AddSingleton<IStorage, FileSystemStorage>();
+            // services.AddSingleton<IStorage, FileSystemStorage>();
+            services.AddSingleton<IStorage, S3Storage>(opts =>
+                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
+                    factory.Get("Dds")));
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
 
@@ -73,7 +76,7 @@ namespace Wellcome.Dds.Dashboard
 
             // Need an HTTPClient to be injected into Dlcs - not WebClient
             services.AddSingleton<IDlcs, Dlcs>();
-            // This is the one that needss an IAmazonS3 with the storage profile
+            // This is the one that needs an IAmazonS3 with the storage profile
             services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
                 ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
                     factory.Get("Storage")));
