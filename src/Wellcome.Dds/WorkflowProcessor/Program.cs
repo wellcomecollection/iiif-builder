@@ -1,12 +1,37 @@
 ﻿using System;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Serilog;
 
 namespace WorkflowProcessor
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateLogger();
+            try
+            {
+                CreateHostBuilder(args).Build().Run();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Application start-up failed");
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }

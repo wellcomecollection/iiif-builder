@@ -7,6 +7,7 @@ COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories/Wellcome.Dds.AssetDom
 COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomain/Wellcome.Dds.AssetDomain.csproj Wellcome.Dds.AssetDomain/
 COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dds.Common/
 COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
+COPY src/Wellcome.Dds/Utils.Aws/Utils.Aws.csproj Utils.Aws/
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
 
 RUN dotnet restore "Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj"

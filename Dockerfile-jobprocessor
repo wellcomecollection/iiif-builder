@@ -1,0 +1,27 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+WORKDIR /src
+
+COPY src/Wellcome.Dds/DlcsJobProcessor/DlcsJobProcessor.csproj DlcsJobProcessor/
+COPY src/Wellcome.Dds/DlcsWebClient/DlcsWebClient.csproj DlcsWebClient/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomain/Wellcome.Dds.AssetDomain.csproj Wellcome.Dds.AssetDomain/
+COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dds.Common/
+COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
+
+RUN dotnet restore "DlcsJobProcessor/DlcsJobProcessor.csproj"
+
+# Copy everything else
+COPY src/Wellcome.Dds/ ./
+WORKDIR "/src/DlcsJobProcessor"
+RUN dotnet build "DlcsJobProcessor.csproj" -c Release
+
+FROM build AS publish
+WORKDIR "/src/DlcsJobProcessor"
+RUN dotnet publish "DlcsJobProcessor.csproj" -c Release -o /app/publish
+
+# Runtime image
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim
+WORKDIR /app
+
+EXPOSE 80
+COPY --from=publish /app/publish .
+ENTRYPOINT [ "dotnet", "DlcsJobProcessor.dll" ]

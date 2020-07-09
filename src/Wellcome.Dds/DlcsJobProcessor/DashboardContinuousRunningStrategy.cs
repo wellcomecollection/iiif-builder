@@ -1,16 +1,14 @@
-﻿using DlcsWebClient.Config;
+﻿using System;
+using DlcsWebClient.Config;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace DlcsJobProcessor
 {
-    public class DashboardContinuousRunningStrategy : IHostedService
+    public class DashboardContinuousRunningStrategy : BackgroundService
     {
         private ILogger<DashboardContinuousRunningStrategy> logger;
         private DlcsOptions options;
@@ -23,17 +21,17 @@ namespace DlcsJobProcessor
             this.options = options.Value;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("Started DashboardContinuousRunningStrategy");
+            logger.LogInformation("Running DashboardContinuousRunningStrategy");
             logger.LogInformation("Customer is {0}", options.CustomerName);
-            return Task.CompletedTask;
-        }
+            var count = 0;
 
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            logger.LogInformation("Stopping DashboardContinuousRunningStrategy");
-            return Task.CompletedTask;
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                logger.LogInformation("Loop {count}...", ++count);
+                await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+            }
         }
     }
 }
