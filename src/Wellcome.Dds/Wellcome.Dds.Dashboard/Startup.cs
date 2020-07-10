@@ -86,8 +86,11 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
                     factory.Get("Storage")));
             services.AddSingleton<IMetsRepository, MetsRepository>();
+
+            // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
+            services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
             // TODO - add DB health check
