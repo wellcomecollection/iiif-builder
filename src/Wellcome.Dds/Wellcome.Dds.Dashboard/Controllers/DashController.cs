@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -39,6 +40,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly DdsOptions ddsOptions;
         private readonly DdsContext ddsContext;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly IWebHostEnvironment webHostEnvironment;
 
         const string CacheKeyPrefix = "dashcontroller_";
         const int CacheSeconds = 5;
@@ -56,7 +58,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             CacheBuster cacheBuster,
             IOptions<DdsOptions> ddsOptions,
             DdsContext ddsContext,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            IWebHostEnvironment webHostEnvironment)
         {
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
@@ -70,6 +73,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.ddsOptions = ddsOptions.Value;
             this.ddsContext = ddsContext;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.webHostEnvironment = webHostEnvironment;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -796,40 +800,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult Settings()
         {
-            var settings = new List<KeyValuePair<string, string>>();
-            AddSetting(settings, "StatusProvider-Heartbeat");
-            AddSetting(settings, "cachebuster-packageBustUrl");
-            AddSetting(settings, "LinkedDataDomain");
-            AddSetting(settings, "dlcs-CustomerDefaultSpace");
-            AddSetting(settings, "ArchiveStorage-PreventSynchronisation");
-            AddSetting(settings, "ArchiveStorage-StorageApiTemplate");
-            AddSetting(settings, "ArchiveStorage-TokenEndPoint");
-            AddSetting(settings, "ArchiveStorage-StorageMapCache");
-            AddSetting(settings, "ArchiveStorage-PreferCachedStorageMap");
-            AddSetting(settings, "ArchiveStorage-MapHttpRuntimeCacheSeconds");
-            AddSetting(settings, "ArchiveStorage-MaxAgeStorageMap");
-            AddSetting(settings, "ArchiveStorage-GoobiCall");
-            AddConnstr(settings, "DdsContext");
-            AddConnstr(settings, "WorkflowContext");
-            AddConnstr(settings, "CloudIngestContext");
+            var appSettings = "appsettings.json";
+            var appSettingsEnv = $"appsettings.{webHostEnvironment.EnvironmentName}.json";
+            var settings = new SettingsModel
+            {
+                AppSettings = System.IO.File.ReadAllText(appSettings),
+                AppSettingsForEnvironment = System.IO.File.ReadAllText(appSettingsEnv)
+            };
             return View(settings);
         }
-
-        private void AddSetting(List<KeyValuePair<string, string>> settings, string name)
-        {
-            settings.Add(new KeyValuePair<string, string>(
-                name, StringUtils.GetAppSetting(name, "#### MISSING ####")));
-        }
-
-        private void AddConnstr(List<KeyValuePair<string, string>> settings, string name)
-        {
-            var connStr = ConfigurationManager.ConnectionStrings[name];
-            var parts = connStr.ConnectionString.SplitByDelimiter(';');
-            var safeParts = parts.Where(p => !p.Contains("password"));
-            var newConnStr = String.Join(";", safeParts) + ";---(hidden)---";
-            settings.Add(new KeyValuePair<string, string>("(DB) " + name, newConnStr));
-        }
-
     }
 
     public class AutoCompleteSuggestion
@@ -855,5 +834,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public bool Success { get; set; }
         public string Message { get; set; }
         public CacheBustResult CacheBustResult { get; set; }
+    }
+
+    public class SettingsModel
+    {
+        public string AppSettings { get; set; }
+        public string AppSettingsForEnvironment { get; set; }
     }
 }
