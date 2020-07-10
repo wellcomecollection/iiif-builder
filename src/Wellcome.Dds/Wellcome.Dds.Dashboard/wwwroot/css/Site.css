@@ -1,0 +1,56 @@
+﻿body {
+    padding-top: 50px;
+    padding-bottom: 20px;
+}
+
+/* Set padding to keep content from hitting the edges */
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Override the default bootstrap behavior where horizontal description lists 
+   will truncate terms that are too long to fit in the left column 
+*/
+.dl-horizontal dt {
+    white-space: normal;
+}
+
+body.homepage .navbar-form {
+    display: none;
+}
+
+.row-detail {
+    display: none;
+}
+
+.responseBody pre {
+    display: none;
+}
+
+.tooltip-inner {
+    max-width: 900px;
+}
+
+.modal-body {
+    max-height: calc(100vh - 200px);
+}
+
+#bigImage {
+    margin: 0 auto;
+    max-height: calc(100vh - 230px);
+}
+
+img.iiifpreview {
+    max-width: 30px;
+    max-height: 30px;
+    cursor: pointer;
+}
+
+.error-tbody {
+    display: none;
+}
+
+.asset-table .text-muted {
+    font-style: italic;
+}

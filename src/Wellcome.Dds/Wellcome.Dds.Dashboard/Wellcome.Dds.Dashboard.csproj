@@ -117,4 +117,37 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\css\bootstrap.css" />
+    <None Include="wwwroot\css\bootstrap.min.css" />
+    <None Include="wwwroot\css\Site.css" />
+    <None Include="wwwroot\css\staging.png" />
+    <None Include="wwwroot\css\typeahead.css" />
+    <None Include="wwwroot\css\_orig_bootstrap.css" />
+    <None Include="wwwroot\css\_orig_bootstrap.min.css" />
+    <None Include="wwwroot\fonts\glyphicons-halflings-regular.eot" />
+    <None Include="wwwroot\fonts\glyphicons-halflings-regular.svg" />
+    <None Include="wwwroot\fonts\glyphicons-halflings-regular.ttf" />
+    <None Include="wwwroot\fonts\glyphicons-halflings-regular.woff" />
+    <None Include="wwwroot\fonts\glyphicons-halflings-regular.woff2" />
+    <None Include="wwwroot\js\bootstrap.js" />
+    <None Include="wwwroot\js\bootstrap.min.js" />
+    <None Include="wwwroot\js\dash.js" />
+    <None Include="wwwroot\js\jquery-1.10.2.intellisense.js" />
+    <None Include="wwwroot\js\jquery-1.10.2.js" />
+    <None Include="wwwroot\js\jquery-1.10.2.min.js" />
+    <None Include="wwwroot\js\jquery-1.10.2.min.map" />
+    <None Include="wwwroot\js\jquery.validate-vsdoc.js" />
+    <None Include="wwwroot\js\jquery.validate.js" />
+    <None Include="wwwroot\js\jquery.validate.min.js" />
+    <None Include="wwwroot\js\jquery.validate.unobtrusive.js" />
+    <None Include="wwwroot\js\jquery.validate.unobtrusive.min.js" />
+    <None Include="wwwroot\js\modernizr-2.6.2.js" />
+    <None Include="wwwroot\js\openseadragon.min.js" />
+    <None Include="wwwroot\js\respond.js" />
+    <None Include="wwwroot\js\respond.min.js" />
+    <None Include="wwwroot\js\typeahead.jquery.js" />
+    <None Include="wwwroot\js\_references.js" />
+  </ItemGroup>
+
  </Project>
