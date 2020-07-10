@@ -18,6 +18,7 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
@@ -39,8 +40,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly CacheBuster cacheBuster;
         private readonly DdsOptions ddsOptions;
         private readonly DdsContext ddsContext;
-        private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly IWebHostEnvironment webHostEnvironment;
+        private readonly IWorkflowCallRepository workflowCallRepository;
 
         const string CacheKeyPrefix = "dashcontroller_";
         const int CacheSeconds = 5;
@@ -58,8 +59,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             CacheBuster cacheBuster,
             IOptions<DdsOptions> ddsOptions,
             DdsContext ddsContext,
-            DdsInstrumentationContext ddsInstrumentationContext,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            IWorkflowCallRepository workflowCallRepository)
         {
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
@@ -72,8 +73,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.cacheBuster = cacheBuster;
             this.ddsOptions = ddsOptions.Value;
             this.ddsContext = ddsContext;
-            this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.webHostEnvironment = webHostEnvironment;
+            this.workflowCallRepository = workflowCallRepository;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -133,7 +134,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
         // GET: Dash
-        public async Task<ActionResult> ManifestationAsync(string id)
+        public async Task<ActionResult> Manifestation(string id)
         {
             var json = AskedForJson();
             var logger = new SmallJobLogger("", null);
@@ -325,7 +326,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(dgManifestation);
         }
 
-        public async Task<ActionResult> CollectionAsync(string id)
+        public async Task<ActionResult> Collection(string id)
         {
             var json = AskedForJson();
             IDigitisedCollection collection = null;
@@ -513,7 +514,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
 
-        public async Task<ActionResult> StorageMapAsync(string id, string resolveRelativePath = null)
+        public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
         {
             var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
             if (!resolveRelativePath.HasText())
@@ -537,7 +538,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(model);
         }
 
-        public async Task<ActionResult> StorageManifestAsync(string id)
+        public async Task<ActionResult> StorageManifest(string id)
         {
             var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
 
@@ -561,7 +562,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         }
 
-        public async Task<ActionResult> XmlViewAsync(string id, string parts)
+        public async Task<ActionResult> XmlView(string id, string parts)
         {
             var store = await workStorageFactory.GetWorkStore(id);
             string errorMessage = null;
@@ -623,7 +624,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("Manifestation", new { id });
         }
 
-        public async Task<ActionResult> DeletePdfAsync(string id)
+        public async Task<ActionResult> DeletePdf(string id)
         {
             var seqIndex = await dashboardRepository.FindSequenceIndex(id);
             var deleteResult = new DeleteResult { Success = dashboardRepository.DeletePdf(new DdsIdentifier(id).BNumber, seqIndex) };
@@ -646,7 +647,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("StopStatus");
         }
 
-        public async Task<ActionResult> CleanOldJobsAsync(string id)
+        public async Task<ActionResult> CleanOldJobs(string id)
         {
             int removed = await dashboardRepository.RemoveOldJobs(id);
             TempData["remove-old-jobs"] = removed;
@@ -660,7 +661,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return dashboardRepository.GetDlcsQueueLevel();
         }
 
-        public async Task<ActionResult> DeleteOrphansAsync(string id)
+        public async Task<ActionResult> DeleteOrphans(string id)
         {
             dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
             int removed = await dashboardRepository.DeleteOrphans(id);
@@ -722,25 +723,24 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult GoobiCall(string id = null)
         {
-            var goobiCallSupport = new GoobiCallSupport(ddsInstrumentationContext);
             if (id == null)
             {
                 ViewBag.IsErrorList = false;
-                var top100 = goobiCallSupport.GetRecent();
+                var top100 = workflowCallRepository.GetRecent();
                 return View("GoobiCallList", top100);
             }
             if (id == "errors")
             {
                 ViewBag.IsErrorList = true;
-                var top100 = goobiCallSupport.GetRecentErrors();
+                var top100 = workflowCallRepository.GetRecentErrors();
                 return View("GoobiCallList", top100);
             }
             if (id == "stats")
             {
-                var stats = goobiCallSupport.GetStatsModel();
+                var stats = workflowCallRepository.GetStatsModel();
                 return View("Stats", stats);
             }
-            var job = goobiCallSupport.GetWorkflowJob(id);
+            var job = workflowCallRepository.GetWorkflowJob(id);
             if (job == null)
             {
                 return NotFound();
@@ -795,7 +795,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             throw new NotImplementedException("Make an API call to DDS, as Goobi does. Not implemented because we want to change this, probably to a queue");
             // TempData["DdsCallResult"] = MigrationSupport.GoobiCall(id);
-            return RedirectToAction("Migration", new { id });
+            // return RedirectToAction("Migration", new { id });
         }
 
         public ActionResult Settings()

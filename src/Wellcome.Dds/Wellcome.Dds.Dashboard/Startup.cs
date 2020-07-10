@@ -18,9 +18,11 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard
@@ -85,6 +87,7 @@ namespace Wellcome.Dds.Dashboard
                     factory.Get("Storage")));
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
             // TODO - add DB health check
