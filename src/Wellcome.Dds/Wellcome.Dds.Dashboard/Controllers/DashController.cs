@@ -39,7 +39,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly CacheBuster cacheBuster;
         private readonly DdsOptions ddsOptions;
-        private readonly DdsContext ddsContext;
+        private readonly DdsContext ddsContext; // need to eliminate direct use of this here; repository
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly IWorkflowCallRepository workflowCallRepository;
 
