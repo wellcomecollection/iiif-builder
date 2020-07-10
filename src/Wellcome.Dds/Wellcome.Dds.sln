@@ -33,7 +33,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils.Aws", "Utils.Aws\Util
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Repositories", "Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj", "{0E0B5C54-0552-4613-9739-79A0C1487F3D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DlcsWebClient.Tests", "DlcsWebClient.Tests\DlcsWebClient.Tests.csproj", "{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DlcsWebClient.Tests", "DlcsWebClient.Tests\DlcsWebClient.Tests.csproj", "{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.AssetDomainRepositories.Tests", "Wellcome.Dds.AssetDomainRepositories.Tests\Wellcome.Dds.AssetDomainRepositories.Tests.csproj", "{D9836378-AE6E-416C-A402-36C9F131E905}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Helpers", "Test.Helpers\Test.Helpers.csproj", "{9AC56C72-8266-4E7A-B23E-E10F270555DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -101,6 +105,14 @@ Global
 		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9836378-AE6E-416C-A402-36C9F131E905}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9836378-AE6E-416C-A402-36C9F131E905}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9836378-AE6E-416C-A402-36C9F131E905}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9836378-AE6E-416C-A402-36C9F131E905}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AC56C72-8266-4E7A-B23E-E10F270555DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AC56C72-8266-4E7A-B23E-E10F270555DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AC56C72-8266-4E7A-B23E-E10F270555DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AC56C72-8266-4E7A-B23E-E10F270555DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,6 +120,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B48B1C44-A7FB-4472-92C8-195F69E75CF0} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{18B02CF1-4A24-4B4A-9C85-25EE0D9603CF} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
+		{D9836378-AE6E-416C-A402-36C9F131E905} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
+		{9AC56C72-8266-4E7A-B23E-E10F270555DB} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2745EEFB-05EA-40E0-BECC-7F24548F7DE7}

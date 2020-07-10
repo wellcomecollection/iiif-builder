@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DlcsWebClient.Tests
+namespace Test.Helpers
 {
     /// <summary>
     /// Controllable HttpMessageHandler for unit testing HttpClient.
@@ -27,7 +27,7 @@ namespace DlcsWebClient.Tests
             response = new HttpResponseMessage
             {
                 StatusCode = httpStatusCode,
-                Content = httpContent
+                Content = httpContent,
             };
             return response;
         }

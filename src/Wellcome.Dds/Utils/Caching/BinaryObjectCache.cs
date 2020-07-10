@@ -135,6 +135,76 @@ namespace Utils.Caching
             }
             return t;
         }
+        
+        public async Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource, Predicate<T> storedVersionIsStale)
+        {
+            T t = default;
+            if (options.AvoidCaching)
+            {
+                if (getFromSource != null)
+                {
+                    t = await getFromSource();
+                    if (t != null && !options.AvoidSaving)
+                    {
+                        await storage.Write(t, GetCachedFile(key), options.WriteFailThrowsException);
+                    }
+                }
+                return t;
+            }
+            var memoryCacheKey = GetMemoryCacheKey(key);
+            var cachedFile = GetCachedFile(key);
+            bool memoryCacheMiss = false;
+
+            if (memoryCache != null)
+            {
+                t = memoryCache.Get(memoryCacheKey) as T;
+            }
+            if (t == null)
+            {
+                using (var processLock = await asyncLocker.LockAsync(String.Intern(key)))
+                {
+                    // check in memoryCache cache again
+                    if (memoryCache != null)
+                    {
+                        t = memoryCache.Get(memoryCacheKey) as T;
+                    }
+
+                    if (t == null)
+                    {
+                        memoryCacheMiss = true;
+                        if(logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug("Cache MISS for {0}, will attempt read from disk", memoryCacheKey);
+                        }
+                        t = await storage.Read<T>(cachedFile);
+                    }
+                    if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
+                    {
+                        t = null;
+                    }
+                    if (t == null)
+                    {
+                        if (logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug("Disk MISS for {0}, will attempt read from source", memoryCacheKey);
+                        }
+                        if (getFromSource != null)
+                        {
+                            t = await getFromSource();
+                            if (t != null)
+                            {
+                                await storage.Write(t, cachedFile, options.WriteFailThrowsException);
+                            }
+                        }
+                    }
+                    if (t != null && memoryCacheMiss && memoryCache != null)
+                    {
+                        PutInMemoryCache(t, memoryCacheKey);
+                    }
+                }
+            }
+            return t;
+        }
 
         private void PutInMemoryCache(T t, string cacheKey)
         {

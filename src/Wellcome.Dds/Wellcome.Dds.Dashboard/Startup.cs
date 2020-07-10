@@ -17,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
+using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -83,7 +84,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
 
             // This will require an S3 implementation in production
-            // services.AddSingleton<IStorage, FileSystemStorage>();
+            //services.AddSingleton<IStorage, FileSystemStorage>();
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get("Dds")));
@@ -104,9 +105,7 @@ namespace Wellcome.Dds.Dashboard
             });
 
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
-                ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
-                    factory.Get("Storage")));
+            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
