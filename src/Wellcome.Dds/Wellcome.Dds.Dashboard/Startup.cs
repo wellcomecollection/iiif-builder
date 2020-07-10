@@ -97,33 +97,12 @@ namespace Wellcome.Dds.Dashboard
             {
                 var creds = Convert.ToBase64String(
                     Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
-                client.DefaultRequestHeaders.Add("Content-Type", "application/json");
+                client.DefaultRequestHeaders.Accept
+                    .Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
-                //client.BaseAddress = new Uri(dlcsOptions.ApiEntryPoint);
                 client.Timeout = TimeSpan.FromMilliseconds(360000);
             });
 
-            // services.AddHttpClient(DlcsClients.Api, client =>
-            // {
-            //     var creds = Convert.ToBase64String(
-            //         Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
-            //     client.DefaultRequestHeaders.Add("Content-Type", "application/json");
-            //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
-            //     client.BaseAddress = new Uri(dlcsOptions.ApiEntryPoint);
-            // });
-            //
-            // services.AddHttpClient(DlcsClients.Resource, client =>
-            // {
-            //     var creds = Convert.ToBase64String(
-            //         Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
-            //     client.DefaultRequestHeaders.Add("Content-Type", "application/json");
-            //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
-            //     client.BaseAddress = new Uri(dlcsOptions.ResourceEntryPoint);
-            // });
-            //
-            // // Need an HTTPClient to be injected into Dlcs - not WebClient
-            // services.AddSingleton<IDlcs, Dlcs>();
-            
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
                 ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,

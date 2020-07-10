@@ -33,12 +33,13 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         /// <returns></returns>
         Task<Operation<ImageQuery, HydraImageCollection>> GetImages(ImageQuery query, int defaultSpace);
 
+        // TODO - this should be a Uri
         Task<Operation<ImageQuery, HydraImageCollection>> GetImages(string nextUri);
 
         Task<Operation<string, Batch>> GetBatch(string batchId); 
 
+        // TODO - this should be return a Uri, or change name
         string GetRoleUri(string accessCondition);
-
 
         // ============================
         // New ops for reconciliation
@@ -49,7 +50,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         Task<IEnumerable<Image>> GetImagesForIdentifier(string anyIdentifier);
         
         // string 3
-        Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentfier);
+        Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentifier);
 
         Task<IEnumerable<Image>> GetImagesForString3(string identfier);
         

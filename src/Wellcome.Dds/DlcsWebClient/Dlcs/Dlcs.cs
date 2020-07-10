@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Runtime.Loader;
 using System.Text;
@@ -27,7 +26,7 @@ namespace DlcsWebClient.Dlcs
         private readonly ILogger<Dlcs> logger;
         private readonly HttpClient httpClient;
         private readonly DlcsOptions options;
-        private readonly JsonSerializerSettings _jsonSerializerSettings;
+        private readonly JsonSerializerSettings jsonSerializerSettings;
 
         public Dlcs(
             ILogger<Dlcs> logger,
@@ -38,7 +37,7 @@ namespace DlcsWebClient.Dlcs
             this.httpClient = httpClient;
             this.options = options.Value;
             
-            _jsonSerializerSettings = new JsonSerializerSettings
+            jsonSerializerSettings = new JsonSerializerSettings
             {
                 // http://stackoverflow.com/questions/23170918/is-the-jsonserializersettings-thread-safe
                 // TODO - is this (and its CamelCasePropertyNamesContractResolver) thread safe?
@@ -81,16 +80,17 @@ namespace DlcsWebClient.Dlcs
             TRequest requestObject, Operation<TRequest, TResponse> operation)
         {
             //httpClient.Timeout = TimeSpan.FromMilliseconds(360000);
+            
+            HttpResponseMessage response = null;
             try
             {
                 if (requestObject != null)
                 {
                     operation.RequestObject = requestObject;
                     operation.RequestJson = JsonConvert.SerializeObject(
-                        operation.RequestObject, Formatting.Indented, _jsonSerializerSettings);
+                        operation.RequestObject, Formatting.Indented, jsonSerializerSettings);
                 }
-
-                HttpResponseMessage response = null;
+                
                 switch (operation.HttpMethod)
                 {
                     case "POST":
@@ -129,8 +129,8 @@ namespace DlcsWebClient.Dlcs
             }
             catch (Exception ex)
             {
-                operation.Error = GetError(ex);
-                logger.LogError(ex, "Error in web client - {message}", ex.Message);
+                operation.Error = GetError(ex, response);
+                logger.LogError(ex, "Error in dlcs request client - {message}", ex.Message);
             }
 
             return operation;
@@ -148,9 +148,6 @@ namespace DlcsWebClient.Dlcs
             // had a GUID as their last component
             var last = id.Split(SlashSeparator).Last();
             return last;
-            //Guid g;
-            //Guid.TryParse(last, out g);
-            //return g;
         }
         
         public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(ImageQuery query, int defaultSpace)
@@ -171,41 +168,30 @@ namespace DlcsWebClient.Dlcs
         public Task<Operation<string, Batch>> GetBatch(string batchId)
         {
             const string batchTemplate = "{0}customers/{1}/queue/batches/{2}";
-            if (batchId.IndexOf("/") == -1)
+            if (!Uri.IsWellFormedUriString(batchId, UriKind.Absolute))
             {
                 batchId = string.Format(batchTemplate, options.ApiEntryPoint, options.CustomerId, batchId);
             }
             return GetOperation<string, Batch>(null, new Uri(batchId));
         }
 
-        private static Error GetError(Exception ex)
+        private static Error GetError(Exception ex, HttpResponseMessage response)
         {
-            // TODO - fix this
-            if (ex is WebException)
+            if (ex is HttpRequestException httpRequestException)
             {
-                var we = (WebException)ex;
-                var badResponse = (HttpWebResponse)we.Response;
-                if (badResponse != null)
-                {
-                    return new Error
-                    {
-                        Status = (int)badResponse.StatusCode,
-                        Message = we.Message
-                    };
-                }
                 return new Error
                 {
-                    Status = 0,
-                    Message = we.Message
+                    Status = (int?)response?.StatusCode ?? 0,
+                    Message = httpRequestException.Message
                 };
             }
+            
             return new Error
             {
                 Status = 0,
                 Message = ex.Message
             };
         }
-
 
         private static Uri _imageQueueUri;
         private void InitQueue()
@@ -214,17 +200,16 @@ namespace DlcsWebClient.Dlcs
             {
                 // TODO: At this point we would work out RESTfully where the queue for this customer is
                 // and cache that for a bit - we assume the API stays reasonably stable.
-                _imageQueueUri = new Uri(string.Format("{0}customers/{1}/queue", options.ApiEntryPoint, options.CustomerId));
+                _imageQueueUri = new Uri($"{options.ApiEntryPoint}customers/{options.CustomerId}/queue");
             }
         }
-
 
         public Task<Operation<HydraImageCollection, Batch>> RegisterImages(HydraImageCollection images, bool priority = false)
         {
             InitQueue();
             return PostOperation<HydraImageCollection, Batch>(images,
                 priority
-                ? new Uri(String.Concat(_imageQueueUri.ToString(), "/priority"))
+                ? new Uri($"{_imageQueueUri}/priority")
                 : _imageQueueUri);
         }
 
@@ -252,9 +237,8 @@ namespace DlcsWebClient.Dlcs
             {
                 firstCharLowered = "clickthrough";
             }
-            return string.Format("{0}customers/{1}/roles/{2}", options.ApiEntryPoint, options.CustomerId, ToCamelCase(firstCharLowered));
+            return $"{options.ApiEntryPoint}customers/{options.CustomerId}/roles/{ToCamelCase(firstCharLowered)}";
         }
-
 
         // TODO - leave this here? Move to utils and introduce dependency?
         /// <summary>
@@ -277,7 +261,6 @@ namespace DlcsWebClient.Dlcs
             return sb.ToString();
         }
 
-
         public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier)
         {
             var ddsId = new DdsIdentifier(identifier);
@@ -299,7 +282,6 @@ namespace DlcsWebClient.Dlcs
         /// </summary>
         /// <param name="identfier"></param>
         /// <returns></returns>
-
         // string 1
         public Task<IEnumerable<Image>> GetImagesForBNumber(string identifier) 
             => GetImagesFromQuery(new ImageQuery { String1 = identifier });
@@ -313,8 +295,8 @@ namespace DlcsWebClient.Dlcs
             => GetImagesFromQuery(new ImageQuery { String2 = volumeIdentifier });
 
         // string 3
-        public Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentfier) 
-            => GetImagesFromQuery(new ImageQuery { String3 = issueIdentfier });
+        public Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentifier) 
+            => GetImagesFromQuery(new ImageQuery { String3 = issueIdentifier });
 
         public Task<IEnumerable<Image>> GetImagesForString3(string identifier) 
             => GetImagesForIssue(identifier);
