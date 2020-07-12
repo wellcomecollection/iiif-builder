@@ -1,4 +1,6 @@
-﻿namespace Wellcome.Dds.Data
+﻿using System;
+
+namespace Wellcome.Dds.Data
 {
     /// <summary>
     /// This is equivalent to FlatManifestation in old DDS.
@@ -9,6 +11,8 @@
     {
         public string Id { get; set; }
         public string PackageIdentifier { get; set; }
+        public string ManifestationIdentifier { get; set; }
+        public DateTime Processed { get; set; }
         public int PackageShortBNumber { get; set; }
         public string Label { get; set; }
     }

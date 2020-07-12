@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +39,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly CacheBuster cacheBuster;
         private readonly DdsOptions ddsOptions;
+        private readonly DlcsOptions dlcsOptions;
         private readonly DdsContext ddsContext; // need to eliminate direct use of this here; repository
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly IWorkflowCallRepository workflowCallRepository;
@@ -57,6 +59,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IWorkStorageFactory workStorageFactory,
             CacheBuster cacheBuster,
             IOptions<DdsOptions> ddsOptions,
+            IOptions<DlcsOptions> dlcsOptions,
             DdsContext ddsContext,
             IWebHostEnvironment webHostEnvironment,
             IWorkflowCallRepository workflowCallRepository)
@@ -71,6 +74,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.workStorageFactory = workStorageFactory;
             this.cacheBuster = cacheBuster;
             this.ddsOptions = ddsOptions.Value;
+            this.dlcsOptions = dlcsOptions.Value;
             this.ddsContext = ddsContext;
             this.webHostEnvironment = webHostEnvironment;
             this.workflowCallRepository = workflowCallRepository;
@@ -210,7 +214,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     DigitisedManifestation = dgManifestation,
                     Parent = parent,
                     GrandParent = grandparent,
-                    SyncOperation = syncOperation
+                    SyncOperation = syncOperation,
+                    DlcsOptions = dlcsOptions
                 };
                 model.MakeManifestationNavData();
                 logger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
@@ -303,10 +308,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private IDigitisedCollection GetCachedCollection(string identifier)
         {
-            return cache.GetCached(
+            return (IDigitisedCollection) cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                () => dashboardRepository.GetDigitisedResourceAsync(identifier) as IDigitisedCollection);
+                async () => (await dashboardRepository.GetDigitisedResourceAsync(identifier)));
         }
 
         private void PutCollectionInShortTermCache(IDigitisedCollection collection)
@@ -335,7 +340,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = await dashboardRepository.GetDigitisedResourceAsync(id) as IDigitisedCollection;
+                collection = (await dashboardRepository.GetDigitisedResourceAsync(id)) as IDigitisedCollection;
             }
             catch (Exception metsEx)
             {
@@ -408,51 +413,42 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
         }
 
-        public ActionResult Sync(string id)
+        public async Task<ActionResult> SyncAsync(string id)
         {
-            return CreateAndProcessJob(id, false, false, "Sync");
+            return await CreateAndProcessJobsAsync(id, false, false, "Sync");
         }
 
-        public ActionResult Resubmit(string id)
+        public async Task<ActionResult> ResubmitAsync(string id)
         {
-            return CreateAndProcessJob(id, true, false, "Resubmit");
+            return await CreateAndProcessJobsAsync(id, true, false, "Resubmit");
         }
 
-        public ActionResult ForceReingest(string id)
+        public async Task<ActionResult> ForceReingestAsync(string id)
         {
-            return CreateAndProcessJob(id, true, true, "Force reingest");
+            return await CreateAndProcessJobsAsync(id, true, true, "Force reingest");
         }
 
-        public ActionResult SyncAllManifestations(string id)
+        public async Task<ActionResult> SyncAllManifestationsAsync(string id)
         {
-            return CreateAndProcessJobs(id, false, false, "Sync all manifestations");
+            return await CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
         }
 
-        public ActionResult ForceReingestAllManifestations(string id)
+        public async Task<ActionResult> ForceReingestAllManifestationsAsync(string id)
         {
-            return CreateAndProcessJobs(id, true, true, "Force reingest of all manifestations");
+            return await CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
         }
 
-        private ActionResult CreateAndProcessJob(string id, bool includeIngestingImages, bool forceReingest, string action)
-        {
-            // this needs to create a job and then immediately process it.
-            var job = jobRegistry.RegisterImagesForImmediateStart(id).Single();
-            dashboardRepository.LogAction(id, job.Id, User.Identity.Name, action);
-            jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
-            synchroniser.RefreshFlatManifestations(id);
-            return RedirectToAction("Manifestation", new { id });
-        }
 
-        private ActionResult CreateAndProcessJobs(string bNumber, bool includeIngestingImages, bool forceReingest, string action)
+        private async Task<ActionResult> CreateAndProcessJobsAsync(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
-            var jobs = jobRegistry.RegisterImagesForImmediateStart(bNumber);
-            foreach (var job in jobs)
+            var jobs = jobRegistry.RegisterImagesForImmediateStartAsync(id);
+            await foreach (var job in jobs)
             {
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
-                jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
+                jobProcessor.ProcessJobAsync(job, includeIngestingImages, forceReingest, true);
             }
-            synchroniser.RefreshFlatManifestations(bNumber);
-            return RedirectToAction("Manifestation", new { id = bNumber });
+            synchroniser.RefreshFlatManifestations(id);
+            return RedirectToAction("Manifestation", new { id });
         }
 
         public ActionResult Jobs()

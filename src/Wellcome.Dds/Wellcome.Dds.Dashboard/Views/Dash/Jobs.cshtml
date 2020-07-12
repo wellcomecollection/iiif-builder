@@ -1,18 +1,19 @@
-@model Wellcome.Dds.Dashboard.Models.JobsModel
+﻿@model JobsModel
 
 @{
-    Layout = null;
+    ViewBag.Title = "Dash: Jobs";
 }
 
-<!DOCTYPE html>
+<h1>Jobs</h1>
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<p>@Html.ActionLink("View Job Processor log", "TailJobProcessor", "Dash")</p>
+
+<div class="row">
+    <div class="col-md-3">
+   
+
+    </div>
+    <div class="col-md-9">
+        <partial name="_JobList" model="Model" />
+    </div>
 </div>
-</body>
-</html>

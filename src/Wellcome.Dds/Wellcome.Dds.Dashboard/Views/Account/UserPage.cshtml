@@ -1,0 +1,14 @@
+﻿@model IEnumerable<IngestAction>
+
+@{
+    ViewBag.Title = "Dash: User Actions";
+}
+
+@if (User.Identity.IsAuthenticated)
+{
+    <p style="margin-top:20px">@Html.ActionLink("Log out", "Logout", "Account")</p>
+}
+
+<h1>Actions by @ViewBag.Subject</h1>
+
+<partial name="_IngestActions" model="Model" />

@@ -12,5 +12,6 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public List<WorkflowJob> RecentlyTaken { get; set; }
         public List<WorkflowJob> TakenAndUnfinished { get; set; }
         public DateTime EstimatedCompletion { get; set; }
+        public int RecentSampleHours { get; set; }
     }
 }

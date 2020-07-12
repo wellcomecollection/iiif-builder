@@ -44,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
         {
             var end = DateTime.Now.AddMinutes(-10);
             var start = end.AddHours(0 - RecentSampleHours);
-            var result = new WorkflowCallStats();
+            var result = new WorkflowCallStats { RecentSampleHours = RecentSampleHours };
             
             // was: select top 10 * from WorkflowJobs where Finished=1 order by Taken desc
             result.RecentlyTaken = ddsInstrumentationContext.WorkflowJobs

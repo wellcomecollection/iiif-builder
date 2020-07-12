@@ -1,0 +1,26 @@
+﻿@model List<Wellcome.Dds.AssetDomain.Workflow.WorkflowJob>
+@using Wellcome.Dds.Dashboard.Models
+
+<table class="table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Created</th>
+            <th>Taken</th>
+            <th>Alto/s</th>
+            <th>Error</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var workflowJob in Model)
+        {
+            <tr>
+                <td>@Html.ActionLink(workflowJob.Identifier, "GoobiCall", "Dash", new { id = workflowJob.Identifier }, new { })</td>
+                <td>@StringUtils.GetFriendlyAge(workflowJob.Created)</td>
+                <td>@StringUtils.GetFriendlyAge(workflowJob.Taken)</td>
+                <td>@workflowJob.GetAltoRate()</td>
+                <td>@workflowJob.Error</td>
+            </tr>
+        }
+    </tbody>
+</table>

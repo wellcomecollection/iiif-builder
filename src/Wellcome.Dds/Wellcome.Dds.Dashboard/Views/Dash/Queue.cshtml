@@ -1,18 +1,19 @@
-@model Wellcome.Dds.Dashboard.Models.JobsModel
+﻿@model JobsModel
 
 @{
-    Layout = null;
+    ViewBag.Title = "Dash: Queue";
 }
 
-<!DOCTYPE html>
+<h1>Queue (unstarted jobs)</h1>
+<p>@Html.ActionLink("View Job Processor log", "TailJobProcessor", "Dash")</p>
+<p>The DLCS Job Processor last ran @(((TimeSpan) (DateTime.Now - ViewBag.Heartbeat)).ToHumanReadableString()) ago.</p>
+@if (ViewBag.HeartbeatWarning)
+{
+    <p class="danger">This needs investigating!</p>
+}
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<div class="row">
+    <div class="col-md-12">
+        <partial name="_JobList" model="Model" />
+    </div>
 </div>
-</body>
-</html>

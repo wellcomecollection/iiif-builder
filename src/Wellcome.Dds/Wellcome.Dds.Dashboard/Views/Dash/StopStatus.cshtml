@@ -1,18 +1,36 @@
-@model object
-
-@{
-    Layout = null;
+﻿@{
+    ViewBag.Title = "Stop";
 }
 
-<!DOCTYPE html>
+<h2>Stop</h2>
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<div class="row" style="padding-top:15px">
+    <div class="col-md-2">
+        @if (ViewBag.RunProcesses)
+        {
+            <a href="@Url.Action("DoStop", "Dash")" class="btn btn-danger btn-lg">STOP!</a>
+        }
+        else
+        {
+            <a href="@Url.Action("DoStart", "Dash")" class="btn btn-primary btn-lg">Start</a>
+        }
+    </div>
+    <div class="col-md-10">
+        @if (ViewBag.RunProcesses)
+        {
+            <div class="alert alert-success">
+                <p>
+                    <span class="glyphicon glyphicon-ok-sign"></span> <strong>Dashboard is running.</strong> Job delay time is @ViewBag.JobDelay minutes.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger">
+                <p>
+                    <span class="glyphicon glyphicon-ok-sign"></span> <strong>Dashboard and ingest processes are paused.</strong>
+                </p>
+            </div>
+        }
+    </div>
 </div>
-</body>
-</html>

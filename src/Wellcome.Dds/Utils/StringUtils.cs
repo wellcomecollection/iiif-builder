@@ -218,5 +218,28 @@ namespace Utils
             }
             return s + ")";
         }
+
+        public static string ToHumanReadableString(this TimeSpan t)
+        {
+            // from http://stackoverflow.com/a/36191436
+            if (t.TotalSeconds <= 1)
+            {
+                return string.Format(@"{0:s\.ff} seconds", t);
+            }
+            if (t.TotalMinutes <= 1)
+            {
+                return string.Format(@"{0:%s} seconds", t);
+            }
+            if (t.TotalHours <= 1)
+            {
+                return string.Format(@"{0:%m} minutes", t);
+            }
+            if (t.TotalDays <= 1)
+            {
+                return string.Format(@"{0:%h} hours", t);
+            }
+
+            return string.Format(@"{0:%d} days", t);
+        }
     }
 }

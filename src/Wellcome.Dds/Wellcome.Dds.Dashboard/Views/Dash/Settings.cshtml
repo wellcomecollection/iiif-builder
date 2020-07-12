@@ -1,18 +1,31 @@
-@model Wellcome.Dds.Dashboard.Controllers.SettingsModel
+﻿@model System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string,string>>
 
 @{
-    Layout = null;
+    ViewBag.Title = "Settings";
 }
 
-<!DOCTYPE html>
+<a id="top"></a>
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Selected application settings</h3>
 </div>
-</body>
-</html>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var setting in Model)
+    {
+        <tr>
+            <td>@setting.Key</td>
+            <td>@setting.Value</td>
+        </tr>
+    }
+    </tbody>
+</table>
+

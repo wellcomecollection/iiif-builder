@@ -1,18 +1,9 @@
-@model System.Collections.Generic.IEnumerable<Wellcome.Dds.AssetDomain.Dlcs.Ingest.IngestAction>
+﻿@model IEnumerable<IngestAction>
 
 @{
-    Layout = null;
+    ViewBag.Title = "Dash: Recent Actions";
 }
 
-<!DOCTYPE html>
+<h1>Recent Actions</h1>
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
-</div>
-</body>
-</html>
+<partial name="_IngestActions" model="Model" />

@@ -1,0 +1,77 @@
+﻿@using Wellcome.Dds.Dashboard.Models
+@model Wellcome.Dds.Dashboard.Models.MigrationBatch
+
+<div class="panel panel-default panel-primary @("batch-" + Model.BatchType) ">
+    <div class="panel-heading"><strong>
+    @if (Model.BatchType == "bagger")
+    {
+        <span class="glyphicon glyphicon-briefcase" aria-hidden="true"></span>
+        <span>&nbsp;bagger</span>
+    }
+    else if (Model.BatchType == "ingest")
+    {
+        <span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span>
+        <span>&nbsp;ingest</span>     
+    }
+    else if (Model.BatchType == "global")
+    {
+        <strong style="font-size: 23px">All Items</strong>
+    }
+     @Model.Filter (@Model.Count)
+        </strong>
+        @if (Model.BatchType != "global")
+        {
+            @:- @StringUtils.GetFriendlyAge(@Model.LatestBatchDate) .... @Model.Id
+        }
+    </div>
+    <div class="panel-body">
+        @if (Model.RequireUpdate > 0)
+        {
+            <p class="bg-danger"><strong>Requires update, @Model.RequireUpdate / @Model.Count identified as stale</strong></p>
+        }
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Bagged</th>
+                    <th>Ingested</th>
+                    <th>Packaged</th>
+                    <th>Text</th>
+                    <th>DLCS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>Success</th>
+                    <td>@Model.BaggingPie.SucceededPercent.ToString("0.##") %</td>
+                    <td>@Model.IngestPie.SucceededPercent.ToString("0.##") %</td>
+                    <td>@Model.PackagePie.SucceededPercent.ToString("0.##") %</td>
+                    <td>@Model.TextPie.SucceededPercent.ToString("0.##") %</td>
+                    <td>@Model.DlcsPie.SucceededPercent.ToString("0.##") %</td>
+                </tr>
+                <tr>
+                    <th>Logged errors</th>
+                    <td>@Model.BaggingPie.KnownErrorsPercent.ToString("0.##") %</td>
+                    <td>@Model.IngestPie.KnownErrorsPercent.ToString("0.##") %</td>
+                    <td>@Model.PackagePie.KnownErrorsPercent.ToString("0.##") %</td>
+                    <td>@Model.TextPie.KnownErrorsPercent.ToString("0.##") %</td>
+                    <td>@Model.DlcsPie.KnownErrorsPercent.ToString("0.##") %</td>
+                </tr>
+                <tr>
+                    <th>Other</th>
+                    <td>@Model.BaggingPie.UnknownPercent.ToString("0.##") %</td>
+                    <td>@Model.IngestPie.UnknownPercent.ToString("0.##") %</td>
+                    <td>@Model.PackagePie.UnknownPercent.ToString("0.##") %</td>
+                    <td>@Model.TextPie.UnknownPercent %</td>
+                    <td>@Model.DlcsPie.UnknownPercent %</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <partial name="_MigrationErrorsTable" for="BaggingErrors" view-data='new ViewDataDictionary(ViewData) {{"name", "Bagging Errors"}}' />
+        <partial name="_MigrationErrorsTable" for="IngestNotSucceeded" view-data='new ViewDataDictionary(ViewData) {{"name", "Ingests not succeeded"}}' />
+    </div>
+</div>
+
+
+

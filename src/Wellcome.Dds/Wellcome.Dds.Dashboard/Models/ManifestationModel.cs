@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Utils;
@@ -28,6 +29,7 @@ namespace Wellcome.Dds.Dashboard.Models
         public IDigitisedCollection Parent { get; set; }
         public IDigitisedCollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
+        public DlcsOptions DlcsOptions { get; set; }
 
         // if we want to use these...
         public ISimpleStoredFileInfo CachedPackageFileInfo { get; set; }
@@ -378,6 +380,26 @@ namespace Wellcome.Dds.Dashboard.Models
                 physicalFile.WorkStore = null;
             }
             return model;
+        }
+
+
+        public AVDerviative[] GetAVDerivatives()
+        {
+            // TODO - this information needs to come from the DLCS via info.json
+            var derivs = new List<AVDerviative>();
+            foreach (var asset in DigitisedManifestation.DlcsImages)
+            {
+                if (asset.MediaType.StartsWith("video"))
+                {
+                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateVideo, asset.StorageIdentifier, "mp4"), Label = "mp4" });
+                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateVideo, asset.StorageIdentifier, "webm"), Label = "webm" });
+                }
+                if (asset.MediaType.Contains("audio"))
+                {
+                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateAudio, asset.StorageIdentifier, "mp3"), Label = "mp3" });
+                }
+            }
+            return derivs.ToArray();
         }
 
     }

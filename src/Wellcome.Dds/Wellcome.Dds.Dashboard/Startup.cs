@@ -9,22 +9,23 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
-using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Dashboard.Controllers;
 
 namespace Wellcome.Dds.Dashboard
 {
@@ -88,11 +89,21 @@ namespace Wellcome.Dds.Dashboard
                     factory.Get("Storage")));
             services.AddSingleton<IMetsRepository, MetsRepository>();
 
+            services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
+                ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
+                    factory.Get("Dds")));
+
+
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();
             services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
-            services.AddControllersWithViews().AddRazorRuntimeCompilation();
+            services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
+            services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
+
+            services.AddControllersWithViews(
+                opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))
+                .AddRazorRuntimeCompilation();
 
             // TODO - add DB health check
             services.AddHealthChecks();

@@ -118,6 +118,28 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Views\Dash\AssetType.cshtml" />
+    <None Include="Views\Dash\Collection.cshtml" />
+    <None Include="Views\Dash\GoobiCall.cshtml" />
+    <None Include="Views\Dash\GoobiCallList.cshtml" />
+    <None Include="Views\Dash\Index.cshtml" />
+    <None Include="Views\Dash\Job.cshtml" />
+    <None Include="Views\Dash\Jobs.cshtml" />
+    <None Include="Views\Dash\Manifestation.cshtml" />
+    <None Include="Views\Dash\ManifestationError.cshtml" />
+    <None Include="Views\Dash\Queue.cshtml" />
+    <None Include="Views\Dash\RecentActions.cshtml" />
+    <None Include="Views\Dash\Settings.cshtml" />
+    <None Include="Views\Dash\Stats.cshtml" />
+    <None Include="Views\Dash\Status.cshtml" />
+    <None Include="Views\Dash\StopStatus.cshtml" />
+    <None Include="Views\Dash\StorageIngest.cshtml" />
+    <None Include="Views\Dash\StorageManifest.cshtml" />
+    <None Include="Views\Dash\StorageMap.cshtml" />
+    <None Include="Views\Dash\TailJobProcessor.cshtml" />
+    <None Include="Views\Dash\TailWorkflowProcessor.cshtml" />
+    <None Include="Views\Dash\UV.cshtml" />
+    <None Include="Views\Dash\XmlView.cshtml" />
     <None Include="wwwroot\css\bootstrap.css" />
     <None Include="wwwroot\css\bootstrap.min.css" />
     <None Include="wwwroot\css\Site.css" />

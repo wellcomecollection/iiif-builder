@@ -1,0 +1,37 @@
+﻿@model BaggingError[]
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.css" rel="stylesheet" />
+
+
+@{
+    ViewBag.Title = "Dash: Migration Bagging Errors";
+}
+
+<h1>Bagging Errors (@Model.Length)</h1>
+
+<div class="row" style="padding-top: 15px">
+    <table class="table table-striped" data-toggle="table" data-sort-name="created" data-sort-order="desc">
+        <thead>
+        <tr>
+            <th data-field="bnumber" data-sortable="true">id</th>
+            <th data-field="created" data-sortable="true">date</th>
+            <th>summary</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (BaggingError be in Model)
+        {
+            <tr>
+                <td>@Html.ActionLink(be.Identifier, "Migration", new {id = be.Identifier})</td>
+                <td>@StringUtils.GetFriendlyAge(be.Created)</td>
+                <td></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@section scripts
+{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.js"></script>
+}

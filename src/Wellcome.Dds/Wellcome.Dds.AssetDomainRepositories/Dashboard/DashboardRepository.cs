@@ -680,7 +680,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = await GetDigitisedResourceAsync(id) as IDigitisedManifestation;
+            var manifestation = (await GetDigitisedResourceAsync(id)) as IDigitisedManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return dlcs.DeleteImages(syncOp.Orphans);
         }

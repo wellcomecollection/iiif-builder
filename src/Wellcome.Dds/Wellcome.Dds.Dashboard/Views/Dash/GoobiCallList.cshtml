@@ -1,18 +1,23 @@
-@model System.Collections.Generic.List<Wellcome.Dds.AssetDomain.Workflow.WorkflowJob>
+﻿@model List<WorkflowJob>
 
 @{
-    Layout = null;
+    ViewBag.Title = "RecentGoobiCalls";
 }
 
-<!DOCTYPE html>
+<a id="top"></a>
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Recent Goobi calls</h3>
 </div>
-</body>
-</html>
+
+@if (ViewBag.IsErrorList)
+{
+    <p>(showing errors only) @Html.ActionLink("Show all", "GoobiCall", "Dash", new { id = "" }, new { })</p>
+}
+else
+{
+    <p>@Html.ActionLink("Show errors only", "GoobiCall", "Dash", new { id = "errors" }, new { })</p>
+}
+
+<partial name="_WorkflowJobList" model="Model" />

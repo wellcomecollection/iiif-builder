@@ -1,18 +1,115 @@
-@model Wellcome.Dds.Dashboard.Models.HomeModel
+﻿@model HomeModel
 
-@{
-    Layout = null;
+@functions {
+    private string GetClassForErrorCategory(string category)
+    {
+        string cssClass;
+        switch (category)
+        {
+            case "NotFound":
+                cssClass = "danger";
+                break;
+            case "Ingesting":
+                cssClass = "warning";
+                break;
+            case "ImageSize":
+                cssClass = "warning";
+                break;
+            default:
+                cssClass = "default";
+                break;
+        }
+        return cssClass;
+    }
+
 }
 
-<!DOCTYPE html>
+@{
+    ViewBag.Title = "Dash: Status";
+}
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<div class="row" style="padding-top:6em">
+    <div class="col-md-12">
+        @using (Html.BeginForm("ManifestationSearch", "Dash", FormMethod.Post, new Dictionary<string, object> { { "id", "schForm" } }))
+        {
+            <div class="input-group">
+                <input type="text" class="form-control typeahead" placeholder="Start typing a b number or phrase from title..." name="q" id="schBox">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit">Go!</button>
+                </span>
+            </div><!-- /input-group -->
+        }
+    </div>
 </div>
-</body>
-</html>
+
+
+<div class="row" style="padding-top: 2em">
+    <div class="col-md-12">
+        <h2 class="text-danger">Processing problems</h2>
+        @if (Model.ProblemJobs.Jobs.Length > 0)
+        {
+            <p><a href="#transmissionProblems">Jump to transmission problems...</a></p>
+        }
+
+        <partial name="_Paging" for="ErrorsByMetadataPage" />
+
+        <table class="table table-hover table-condensed">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Identifier</th>
+                    <th>Category</th>
+                    @*<th>Description</th>*@
+                    <th>Who</th>
+                    <th>Action</th>
+                    <th>When</th>
+                    <th>#</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var error in Model.ErrorsByMetadataPage.Items)
+                {
+                    var metadata = error.MetadataString;
+                    if (!metadata.HasText())
+                    {
+                        metadata = "no-data";
+                    }
+                    <tr>
+                        <td><input type="checkbox" id="cb_@error.MetadataString" /></td>
+                        <td>@Html.ActionLink(metadata, "Manifestation", "Dash", new { id = metadata }, new { })</td>
+                        <td><span class="label label-@GetClassForErrorCategory(error.Category)">@error.Category</span></td>
+                        @*<td>@error.Description</td>*@
+                        @{
+                            IngestAction ingestAction;
+                            Model.IngestActions.TryGetValue(error.MetadataString, out ingestAction);
+                            if (ingestAction != null)
+                            {
+                                <td>@ingestAction.Username</td>
+                                <td>@ingestAction.Action</td>
+                                <td>@ingestAction.Performed</td>
+                            }
+                            else
+                            {
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            }
+                        }
+                        <td><span class="badge">@error.Count</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<partial name="_Paging" for="ErrorsByMetadataPage" />
+
+<div id="transmissionProblems" class="row" style="padding-top: 4em">
+    <div class="col-md-12">
+        <h2 class="text-danger">DDS/Transmission problems</h2>
+        <partial name="_JobList" for="ProblemJobs" />
+    </div>
+</div>
+
+@section BodyClass {homepage}

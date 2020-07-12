@@ -1,18 +1,52 @@
-@model System.Collections.Generic.List<Wellcome.Dds.Common.DatedIdentifier>
+﻿@model System.Collections.Generic.List<Wellcome.Dds.Common.DatedIdentifier>
+
 
 @{
-    Layout = null;
+    ViewBag.Title = "Dash: Home Page";
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<h1>DDS Dashboard</h1>
+<div class="row" style="padding-top:2em">
+    <div class="col-md-12">
+        @using (Html.BeginForm("ManifestationSearch", "Dash", FormMethod.Post, new Dictionary<string, object> { { "id", "schForm" } }))
+        {
+            <div class="input-group">
+                <input type="text" class="form-control typeahead" placeholder="Start typing a b number or phrase from title..." name="q" id="schBox">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit">Go!</button>
+                </span>
+            </div><!-- /input-group -->
+        }
+    </div>
 </div>
-</body>
-</html>
+
+<h2>Recently Digitised</h2>
+
+<p>@Html.ActionLink("View Job Processor log", "TailJobProcessor", "Dash")</p>
+<p>This is a list of <i>new</i> bNumbers. It does not include reprocessed bNumbers.</p>
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-hover table-condensed">
+            <thead>
+                <tr>
+                    <th>Identifier</th>
+                    <th>Created</th>
+                    <th>Title</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (var di in Model)
+                {
+                    <tr>
+                        <td>@Html.ActionLink(di.Identifier, "Manifestation", "Dash", new { id = di.Identifier }, new { })</td>
+                        <td width="165">@di.Date</td>
+                        <td>@di.Label</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
