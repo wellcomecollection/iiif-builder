@@ -20,7 +20,14 @@ First, run it with the appSetting in `Dlcs` set to the production space, space 5
    ...
 ```
 
-Then look a bnumber:
+I'm using the `aws-azure-login` to acquire roles (for 1 hr) that let the locally running application use both wellcome storage AWS and dlcs-io AWS for the new DDS.
+
+I'm also running against a local PostgreSQL - I haven't yet started running against the live one via SSH. Local PostgreSQL is fine until we need lots of manifestation data though.
+
+The two EF migrations seemed to have created the DBs OK.
+The current DBs have some indexes which we'll need to recreate on the new one at some point, although it won't be an issue for a while.
+
+### Then look at a bnumber
 
 [http://localhost:8085/Dash/Manifestation/b28047345](http://localhost:8085/Dash/Manifestation/b28047345)
 
