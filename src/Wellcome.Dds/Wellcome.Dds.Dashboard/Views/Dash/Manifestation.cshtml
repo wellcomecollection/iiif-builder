@@ -523,20 +523,19 @@
                             {
                                 <td>(transcode metadata)</td>
                             }*@
-                        <td>
-                            @{
-                                var thumb24 = Model.GetThumbnail(dlcsImage, 24);
-                                var thumb100 = Model.GetThumbnail(dlcsImage, 100);
-                            }
-                            @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
-                            <a href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)">
-                                <img width="@thumb24.Width" height="@thumb24.Height" class="iiifpreview"
-                                     data-src="@thumb24.Src"
-                                     data-placement="auto"
-                                     title="@pf.GetStoredFileInfo().Uri<br/><img src='@thumb100.Src' width=@thumb100.Width height=@thumb100.Height />"
-                                     data-iiif="@Model.GetIIIFImageService(dlcsImage, "iiif-img")" />
-                            </a>
-                        </td>
+                    <td>
+                        @{
+                            var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                            var thumb100 = Model.GetThumbnail(dlcsImage, 100);
+                        }
+                        @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))                        
+                        <img width="@thumb24.Width" height="@thumb24.Height" class="iiifpreview"
+                             data-src="@thumb24.Src"
+                             data-placement="auto"
+                             title="@pf.GetStoredFileInfo().Uri<br/><img src='@thumb100.Src' width=@thumb100.Width height=@thumb100.Height />"
+                             data-iiif="@Model.GetIIIFImageService(dlcsImage, "iiif-img")" />
+                         <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                    </td>
                     </tr>
                 }
             </tbody>

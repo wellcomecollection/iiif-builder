@@ -8,8 +8,10 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Loader;
 using System.Text;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -671,6 +673,7 @@ namespace DlcsWebClient.Dlcs
             };
         }
 
+
         public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
         {
             // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
@@ -680,29 +683,28 @@ namespace DlcsWebClient.Dlcs
             var derivs = new List<AVDerivative>();
             if (dlcsAsset.MediaType.StartsWith("video"))
             {
-                derivs.Add(new AVDerivative
-                {
-                    Id = string.Format(AVDerivativeTemplateVideo,
-                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "mp4"),
-                    Label = "mp4"
-                });
-                derivs.Add(new AVDerivative
-                {
-                    Id = string.Format(AVDerivativeTemplateVideo,
-                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "webm"),
-                    Label = "webm"
-                });
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "mp4"));
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "webm"));
             }
             if (dlcsAsset.MediaType.Contains("audio"))
             {
-                derivs.Add(new AVDerivative
-                {
-                    Id = string.Format(AVDerivativeTemplateAudio,
-                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "mp3"),
-                    Label = "mp3"
-                });
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateAudio, dlcsAsset, "mp3"));
             }
             return derivs;
+        }
+
+        private AVDerivative FormatAVDerivative(string template, Image dlcsAsset, string fileExt)
+        {
+            return new AVDerivative
+            {
+                Id = string.Format(template,
+                       options.ResourceEntryPoint,
+                       options.CustomerName.ToLower(),
+                       options.CustomerDefaultSpace,
+                       dlcsAsset.StorageIdentifier,
+                       fileExt),
+                Label = fileExt
+            };
         }
     }
 
