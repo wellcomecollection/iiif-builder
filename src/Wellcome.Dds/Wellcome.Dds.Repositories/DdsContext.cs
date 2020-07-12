@@ -2,10 +2,13 @@
 using System;
 using System.Collections.Generic;
 
-namespace Wellcome.Dds.Data
+namespace Wellcome.Dds.Repositories
 {
     public class DdsContext : DbContext
     {
+        public DdsContext(DbContextOptions<DdsContext> options) : base(options)
+        { }
+
         public DbSet<Manifestation> Manifestations { get; set; }
 
         public List<Manifestation> GetByAssetType(string type)

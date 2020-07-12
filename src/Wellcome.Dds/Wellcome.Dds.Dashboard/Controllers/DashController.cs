@@ -19,11 +19,9 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Workflow;
-using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
-using Wellcome.Dds.Data;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -40,7 +38,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly CacheBuster cacheBuster;
         private readonly DdsOptions ddsOptions;
         private readonly DlcsOptions dlcsOptions;
-        private readonly DdsContext ddsContext; // need to eliminate direct use of this here; repository
+        private readonly IDds dds;
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly IWorkflowCallRepository workflowCallRepository;
 
@@ -60,7 +58,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             CacheBuster cacheBuster,
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
-            DdsContext ddsContext,
+            IDds dds,
             IWebHostEnvironment webHostEnvironment,
             IWorkflowCallRepository workflowCallRepository)
         {
@@ -75,7 +73,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.cacheBuster = cacheBuster;
             this.ddsOptions = ddsOptions.Value;
             this.dlcsOptions = dlcsOptions.Value;
-            this.ddsContext = ddsContext;
+            this.dds = dds;
             this.webHostEnvironment = webHostEnvironment;
             this.workflowCallRepository = workflowCallRepository;
             //this.cachingPackageProvider = cachingPackageProvider;
@@ -473,8 +471,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new AssetTypeModel
             {
                 Type = type,
-                FlatManifestations = ddsContext.GetByAssetType(type),
-                TotalsByAssetType = ddsContext.GetTotalsByAssetType()
+                FlatManifestations = dds.GetByAssetType(type),
+                TotalsByAssetType = dds.GetTotalsByAssetType()
             };
             return View(model);
         }
@@ -703,7 +701,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public JsonResult AutoComplete(string id)
         {
-            var suggestions = ddsContext.AutoComplete(id);
+            var suggestions = dds.AutoComplete(id);
                 return Json(suggestions.Select(fm => new AutoCompleteSuggestion
                 {
                     id = fm.PackageIdentifier,

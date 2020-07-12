@@ -26,6 +26,7 @@ using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
+using Wellcome.Dds.Repositories;
 
 namespace Wellcome.Dds.Dashboard
 {
@@ -46,6 +47,10 @@ namespace Wellcome.Dds.Dashboard
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
             services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
@@ -100,6 +105,12 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
+
+            // These are non-working impls atm
+            services.AddSingleton<Synchroniser>(); // make this a service provided by IDds
+            services.AddSingleton<CacheBuster>(); // Have a think about what this does in the new world - what is it busting?
+
+            services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
 
             services.AddControllersWithViews(
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))

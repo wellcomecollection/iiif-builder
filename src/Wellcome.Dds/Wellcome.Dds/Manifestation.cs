@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Wellcome.Dds.Data
+namespace Wellcome.Dds
 {
     /// <summary>
     /// This is equivalent to FlatManifestation in old DDS.

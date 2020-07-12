@@ -15,21 +15,23 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils.Tests", "Utils.Tests\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wellcome.Dds.Dashboard", "Wellcome.Dds.Dashboard\Wellcome.Dds.Dashboard.csproj", "{E22BF9A0-131D-4964-954A-EB5FCF0EBEF1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DlcsJobProcessor", "DlcsJobProcessor\DlcsJobProcessor.csproj", "{243FB802-9826-47F0-B667-393BB8322CD8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DlcsJobProcessor", "DlcsJobProcessor\DlcsJobProcessor.csproj", "{243FB802-9826-47F0-B667-393BB8322CD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkflowProcessor", "WorkflowProcessor\WorkflowProcessor.csproj", "{BA319EE8-5315-495C-B929-9E5EB0893117}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WorkflowProcessor", "WorkflowProcessor\WorkflowProcessor.csproj", "{BA319EE8-5315-495C-B929-9E5EB0893117}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Data", "Wellcome.Dds.Data\Wellcome.Dds.Data.csproj", "{18A5F9A7-EB13-4636-94CA-B892F811081B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wellcome.Dds.Data", "Wellcome.Dds.Data\Wellcome.Dds.Data.csproj", "{18A5F9A7-EB13-4636-94CA-B892F811081B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.AssetDomainRepositories", "Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj", "{B61FB8E6-7674-4BF9-9FA7-92C2CF8071D2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wellcome.Dds.AssetDomainRepositories", "Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj", "{B61FB8E6-7674-4BF9-9FA7-92C2CF8071D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.AssetDomain", "Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj", "{1D308CB3-2F47-482B-B83B-AE7DFC446425}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wellcome.Dds.AssetDomain", "Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj", "{1D308CB3-2F47-482B-B83B-AE7DFC446425}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DlcsWebClient", "DlcsWebClient\DlcsWebClient.csproj", "{0BE3069E-FF83-4482-825A-03D642B7403D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DlcsWebClient", "DlcsWebClient\DlcsWebClient.csproj", "{0BE3069E-FF83-4482-825A-03D642B7403D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds", "Wellcome.Dds\Wellcome.Dds.csproj", "{5DA8E1F3-BA02-44EC-B562-D51A05461F13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wellcome.Dds", "Wellcome.Dds\Wellcome.Dds.csproj", "{5DA8E1F3-BA02-44EC-B562-D51A05461F13}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils.Aws", "Utils.Aws\Utils.Aws.csproj", "{F1A525FA-9DF7-46F2-A10E-902E39A47554}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils.Aws", "Utils.Aws\Utils.Aws.csproj", "{F1A525FA-9DF7-46F2-A10E-902E39A47554}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Repositories", "Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj", "{0E0B5C54-0552-4613-9739-79A0C1487F3D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,6 +91,10 @@ Global
 		{F1A525FA-9DF7-46F2-A10E-902E39A47554}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1A525FA-9DF7-46F2-A10E-902E39A47554}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F1A525FA-9DF7-46F2-A10E-902E39A47554}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E0B5C54-0552-4613-9739-79A0C1487F3D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

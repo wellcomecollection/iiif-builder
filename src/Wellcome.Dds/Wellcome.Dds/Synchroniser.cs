@@ -7,7 +7,7 @@ namespace Wellcome.Dds
     {
         public void RefreshFlatManifestations(string id)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
     }
 }
