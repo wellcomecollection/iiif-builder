@@ -383,24 +383,7 @@ namespace Wellcome.Dds.Dashboard.Models
         }
 
 
-        public AVDerviative[] GetAVDerivatives()
-        {
-            // TODO - this information needs to come from the DLCS via info.json
-            var derivs = new List<AVDerviative>();
-            foreach (var asset in DigitisedManifestation.DlcsImages)
-            {
-                if (asset.MediaType.StartsWith("video"))
-                {
-                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateVideo, asset.StorageIdentifier, "mp4"), Label = "mp4" });
-                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateVideo, asset.StorageIdentifier, "webm"), Label = "webm" });
-                }
-                if (asset.MediaType.Contains("audio"))
-                {
-                    derivs.Add(new AVDerviative { Id = string.Format(DlcsOptions.AVDerivativeTemplateAudio, asset.StorageIdentifier, "mp3"), Label = "mp3" });
-                }
-            }
-            return derivs.ToArray();
-        }
+        public AVDerivative[] AVDerivatives { get; set; }
 
     }
 

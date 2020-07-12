@@ -9,17 +9,20 @@ namespace Wellcome.Dds
     {
         public ISimpleStoredFileInfo GetPackageCacheFileInfo(string bNumber)
         {
-            throw new NotImplementedException();
+            return new NonExistentFileInfo();
+            //throw new NotImplementedException();
         }
 
         public ISimpleStoredFileInfo GetAltoSearchTextCacheFileInfo(string bNumber, int sequenceIndex)
         {
-            throw new NotImplementedException();
+            return new NonExistentFileInfo();
+            //throw new NotImplementedException();
         }
 
         public ISimpleStoredFileInfo GetAllAnnotationsCacheFileInfo(string bNumber, int sequenceIndex)
         {
-            throw new NotImplementedException();
+            return new NonExistentFileInfo();
+            //throw new NotImplementedException();
         }
 
         public CacheBustResult BustPackage(string bNumber)
@@ -36,5 +39,18 @@ namespace Wellcome.Dds
         {
             throw new NotImplementedException();
         }
+    }
+
+    public class NonExistentFileInfo : ISimpleStoredFileInfo
+    {
+        public DateTime LastWriteTime => DateTime.MinValue;
+
+        public string Uri => "nnn://non-existent-container/non-existent-path";
+
+        public bool Exists => false;
+
+        public string Container => "non-existent-container";
+
+        public string Path => "non-existent-path";
     }
 }

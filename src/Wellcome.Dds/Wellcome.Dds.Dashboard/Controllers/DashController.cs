@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
+using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -192,12 +193,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                         grandparent = null;
                         break;
                     case IdentifierType.Volume:
-                        parent = GetCachedCollection(ddsId.BNumber);
+                        parent = await GetCachedCollectionAsync(ddsId.BNumber);
                         grandparent = null;
                         break;
                     case IdentifierType.Issue:
-                        parent = GetCachedCollection(ddsId.VolumePart);
-                        grandparent = GetCachedCollection(ddsId.BNumber);
+                        parent = await GetCachedCollectionAsync(ddsId.VolumePart);
+                        grandparent = await GetCachedCollectionAsync(ddsId.BNumber);
                         break;
                     case IdentifierType.BNumberAndSequenceIndex:
                         throw new ArgumentException("id", "Can't use an index-based ID here: " + id);
@@ -215,6 +216,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     SyncOperation = syncOperation,
                     DlcsOptions = dlcsOptions
                 };
+                model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
                 logger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                 var jobActivity = dashboardRepository.GetRationalisedJobActivity(syncOperation);
@@ -304,12 +306,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
 
-        private IDigitisedCollection GetCachedCollection(string identifier)
+        private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
         {
-            return (IDigitisedCollection) cache.GetCached(
+            var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
                 async () => (await dashboardRepository.GetDigitisedResourceAsync(identifier)));
+            return (IDigitisedCollection)coll;
         }
 
         private void PutCollectionInShortTermCache(IDigitisedCollection collection)

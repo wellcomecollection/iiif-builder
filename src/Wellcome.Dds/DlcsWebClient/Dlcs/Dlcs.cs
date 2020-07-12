@@ -670,6 +670,40 @@ namespace DlcsWebClient.Dlcs
                 {"priority", result["priority"].Value<long>()}
             };
         }
+
+        public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
+        {
+            // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
+            const string AVDerivativeTemplateVideo = "{0}iiif-av/{1}/{2}/{3}/full/full/max/max/0/default.{4}";
+            const string AVDerivativeTemplateAudio = "{0}iiif-av/{1}/{2}/{3}/full/max/default.{4}";
+
+            var derivs = new List<AVDerivative>();
+            if (dlcsAsset.MediaType.StartsWith("video"))
+            {
+                derivs.Add(new AVDerivative
+                {
+                    Id = string.Format(AVDerivativeTemplateVideo,
+                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "mp4"),
+                    Label = "mp4"
+                });
+                derivs.Add(new AVDerivative
+                {
+                    Id = string.Format(AVDerivativeTemplateVideo,
+                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "webm"),
+                    Label = "webm"
+                });
+            }
+            if (dlcsAsset.MediaType.Contains("audio"))
+            {
+                derivs.Add(new AVDerivative
+                {
+                    Id = string.Format(AVDerivativeTemplateAudio,
+                    options.ResourceEntryPoint, options.CustomerName.ToLower(), dlcsAsset.StorageIdentifier, "mp3"),
+                    Label = "mp3"
+                });
+            }
+            return derivs;
+        }
     }
 
 

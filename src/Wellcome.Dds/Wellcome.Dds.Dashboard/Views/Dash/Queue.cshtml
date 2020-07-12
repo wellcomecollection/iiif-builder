@@ -6,11 +6,8 @@
 
 <h1>Queue (unstarted jobs)</h1>
 <p>@Html.ActionLink("View Job Processor log", "TailJobProcessor", "Dash")</p>
-<p>The DLCS Job Processor last ran @(((TimeSpan) (DateTime.Now - ViewBag.Heartbeat)).ToHumanReadableString()) ago.</p>
-@if (ViewBag.HeartbeatWarning)
-{
-    <p class="danger">This needs investigating!</p>
-}
+
+<partial name="_JobProcessorLastRan" view-data="ViewData" />
 
 <div class="row">
     <div class="col-md-12">

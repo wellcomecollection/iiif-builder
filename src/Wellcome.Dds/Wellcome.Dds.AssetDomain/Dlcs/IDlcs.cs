@@ -93,5 +93,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         bool PreventSynchronisation { get; }
         List<Batch> GetTestedImageBatches(List<Batch> imageBatches);
         Dictionary<string, long> GetDlcsQueueLevel();
+
+        List<AVDerivative> GetAVDerivatives(Image dlcsImage);
     }
 }

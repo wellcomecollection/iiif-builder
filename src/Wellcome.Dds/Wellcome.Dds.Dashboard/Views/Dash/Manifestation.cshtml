@@ -172,7 +172,7 @@
                     <li class="list-group-item">
                         Derivatives:
                         <ul class="list-unstyled">
-                            @foreach (var derivative in Model.GetAVDerivatives())
+                            @foreach (var derivative in Model.AVDerivatives)
                             {
                                 <li>- <a href="@derivative.Id">@derivative.Label</a></li>
                             }

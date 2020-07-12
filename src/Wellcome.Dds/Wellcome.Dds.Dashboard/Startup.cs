@@ -143,6 +143,9 @@ namespace Wellcome.Dds.Dashboard
             
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
+                endpoints.MapControllerRoute("Default", "{controller}/{action}/{id?}/{*parts}",
+                    defaults: new { controller = "Dash", action = "Index" }
+                );
                 endpoints.MapDefaultControllerRoute();
                 endpoints.MapHealthChecks("/management/healthcheck");
             });

@@ -716,5 +716,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             return dlcs.GetDlcsQueueLevel();
         }
+
+        public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
+        {
+            var derivs = new List<AVDerivative>();
+            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Video")
+            {
+                foreach (var asset in digitisedManifestation.DlcsImages)
+                {
+                    derivs.AddRange(dlcs.GetAVDerivatives(asset));
+                }
+            }
+            return derivs.ToArray();
+        }
     }
 }

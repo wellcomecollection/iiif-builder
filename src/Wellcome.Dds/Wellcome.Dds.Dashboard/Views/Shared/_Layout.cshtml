@@ -30,7 +30,9 @@
                         <li>@Html.ActionLink("C&D", "Manifestation", "Dash", new { id = "b19974760" }, new { })</li>*@
                     @if (User.Identity.IsAuthenticated)
                     {
-                        <li>@Html.ActionLink(User.Identity.Name, "UserPage", "Account")</li>
+                    <li>
+                        <a asp-controller="Account" asp-action="UserPage" title="@User.Identity.Name"><span class="glyphicon glyphicon-user"></span></a>
+                    </li>
                     }
                     else
                     {
@@ -64,7 +66,7 @@
         @RenderBody()
         <hr />
         <footer>
-            <p>DDS and DLCS Reconciliation Dashboard...</p>
+            <p>Logged in as @User.Identity.Name</p>
         </footer>
     </div>
 

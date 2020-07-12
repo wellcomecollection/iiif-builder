@@ -10,8 +10,6 @@
         public string ApiEntryPoint { get; set; }
         public string ResourceEntryPoint { get; set; }
         public int BatchSize { get; set; } = 100;
-        public string AVDerivativeTemplateVideo { get; set; }
-        public string AVDerivativeTemplateAudio { get; set; }
         public string PortalPageTemplate { get; set; }
         public string PortalBatchTemplate { get; set; }
         public bool PreventSynchronisation { get; set; } = false;
