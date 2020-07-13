@@ -95,9 +95,9 @@
         <p class="bg-danger">No bag exists for @Model.Identifier in the migration bagger bucket (@Model.MigrationBucket).</p>
     }
 
-    <a class="btn btn-primary" href="@Url.Action("Bag", "Dash", new {id = Model.Identifier})">
+    @*<a class="btn btn-primary" href="@Url.Action("Bag", "Dash", new {id = Model.Identifier})">
         <span class="glyphicon glyphicon-briefcase"></span> Bag @Model.Identifier
-    </a>
+    </a>*@
 
     @if (Model.BaggingError != null)
     {
@@ -159,7 +159,7 @@
 
 
 
-    @if (Model.BagDate.HasValue)
+    @*@if (Model.BagDate.HasValue)
 {
     <a class="btn btn-primary" href="@Url.Action("Ingest", "Dash", new {id = Model.Identifier, bagName = Model.BagName})">
         <span class="glyphicon glyphicon-cloud-upload"></span> Ingest @Model.BagName
@@ -170,7 +170,7 @@ else
     <p class="bg-warning">
         This dashboard cannot ask for an ingest of @Model.Identifier because it can only do that for bags in the bagger bucket.
     </p>
-}
+}*@
 
 
     <h3>Dynamo Migration Status</h3>

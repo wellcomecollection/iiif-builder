@@ -15,6 +15,5 @@
     <h3>Other tools</h3>
     <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", new {id = ViewBag.DdsId.BNumber})</p>
     <p><a href="@Url.Action("XmlView", "Dash", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
-    <p>@Html.ActionLink("Migration tools", "Migration", new { id = ViewBag.TryInstead })</p>
 }
 
