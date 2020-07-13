@@ -414,27 +414,27 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
         }
 
-        public async Task<ActionResult> SyncAsync(string id)
+        public async Task<ActionResult> Sync(string id)
         {
             return await CreateAndProcessJobsAsync(id, false, false, "Sync");
         }
 
-        public async Task<ActionResult> ResubmitAsync(string id)
+        public async Task<ActionResult> Resubmit(string id)
         {
             return await CreateAndProcessJobsAsync(id, true, false, "Resubmit");
         }
 
-        public async Task<ActionResult> ForceReingestAsync(string id)
+        public async Task<ActionResult> ForceReingest(string id)
         {
             return await CreateAndProcessJobsAsync(id, true, true, "Force reingest");
         }
 
-        public async Task<ActionResult> SyncAllManifestationsAsync(string id)
+        public async Task<ActionResult> SyncAllManifestations(string id)
         {
             return await CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
         }
 
-        public async Task<ActionResult> ForceReingestAllManifestationsAsync(string id)
+        public async Task<ActionResult> ForceReingestAllManifestations(string id)
         {
             return await CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
         }
