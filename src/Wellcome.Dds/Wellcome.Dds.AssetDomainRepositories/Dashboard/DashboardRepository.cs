@@ -720,7 +720,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
-            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Video")
+            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Audio")
             {
                 foreach (var asset in digitisedManifestation.DlcsImages)
                 {

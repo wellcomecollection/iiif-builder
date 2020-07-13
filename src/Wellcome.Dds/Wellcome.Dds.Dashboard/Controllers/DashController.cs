@@ -90,14 +90,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult Status(int page = 1)
         {
-            var problemJobs = jobRegistry.GetProblems(statusProvider.EarliestJobToTake);
+            var problemJobs = jobRegistry.GetProblems(100);
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
                 errorsByMetadataPage = dashboardRepository.GetErrorsByMetadata(page);
             }
-            catch (Exception)
+            catch
             {
+                // TODO - log this error... introduce logger on refactor
                 errorsByMetadataPage = new Page<ErrorByMetadata> { Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1 };
             }
             var recentActions = dashboardRepository.GetRecentActions(200);
@@ -308,6 +309,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
         {
+            // The cache is caching a Task<IDigitisedResource> (from the callback)
+            // this works... but we need to revisit
+            // TODO: 1) SimpleCache handling of tasks
+            // TODO: 2) This should be a request-scoped cache anyway
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
@@ -414,30 +419,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
         }
 
-        public async Task<ActionResult> Sync(string id)
-        {
-            return await CreateAndProcessJobsAsync(id, false, false, "Sync");
-        }
 
-        public async Task<ActionResult> Resubmit(string id)
-        {
-            return await CreateAndProcessJobsAsync(id, true, false, "Resubmit");
-        }
+        // Different actions that all trigger jobs
+        public Task<ActionResult> Sync(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync");
 
-        public async Task<ActionResult> ForceReingest(string id)
-        {
-            return await CreateAndProcessJobsAsync(id, true, true, "Force reingest");
-        }
+        public Task<ActionResult> Resubmit(string id) => CreateAndProcessJobsAsync(id, true, false, "Resubmit");
 
-        public async Task<ActionResult> SyncAllManifestations(string id)
-        {
-            return await CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
-        }
+        public Task<ActionResult> ForceReingest(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest");
 
-        public async Task<ActionResult> ForceReingestAllManifestations(string id)
-        {
-            return await CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
-        }
+        public Task<ActionResult> SyncAllManifestations(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
+
+        public Task<ActionResult> ForceReingestAllManifestations(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
 
 
         private async Task<ActionResult> CreateAndProcessJobsAsync(string id, bool includeIngestingImages, bool forceReingest, string action)

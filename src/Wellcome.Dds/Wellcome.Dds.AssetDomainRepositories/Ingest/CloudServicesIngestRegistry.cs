@@ -36,7 +36,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             return ddsInstrumentationContext.DlcsIngestJobs
                 .Include(j => j.DlcsBatches)
-                .FirstOrDefault(j => j.Id == id);
+                .SingleOrDefault(j => j.Id == id);
         }
 
         public IEnumerable<DlcsIngestJob> GetQueue(DateTime? after)
@@ -53,7 +53,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return query.ToArray();
         }
 
-        public IEnumerable<DlcsIngestJob> GetProblems(DateTime? after)
+        public IEnumerable<DlcsIngestJob> GetProblems(int maxToFetch = 100)
         {
             // .NET Core migration note.
             // I have removed the BatchWithJob class as it was only used internally to materialise 
@@ -69,7 +69,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 .Where(j => j.DlcsBatches.All(b => b.ContentLength > 0))
                 .Where(j => !j.Succeeded || j.DlcsBatches.Any(b => b.ErrorText != null))
                 .OrderByDescending(j => j.Id)
-                .Take(100);
+                .Take(maxToFetch);
 
             return problems.ToArray();
 
@@ -144,6 +144,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         private void AddNewJob(DlcsIngestJob job)
         {
+            // TODO: does this need to be in a transaction?
+            // https://github.com/wellcomecollection/iiif-builder/pull/17#discussion_r453693665
             using (var trans = ddsInstrumentationContext.Database.BeginTransaction(IsolationLevel.Serializable))
             {
                 try

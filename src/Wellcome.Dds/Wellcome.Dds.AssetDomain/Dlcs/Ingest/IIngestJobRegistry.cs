@@ -28,7 +28,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 
         IEnumerable<DlcsIngestJob> GetJobs(int number);
         IEnumerable<DlcsIngestJob> GetQueue(DateTime? after);
-        IEnumerable<DlcsIngestJob> GetProblems(DateTime? after);
+        IEnumerable<DlcsIngestJob> GetProblems(int maxToFetch);
         DlcsIngestJob GetJob(int id);
     }
 }
