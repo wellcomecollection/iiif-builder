@@ -446,7 +446,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             await foreach (var job in jobs)
             {
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
-                jobProcessor.ProcessJobAsync(job, includeIngestingImages, forceReingest, true);
+                await jobProcessor.ProcessJobAsync(job, includeIngestingImages, forceReingest, true);
             }
             synchroniser.RefreshFlatManifestations(id);
             return RedirectToAction("Manifestation", new { id });

@@ -56,7 +56,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
 
 
-        public void ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string filter = null)
+        public async Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string filter = null)
         {
             if (!statusProvider.RunProcesses)
             {
@@ -111,7 +111,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     }
                     try
                     {
-                        ProcessJobAsync(job, false, false, usePriorityQueue);
+                        await ProcessJobAsync(job, false, false, usePriorityQueue);
                         sequentialFailures = 0;
                     }
                     catch (Exception ex)
