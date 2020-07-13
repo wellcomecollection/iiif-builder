@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -88,13 +87,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(recent);
         }
 
-        public ActionResult Status(int page = 1)
+        public async Task<ActionResult> Status(int page = 1)
         {
             var problemJobs = jobRegistry.GetProblems(100);
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
-                errorsByMetadataPage = dashboardRepository.GetErrorsByMetadata(page);
+                errorsByMetadataPage = await dashboardRepository.GetErrorsByMetadata(page);
             }
             catch
             {
@@ -220,7 +219,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
                 logger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                var jobActivity = dashboardRepository.GetRationalisedJobActivity(syncOperation);
+                var jobActivity = await dashboardRepository.GetRationalisedJobActivity(syncOperation);
                 logger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                 model.IngestJobs = jobActivity.UpdatedJobs;
                 model.BatchesForImages = jobActivity.BatchesForCurrentImages;
@@ -534,7 +533,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             string jsonAsString = "";
             try
             {
-                jsonAsString = archiveStore.GetStorageManifest().ToString(Formatting.Indented);
+                var storageManifest = await archiveStore.GetStorageManifest();
+                jsonAsString = storageManifest.ToString(Formatting.Indented);
             }
             catch (Exception ex)
             {
@@ -615,7 +615,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> DeletePdf(string id)
         {
             var seqIndex = await dashboardRepository.FindSequenceIndex(id);
-            var deleteResult = new DeleteResult { Success = dashboardRepository.DeletePdf(new DdsIdentifier(id).BNumber, seqIndex) };
+            var deleteResult = new DeleteResult { Success = await dashboardRepository.DeletePdf(new DdsIdentifier(id).BNumber, seqIndex) };
             TempData["PdfDeletion"] = deleteResult;
             dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete PDF");
             return RedirectToAction("Manifestation", new { id });
@@ -644,7 +644,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
 
 
-        public Dictionary<string, long> GetDlcsQueueLevel()
+        public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             return dashboardRepository.GetDlcsQueueLevel();
         }
@@ -766,14 +766,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
 
-        public ActionResult StorageIngest(string id)
+        public async Task<ActionResult> StorageIngest(string id)
         {
             var archivalStorageFactory = workStorageFactory as ArchiveStorageServiceWorkStorageFactory;
             if (archivalStorageFactory == null)
             {
                 throw new NotSupportedException("This page only works with the new storage service");
             }
-            var ingest = archivalStorageFactory.GetIngest(id);
+            var ingest = await archivalStorageFactory.GetIngest(id);
             return View(Models.Ingest.FromJObject(ingest));
         }
 
