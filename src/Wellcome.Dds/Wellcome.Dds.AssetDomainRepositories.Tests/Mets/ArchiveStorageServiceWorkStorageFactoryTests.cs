@@ -52,7 +52,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public void GetToken_Throws_IfUnsuccessfulCallResult()
         {
-            // Assert
+            // Arrange
             httpHandler.SetResponse(httpHandler.GetResponseMessage(
                 "", HttpStatusCode.Forbidden));
             
@@ -66,7 +66,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task GetToken_CallsTokenEndpoint_WithCorrectObject_DefaultScope()
         {
-            // Assert
+            // Arrange
             HttpRequestMessage message = null;
             httpHandler.RegisterCallback(r => message = r);
 
@@ -92,7 +92,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task GetToken_CallsTokenEndpoint_WithCorrectObject_SpecifiedScope()
         {
-            // Assert
+            // Arrange
             HttpRequestMessage message = null;
             httpHandler.RegisterCallback(r => message = r);
 
@@ -117,7 +117,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task GetToken_ReturnsExpectedToken()
         {
-            // Assert
+            // Arrange
             var httpResponseMessage = httpHandler.GetResponseMessage(
                 "{\"access_token\": \"abc123\", \"token_type\": \"jwt\", \"expires_in\": 1}", HttpStatusCode.OK);
             httpResponseMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -133,6 +133,52 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             
             // Assert
             token.Should().BeEquivalentTo(expected, opts => opts.Excluding(t => t.Acquired));
+        }
+
+        [Fact]
+        public async Task GetToken_CachesTokenByScope()
+        {
+            // This is pretty nasty.. Call for scope1..scope2..scope1..scope2
+            // verify that we get the correct responses but only 1 calls made to downstream svc
+            
+            // Arrange
+            var httpResponseMessageOne = httpHandler.GetResponseMessage(
+                "{\"access_token\": \"accessTokenOne\", \"token_type\": \"jwt\", \"expires_in\": 63}", HttpStatusCode.OK);
+            httpResponseMessageOne.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            
+            var httpResponseMessageTwo = httpHandler.GetResponseMessage(
+                "{\"access_token\": \"accessTokenTwo\", \"token_type\": \"jwt\", \"expires_in\": 63}", HttpStatusCode.OK);
+            httpResponseMessageTwo.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            
+            httpHandler.SetResponse(httpResponseMessageOne);
+            
+            var scopeOne = $"one_{DateTime.UtcNow.Ticks}";
+            var scopeTwo = $"one_{DateTime.UtcNow.Ticks}";
+
+            var expectedOne = new WellcomeApiToken
+            {
+                TokenType = "jwt", ExpiresIn = 63, AccessToken = "accessTokenOne"
+            };
+            
+            var expectedTwo = new WellcomeApiToken
+            {
+                TokenType = "jwt", ExpiresIn = 63, AccessToken = "accessTokenTwo"
+            };
+
+            // Act
+            var tokenOne = await sut.GetToken(scopeOne); 
+            
+            httpHandler.SetResponse(httpResponseMessageTwo);
+            
+            var tokenTwo = await sut.GetToken(scopeTwo);
+            var tokenThree = await sut.GetToken(scopeOne);
+            var tokenFour = await sut.GetToken(scopeTwo);
+            
+            // Assert
+            tokenOne.Should().Be(tokenThree).And.BeEquivalentTo(expectedOne, opts => opts.Excluding(t => t.Acquired));
+            tokenTwo.Should().Be(tokenFour).And.BeEquivalentTo(expectedTwo, opts => opts.Excluding(t => t.Acquired));
+
+            httpHandler.CallsMade.Should().HaveCount(2);
         }
     }
 }

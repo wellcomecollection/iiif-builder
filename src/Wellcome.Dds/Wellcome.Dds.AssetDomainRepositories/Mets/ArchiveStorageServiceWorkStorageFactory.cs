@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -31,7 +30,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private readonly HttpClient httpClient;
         private readonly IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         
-        private static WellcomeApiToken token;
+        // A collection of tokens by scope
+        private static readonly Dictionary<string, WellcomeApiToken> Tokens = new Dictionary<string, WellcomeApiToken>();
 
         //private readonly BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         // if using with a shared cache. But you should really only use this with a request.items cache.
@@ -221,22 +221,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public async Task<WellcomeApiToken> GetToken(string scope = null)
         {
-            // TODO - this could return a token with the wrong Scope
-            if (token != null && !(token.GetTimeToLive().TotalSeconds < 60)) return token;
-
+            var targetScope = scope ?? storageOptions.Scope;
+            var haveToken = Tokens.TryGetValue(targetScope, out var currentToken);
+            
+            if (haveToken && !(currentToken.GetTimeToLive().TotalSeconds < 60)) return currentToken;
+            
             var data = new Dictionary<string, string>
             {
                 ["grant_type"] = "client_credentials",
                 ["client_id"] = storageOptions.ClientId,
                 ["client_secret"] = storageOptions.ClientSecret,
-                ["scope"] = scope ?? storageOptions.Scope,
+                ["scope"] = targetScope,
             };
 
             var response = await httpClient.PostAsync(storageOptions.TokenEndPoint, new FormUrlEncodedContent(data));
 
             response.EnsureSuccessStatusCode();
 
-            token = await response.Content.ReadAsAsync<WellcomeApiToken>();
+            var token = await response.Content.ReadAsAsync<WellcomeApiToken>();
+            Tokens[targetScope] = token;
             return token;
         }
 
@@ -247,21 +250,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return (JObject)authedJToken;
         }
 
-        // This API has been retired
-        //public JToken GetIngestsForIdentifier(string identifier)
-        //{
-        //    var url = string.Format(storageOptions. IngestsForIdTemplate, identifier);
-        //    return GetOAuthedJToken(url, IngestScope);
-        //}
-
         public async Task<JObject> PostIngest(string body)
         {
             var ingestToken = await GetToken(storageOptions.ScopeIngest);
-            var accessToken = token.AccessToken;
-            
+
             var request = new HttpRequestMessage(HttpMethod.Post, storageOptions.StorageApiTemplateIngest);
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ingestToken.AccessToken);
 
             var response = await httpClient.SendAsync(request);
             var jsonStr = await response.Content.ReadAsStringAsync();
