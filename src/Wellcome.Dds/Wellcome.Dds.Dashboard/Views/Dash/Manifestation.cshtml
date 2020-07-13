@@ -6,6 +6,7 @@
 @{
     ViewBag.Title = "Dash: " + Model.DigitisedManifestation.Identifier;
     var metsManifestation = Model.DigitisedManifestation.MetsManifestation;
+    var pdf = await Model.DigitisedManifestation.GetPdf();
 }
 
 <a id="top"></a>
@@ -343,7 +344,7 @@
         @if (metsManifestation.FirstSignificantInternetType == "image/jp2")
         {
             <h3>PDF</h3>
-            if (Model.DigitisedManifestation.Pdf == null)
+            if (pdf == null)
             {
                 <div class="panel panel-danger">
                     <div class="panel-body">
@@ -351,23 +352,23 @@
                     </div>
                 </div>
             }
-            else if (Model.DigitisedManifestation.Pdf.InProcess)
+            else if (pdf.InProcess)
             {
                 <div class="panel panel-info">
                     <div class="panel-body">
                         <p>
                             <span class="glyphicon glyphicon-hourglass"></span> PDF currently being created<br />
-                            Started: @Model.DigitisedManifestation.Pdf.Created
+                            Started: @pdf.Created
                         </p>
                     </div>
                 </div>
             }
-            else if (!Model.DigitisedManifestation.Pdf.Exists)
+            else if (!pdf.Exists)
             {
                 <div class="panel panel-warning">
                     <div class="panel-body">
                         <p>This PDF does not exist</p>
-                        <a href="@Model.DigitisedManifestation.Pdf.Url" class="btn btn-primary" target="_blank"><span class="glyphicon glyphicon-file"></span> Make PDF</a>
+                        <a href="@pdf.Url" class="btn btn-primary" target="_blank"><span class="glyphicon glyphicon-file"></span> Make PDF</a>
                     </div>
                 </div>
             }
@@ -376,16 +377,16 @@
                 <div class="panel panel-default">
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <a href="@Model.DigitisedManifestation.Pdf.Url" target="_blank"><span class="glyphicon glyphicon-file"></span> View</a>
+                            <a href="@pdf.Url" target="_blank"><span class="glyphicon glyphicon-file"></span> View</a>
                             <br />
-                            @Model.DigitisedManifestation.Pdf.Created <br />
-                            @Model.DigitisedManifestation.Pdf.PageCount pages<br />
-                            @StringUtils.FormatFileSize(@Model.DigitisedManifestation.Pdf.SizeBytes)<br />
-                            @if (Model.DigitisedManifestation.Pdf.Roles.HasItems())
+                            @pdf.Created <br />
+                            @pdf.PageCount pages<br />
+                            @StringUtils.FormatFileSize(pdf.SizeBytes)<br />
+                            @if (pdf.Roles.HasItems())
                             {
                                 <text>Roles:</text>
                                 <ul class="list-unstyled">
-                                    @foreach (var role in Model.DigitisedManifestation.Pdf.Roles)
+                                    @foreach (var role in pdf.Roles)
                                     {
                                         <li>- <small><em>@role.Split('/').Last()</em></small></li>
                                     }

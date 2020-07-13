@@ -53,13 +53,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             IDigitisedResource digResource;
             var metsResource = await metsRepository.GetAsync(identifier);
-            if (metsResource is IManifestation)
+            if (metsResource is IManifestation resource)
             {
-                digResource = MakeDigitisedManifestation(metsResource as IManifestation);
+                digResource = await MakeDigitisedManifestation(resource);
             }
-            else if (metsResource is ICollection)
+            else if (metsResource is ICollection collection)
             {
-                digResource = MakeDigitisedCollection(metsResource as ICollection);
+                digResource = await MakeDigitisedCollection(collection);
             }
             else
             {
@@ -78,33 +78,42 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return digResource;
         }
 
-        private DigitisedCollection MakeDigitisedCollection(ICollection metsCollection)
+        private async Task<DigitisedCollection> MakeDigitisedCollection(ICollection metsCollection)
         {
             var dc = new DigitisedCollection
             {
                 MetsCollection = metsCollection,
                 Identifier = metsCollection.Id
             };
+            
+            // TODO - this is pretty nasty, and potentially slow
             if (metsCollection.Collections.HasItems())
             {
-                dc.Collections = metsCollection.Collections
-                    .Select(MakeDigitisedCollection);
+                var collections = metsCollection.Collections
+                    .Select(MakeDigitisedCollection)
+                    .ToList();
+
+                await Task.WhenAll(collections);
+                dc.Collections = collections.Select(c => c.Result);
             }
             if (metsCollection.Manifestations.HasItems())
             {
-                dc.Manifestations = metsCollection.Manifestations
-                    .Select(MakeDigitisedManifestation);
+                var manifestations = metsCollection.Manifestations
+                    .Select(MakeDigitisedManifestation)
+                    .ToList();
+                await Task.WhenAll(manifestations);
+                dc.Manifestations = manifestations.Select(m => m.Result);
             }
             return dc;
         }
 
-        private DigitisedManifestation MakeDigitisedManifestation(IManifestation metsManifestation)
+        private async Task<DigitisedManifestation> MakeDigitisedManifestation(IManifestation metsManifestation)
         {
             return new DigitisedManifestation
             {
                 MetsManifestation = metsManifestation,
                 Identifier = metsManifestation.Id,
-                DlcsImages = dlcs.GetImagesForString3(metsManifestation.Id), // deferred IEnumerable
+                DlcsImages = await dlcs.GetImagesForString3(metsManifestation.Id), // deferred IEnumerable
                 PdfGetter = dlcs.GetPdfDetails // Func<IPdf> for deferred call
             };
         }
@@ -123,7 +132,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             };
         }
 
-        public void ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue)
+        public async Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue)
         {
             if (dlcs.PreventSynchronisation)
             {
@@ -132,10 +141,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 throw new InvalidOperationException(syncError);
             }
             logger.LogInformation("Registering BATCH INGESTS for METS resource (manifestation) with Id {0}", syncOperation.ManifestationIdentifier);
-            DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue);
+            await DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue);
 
             logger.LogInformation("Registering BATCH PATCHES for METS resource (manifestation) with Id {0}", syncOperation.ManifestationIdentifier);
-            DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation);
+            await DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation);
 
             syncOperation.Succeeded = true;
         }
@@ -157,7 +166,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             var syncOperation = new SyncOperation
             {
                 ManifestationIdentifier = metsManifestation.Id,
-                ImagesAlreadyOnDlcs = GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
+                ImagesAlreadyOnDlcs = await GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
             };
@@ -244,14 +253,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return dlcsImages.Where(image => !imagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
         }
 
-        public Batch GetBatch(string batchId)
+        public async Task<Batch> GetBatch(string batchId)
         {
-            var batchOp = dlcs.GetBatch(batchId);
+            var batchOp = await dlcs.GetBatch(batchId);
 
             return batchOp.ResponseObject;
         }
         
-        private Dictionary<string, Image> GetImagesAlreadyOnDlcs(
+        private async Task<Dictionary<string, Image>> GetImagesAlreadyOnDlcs(
             IManifestation metsManifestation, List<Image> dlcsImages)
         {
             // create an empty dictionary for all the images we need to have in the DLCS:
@@ -271,29 +280,36 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             if (missingDlcsImageIds.Any())
             {
                 // See if the DLCS has these IDs anyway, in the same space but maybe with different metadata
-                var mismatchedImages = dlcs.GetImagesByDlcsIdentifiers(missingDlcsImageIds);
+                var mismatchedImages = await dlcs.GetImagesByDlcsIdentifiers(missingDlcsImageIds);
                 PopulateImagesAlreadyOnDlcs(imagesAlreadyOnDlcs, metsManifestation, mismatchedImages);
             }
             return imagesAlreadyOnDlcs;
         }
 
-        public IEnumerable<Batch> GetBatchesForImages(IEnumerable<Image> images)
+        public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image> images)
         {
-            List<string> batchIds = new List<string>();
-            foreach (var image in images)
+            var enumeratedImages = images.ToList();
+            List<string> batchIds = new List<string>(enumeratedImages.Count);
+            foreach (var image in enumeratedImages)
             {
                 if (image != null && image.Batch.HasText() && !batchIds.Contains(image.Batch))
                 {
                     batchIds.Add(image.Batch);
                 }
             }
+
+            // TODO - batch the fetching of batches?
+            var batches = new List<Batch>(batchIds.Count);
+            foreach (var batchId in batchIds)
+            {
+                var b = await GetBatch(batchId);
+                if (b != null) batches.Add(b);
+            }
             // DLCS image.batch is just an ID, not a URI; these needs to be fixed to improve this code...
-            return batchIds
-                .Select(GetBatch)
-                .Where(batch => batch != null);
+            return batches;
         }
 
-        private void DoBatchPatch(List<Image> dlcsImagesToPatch, SyncOperation syncOperation)
+        private async Task DoBatchPatch(List<Image> dlcsImagesToPatch, SyncOperation syncOperation)
         {
             // TODO - refactor this and DoBatchIngest - They use a different kind of Operation
             foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
@@ -317,7 +333,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 {
                     Members = imagePatches
                 };
-                var registrationOperation = dlcs.PatchImages(imageRegistrationsAsHydraCollection);
+                var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection);
                 dbBatchPatch.Finished = DateTime.Now;
                 dbBatchPatch.RequestBody = registrationOperation.RequestJson;
                 dbBatchPatch.ResponseBody = registrationOperation.ResponseJson;
@@ -330,7 +346,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             }
         }
 
-        private void DoBatchIngest(List<Image> dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
+        private async Task DoBatchIngest(List<Image> dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
         {
             foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
@@ -353,7 +369,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 {
                     Members = imageRegistrations
                 };
-                var registrationOperation = dlcs.RegisterImages(imageRegistrationsAsHydraCollection, priority);
+                var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, priority);
                 dbDlcsBatch.Finished = DateTime.Now;
                 dbDlcsBatch.RequestBody = registrationOperation.RequestJson;
                 dbDlcsBatch.ResponseBody = registrationOperation.ResponseJson;
@@ -498,14 +514,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 .ToList();
         }
 
-        public JobActivity GetRationalisedJobActivity(SyncOperation syncOperation)
+        public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation)
         {
-            var imageBatches = GetBatchesForImages(syncOperation.ImagesAlreadyOnDlcs.Values).ToList();
+            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesAlreadyOnDlcs.Values);
+            var imageBatches = batchesForImages.ToList();
             // DASH-46
             if (syncOperation.RequiresSync == false && imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))
             {
                 // Some of these batches may seem incomplete, but they have been superseded
-                imageBatches = dlcs.GetTestedImageBatches(imageBatches);
+                imageBatches = await dlcs.GetTestedImageBatches(imageBatches);
             }
             var updatedJobs = GetUpdatedIngestJobs(syncOperation, imageBatches).ToList();
             return new JobActivity {BatchesForCurrentImages = imageBatches, UpdatedJobs = updatedJobs};
@@ -653,15 +670,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return sequenceMaxSize;
         }
 
-        public IEnumerable<ErrorByMetadata> GetErrorsByMetadata()
-        {
-            return dlcs.GetErrorsByMetadata();
-        }
+        public Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata() => dlcs.GetErrorsByMetadata();
 
-        public Page<ErrorByMetadata> GetErrorsByMetadata(int page)
-        {
-            return dlcs.GetErrorsByMetadata(page);
-        }
+        public Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page) => dlcs.GetErrorsByMetadata(page);
 
         /// <summary>
         /// This could be removed once alto search is replaced.
@@ -673,16 +684,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return await metsRepository.FindSequenceIndex(identifier);
         }
 
-        public bool DeletePdf(string string1, int number1)
-        {
-            return dlcs.DeletePdf(string1, number1);
-        }
+        public Task<bool> DeletePdf(string string1, int number1) => dlcs.DeletePdf(string1, number1);
 
         public async Task<int> DeleteOrphans(string id)
         {
             var manifestation = (await GetDigitisedResourceAsync(id)) as IDigitisedManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
-            return dlcs.DeleteImages(syncOp.Orphans);
+            return await dlcs.DeleteImages(syncOp.Orphans);
         }
 
         public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null)
@@ -712,10 +720,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return q.Take(count).ToList();
         }
 
-        public Dictionary<string, long> GetDlcsQueueLevel()
-        {
-            return dlcs.GetDlcsQueueLevel();
-        }
+        public Task<Dictionary<string, long>> GetDlcsQueueLevel() => dlcs.GetDlcsQueueLevel();
 
         public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
         {

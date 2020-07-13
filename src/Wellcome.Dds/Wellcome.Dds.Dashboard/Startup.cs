@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Text;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
@@ -13,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
+using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -40,7 +45,7 @@ namespace Wellcome.Dds.Dashboard
             Configuration = configuration;
             WebHostEnvironment = webHostEnvironment;
         }
-
+        
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -68,7 +73,10 @@ namespace Wellcome.Dds.Dashboard
             
             services.AddDefaultAWSOptions(awsOptions);
 
-            services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
+            var dlcsSection = Configuration.GetSection("Dlcs");
+            var dlcsOptions = dlcsSection.Get<DlcsOptions>();
+            
+            services.Configure<DlcsOptions>(dlcsSection);
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage-Production"));
 
@@ -76,7 +84,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
 
             // This will require an S3 implementation in production
-            // services.AddSingleton<IStorage, FileSystemStorage>();
+            //services.AddSingleton<IStorage, FileSystemStorage>();
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get("Dds")));
@@ -85,13 +93,20 @@ namespace Wellcome.Dds.Dashboard
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
+            //services.AddSingleton<IBinaryObjectCache, BinaryObjectCache>();
 
-            // Need an HTTPClient to be injected into Dlcs - not WebClient
-            services.AddSingleton<IDlcs, Dlcs>();
+            services.AddHttpClient<IDlcs, Dlcs>(client =>
+            {
+                var creds = Convert.ToBase64String(
+                    Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
+                client.DefaultRequestHeaders.Accept
+                    .Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+                client.Timeout = TimeSpan.FromMilliseconds(360000);
+            });
+
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>(opts =>
-                ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
-                    factory.Get("Storage")));
+            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>

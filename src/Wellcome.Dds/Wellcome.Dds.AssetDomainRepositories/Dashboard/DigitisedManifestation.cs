@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -22,20 +23,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public int SequenceIndex { get; set; }
 
         private IPdf pdf;
-        public IPdf Pdf
+
+        public async Task<IPdf> GetPdf()
         {
-            get
+            if (pdf == null && PdfGetter != null)
             {
-                if (pdf == null && PdfGetter != null)
-                {
-                    // TODO - change to use proper identifiers, not bnum/seq
-                    pdf = PdfGetter(MetsManifestation.GetRootId(), SequenceIndex);
-                }
-                return pdf;
+                // TODO - change to use proper identifiers, not bnum/seq
+                pdf = await PdfGetter(MetsManifestation.GetRootId(), SequenceIndex);
             }
+
+            return pdf;
         }
 
-        public Func<string, int, IPdf> PdfGetter; 
+        public Func<string, int, Task<IPdf>> PdfGetter; 
 
         public string DlcsStatus { get; set; }
         public string DlcsResponse { get; set; }

@@ -1,5 +1,4 @@
 ﻿using DlcsWebClient.Config;
-using DlcsWebClient.Util;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -10,9 +9,10 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Runtime.Loader;
 using System.Text;
+using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -23,17 +23,21 @@ namespace DlcsWebClient.Dlcs
 {
     public class Dlcs : IDlcs
     {
-        private ILogger<Dlcs> logger;
-        private DlcsOptions options;
-        private readonly JsonSerializerSettings _jsonSerializerSettings;
+        private readonly ILogger<Dlcs> logger;
+        private readonly HttpClient httpClient;
+        private readonly DlcsOptions options;
+        private readonly JsonSerializerSettings jsonSerializerSettings;
 
         public Dlcs(
             ILogger<Dlcs> logger,
-            IOptions<DlcsOptions> options)
+            IOptions<DlcsOptions> options,
+            HttpClient httpClient)
         {
             this.logger = logger;
+            this.httpClient = httpClient;
             this.options = options.Value;
-            _jsonSerializerSettings = new JsonSerializerSettings
+            
+            jsonSerializerSettings = new JsonSerializerSettings
             {
                 // http://stackoverflow.com/questions/23170918/is-the-jsonserializersettings-thread-safe
                 // TODO - is this (and its CamelCasePropertyNamesContractResolver) thread safe?
@@ -42,29 +46,7 @@ namespace DlcsWebClient.Dlcs
             };
         }
 
-
-        private string _basicAuthHeader;
-        private string GetBasicAuthHeader()
-        {
-            if (_basicAuthHeader != null)
-            {
-                return _basicAuthHeader;
-            }
-            var credentials = options.ApiKey + ":" + options.ApiSecret;
-            var b64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(credentials));
-            _basicAuthHeader = "Basic " + b64;
-            return _basicAuthHeader;
-        }
-
-
-        private void AddHeaders(WebClient wc)
-        {
-            wc.Headers.Add(HttpRequestHeader.ContentType, "application/json");
-            wc.Headers.Add(HttpRequestHeader.Authorization, GetBasicAuthHeader());
-        }
-
-
-        internal Operation<TRequest, TResponse> PostOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
+        internal Task<Operation<TRequest, TResponse>> PostOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
         {
             var operation = new Operation<TRequest, TResponse>
             {
@@ -74,7 +56,7 @@ namespace DlcsWebClient.Dlcs
             return DoOperation(requestObject, operation);
         }
 
-        internal Operation<TRequest, TResponse> GetOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
+        internal Task<Operation<TRequest, TResponse>> GetOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
         {
             var operation = new Operation<TRequest, TResponse>
             {
@@ -84,7 +66,7 @@ namespace DlcsWebClient.Dlcs
             return DoOperation(requestObject, operation);
         }
 
-        internal Operation<TRequest, TResponse> PatchOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
+        internal Task<Operation<TRequest, TResponse>> PatchOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
         {
             var operation = new Operation<TRequest, TResponse>
             {
@@ -94,63 +76,71 @@ namespace DlcsWebClient.Dlcs
             return DoOperation(requestObject, operation);
         }
 
-        private Operation<TRequest, TResponse> DoOperation<TRequest, TResponse>(
+        private async Task<Operation<TRequest, TResponse>> DoOperation<TRequest, TResponse>(
             TRequest requestObject, Operation<TRequest, TResponse> operation)
         {
-            // TODO - REFACTOR for System.Net.HttpClient, proper .NET Core usage.
-            using (var wc = WebClientProvider.GetWebClient(360000))
+            //httpClient.Timeout = TimeSpan.FromMilliseconds(360000);
+            
+            HttpResponseMessage response = null;
+            try
             {
-                try
+                if (requestObject != null)
                 {
-                    if (requestObject != null)
-                    {
-                        operation.RequestObject = requestObject;
-                        operation.RequestJson = JsonConvert.SerializeObject(
-                            operation.RequestObject, Formatting.Indented, _jsonSerializerSettings);
-                    }
-                    AddHeaders(wc);
-                    switch (operation.HttpMethod)
-                    {
-                        case "POST":
-                            logger.LogInformation("About to HTTP POST to {0}", operation.Uri);
-                            operation.ResponseJson = wc.UploadString(operation.Uri, "POST", operation.RequestJson);
-                            break;
-                        case "PATCH":
-                            logger.LogInformation("About to HTTP PATCH to {0}", operation.Uri);
-                            operation.ResponseJson = wc.UploadString(operation.Uri, "PATCH", operation.RequestJson);
-                            break;
-                        case "GET":
-                            if (requestObject != null)
-                            {
-                                wc.QueryString = new NameValueCollection { { "q", operation.RequestJson } };
-                            }
-                            logger.LogInformation("About to HTTP GET {0}", operation.Uri);
-                            operation.ResponseJson = wc.DownloadString(operation.Uri);
-                            break;
-                        case "PUT":
-                            throw new NotImplementedException("PUT - do this with HttpClient");
-                        case "DELETE":
-                            // TODO: this REALLY needs HttpClient!!
-                            var bytes = wc.UploadData(operation.Uri, "DELETE", new byte[0]);
-                            operation.ResponseJson = wc.Encoding.GetString(bytes);
-                            break;
-                        default:
-                            throw new NotImplementedException("Unknown HTTP Method " + operation.HttpMethod);
-                    }
-                    logger.LogInformation("Response object received");
-                    operation.ResponseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+                    operation.RequestObject = requestObject;
+                    operation.RequestJson = JsonConvert.SerializeObject(
+                        operation.RequestObject, Formatting.Indented, jsonSerializerSettings);
                 }
-                catch (Exception ex)
+                
+                switch (operation.HttpMethod)
                 {
-                    operation.Error = GetError(ex);
-                    logger.LogError("Error in web client - " + ex.Message, ex);
+                    case "POST":
+                        logger.LogInformation("About to HTTP POST to {uri}", operation.Uri);
+                        response = await httpClient.PostAsync(operation.Uri, GetJsonContent(operation.RequestJson));
+                        operation.ResponseJson = await response.Content.ReadAsStringAsync();
+                        break;
+                    case "PATCH":
+                        logger.LogInformation("About to HTTP PATCH to {uri}", operation.Uri);
+                        response = await httpClient.PatchAsync(operation.Uri, GetJsonContent(operation.RequestJson));
+                        operation.ResponseJson = await response.Content.ReadAsStringAsync();
+                        break;
+                    case "GET":
+                        var uriBuilder = new UriBuilder(operation.Uri);
+                            
+                        if (requestObject != null)
+                        {
+                            uriBuilder.Query = $"?q={operation.RequestJson}";
+                        }
+                        
+                        logger.LogInformation("About to HTTP GET {uri}", uriBuilder.Uri);
+                        operation.ResponseJson = await httpClient.GetStringAsync(uriBuilder.Uri);
+                        break;
+                    case "PUT":
+                        throw new NotImplementedException("PUT - do this with HttpClient");
+                    case "DELETE":
+                        response = await httpClient.DeleteAsync(operation.Uri);
+                        operation.ResponseJson = await response.Content.ReadAsStringAsync();
+                        break;
+                    default:
+                        throw new NotImplementedException("Unknown HTTP Method " + operation.HttpMethod);
                 }
+
+                logger.LogInformation("Response object received");
+                operation.ResponseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
             }
+            catch (Exception ex)
+            {
+                operation.Error = GetError(ex, response);
+                logger.LogError(ex, "Error in dlcs request client - {message}", ex.Message);
+            }
+
             return operation;
         }
 
-
+        private static StringContent GetJsonContent(string json) =>
+            new StringContent(json, Encoding.UTF8, "application/json");
+        
         private static readonly char[] SlashSeparator = new[] { '/' };
+        
         // TODO: Is this required still?
         private string GetLocalStorageIdentifier(string id)
         {
@@ -158,11 +148,9 @@ namespace DlcsWebClient.Dlcs
             // had a GUID as their last component
             var last = id.Split(SlashSeparator).Last();
             return last;
-            //Guid g;
-            //Guid.TryParse(last, out g);
-            //return g;
         }
-        public Operation<ImageQuery, HydraImageCollection> GetImages(ImageQuery query, int defaultSpace)
+        
+        public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(ImageQuery query, int defaultSpace)
         {
             int space = defaultSpace;
             if (query.Space.HasValue) space = query.Space.Value;
@@ -171,53 +159,39 @@ namespace DlcsWebClient.Dlcs
             return GetOperation<ImageQuery, HydraImageCollection>(query, new Uri(imageQueryUri));
         }
 
-        public Operation<ImageQuery, HydraImageCollection> GetImages(string nextUri)
-        {
-            return GetOperation<ImageQuery, HydraImageCollection>(null, new Uri(nextUri));
-        }
+        public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(string nextUri) 
+            => GetOperation<ImageQuery, HydraImageCollection>(null, new Uri(nextUri));
 
-        private Operation<string, HydraErrorByMetadataCollection> GetErrorsByMetadata(string uri)
-        {
-            return GetOperation<string, HydraErrorByMetadataCollection>(null, new Uri(uri));
-        }
+        private Task<Operation<string, HydraErrorByMetadataCollection>> GetErrorsByMetadata(string uri) 
+            => GetOperation<string, HydraErrorByMetadataCollection>(null, new Uri(uri));
 
-        public Operation<string, Batch> GetBatch(string batchId)
+        public Task<Operation<string, Batch>> GetBatch(string batchId)
         {
             const string batchTemplate = "{0}customers/{1}/queue/batches/{2}";
-            if (batchId.IndexOf("/") == -1)
+            if (!Uri.IsWellFormedUriString(batchId, UriKind.Absolute))
             {
                 batchId = string.Format(batchTemplate, options.ApiEntryPoint, options.CustomerId, batchId);
             }
             return GetOperation<string, Batch>(null, new Uri(batchId));
         }
 
-        private static Error GetError(Exception ex)
+        private static Error GetError(Exception ex, HttpResponseMessage response)
         {
-            if (ex is WebException)
+            if (ex is HttpRequestException httpRequestException)
             {
-                var we = (WebException)ex;
-                var badResponse = (HttpWebResponse)we.Response;
-                if (badResponse != null)
-                {
-                    return new Error
-                    {
-                        Status = (int)badResponse.StatusCode,
-                        Message = we.Message
-                    };
-                }
                 return new Error
                 {
-                    Status = 0,
-                    Message = we.Message
+                    Status = (int?)response?.StatusCode ?? 0,
+                    Message = httpRequestException.Message
                 };
             }
+            
             return new Error
             {
                 Status = 0,
                 Message = ex.Message
             };
         }
-
 
         private static Uri _imageQueueUri;
         private void InitQueue()
@@ -226,21 +200,20 @@ namespace DlcsWebClient.Dlcs
             {
                 // TODO: At this point we would work out RESTfully where the queue for this customer is
                 // and cache that for a bit - we assume the API stays reasonably stable.
-                _imageQueueUri = new Uri(string.Format("{0}customers/{1}/queue", options.ApiEntryPoint, options.CustomerId));
+                _imageQueueUri = new Uri($"{options.ApiEntryPoint}customers/{options.CustomerId}/queue");
             }
         }
 
-
-        public Operation<HydraImageCollection, Batch> RegisterImages(HydraImageCollection images, bool priority = false)
+        public Task<Operation<HydraImageCollection, Batch>> RegisterImages(HydraImageCollection images, bool priority = false)
         {
             InitQueue();
             return PostOperation<HydraImageCollection, Batch>(images,
                 priority
-                ? new Uri(String.Concat(_imageQueueUri.ToString(), "/priority"))
+                ? new Uri($"{_imageQueueUri}/priority")
                 : _imageQueueUri);
         }
 
-        public Operation<HydraImageCollection, HydraImageCollection> PatchImages(HydraImageCollection images)
+        public Task<Operation<HydraImageCollection, HydraImageCollection>> PatchImages(HydraImageCollection images)
         {
             const string uriTemplate = "{0}customers/{1}/spaces/{2}/images";
             string uri = string.Format(uriTemplate, options.ApiEntryPoint, options.CustomerId, options.CustomerDefaultSpace);
@@ -264,9 +237,8 @@ namespace DlcsWebClient.Dlcs
             {
                 firstCharLowered = "clickthrough";
             }
-            return string.Format("{0}customers/{1}/roles/{2}", options.ApiEntryPoint, options.CustomerId, ToCamelCase(firstCharLowered));
+            return $"{options.ApiEntryPoint}customers/{options.CustomerId}/roles/{ToCamelCase(firstCharLowered)}";
         }
-
 
         // TODO - leave this here? Move to utils and introduce dependency?
         /// <summary>
@@ -289,22 +261,18 @@ namespace DlcsWebClient.Dlcs
             return sb.ToString();
         }
 
-
-        public IEnumerable<Image> GetImagesForIdentifier(string identifier)
+        public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier)
         {
             var ddsId = new DdsIdentifier(identifier);
-            switch (ddsId.IdentifierType)
+            return ddsId.IdentifierType switch
             {
-                case IdentifierType.BNumber:
-                    return GetImagesForBNumber(identifier);
-                case IdentifierType.Volume:
-                    return GetImagesForVolume(identifier);
-                case IdentifierType.BNumberAndSequenceIndex:
-                    return GetImagesBySequenceIndex(ddsId.BNumber, ddsId.SequenceIndex);
-                case IdentifierType.Issue:
-                    return GetImagesForIssue(identifier);
-            }
-            throw new NotSupportedException("Unknown identifier");
+                IdentifierType.BNumber => GetImagesForBNumber(identifier),
+                IdentifierType.Volume => GetImagesForVolume(identifier),
+                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber, ddsId.SequenceIndex),
+                IdentifierType.Issue => GetImagesForIssue(identifier),
+                IdentifierType.Unknown => throw new NotSupportedException("Unknown identifier"),
+                _ => throw new NotSupportedException("Unknown identifier")
+            };
         }
 
         /// <summary>
@@ -314,36 +282,26 @@ namespace DlcsWebClient.Dlcs
         /// </summary>
         /// <param name="identfier"></param>
         /// <returns></returns>
-
         // string 1
-        public IEnumerable<Image> GetImagesForBNumber(string identifier)
-        {
-            return GetImagesFromQuery(new ImageQuery { String1 = identifier });
-        }
+        public Task<IEnumerable<Image>> GetImagesForBNumber(string identifier) 
+            => GetImagesFromQuery(new ImageQuery { String1 = identifier });
 
         // string 1, number 1
-        public IEnumerable<Image> GetImagesBySequenceIndex(string identifier, int sequenceIndex)
-        {
-            return GetImagesFromQuery(new ImageQuery { String1 = identifier, Number1 = sequenceIndex });
-        }
+        public Task<IEnumerable<Image>> GetImagesBySequenceIndex(string identifier, int sequenceIndex) 
+            => GetImagesFromQuery(new ImageQuery { String1 = identifier, Number1 = sequenceIndex });
 
         // string 2
-        public IEnumerable<Image> GetImagesForVolume(string volumeIdentifier)
-        {
-            return GetImagesFromQuery(new ImageQuery { String2 = volumeIdentifier });
-        }
+        public Task<IEnumerable<Image>> GetImagesForVolume(string volumeIdentifier) 
+            => GetImagesFromQuery(new ImageQuery { String2 = volumeIdentifier });
 
         // string 3
-        public IEnumerable<Image> GetImagesForIssue(string issueIdentfier)
-        {
-            return GetImagesFromQuery(new ImageQuery { String3 = issueIdentfier });
-        }
-        public IEnumerable<Image> GetImagesForString3(string identifier)
-        {
-            return GetImagesForIssue(identifier);
-        }
+        public Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentifier) 
+            => GetImagesFromQuery(new ImageQuery { String3 = issueIdentifier });
 
-        public IEnumerable<Image> GetImagesByDlcsIdentifiers(List<string> identifiers)
+        public Task<IEnumerable<Image>> GetImagesForString3(string identifier) 
+            => GetImagesForIssue(identifier);
+
+        public async Task<IEnumerable<Image>> GetImagesByDlcsIdentifiers(List<string> identifiers)
         {
             const string uriTemplate = "{0}customers/{1}/allImages";
             string uri = string.Format(uriTemplate, options.ApiEntryPoint, options.CustomerId);
@@ -351,7 +309,7 @@ namespace DlcsWebClient.Dlcs
             var fullIds = identifiers.Select(
                     g => string.Format(template, options.CustomerId, options.CustomerDefaultSpace, g));
             var request = new HydraStringIdCollection(fullIds);
-            var op = PostOperation<HydraStringIdCollection, HydraImageCollection>(request, new Uri(uri));
+            var op = await PostOperation<HydraStringIdCollection, HydraImageCollection>(request, new Uri(uri));
             foreach (var image in op.ResponseObject.Members)
             {
                 image.StorageIdentifier = GetLocalStorageIdentifier(image.Id);
@@ -359,15 +317,13 @@ namespace DlcsWebClient.Dlcs
             return op.ResponseObject.Members;
         }
 
-
         // immediate mode
         public IEnumerable<Image> RegisterNewImages(List<Image> images)
         {
             throw new NotImplementedException();
         }
 
-
-        public int DeleteImages(List<Image> images)
+        public async Task<int> DeleteImages(List<Image> images)
         {
             const string uriTemplate = "{0}customers/{1}/deleteImages";
             string uri = string.Format(uriTemplate, options.ApiEntryPoint, options.CustomerId);
@@ -375,7 +331,7 @@ namespace DlcsWebClient.Dlcs
             var fullIds = images.Select(
                     im => string.Format(template, options.CustomerId, options.CustomerDefaultSpace, im.StorageIdentifier));
             var request = new HydraStringIdCollection(fullIds);
-            var op = PostOperation<HydraStringIdCollection, MessageObject>(request, new Uri(uri));
+            var op = await PostOperation<HydraStringIdCollection, MessageObject>(request, new Uri(uri));
             var message = op.ResponseObject == null ? "NO RESPONSE OBJECT" : op.ResponseObject.Message;
             logger.LogInformation("Attempted to delete {0} images, response was {1}", images.Count, message);
             return images.Count;
@@ -387,20 +343,22 @@ namespace DlcsWebClient.Dlcs
         /// <param name="string1"></param>
         /// <param name="number1"></param>
         /// <returns></returns>
-        public IPdf GetPdfDetails(string string1, int number1)
+        public async Task<IPdf> GetPdfDetails(string string1, int number1)
         {
             const string controlTemplate = "{0}pdf-control/{1}/pdf-item/{2}/{3}";
             var uri = string.Format(controlTemplate,
                 options.ResourceEntryPoint, options.CustomerName, string1, number1);
-            Pdf pdf;
-            using (var wc = WebClientProvider.GetWebClient(360000))
+
+            var response = await httpClient.GetAsync(uri);
+            if (!response.IsSuccessStatusCode)
             {
-                var s = wc.DownloadString(uri);
-                pdf = JsonConvert.DeserializeObject<Pdf>(s);
-                if (string.IsNullOrEmpty(pdf.Url))
-                {
-                    pdf.Url = uri.Replace("pdf-control", "pdf");
-                }
+                return default;
+            }
+
+            var pdf = await response.Content.ReadAsAsync<Pdf>();
+            if (string.IsNullOrEmpty(pdf.Url))
+            {
+                pdf.Url = uri.Replace("pdf-control", "pdf");
             }
             return pdf;
         }
@@ -408,18 +366,20 @@ namespace DlcsWebClient.Dlcs
         /// <summary>
         /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
         /// </summary>
-        public bool DeletePdf(string string1, int number1)
+        public async Task<bool> DeletePdf(string string1, int number1)
         {
             const string template = "{0}customers/{1}/resources/pdf/pdf-item?args={2}";
             var uri = string.Format(template,
                 options.ApiEntryPoint, options.CustomerId, string1 + "/" + number1);
-            using (var wc = WebClientProvider.GetWebClient(360000))
+
+            var response = await httpClient.DeleteAsync(uri);
+            if (!response.IsSuccessStatusCode)
             {
-                AddHeaders(wc);
-                var s = wc.UploadString(uri, "DELETE", String.Empty);
-                dynamic result = JObject.Parse(s);
-                return (bool)result.success;
+                return false;
             }
+
+            dynamic result = JObject.Parse(await response.Content.ReadAsStringAsync());
+            return (bool) result.success;
         }
 
         /// <summary>
@@ -427,7 +387,7 @@ namespace DlcsWebClient.Dlcs
         /// </summary>
         /// <param name="imageBatches"></param>
         /// <returns></returns>
-        public List<Batch> GetTestedImageBatches(List<Batch> imageBatches)
+        public async Task<List<Batch>> GetTestedImageBatches(List<Batch> imageBatches)
         {
             const string template = "{0}customers/{1}/queue/batches/{2}/test";
             var testedBatches = new List<Batch>();
@@ -435,30 +395,37 @@ namespace DlcsWebClient.Dlcs
             {
                 var batchLocalId = imageBatch.Id.Split('/').Last();
                 var uri = string.Format(template, options.ApiEntryPoint, options.CustomerId, batchLocalId);
-                using (var wc = WebClientProvider.GetWebClient(360000))
+                
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                var response = await httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    AddHeaders(wc);
-                    var s = wc.UploadString(uri, "POST");
-                    dynamic result = JObject.Parse(s);
-                    if ((bool)result.success)
-                    {
-                        testedBatches.Add(GetBatch(imageBatch.Id).ResponseObject);
-                    }
-                    else
-                    {
-                        testedBatches.Add(imageBatch);
-                    }
+                    testedBatches.Add(imageBatch);
+                }
+                
+                dynamic result = JObject.Parse(await response.Content.ReadAsStringAsync());
+                if ((bool)result.success)
+                {
+                    var batch = await GetBatch(imageBatch.Id);
+                    testedBatches.Add(batch.ResponseObject);
+                }
+                else
+                {
+                    testedBatches.Add(imageBatch);
                 }
             }
             return testedBatches;
         }
 
 
-        public IEnumerable<ErrorByMetadata> GetErrorsByMetadata()
+        public async Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata()
         {
             const string template = "{0}customers/{1}/queue/recentErrorsByMetadata/string3";
             bool first = true;
             string nextUri = null;
+
+            var allErrors = new List<ErrorByMetadata>();
 
             while (first || nextUri != null)
             {
@@ -467,13 +434,14 @@ namespace DlcsWebClient.Dlcs
                 {
                     logger.LogInformation("On the first call, pass base URL");
                     var initialUri = string.Format(template, options.ApiEntryPoint, options.CustomerId);
-                    statesOperation = GetErrorsByMetadata(initialUri);
+                    statesOperation = await GetErrorsByMetadata(initialUri);
+                    
                     first = false;
                 }
                 else
                 {
                     logger.LogInformation("Following link to next page {0}", nextUri);
-                    statesOperation = GetErrorsByMetadata(nextUri);
+                    statesOperation = await GetErrorsByMetadata(nextUri);
                 }
                 string dataMessage;
                 if (statesOperation.Error != null)
@@ -490,11 +458,8 @@ namespace DlcsWebClient.Dlcs
                 }
                 if (errorByMetadataCollection.Members != null)
                 {
-                    logger.LogInformation("Yielding {0} collection members to returned image list", errorByMetadataCollection.Members.Length);
-                    foreach (var errorByMetadata in errorByMetadataCollection.Members)
-                    {
-                        yield return errorByMetadata;
-                    }
+                    logger.LogInformation("Adding {0} collection members to returned image list", errorByMetadataCollection.Members.Length);
+                    allErrors.AddRange(errorByMetadataCollection.Members);
                 }
                 if (errorByMetadataCollection.View != null && errorByMetadataCollection.View.Next != null)
                 {
@@ -507,14 +472,15 @@ namespace DlcsWebClient.Dlcs
                     nextUri = null;
                 }
             }
-            //lastResponseData = statesOperation.ResponseJson
+
+            return allErrors;
         }
 
         /// <summary>
         ///  TODO - generic method, generic collection
         /// </summary>
         /// <returns></returns>
-        public Page<ErrorByMetadata> GetErrorsByMetadata(int page)
+        public async Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page)
         {
             // Here's where we take a RESTful pause to consider Hydra. We're about to sidestep REST 
             // by requesting a result page directly.
@@ -532,7 +498,7 @@ namespace DlcsWebClient.Dlcs
 
             logger.LogInformation("On the first call, pass base URL");
             var initialUri = string.Format(template, options.ApiEntryPoint, options.CustomerId, page);
-            var statesOperation = GetErrorsByMetadata(initialUri);
+            var statesOperation = await GetErrorsByMetadata(initialUri);
             string dataMessage;
             if (statesOperation.Error != null)
             {
@@ -556,21 +522,21 @@ namespace DlcsWebClient.Dlcs
                 logger.LogInformation("Found {0} collection members in image list", errorByMetadataCollection.Members.Length);
                 pageObj.Items = errorByMetadataCollection.Members;
             }
-
-            //ArtificiallyPopulateErrorsByMetadataWithExtraStuff(pageObj);
+            
             return pageObj;
         }
-
-        // sets the two new strings data and response
+        
         /// <summary>
-        /// 
+        /// sets the two new strings data and response 
         /// </summary>
         /// <param name="query"></param>
         /// <returns></returns>
-        private IEnumerable<Image> GetImagesFromQuery(ImageQuery query) // , out string data, out string lastResponseData)
+        private async Task<IEnumerable<Image>> GetImagesFromQuery(ImageQuery query)
         {
             bool first = true;
             string nextUri = null;
+
+            var images = new List<Image>();
 
             while (first || nextUri != null)
             {
@@ -578,13 +544,13 @@ namespace DlcsWebClient.Dlcs
                 if (first)
                 {
                     logger.LogInformation("On the first call, pass the query object");
-                    statesOperation = GetImages(query, options.CustomerDefaultSpace);
+                    statesOperation = await GetImages(query, options.CustomerDefaultSpace);
                     first = false;
                 }
                 else
                 {
                     logger.LogInformation("Following link to next page {0}", nextUri);
-                    statesOperation = GetImages(nextUri);
+                    statesOperation = await GetImages(nextUri);
                 }
                 string dataMessage;
                 if (statesOperation.Error != null)
@@ -607,9 +573,10 @@ namespace DlcsWebClient.Dlcs
                         image.StorageIdentifier = GetLocalStorageIdentifier(image.Id);
                         if (image.Family == 'T')
                         {
-                            LoadMetadata(image);
+                            await LoadMetadata(image);
                         }
-                        yield return image;
+
+                        images.Add(image);
                     }
                 }
                 if (imageCollection.View != null && imageCollection.View.Next != null)
@@ -623,48 +590,36 @@ namespace DlcsWebClient.Dlcs
                     nextUri = null;
                 }
             }
-            //lastResponseData = statesOperation.ResponseJson;
+
+            return images;
         }
 
 
-        private void LoadMetadata(Image image)
+        private async Task LoadMetadata(Image image)
         {
             try
             {
-                using (var wc = WebClientProvider.GetWebClient(2000))
-                {
-                    AddHeaders(wc);
-                    image.Metadata = wc.DownloadString(image.Metadata);
-                }
+                httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
+                image.Metadata = await httpClient.GetStringAsync(image.Metadata);
             }
             catch (Exception wcEx)
             {
-                image.Metadata = string.Format("[could not retrieve metadata from {0}: {1}]", image.Metadata,
-                    wcEx.Message);
+                image.Metadata = $"[could not retrieve metadata from {image.Metadata}: {wcEx.Message}]";
             }
         }
 
-        public int DefaultSpace
-        {
-            get { return options.CustomerDefaultSpace; }
-        }
-        public int BatchSize
-        {
-            get { return options.BatchSize; }
-        }
-        public bool PreventSynchronisation
-        {
-            get { return options.PreventSynchronisation; }
-        }
+        public int DefaultSpace => options.CustomerDefaultSpace;
+        public int BatchSize => options.BatchSize;
 
-        public Dictionary<string, long> GetDlcsQueueLevel()
+        public bool PreventSynchronisation => options.PreventSynchronisation;
+
+        public async Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
-            JObject result;
-            var url = options.ApiEntryPoint + "queue";
-            using (var wc = WebClientProvider.GetWebClient(5000))
-            {
-                result = JObject.Parse(wc.DownloadString(url));
-            }
+            var url = $"{options.ApiEntryPoint}queue";
+            httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
+            var response = await httpClient.GetStringAsync(url);
+
+            var result = JObject.Parse(response);
 
             return new Dictionary<string, long>
             {
@@ -707,7 +662,6 @@ namespace DlcsWebClient.Dlcs
             };
         }
     }
-
 
     class MessageObject
     {

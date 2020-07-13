@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Amazon;
 using Amazon.Runtime;
@@ -159,7 +160,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return new PremisMetadata(metsRoot, admId);
         }
 
-        public JObject GetStorageManifest()
+        public Task<JObject> GetStorageManifest()
         {
             return factory.GetStorageManifest(Identifier);
         }

@@ -6,12 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.3.111.20" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.5" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.4" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Utils.Aws\Utils.Aws.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
   </ItemGroup>
