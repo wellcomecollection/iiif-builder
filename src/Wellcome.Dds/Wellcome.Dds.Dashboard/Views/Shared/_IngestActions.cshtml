@@ -1,0 +1,28 @@
+﻿@model System.Collections.Generic.IEnumerable<Wellcome.Dds.AssetDomain.Dlcs.Ingest.IngestAction>
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-hover table-condensed">
+            <thead>
+                <tr>
+                    <th>Identifier</th>
+                    <th>When</th>
+                    <th>What</th>
+                    <th>Who</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (var ia in Model)
+                {
+                    <tr>
+                        <td>@Html.ActionLink(ia.ManifestationId ?? "(no manifestation)", "Manifestation", "Dash", new { id = ia.ManifestationId }, new { })</td>
+                        <td width="165">@ia.Performed</td>
+                        <td>@ia.Action</td>
+                        <td>@ia.Username</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

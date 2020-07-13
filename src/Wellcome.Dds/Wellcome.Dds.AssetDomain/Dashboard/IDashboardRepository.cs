@@ -33,5 +33,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         Dictionary<string, long> GetDlcsQueueLevel();
 
         BNumberModel GetBNumberModel(string bNumber, string label);
+
+        AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation);
     }
 }

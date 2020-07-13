@@ -13,32 +13,44 @@ using Microsoft.Extensions.Hosting;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
-using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Dashboard.Controllers;
+using Wellcome.Dds.Repositories;
 
 namespace Wellcome.Dds.Dashboard
 {
     public class Startup
     {
         private IConfiguration Configuration { get; }
+        private IWebHostEnvironment WebHostEnvironment { get; }
 
-        public Startup(IConfiguration configuration)
+        public Startup(IWebHostEnvironment webHostEnvironment, IConfiguration configuration)
         {
             Configuration = configuration;
+            WebHostEnvironment = webHostEnvironment;
         }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
             services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
@@ -81,8 +93,28 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<ArchiveStorageServiceWorkStorageFactory>(opts,
                     factory.Get("Storage")));
             services.AddSingleton<IMetsRepository, MetsRepository>();
+
+            services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
+                ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
+                    factory.Get("Dds")));
+
+
+            // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();
-            services.AddControllersWithViews().AddRazorRuntimeCompilation();
+            services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
+            services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
+            services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
+            services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
+
+            // These are non-working impls atm
+            services.AddSingleton<Synchroniser>(); // make this a service provided by IDds
+            services.AddSingleton<CacheBuster>(); // Have a think about what this does in the new world - what is it busting?
+
+            services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
+
+            services.AddControllersWithViews(
+                opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))
+                .AddRazorRuntimeCompilation();
 
             // TODO - add DB health check
             services.AddHealthChecks();
@@ -111,6 +143,9 @@ namespace Wellcome.Dds.Dashboard
             
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
+                endpoints.MapControllerRoute("Default", "{controller}/{action}/{id?}/{*parts}",
+                    defaults: new { controller = "Dash", action = "Index" }
+                );
                 endpoints.MapDefaultControllerRoute();
                 endpoints.MapHealthChecks("/management/healthcheck");
             });

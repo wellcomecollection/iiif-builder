@@ -10,6 +10,8 @@
         public string ApiEntryPoint { get; set; }
         public string ResourceEntryPoint { get; set; }
         public int BatchSize { get; set; } = 100;
+        public string PortalPageTemplate { get; set; }
+        public string PortalBatchTemplate { get; set; }
         public bool PreventSynchronisation { get; set; } = false;
     }
 }

@@ -1,0 +1,12 @@
+﻿@if (ViewBag.Heartbeat == null)
+{
+    <p>Cannot determine when the JobProcessor last ran.</p>
+}
+else
+{
+    <p>The DLCS Job Processor last ran @(((TimeSpan) (DateTime.Now - (DateTime?)ViewBag.Heartbeat)).ToHumanReadableString()) ago.</p>
+}
+@if (ViewBag.HeartbeatWarning)
+{
+    <p class="danger">This needs investigating!</p>
+}

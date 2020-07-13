@@ -1,0 +1,27 @@
+﻿@model string[]
+
+@{
+    ViewBag.Title = "Dash: Tail";
+}
+
+<h1>Job Processor Log tail</h1>
+
+<partial name="_JobProcessorLastRan" view-data="ViewData" />
+
+<p>
+    Lines:
+    @Html.ActionLink("100", "TailJobProcessor", "Dash", new { id = "100" }, new { }) |
+    @Html.ActionLink("500", "TailJobProcessor", "Dash", new { id = "500" }, new { }) |
+    @Html.ActionLink("1000", "TailJobProcessor", "Dash", new { id = "1000" }, new { }) |
+    @Html.ActionLink("View WorkflowProcessor log", "TailWorkflowProcessor", "Dash", new { id = "60" }, new { })
+</p>
+
+<div class="row">
+    <div class="col-md-12">
+        <p>This log file is at @ViewBag.LogFilePath</p>
+        <pre>
+@string.Join("\r\n", Model)
+        </pre>
+    </div>
+</div>
+

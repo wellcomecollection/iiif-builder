@@ -1,0 +1,667 @@
+﻿@model Wellcome.Dds.Dashboard.Models.ManifestationModel
+
+
+
+
+@{
+    ViewBag.Title = "Dash: " + Model.DigitisedManifestation.Identifier;
+    var metsManifestation = Model.DigitisedManifestation.MetsManifestation;
+}
+
+<a id="top"></a>
+
+<div class="row" style="padding-top: 15px">
+    @if (TempData["CacheBustResult"] != null && ((DeleteResult)TempData["CacheBustResult"]).Success)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Success!</strong> Binary caches cleared on disk. Note that cached resources may persist in memory for 10 minutes.
+        </div>
+    }
+    @if (TempData["CacheBustResult"] != null && !((DeleteResult)TempData["CacheBustResult"]).Success)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to clear cache!</strong> @(((DeleteResult)TempData["CacheBustResult"]).Message)
+        </div>
+    }
+    @if (TempData["AltoCacheBustResult"] != null && ((DeleteResult)TempData["AltoCacheBustResult"]).Success)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Success!</strong> Search data cleared from disk. Note that cached resources may persist in memory for 10 minutes.
+        </div>
+    }
+    @if (TempData["AltoCacheBustResult"] != null && !((DeleteResult)TempData["AltoCacheBustResult"]).Success)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to clear search cache!</strong> @((DeleteResult)TempData["AltoCacheBustResult"]).Message
+        </div>
+    }
+    @if (TempData["remove-old-jobs"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@((int)TempData["remove-old-jobs"]) old job(s) removed!</strong>
+        </div>
+    }
+    @if (TempData["orphans-deleted"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@((int)TempData["orphans-deleted"]) Orphans deleted!</strong>
+        </div>
+    }
+
+    @if (Model.SyncOperation.Orphans.Any())
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            This manifestation has <a href="#orphans">@Model.SyncOperation.Orphans.Count orphaned DLCS records</a>. This means there are images in the DLCS with
+            the string3 metadata value @Model.DigitisedManifestation.Identifier that are not present in the METS manifestation.
+        </div>
+    }
+
+    <div class="col-md-9">
+        <h3 style="margin-top: 13px;">@Model.DigitisedManifestation.Identifier - @metsManifestation.Label</h3>
+    </div>
+    <div class="col-md-3">
+        @if (Model.IsStandardMultipleManifestation)
+        {
+            <div class="btn-group" role="group" aria-label="Manifestation navigation" style="margin-top: 9px">
+                <a class="btn btn-default" href="@Model.PreviousLink"><span class="glyphicon glyphicon-chevron-left"></span></a>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Manifestation @Model.Index of @Model.Siblings.Count
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        @foreach (var manif in Model.Siblings)
+                        {
+                            <li class="@Model.GetDropDownClass(manif)">
+                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Id })
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <a class="btn btn-default" href="@Model.NextLink"><span class="glyphicon glyphicon-chevron-right"></span></a>
+            </div>
+        }
+    </div>
+</div>
+
+
+<div class="row" style="margin-top: 1em;">
+    <div class="col-md-3">
+        @if (Model.IsRunning)
+        {
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Running...</h3>
+                </div>
+                <div class="panel-body">
+                    @foreach (var activeBatch in Model.BatchesForImages)
+                    {
+                        RenderBatchProgress(activeBatch);
+                    }
+                    @{
+                        var latest = Model.BatchesForImages.OrderByDescending(b => b.Submitted).First();
+                        <p><em><small>Most recent batch: @latest.Submitted</small></em></p>
+                        <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
+                        if (latest.Submitted < DateTime.Now.AddMinutes(-10))
+                        {
+                            <p><a href="@Url.Action("Resubmit", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
+                        }
+                    }
+                </div>
+            </div>
+        }
+        else if (Model.SyncOperation.RequiresSync)
+        {
+            <div class="panel panel-@Model.SyncSummary.CssClass">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Requires Sync</h3>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>#</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var syncCategory in Model.SyncSummary.Categories)
+                            {
+                                <tr>
+                                    <td><a href="#@syncCategory.TableRowId">@syncCategory.Label</a></td>
+                                    <td>@syncCategory.Count</td>
+                                    <td>@Html.Raw(syncCategory.StatusIcon)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <a href="@Url.Action("Sync", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                </div>
+            </div>
+        }
+
+        @*<h3><span class="glyphicon glyphicon-info-sign"></span> Details</h3>*@<div class="panel panel-primary">
+            <div class="panel-heading">
+                @metsManifestation.Type (@metsManifestation.FirstSignificantInternetType)
+            </div>
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <ul class="list-unstyled">
+                        <li>@Html.ActionLink("Preview in UV", "UV", "Dash", new { id = @Model.DdsIdentifier.BNumber }, new { }) </li>
+                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ItemPageUrl">Live item page</a></li>
+                        <li><a href="@(Model.DigitisedManifestation.BNumberModel.ItemPageUrl + "?ts=" + DateTime.Now.Ticks)">Live item page (no cache)</a></li>
+                    </ul>
+                </li>
+                <li class="list-group-item">
+                    <ul class="list-unstyled">
+                        <li><a href="@Model.DigitisedManifestation.BNumberModel.EncoreRecordUrl">Encore record</a></li>
+                        <li><a href="@Model.DigitisedManifestation.BNumberModel.EncoreBiblioRecordUrl">Encore bibliographic record</a></li>
+                    </ul>
+                </li>
+                <li class="list-group-item"><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF Manifest</a></li>
+                @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
+                {
+                    <li class="list-group-item">
+                        Derivatives:
+                        <ul class="list-unstyled">
+                            @foreach (var derivative in Model.AVDerivatives)
+                            {
+                                <li>- <a href="@derivative.Id">@derivative.Label</a></li>
+                            }
+                        </ul>
+                    </li>
+                }
+                <li class="list-group-item">
+                    Permitted operations:
+                    <ul class="list-unstyled">
+                        @foreach (var permittedOperation in metsManifestation.PermittedOperations)
+                        {
+                            <li>- <small><em>@permittedOperation</em></small></li>
+                        }
+                    </ul>
+                </li>
+                <li class="list-group-item">
+                    <ul class="list-unstyled">
+                        <li><a href="@Url.Action("StorageManifest", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
+                        <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.BNumber })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
+                        @{
+                            var sourceFile = ((IFileBasedResource)metsManifestation).SourceFile;
+                        }
+                        <li><a href="@Url.Action("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
+                    </ul>
+                </li>
+                <li class="list-group-item">
+                    <ul class="list-unstyled">
+                        <li>
+                            Mods:
+                            <span title="accessCondition" class="label label-primary">@metsManifestation.ModsData.AccessCondition</span>
+                            <span title="leader6" class="label label-primary">@metsManifestation.ModsData.Leader6</span>
+                        </li>
+                    </ul>
+                </li>
+                @if (metsManifestation.Sequence.HasItems())
+                {
+                    if (metsManifestation.Sequence[0].GetStoredFileInfo().Uri.Contains("archive-storage"))
+                    {
+                        <li class="list-group-item">
+                            <span class="glyphicon glyphicon-flash"></span>
+                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Dash", new { id = Model.DdsIdentifier.BNumber }, new { })</text>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+
+        @if (Model.SyncSummary.AccessConditions.Length > 1)
+        {
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Mixed access</h3>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Access Condition</th>
+                                <th>#</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var accessCondition in Model.SyncSummary.AccessConditions)
+                            {
+                                <tr>
+                                    <td><a href="#@accessCondition.TableRowId">@accessCondition.Label</a></td>
+                                    <td>@accessCondition.Count</td>
+                                    <td>@Html.Raw(accessCondition.StatusIcon)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+
+
+        <h3>Jobs</h3>
+        <ul class="list-group">
+            @foreach (var job in Model.IngestJobs)
+            {
+                <li class="list-group-item">
+                    <span class="badge">@job.ImageCount</span>
+                    @Html.ActionLink("" + job.Created, "Job", "Dash", new { id = job.Id }, new { })
+                    @{
+                        if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
+                        {
+                            foreach (var batch in Model.DbJobIdsToActiveBatches[job.Id])
+                            {
+                                RenderBatchProgress(batch);
+                            }
+                        }
+                    }
+                </li>
+            }
+            @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
+            {
+                <li class="list-group-item">
+                    <a href="@Url.Action("CleanOldJobs", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
+                </li>
+            }
+            @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
+            {
+                <li class="list-group-item">
+                    <a href="@Url.Action("ForceReingest", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
+                </li>
+            }
+        </ul>
+
+
+
+        @if (Model.IsStandardMultipleManifestation)
+        {
+            <h3>Multiples</h3>
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <a href="@Url.Action("SyncAllManifestations", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
+                </li>
+                <li class="list-group-item">
+                    <a href="@Url.Action("ForceReingestAllManifestations", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
+                </li>
+            </ul>
+        }
+
+        <h3>Tasks</h3>
+        <div class="panel panel-default">
+
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <a href="@Url.Action("CacheBust", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Refresh cache</a><br />
+                    @if (Model.CachedPackageFileInfo.Exists)
+                    {
+                        <small>Disk cache: @Model.CachedPackageFileInfo.LastWriteTime</small>
+                    }
+                    else
+                    {
+                        <small><em>No cached package on disk yet</em></small>
+                    }
+                </li>
+                @if (metsManifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText()))
+                {
+                    <li class="list-group-item">
+                        <a href="@Url.Action("CacheBustAlto", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Rebuild search</a><br />
+                        @if (Model.CachedTextModelFileInfo.Exists)
+                        {
+                            <small>Disk cache: @Model.CachedTextModelFileInfo.LastWriteTime</small>
+                        }
+                        else
+                        {
+                            <small><em>No cached text model on disk yet</em></small>
+                        }
+                        <br />
+                        @if (Model.CachedAltoAnnotationsFileInfo.Exists)
+                        {
+                            <small>Disk cache: @Model.CachedAltoAnnotationsFileInfo.LastWriteTime</small>
+                        }
+                        else
+                        {
+                            <small><em>No cached all annos on disk yet</em></small>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+        @if (metsManifestation.FirstSignificantInternetType == "image/jp2")
+        {
+            <h3>PDF</h3>
+            if (Model.DigitisedManifestation.Pdf == null)
+            {
+                <div class="panel panel-danger">
+                    <div class="panel-body">
+                        <p>Cannot retrieve information for PDF</p>
+                    </div>
+                </div>
+            }
+            else if (Model.DigitisedManifestation.Pdf.InProcess)
+            {
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <p>
+                            <span class="glyphicon glyphicon-hourglass"></span> PDF currently being created<br />
+                            Started: @Model.DigitisedManifestation.Pdf.Created
+                        </p>
+                    </div>
+                </div>
+            }
+            else if (!Model.DigitisedManifestation.Pdf.Exists)
+            {
+                <div class="panel panel-warning">
+                    <div class="panel-body">
+                        <p>This PDF does not exist</p>
+                        <a href="@Model.DigitisedManifestation.Pdf.Url" class="btn btn-primary" target="_blank"><span class="glyphicon glyphicon-file"></span> Make PDF</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="panel panel-default">
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <a href="@Model.DigitisedManifestation.Pdf.Url" target="_blank"><span class="glyphicon glyphicon-file"></span> View</a>
+                            <br />
+                            @Model.DigitisedManifestation.Pdf.Created <br />
+                            @Model.DigitisedManifestation.Pdf.PageCount pages<br />
+                            @StringUtils.FormatFileSize(@Model.DigitisedManifestation.Pdf.SizeBytes)<br />
+                            @if (Model.DigitisedManifestation.Pdf.Roles.HasItems())
+                            {
+                                <text>Roles:</text>
+                                <ul class="list-unstyled">
+                                    @foreach (var role in Model.DigitisedManifestation.Pdf.Roles)
+                                    {
+                                        <li>- <small><em>@role.Split('/').Last()</em></small></li>
+                                    }
+                                </ul>
+                            }
+                        </li>
+                        <li class="list-group-item">
+                            <a href="@Url.Action("DeletePdf", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-warning"><span class="glyphicon glyphicon-file"></span> Delete PDF</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        }
+
+    @*
+    TODO - we can still show ingest history, which is useful
+    <h3>Migration</h3>
+        <ul class="list-group">
+            <li class="list-group-item">
+                <a href="@Url.Action("Migration", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-road"></span> Migration report</a>
+            </li>
+        </ul>*@
+
+
+    </div>
+
+    <div class="col-md-9">
+        <h4 style="margin-top: 0;">
+            @Html.Raw(Model.GetAssetGlyph())
+            @metsManifestation.SignificantSequence.Count
+            assets of type
+            @metsManifestation.FirstSignificantInternetType
+        </h4>
+
+
+        <table class="table table-hover table-condensed asset-table">
+            <thead>
+                <tr>
+                    @if (Model.ManifestationFamily == AssetFamily.Image)
+                    {
+                        <th>Order</th>
+                        <th>Label</th>
+                        <th>Dimensions</th>
+                        <th>Access</th>
+                        <th>ALTO</th>
+                        <th>DLCS</th>
+                        <th></th>
+                    }
+                    else if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                    {
+                        <th>Order</th>
+                        <th>Size</th>
+                        <th>Format</th>
+                        <th>Length</th>
+                        <th>Access</th>
+                        <th>DLCS</th>
+                        @*<th>Transcode</th>*@
+                        <th></th>
+                    }
+                    else
+                    {
+                        <th>Order</th>
+                        <th>Size</th>
+                        <th>Format</th>
+                        <th>Pages</th>
+                        <th>Access</th>
+                        <th>DLCS</th>
+                        <th></th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (IPhysicalFile pf in metsManifestation.Sequence)
+                {
+                    var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
+                    bool ignored = Model.IsIgnored(pf.StorageIdentifier);
+                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf)">
+                        <td>@pf.Order</td>
+                        @if (Model.ManifestationFamily == AssetFamily.Image)
+                        {
+                            <td>@pf.OrderLabel</td>
+                            <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
+                        }
+                        else
+                        {
+                            <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
+                            <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
+                            if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                            {
+                                <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
+                            }
+                            else
+                            {
+                                <td>@pf.AssetMetadata.GetNumberOfPages()</td>
+                            }
+                        }
+                        @if (ignored)
+                        {
+                            <td>ignored</td>
+                        }
+                        else
+                        {
+                            <td>@pf.AccessCondition</td>
+                        }
+                        @if (Model.ManifestationFamily == AssetFamily.Image)
+                        {
+                            <td>
+                                @if (@pf.RelativeAltoPath.HasText())
+                                {
+                                    <a href="@Url.Action("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber, parts = pf.RelativeAltoPath})"
+                                       title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                }
+                            </td>
+                        }
+                        @{
+                            if (dlcsImage != null)
+                            {
+                                <td>
+                                    <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
+                                    {
+                                        <div class="tbmetadata">
+                                            <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
+                                            <pre style="display: none">@dlcsImage.Metadata
+                                    </pre>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                            else
+                            {
+                                <td>@pf.StorageIdentifier</td>
+                            }
+                        }
+                        @*@if (family == AssetFamily.TimeBased)
+                            {
+                                <td>(transcode metadata)</td>
+                            }*@
+                    <td>
+                        @{
+                            var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                            var thumb100 = Model.GetThumbnail(dlcsImage, 100);
+                            var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
+                        }
+                        @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))    
+                        <iiif-thumb class="iiifpreview" 
+                                    small-thumb="thumb24" large-thumb="thumb100" 
+                                    full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri" />
+                         <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                    </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.SyncOperation.Orphans.Any())
+        {
+            <h4 id="orphans">@Model.SyncOperation.Orphans.Count Orphans</h4>
+            <p>These images in the DLCS have the string3 metadata field @Model.DigitisedManifestation.Identifier but they are not present in the current METS manifestation.</p>
+            <p>
+                This does not mean that they should be deleted, because they might belong to a different manifestation
+                (e.g., the METS structure has been rearranged across manifestations and not yet synchronised for all manifestations).
+                However, they might also represent images that have been replaced in Preservica but not deleted from the DLCS.
+            </p>
+            <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
+            <table class="table table-hover table-condensed">
+                <thead>
+                    <tr>
+                        <th>Created</th>
+                        @*<th>Dimensions</th>*@
+                        <th>Access</th>
+                        <th>Error</th>
+                        <th width="30%">DLCS</th>
+                        <td>Ingesting</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var orphan in Model.SyncOperation.Orphans)
+                    {
+                        <tr>
+                            <td>@orphan.Created</td>
+                            @*<td>@orphan.Width x @orphan.Height</td>*@
+                            <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
+                            <td>@orphan.Error</td>
+                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)">@orphan.StorageIdentifier</a></td>
+                            <td>@orphan.Ingesting</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <a href="#top" class="pull-right">Go back to top</a>
+    </div>
+</div>
+
+
+<hr />
+<h3>Log</h3>
+<table class="table table-hover">
+    <tr>
+        <th>Event (times in ms)</th>
+        <th>Split</th>
+        <th>Total</th>
+    </tr>
+
+    @foreach (var logEvent in ViewBag.Log)
+    {
+        <tr>
+            <td>@logEvent.Message</td>
+            <td>@logEvent.Split</td>
+            <td>@logEvent.Total</td>
+        </tr>
+    }
+</table>
+
+<!-- Modal popup for previewing -->
+<div class="modal fade" id="imgModal" tabindex="-1" role="dialog" aria-labelledby="mdlLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="mdlLabel"></h4>
+            </div>
+            <div class="modal-body">
+                <img id="bigImage" class="img-responsive osd" />
+                <div id="viewer" class="osd-viewer"></div>
+                <div class="auth-ops" id="authOps">
+                    <h5>Header</h5>
+                    <div class="auth-desc">
+                    </div>
+                    <button id="authDo" type="button" class="btn btn-primary"></button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="mdlPrev" type="button" class="btn btn-primary btn-prevnext" data-uri="">Prev</button>
+                <button id="mdlNext" type="button" class="btn btn-primary btn-prevnext" data-uri="">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    void RenderBatchProgress(Batch batch)
+    {
+        var percentComplete = Model.GetBatchPercent(batch);
+        var percentError = Model.GetBatchErrorPercent(batch);
+
+        if (batch.Completed != batch.Count)
+        {
+            <div class="progress">
+                <a href="@Model.GetPortalPageForBatch(batch)" title="@batch.Submitted">
+                    <div class="progress-bar progress-bar-success" role="progressbar"
+                         aria-valuenow="@batch.Completed" aria-valuemin="0" aria-valuemax="@batch.Count"
+                         style="width: @percentComplete">
+                        @percentComplete Complete
+                    </div>
+                    @if (batch.Errors > 0)
+                    {
+                        <div class="progress-bar progress-bar-danger" role="progressbar"
+                             aria-valuenow="@batch.Errors" aria-valuemin="0" aria-valuemax="@batch.Count"
+                             style="width: @percentError">
+                            @percentError Error
+                        </div>
+                    }
+                </a>
+            </div>
+        }
+    }
+}
+
+@functions{
+
+}

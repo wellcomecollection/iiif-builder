@@ -8,8 +8,10 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Loader;
 using System.Text;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -668,6 +670,40 @@ namespace DlcsWebClient.Dlcs
             {
                 {"incoming", result["incoming"].Value<long>()},
                 {"priority", result["priority"].Value<long>()}
+            };
+        }
+
+
+        public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
+        {
+            // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
+            const string AVDerivativeTemplateVideo = "{0}iiif-av/{1}/{2}/{3}/full/full/max/max/0/default.{4}";
+            const string AVDerivativeTemplateAudio = "{0}iiif-av/{1}/{2}/{3}/full/max/default.{4}";
+
+            var derivs = new List<AVDerivative>();
+            if (dlcsAsset.MediaType.StartsWith("video"))
+            {
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "mp4"));
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "webm"));
+            }
+            if (dlcsAsset.MediaType.Contains("audio"))
+            {
+                derivs.Add(FormatAVDerivative(AVDerivativeTemplateAudio, dlcsAsset, "mp3"));
+            }
+            return derivs;
+        }
+
+        private AVDerivative FormatAVDerivative(string template, Image dlcsAsset, string fileExt)
+        {
+            return new AVDerivative
+            {
+                Id = string.Format(template,
+                       options.ResourceEntryPoint,
+                       options.CustomerName.ToLower(),
+                       options.CustomerDefaultSpace,
+                       dlcsAsset.StorageIdentifier,
+                       fileExt),
+                Label = fileExt
             };
         }
     }

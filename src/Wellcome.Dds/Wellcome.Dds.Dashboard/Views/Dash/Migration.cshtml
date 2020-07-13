@@ -1,0 +1,259 @@
+﻿@model MigrationModel
+
+@{
+    ViewBag.Title = "Dash: Migration " + Model.Identifier;
+}
+
+<div class="row" style="padding-top: 15px">
+    @if (TempData["BagResult"] != null && ((MigrationResult)TempData["BagResult"]).Success)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Success!</strong> @(((MigrationResult) TempData["BagResult"]).Message)
+            <p>
+                You can't monitor the progress of the bagging other than by refreshing this page for now, sorry.<br/>
+                The AWS Message ID is @(((MigrationResult)TempData["BagResult"]).Id)
+            </p>
+            <p><a href="">Reload</a></p>
+        </div>
+    }
+    @if (TempData["BagResult"] != null && !((MigrationResult)TempData["BagResult"]).Success)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to enqueue bag!</strong> @(((MigrationResult)TempData["BagResult"]).Message)
+        </div>
+    }
+    @if (TempData["IngestResult"] != null && ((MigrationResult)TempData["IngestResult"]).Success)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <p>
+                <strong>Success!</strong> @(((MigrationResult) TempData["IngestResult"]).Message)<br/>
+                The Archive Storage Service Ingest ID is @(((MigrationResult) TempData["IngestResult"]).Id)
+            </p>
+        </div>
+    }
+    @if (TempData["IngestResult"] != null && !((MigrationResult)TempData["IngestResult"]).Success)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to request ingest!</strong> @(((MigrationResult)TempData["IngestResult"]).Message)
+        </div>
+    }
+
+    @if (TempData["DdsCallResult"] != null && ((DdsCallResult)TempData["DdsCallResult"]).Success)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <p>
+                <strong>Success!</strong> @(((DdsCallResult)TempData["DdsCallResult"]).Message)<br />
+            </p>
+        </div>
+    }
+    @if (TempData["DdsCallResult"] != null && !((DdsCallResult)TempData["DdsCallResult"]).Success)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to call DDS!</strong> @(((DdsCallResult)TempData["DdsCallResult"]).Message)
+        </div>
+    }
+</div>
+
+
+<div class="row" style="margin-top: 1em;">
+
+    <h2>Migration status for @Model.Identifier</h2>
+
+    <h3>Storage manifest</h3>
+
+    @if (Model.StorageManifestFailed)
+    {
+        <p>The storage manifest for @Model.Identifier could not be retrieved.</p>
+        <p class="bg-danger">@Model.StorageManifestMessage</p>
+    }
+    else
+    {
+        <p>There is a @Html.ActionLink("storage manifest for " + Model.Identifier, "StorageManifest", "Dash", new { id = Model.Identifier }, new { }).</p>
+        <p>It was created @Model.StorageManifestDescription.</p>
+        <p>@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new {id = @Model.Identifier}, new {})</p>
+        <a class="btn btn-primary" href="@Url.Action("DdsCall", "Dash", new {id = Model.Identifier})">
+            <span class="glyphicon glyphicon-transfer"></span> Simulate Goobi Call DDS
+        </a>
+        <p>@Html.ActionLink("View DDS Call info for " + Model.Identifier, "GoobiCall", "Dash", new { id = Model.Identifier }, new { })</p>
+    }
+
+    <h3>Migrated bag</h3>
+
+    @if (Model.BagDate.HasValue)
+    {
+        <p>There is a bag <strong>@Model.BagName</strong> in the migration bagger bucket (@Model.MigrationBucket).</p>
+        <p>@Model.BagDescription. <a href="https://s3.console.aws.amazon.com/s3/object/wellcomecollection-storage-bagger-drop/@(Model.Identifier).zip?region=eu-west-1&tab=overview"> @Model.BagSize</a></p>
+    }
+    else
+    {
+        <p class="bg-danger">No bag exists for @Model.Identifier in the migration bagger bucket (@Model.MigrationBucket).</p>
+    }
+
+    @*<a class="btn btn-primary" href="@Url.Action("Bag", "Dash", new {id = Model.Identifier})">
+        <span class="glyphicon glyphicon-briefcase"></span> Bag @Model.Identifier
+    </a>*@
+
+    @if (Model.BaggingError != null)
+    {
+        <h3>Bagging error</h3>
+        <p>The following error was found for this bag. Check the date, though.</p>
+        <p class="bg-danger">@Model.BaggingErrorDescription</p>        
+        <pre>
+@Model.BaggingError.Error
+</pre>
+    }
+
+    <h3>Latest ingest to archival storage</h3>
+
+    @if (Model.LatestIngest != null)
+    {
+        <p>
+            Ingest: @Model.LatestIngest.Message from @Model.LatestIngest.Source<br />
+            <small><i>@Model.LatestIngest.Id</i></small>
+        </p>
+
+        <div class="alert alert-info" role="alert">
+            Status: <b>@Model.LatestIngest.Status</b>
+        </div>
+
+        <div class="panel panel-default">
+            <!-- Default panel contents -->
+            <div class="panel-heading">Events</div>
+            <!-- List group -->
+            <ul class="list-group">
+                @foreach (var ingestEvent in Model.LatestIngest.Events)
+                {
+                    <li class="list-group-item">
+                        <small><i>@ingestEvent.Created.ToLocalTime()</i></small><br />
+                        @ingestEvent.Description
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <p>This dashboard is not aware of any ingests it has made for @Model.Identifier.</p>
+        <p>This doesn't mean no ingests have been made by other means.</p>
+    }
+
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Ingest history for @Model.Identifier</strong></div>
+        <ul class="list-group">
+            @foreach (var ingestRecord in Model.UnionIngests.OrderByDescending(ir => ir.Created))
+            {
+                <li class="list-group-item">
+                    <a href="@Url.Action("StorageIngest", "Dash", new { id = ingestRecord.IngestId })">@ingestRecord.IngestId</a><br/>
+                    @ingestRecord.Type<br/>
+                    <small><i>@StringUtils.GetFriendlyAge(ingestRecord.Created)</i></small>
+                </li>
+            }
+        </ul>
+    </div>
+
+
+
+    @*@if (Model.BagDate.HasValue)
+{
+    <a class="btn btn-primary" href="@Url.Action("Ingest", "Dash", new {id = Model.Identifier, bagName = Model.BagName})">
+        <span class="glyphicon glyphicon-cloud-upload"></span> Ingest @Model.BagName
+    </a>
+}
+else
+{
+    <p class="bg-warning">
+        This dashboard cannot ask for an ingest of @Model.Identifier because it can only do that for bags in the bagger bucket.
+    </p>
+}*@
+
+
+    <h3>Dynamo Migration Status</h3>
+    @if (Model.MigrationStatus != null)
+    {
+        <p>This data is from the DynamoDB table. It may not be up to date. Check the <i>Updated</i> value.</p>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Property</th>
+                <th>Value</th>
+            </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Updated</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.Updated)</td>
+                </tr>
+                <tr>
+                    <td>Bagger Start</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.BaggerStart)</td>
+                </tr>
+                <tr>
+                    <td>Bagger End</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.BaggerEnd)</td>
+                </tr>
+                <tr>
+                    <td>Bag Zip Date</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.BagDate)</td>
+                </tr>
+                <tr>
+                    <td>Bag Size</td>
+                    <td>@StringUtils.FormatFileSize(Model.MigrationStatus.BagSize)</td>
+                </tr>
+                <tr>
+                    <td>Ingest Id</td>
+                    <td>@Model.MigrationStatus.IngestId</td>
+                </tr>
+                <tr>
+                    <td>Ingest Date</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.IngestDate)</td>
+                </tr>
+                <tr>
+                    <td>Ingest Status</td>
+                    <td>@Model.MigrationStatus.IngestStatus</td>
+                </tr>
+                <tr>
+                    <td>Bagging Error</td>
+                    <td>@Model.MigrationStatus.BaggingError</td>
+                </tr>
+                <tr>
+                    <td>DDS Called</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.DdsCallReceived)</td>
+                </tr>
+                <tr>
+                    <td>Package Date</td>
+                    <td>@StringUtils.GetFriendlyAge(Model.MigrationStatus.PackageDate)</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p><em>No migration status available.</em></p>
+    }
+    <hr/>
+    <h3>Log</h3>
+    <table class="table table-hover">
+        <tr>
+            <th>Event (times in ms)</th>
+            <th>Split</th>
+            <th>Total</th>
+        </tr>
+
+        @foreach (var logEvent in Model.Log)
+        {
+            <tr>
+                <td>@logEvent.Message</td>
+                <td>@logEvent.Split</td>
+                <td>@logEvent.Total</td>
+            </tr>
+        }
+    </table>
+
+
+</div>

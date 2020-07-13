@@ -12,6 +12,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         public int Id { get; set; }
         public DateTime Created { get; set; }
         public string Identifier { get; set; }
+        public string Label { get; set; }
         public int SequenceIndex { get; set; }
         public string VolumePart { get; set; }
         public string IssuePart { get; set; }

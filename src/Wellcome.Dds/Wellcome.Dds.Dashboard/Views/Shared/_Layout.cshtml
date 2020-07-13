@@ -1,0 +1,71 @@
+﻿@inject IOptions<DdsOptions> DdsOptions
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - Dashboard 2.0</title>
+    @* TODO: bundle *@
+    <link rel="stylesheet" href="/css/bootstrap.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/typeahead.css" />
+    @*  TODO - do we actually need this?
+        <script src="~/js/modernizr-2.6.2.js" />*@
+</head>
+<body class="@RenderSection("BodyClass", false)" style="@DdsOptions.Value.DashBodyInject">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container success">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                @Html.ActionLink("Home", "Index", "Dash", new { area = "" }, new { @class = "navbar-brand" })
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li>
+                        <a asp-controller="Account" asp-action="UserPage" title="@User.Identity.Name"><span class="glyphicon glyphicon-user"></span></a>
+                    </li>
+                    <li>@Html.ActionLink("Activity", "RecentActions", "Dash")</li>
+                    <li>@Html.ActionLink("Jobs", "Jobs", "Dash")</li>
+                    <li>@Html.ActionLink("Queue", "Queue", "Dash")</li>
+                    <li>@Html.ActionLink("Status", "Status", "Dash")</li>
+                    <li>@Html.ActionLink("Types", "AssetType", "Dash")</li>
+                    <li class="@ViewBag.StopClass">@Html.ActionLink("Stop", "StopStatus", new { controller = "Dash" }, new { @class = ViewBag.StopClass })</li>
+                </ul>
+                <p class="nav navbar-text @ViewBag.HeartbeatClass" title="DlcsJobProcessor last run: @ViewBag.Heartbeat">
+                    DLCS Queue: @String.Format("{0}{1}", ViewBag.QueueLevels["incoming"], ViewBag.QueueLevels["priority"] > 0 ? String.Format(" priority:{0}", ViewBag.QueueLevels["priority"]) : String.Empty)
+                    @if (ViewBag.HeartbeatWarning)
+                    {
+                        <text> | Job last run: @ViewBag.Heartbeat | @Html.ActionLink("Log", "TailJobProcessor", "Dash")</text>
+                    }
+                </p>
+                @using (Html.BeginForm("ManifestationSearch", "Dash", FormMethod.Post, new { @class = "navbar-form navbar-right", role = "search" }))
+                {
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Search" name="q" value="@ViewBag.DdsId">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Go</button>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="container body-content">
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>Logged in as @User.Identity.Name</p>
+        </footer>
+    </div>
+
+    <script src="~/js/jquery-1.10.2.min.js"></script>
+    <script src="~/js/bootstrap.js"></script>
+    <script src="~/js/respond.js"></script>
+    <script src="~/js/typeahead.jquery.js"></script>
+    <script src="~/js/dash.js"></script>
+    <script src="~/js/openseadragon.min.js"></script>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

@@ -109,6 +109,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("issue_part")
                         .HasColumnType("text");
 
+                    b.Property<string>("Label")
+                        .HasColumnName("label")
+                        .HasColumnType("text");
+
                     b.Property<int>("ReadyImageCount")
                         .HasColumnName("ready_image_count")
                         .HasColumnType("integer");

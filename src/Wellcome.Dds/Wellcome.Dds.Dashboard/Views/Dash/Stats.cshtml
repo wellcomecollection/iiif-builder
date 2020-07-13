@@ -1,0 +1,49 @@
+﻿@model WorkflowCallStats
+
+@{
+    ViewBag.Title = "Goobi Call Stats";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Goobi call stats</h3>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Total Jobs</th>
+            <th>Finished Jobs</th>
+            <th>Word Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>@String.Format("{0:n0}", @Model.TotalJobs)</td>
+            <td>
+                @String.Format("{0:n0}", @Model.FinishedJobs)
+            (@String.Format("{0:P2}", @Model.FinishedPercent))
+        </td>
+        <td>@String.Format("{0:n0}", @Model.WordCount)</td>
+    </tr>
+    <tr>
+        <td colspan="3">
+            Estimated completion based on last @Model.RecentSampleHours hours activity:
+            <strong>@Model.EstimatedCompletion</strong>
+        </td>
+    </tr>
+</tbody>
+</table>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Last 10 Taken</h3>
+</div>
+<partial name="_WorkflowJobList" for="RecentlyTaken" />
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Taken but unfinished</h3>
+</div>
+<partial name="_WorkflowJobList" for="TakenAndUnfinished" />

@@ -2,6 +2,7 @@
 {
     public class DdsOptions
     {
+        public string StatusContainer { get; set; }
         public string GoFile { get; set; }
         public string StatusProviderHeartbeat { get; set; }
         public string StatusProviderLogSpecialFile { get; set; }

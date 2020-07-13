@@ -1,0 +1,49 @@
+﻿@model Wellcome.Dds.Dashboard.Controllers.AssetTypeModel
+
+@{
+    ViewBag.Title = "Dash: Assets by Type";
+}
+
+<h1>Assets by type: @Model.Type</h1>
+
+
+<div class="row">
+    <div class="col-md-4">
+        <br/>
+        <ul class="list-group">
+            @foreach (var assetType in Model.TotalsByAssetType.Keys)
+            {
+                <li class="list-group-item">
+                    <span class="badge">@Model.TotalsByAssetType[assetType]</span>
+                    @Html.ActionLink("" + assetType, "AssetType", "Dash", new {id = assetType.Replace("/", "-")}, new {})
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <table class="table table-hover table-condensed">
+            <thead>
+            <tr>
+                <th>Identifier</th>
+                <th>Processed</th>
+                <th>Title</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            @foreach (var fm in Model.FlatManifestations)
+            {
+                {
+                    var dispId = fm.ManifestationIdentifier ?? fm.PackageIdentifier;
+                    <tr>
+                        <td>@Html.ActionLink(dispId, "Manifestation", "Dash", new { id = dispId }, new { })</td>
+                        <td width="165">@fm.Processed</td>
+                        <td>@fm.Label</td>@*formerly RootSectionTitle*@
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+</div>

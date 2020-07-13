@@ -1,0 +1,25 @@
+﻿@model Wellcome.Dds.Dashboard.Models.JobsModel
+
+@{
+    var jobDetail = Model.Jobs[0];
+    ViewBag.Title = "Dash: Job " + jobDetail.Id;
+    var manifestation = jobDetail.GetManifestationIdentifier();
+}
+
+<h1>Job @jobDetail.Id</h1>
+
+@if (jobDetail.Succeeded)
+{
+    <div class="alert alert-success" role="alert">
+        <span class="glyphicon glyphicon-ok"></span>
+        Regardless of the state of this particular job,
+        Manifestation @Html.ActionLink(manifestation, "Manifestation", "Dash", new {id = manifestation}, new {}) was updated as "success" by this or a subsequent job.
+        That doesn't mean that that the manifestation is <em>still</em> a success.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <partial name="_JobList" model="Model" view-data='new ViewDataDictionary(ViewData) {{"mode", "detail"}}' />
+    </div>
+</div>

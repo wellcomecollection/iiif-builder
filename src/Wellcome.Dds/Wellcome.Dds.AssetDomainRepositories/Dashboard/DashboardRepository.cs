@@ -680,7 +680,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = await GetDigitisedResourceAsync(id) as IDigitisedManifestation;
+            var manifestation = (await GetDigitisedResourceAsync(id)) as IDigitisedManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return dlcs.DeleteImages(syncOp.Orphans);
         }
@@ -715,6 +715,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public Dictionary<string, long> GetDlcsQueueLevel()
         {
             return dlcs.GetDlcsQueueLevel();
+        }
+
+        public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
+        {
+            var derivs = new List<AVDerivative>();
+            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Audio")
+            {
+                foreach (var asset in digitisedManifestation.DlcsImages)
+                {
+                    derivs.AddRange(dlcs.GetAVDerivatives(asset));
+                }
+            }
+            return derivs.ToArray();
         }
     }
 }

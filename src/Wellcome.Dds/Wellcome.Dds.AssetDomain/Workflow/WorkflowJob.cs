@@ -26,5 +26,14 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public int Words { get; set; }
         public int TextPages { get; set; }
         public int TimeSpentOnTextPages { get; set; }
+
+        public string GetAltoRate()
+        {
+            if (TextPages <= 0 || TimeSpentOnTextPages <= 0)
+            {
+                return "n/a";
+            }
+            return ((1000 * TextPages) / TimeSpentOnTextPages).ToString();
+        }
     }
 }

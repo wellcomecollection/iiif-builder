@@ -1,0 +1,23 @@
+﻿@model List<WorkflowJob>
+
+@{
+    ViewBag.Title = "RecentGoobiCalls";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Recent Goobi calls</h3>
+</div>
+
+@if (ViewBag.IsErrorList)
+{
+    <p>(showing errors only) @Html.ActionLink("Show all", "GoobiCall", "Dash", new { id = "" }, new { })</p>
+}
+else
+{
+    <p>@Html.ActionLink("Show errors only", "GoobiCall", "Dash", new { id = "errors" }, new { })</p>
+}
+
+<partial name="_WorkflowJobList" model="Model" />

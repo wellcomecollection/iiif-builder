@@ -1,0 +1,76 @@
+﻿@model ICollection<Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsBatch>
+
+@{
+    bool isDetail = ViewData.ContainsKey("mode") && (string)ViewData["mode"] == "detail";
+}
+
+<table class="table table-condensed">
+    <thead>
+    <tr>
+        @if (!isDetail)
+        {
+            <td>Job</td>
+        }
+        <td>Local</td>
+        <td>Size</td>
+        <td>Sent</td>
+        <td>Finished</td>
+        <td>Error</td>
+        <td>Error Text</td>
+        @if (isDetail)
+        {
+            <td>RequestBody</td>
+        }
+        <td>ResponseBody</td>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var batch in Model)
+    {
+        <tr>
+            @if (!isDetail)
+            {
+                <td>@Html.ActionLink(batch.DlcsIngestJobId.ToString(), "Job", "Dash", new {id = batch.DlcsIngestJobId}, new {})</td>
+            }
+            <td>@batch.Id</td>
+            <td>@batch.BatchSize</td>
+            <td>@batch.RequestSent</td>
+            <td>@batch.Finished</td>
+            <td>@batch.ErrorCode</td>
+    <td width="35%"><small>@batch.ErrorText</small></td>
+            @if (isDetail)
+            {
+            <td class="responseBody">
+            <a href="#"><span class="glyphicon glyphicon-eye-open"></span></a>
+                <pre>@batch.RequestBody</pre>
+            </td>
+            }
+            <td class="responseBody">
+                @if (batch.ResponseBody == null)
+                {
+                    <em>(empty)</em>
+                }
+                else
+                {
+                    if (isDetail)
+                    {
+                        <a href="#"><span class="glyphicon glyphicon-eye-open"></span></a>
+                        <pre>@batch.ResponseBody</pre>
+                    }
+                    else
+                    {
+                        <em>@batch.ResponseBody.Length chars</em>
+                    }
+                }
+            </td>
+
+        </tr>
+    }
+    </tbody>
+</table>
+@if (isDetail)
+{
+    <pre id="preview-responseBody">
+
+</pre>
+}

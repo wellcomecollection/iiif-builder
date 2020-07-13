@@ -1,0 +1,65 @@
+﻿@model MigrationReport
+
+@{
+    ViewBag.Title = "Dash: Migration Report";
+}
+
+<a id="top"></a>
+
+<div class="col-md-12">
+    <h3 style="margin:25px 0 20px 0">Migration report for @StringUtils.GetFriendlyAge(Model.Modified)</h3>
+</div>
+
+
+<div class="col-md-12">
+    <partial name="_MigrationBatch" for="GlobalBatch" />
+</div>
+
+
+<div class="col-md-12">
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+
+            <form class=" form-inline">
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" class="error-checkbox" data-match-class="batch-bagger" checked="checked">
+                            Bagger Batches
+                        </label>
+                    </div>
+
+                    <div class="checkbox" style="margin-left: 20px;">
+                        <label>
+                            <input type="checkbox" class="error-checkbox" data-match-class="batch-ingest" checked="checked">
+                            Ingest Batches
+                        </label>
+                    </div>
+                </div>
+            </form>
+            </div>
+    </div>
+    </div>
+
+        <div class="col-md-12">
+            @foreach (var batch in Model.AllBatches)
+            {
+                <partial name="_MigrationBatch" model="batch" />
+            }
+        </div>
+
+
+@section scripts
+{
+<script>
+    $(".error-expander").click(function () {
+        $(this).closest("table").find("tbody").toggle();
+    });
+
+    $('.error-checkbox').click(function () {
+        var selector = $(this).attr("data-match-class");
+        $("." + selector).toggle();
+    });
+</script>
+}

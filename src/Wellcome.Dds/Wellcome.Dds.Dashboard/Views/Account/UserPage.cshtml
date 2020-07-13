@@ -1,0 +1,9 @@
+﻿@model IEnumerable<IngestAction>
+
+@{
+    ViewBag.Title = "Dash: User Actions";
+}
+
+<h1>Actions by @ViewBag.Subject</h1>
+
+<partial name="_IngestActions" model="Model" />

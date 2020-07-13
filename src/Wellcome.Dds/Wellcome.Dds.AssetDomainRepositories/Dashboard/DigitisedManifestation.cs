@@ -87,30 +87,5 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             }
             return true;
         }
-
-        // TODO - this method doesn't belong here.
-        // The dashboard knows about the DLCS, and uses it for rendering the AV derivatives.
-        // The dashboard should give this method the two templates (now added to the method signature).
-        public AVDerviative[] GetAVDerivatives(
-            string avDerivativeTemplateVideo,
-            string avDerivativeTemplateAudio)
-        {
-            // TODO - this information needs to come from the DLCS via info.json
-            var derivs = new List<AVDerviative>();
-            foreach (var asset in DlcsImages)
-            {
-                if (asset.MediaType.StartsWith("video"))
-                {
-                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateVideo, asset.StorageIdentifier, "mp4"), Label = "mp4" });
-                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateVideo, asset.StorageIdentifier, "webm"), Label = "webm" });
-                }
-                if (asset.MediaType.Contains("audio"))
-                {
-                    derivs.Add(new AVDerviative { Id = string.Format(avDerivativeTemplateAudio, asset.StorageIdentifier, "mp3"), Label = "mp3" });
-                }
-            }
-            return derivs.ToArray();
-        }
-
     }
 }

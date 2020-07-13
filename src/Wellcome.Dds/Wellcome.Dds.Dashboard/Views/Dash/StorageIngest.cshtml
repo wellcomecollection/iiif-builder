@@ -1,0 +1,34 @@
+﻿@model Wellcome.Dds.Dashboard.Models.Ingest
+
+@{
+    ViewBag.Title = "Dash: Storage ingest " + Model.Id;
+}
+
+<div class="row" style="margin-top: 1em;">
+
+    <h2>Storage ingest @Model.Id</h2>
+    <p>
+        Ingest: @Model.Message from @Model.Source<br />
+        <small><i>@Model.Id</i></small>
+    </p>
+
+    <div class="alert alert-info" role="alert">
+        Status: <b>@Model.Status</b>
+    </div>
+
+    <div class="panel panel-default">
+        <!-- Default panel contents -->
+        <div class="panel-heading">Events</div>
+        <!-- List group -->
+        <ul class="list-group">
+            @foreach (var ingestEvent in Model.Events)
+            {
+                <li class="list-group-item">
+                    <small><i>@ingestEvent.Created</i></small><br />
+                    @ingestEvent.Description
+                </li>
+            }
+        </ul>
+    </div>
+
+</div>

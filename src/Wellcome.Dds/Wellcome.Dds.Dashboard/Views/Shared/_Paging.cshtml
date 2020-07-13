@@ -1,0 +1,55 @@
+﻿@model Wellcome.Dds.AssetDomain.Dlcs.Page<Wellcome.Dds.AssetDomain.Dlcs.Model.ErrorByMetadata>
+
+<nav aria-label="Page navigation">
+    <ul class="pagination" style="margin-top:0">
+        @if (Model.PageNumber > 1)
+        {
+            <li>
+                <a href="@Url.Action("Status", "Dash", new {page = Model.PageNumber - 1})" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        }
+        else
+        {
+            <li class="disabled">
+                <a href="#" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        }
+        @for (int p = 1; p <= Model.TotalPages; p++)
+        {
+            if (p == Model.PageNumber)
+            {
+                <li class="active"><a href="#">@p</a></li>
+            }
+            else
+            {
+
+                <li><a href="@Url.Action("Status", "Dash", new {page = p})">@p</a></li>
+            }
+        }
+
+        @if (Model.PageNumber < Model.TotalPages)
+        {
+            <li>
+                <a href="@Url.Action("Status", "Dash", new {page = Model.PageNumber + 1})" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        }
+        else
+        {
+            <li class="disabled">
+                <a href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        }
+    </ul>
+
+    <span style="float: right;">
+        Page @Model.PageNumber of @Model.TotalPages (@Model.TotalItems errors in total)
+</span>
+</nav>

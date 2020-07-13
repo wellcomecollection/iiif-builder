@@ -1,0 +1,16 @@
+﻿@model JobsModel
+
+@{
+    ViewBag.Title = "Dash: Queue";
+}
+
+<h1>Queue (unstarted jobs)</h1>
+<p>@Html.ActionLink("View Job Processor log", "TailJobProcessor", "Dash")</p>
+
+<partial name="_JobProcessorLastRan" view-data="ViewData" />
+
+<div class="row">
+    <div class="col-md-12">
+        <partial name="_JobList" model="Model" />
+    </div>
+</div>

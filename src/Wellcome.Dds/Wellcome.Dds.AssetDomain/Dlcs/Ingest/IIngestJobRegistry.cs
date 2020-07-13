@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
@@ -12,7 +13,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// <param name="identifier"></param>
         /// <param name="useInitialOrigin"></param>
         /// <returns>List of job IDs</returns>
-        DlcsIngestJob[] RegisterImages(string identifier, bool useInitialOrigin = false);
+        Task<DlcsIngestJob[]> RegisterImagesAsync(string identifier, bool useInitialOrigin = false);
 
         /// <summary>
         /// Registers a job or jobs (for MMs) with the "startProcessed" already set, so that
@@ -23,11 +24,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
-        IEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier);
+        IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStartAsync(string identifier);
 
         IEnumerable<DlcsIngestJob> GetJobs(int number);
         IEnumerable<DlcsIngestJob> GetQueue(DateTime? after);
-        IEnumerable<DlcsIngestJob> GetProblems(DateTime? after);
+        IEnumerable<DlcsIngestJob> GetProblems(int maxToFetch);
         DlcsIngestJob GetJob(int id);
     }
 }

@@ -1,0 +1,25 @@
+﻿@model BaggingError[]
+
+@if (Model.Length > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th colspan="2">
+                    <button class="btn btn-default error-expander">
+                        <span class="glyphicon glyphicon-chevron-down"></span> @ViewData["name"]
+                    </button>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="error-tbody">
+            @foreach (var err in Model)
+            {
+                <tr>
+                    <td>@err.Identifier</td>
+                    <td>@err.Error</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
