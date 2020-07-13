@@ -93,6 +93,7 @@ namespace Wellcome.Dds.Dashboard
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
+            //services.AddSingleton<IBinaryObjectCache, BinaryObjectCache>();
 
             services.AddHttpClient<IDlcs, Dlcs>(client =>
             {

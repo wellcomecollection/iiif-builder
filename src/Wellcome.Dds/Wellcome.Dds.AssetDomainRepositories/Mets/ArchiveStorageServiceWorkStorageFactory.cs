@@ -54,7 +54,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             Cache = cache;
             this.storageServiceS3 = storageServiceS3.Get("Storage");
             this.httpClient = httpClient;
-            // storageMapCache = new BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap>(cacheFolder, "storagemap_", httpRuntimeCacheSeconds);
         }
 
         private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap map)

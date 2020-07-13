@@ -25,10 +25,11 @@ namespace Utils.Storage.FileSystem
             return new FileSystemStoredFileInfo(fi);
         }
         
-        public void DeleteCacheFile(string fileName)
+        public Task DeleteCacheFile(string fileName)
         {
             string cachedFilePath = Path.Combine(Container, fileName);
             File.Delete(cachedFilePath);
+            return Task.CompletedTask;
         }
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class

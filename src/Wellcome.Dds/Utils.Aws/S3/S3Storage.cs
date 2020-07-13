@@ -32,12 +32,8 @@ namespace Utils.Aws.S3
             // That is, calls to LastWriteTime or Exists should be lazy.
             return new S3StoredFileInfo(Container, fileName, amazonS3);
         }
-        
-        public void DeleteCacheFile(string fileName)
-        {
-            amazonS3.DeleteObjectAsync(Container, fileName);
-        }
 
+        public Task DeleteCacheFile(string fileName) => amazonS3.DeleteObjectAsync(Container, fileName);
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
