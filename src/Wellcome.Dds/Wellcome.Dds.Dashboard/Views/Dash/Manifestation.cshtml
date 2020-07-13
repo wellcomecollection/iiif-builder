@@ -532,13 +532,9 @@
                             var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
                         }
                         @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))    
-                        <iiif-thumb small-thumb="thumb24" large-thumb="thumb100" 
-                                    full-iiif-service="fullIIIF" title="pf.GetStoredFileInfo().Uri" />
-                        @*<img width="@thumb24.Width" height="@thumb24.Height" class="iiifpreview"
-                             data-src="@thumb24.Src"
-                             data-placement="auto"
-                             title="@pf.GetStoredFileInfo().Uri<br/><img src='@thumb100.Src' width=@thumb100.Width height=@thumb100.Height />"
-                             data-iiif="@Model.GetIIIFImageService(dlcsImage, "iiif-img")" />*@
+                        <iiif-thumb class="iiifpreview" 
+                                    small-thumb="thumb24" large-thumb="thumb100" 
+                                    full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri" />
                          <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
                     </td>
                     </tr>
