@@ -25,19 +25,9 @@
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    @*<li>@Html.ActionLink("Biocrats", "Manifestation", "Dash", new { id = "b18035978" }, new { })</li>
-                        <li>@Html.ActionLink("BBM", "Manifestation", "Dash", new { id = "b18031511" }, new { })</li>
-                        <li>@Html.ActionLink("C&D", "Manifestation", "Dash", new { id = "b19974760" }, new { })</li>*@
-                    @if (User.Identity.IsAuthenticated)
-                    {
                     <li>
                         <a asp-controller="Account" asp-action="UserPage" title="@User.Identity.Name"><span class="glyphicon glyphicon-user"></span></a>
                     </li>
-                    }
-                    else
-                    {
-                        <li>@Html.ActionLink("Log in", "Login", "Account")</li>
-                    }
                     <li>@Html.ActionLink("Activity", "RecentActions", "Dash")</li>
                     <li>@Html.ActionLink("Jobs", "Jobs", "Dash")</li>
                     <li>@Html.ActionLink("Queue", "Queue", "Dash")</li>
