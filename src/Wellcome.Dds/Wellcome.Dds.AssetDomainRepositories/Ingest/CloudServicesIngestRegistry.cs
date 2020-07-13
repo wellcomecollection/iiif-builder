@@ -12,14 +12,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
     public class CloudServicesIngestRegistry : IIngestJobRegistry
     {
-        private readonly IMetsRepository _metsRepository;
+        private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
 
         public CloudServicesIngestRegistry(
             IMetsRepository metsRepository,
             DdsInstrumentationContext ddsInstrumentationContext)
         {
-            _metsRepository = metsRepository;
+            this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
         }
 
@@ -78,13 +78,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // for comparison         
         }
 
-        private DlcsIngestJob NewJob(string identifier, int sequenceIndex, string volumeIdentifier,
+        private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string volumeIdentifier,
             string issueIdentifier, bool useInitialOrigin, bool immediateStart)
         {
             var job = new DlcsIngestJob
             {
                 Created = DateTime.Now,
                 Identifier = identifier,
+                Label = label,
                 SequenceIndex = sequenceIndex,
                 VolumePart = volumeIdentifier,
                 IssuePart = issueIdentifier
@@ -127,10 +128,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // TODO - The unstarted old jobs are cleaned out in AddNewJob(..)
             // But wouldn't it be better to clean them all out here? Before creating the set of new
             // jobs for this b number (will be a set of jobs if multi volume)?
-            await foreach (var manifestationInContext in _metsRepository.GetAllManifestationsInContextAsync(identifier))
+            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContextAsync(identifier))
             {
                 var job = NewJob(
                     manifestationInContext.BNumber,
+                    manifestationInContext.Manifestation?.Label ?? manifestationInContext.BNumber,
                     manifestationInContext.SequenceIndex,
                     manifestationInContext.VolumeIdentifier,
                     manifestationInContext.IssueIdentifier,
