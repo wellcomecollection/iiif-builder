@@ -132,8 +132,10 @@ namespace Wellcome.Dds.Dashboard
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))
                 .AddRazorRuntimeCompilation();
 
-            // TODO - add DB health check
-            services.AddHealthChecks();
+            services.AddHealthChecks()
+                .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db")
+                .AddDbContextCheck<DdsContext>("Dds-db")
+                .AddUrlGroup(new Uri(dlcsOptions.ApiEntryPoint), "DLCS API");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
