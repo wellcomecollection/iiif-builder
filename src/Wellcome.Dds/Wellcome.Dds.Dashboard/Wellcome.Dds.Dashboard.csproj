@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="3.1.2" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.3.101" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.24" />
     <PackageReference Include="EFCore.NamingConventions" Version="1.1.0" />
@@ -14,6 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="3.1.5" />
     <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
     <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
   </ItemGroup>
