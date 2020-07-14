@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -136,8 +137,13 @@ namespace Wellcome.Dds.Dashboard
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
+            if (!env.IsProduction())
+            {
+                UpdateDatabase(logger);
+            }
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -164,6 +170,31 @@ namespace Wellcome.Dds.Dashboard
                 endpoints.MapDefaultControllerRoute();
                 endpoints.MapHealthChecks("/management/healthcheck");
             });
+        }
+
+        private void UpdateDatabase(ILogger<Startup> logger)
+        {
+            var ddsInstrumentationConnection = Configuration.GetConnectionString("DdsInstrumentation");
+            using (var context = new DdsInstrumentationContext(
+                new DbContextOptionsBuilder<DdsInstrumentationContext>()
+                    .UseNpgsql(ddsInstrumentationConnection)
+                    .UseSnakeCaseNamingConvention()
+                    .Options))
+            {
+                logger.LogInformation("Running migrations on DdsInstrumentation");
+                context.Database.Migrate();
+            }
+
+            var ddsConnection = Configuration.GetConnectionString("Dds");
+            using (var context = new DdsContext(
+                new DbContextOptionsBuilder<DdsContext>()
+                    .UseNpgsql(ddsConnection)
+                    .UseSnakeCaseNamingConvention()
+                    .Options))
+            {
+                logger.LogInformation("Running migrations on Dds");
+                context.Database.Migrate();
+            }
         }
     }
 }
