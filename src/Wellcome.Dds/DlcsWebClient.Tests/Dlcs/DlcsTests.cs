@@ -188,7 +188,7 @@ namespace DlcsWebClient.Tests.Dlcs
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
-                .Which.Should().Be("https://api.dlcs.test/customers/99/spaces/999/images?q={\r\n  \"number1\": 123\r\n}");
+                .Which.Should().Be($"https://api.dlcs.test/customers/99/spaces/999/images?q={{{Environment.NewLine}  \"number1\": 123{Environment.NewLine}}}");
             message.Method.Should().Be(HttpMethod.Get);
         }
         
@@ -206,7 +206,7 @@ namespace DlcsWebClient.Tests.Dlcs
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
-                .Which.Should().Be("https://api.dlcs.test/customers/99/spaces/7/images?q={\r\n  \"space\": 7\r\n}");
+                .Which.Should().Be($"https://api.dlcs.test/customers/99/spaces/7/images?q={{{Environment.NewLine}  \"space\": 7{Environment.NewLine}}}");
             message.Method.Should().Be(HttpMethod.Get);
         }
         
@@ -306,7 +306,7 @@ namespace DlcsWebClient.Tests.Dlcs
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
-                .Which.Should().Be("https://api.dlcs.test/customers/99/spaces/15/images?q={\r\n  \"string3\": \"issue-ident\"\r\n}");
+                .Which.Should().Be($"https://api.dlcs.test/customers/99/spaces/15/images?q={{{Environment.NewLine}  \"string3\": \"issue-ident\"{Environment.NewLine}}}");
             message.Method.Should().Be(HttpMethod.Get);
         }
     }
