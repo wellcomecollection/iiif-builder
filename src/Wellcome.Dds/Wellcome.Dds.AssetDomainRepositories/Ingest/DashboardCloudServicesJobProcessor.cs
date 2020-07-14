@@ -276,7 +276,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            await dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
             var result = new ImageIngestResult
             {

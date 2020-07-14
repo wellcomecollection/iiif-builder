@@ -499,7 +499,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return imageRegistration;
         }
 
-        public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
+        public IEnumerable<DlcsIngestJob> GetMostRecentIngestJobs(string identifier, int number)
         {
             // int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);
             var jobQuery = GetJobQuery(identifier); //, legacySequenceIndex: sequenceIndex);
@@ -528,7 +528,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return new JobActivity {BatchesForCurrentImages = imageBatches, UpdatedJobs = updatedJobs};
         }
 
-        public async Task<int> RemoveOldJobs(string id)
+        public int RemoveOldJobs(string id)
         {
             // int sequenceIndex = await metsRepository.FindSequenceIndex(id);
             var jobQuery = GetJobQuery(id); // , legacySequenceIndex: sequenceIndex);

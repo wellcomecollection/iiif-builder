@@ -13,7 +13,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
             bool reIngestErrorImages);
         Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);
         int DefaultSpace { get; set; }
-        Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number);
+        IEnumerable<DlcsIngestJob> GetMostRecentIngestJobs(string identifier, int number);
         //IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(string identifier, SyncOperation syncOperation);
         Task<Batch> GetBatch(string batchId);
 
@@ -25,7 +25,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
 
         Task<int> FindSequenceIndex(string identifier);
         Task<bool> DeletePdf(string identifier);
-        Task<int> RemoveOldJobs(string id);
+        int RemoveOldJobs(string id);
         Task<int> DeleteOrphans(string id);
         
         IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null);

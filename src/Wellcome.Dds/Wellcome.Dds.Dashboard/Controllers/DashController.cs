@@ -632,15 +632,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("StopStatus");
         }
 
-        public async Task<ActionResult> CleanOldJobs(string id)
+        public ActionResult CleanOldJobs(string id)
         {
-            int removed = await dashboardRepository.RemoveOldJobs(id);
+            int removed = dashboardRepository.RemoveOldJobs(id);
             TempData["remove-old-jobs"] = removed;
             return RedirectToAction("Manifestation", new { id });
         }
-
-
-
+        
         public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             return dashboardRepository.GetDlcsQueueLevel();
