@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Runtime.Loader;
 using System.Text;
 using System.Threading.Tasks;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -264,6 +265,10 @@ namespace DlcsWebClient.Dlcs
         public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier)
         {
             var ddsId = new DdsIdentifier(identifier);
+            if(ddsId.IdentifierType == IdentifierType.BNumberAndSequenceIndex)
+            {
+                throw new NotSupportedException("No more sequence index");
+            }
             return ddsId.IdentifierType switch
             {
                 IdentifierType.BNumber => GetImagesForBNumber(identifier),
@@ -340,14 +345,37 @@ namespace DlcsWebClient.Dlcs
         /// <summary>
         /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
         /// </summary>
-        /// <param name="string1"></param>
-        /// <param name="number1"></param>
+        /// <param name="identifier"></param>
         /// <returns></returns>
-        public async Task<IPdf> GetPdfDetails(string string1, int number1)
+        public async Task<IPdf> GetPdfDetails(string identifier)
         {
-            const string controlTemplate = "{0}pdf-control/{1}/pdf-item/{2}/{3}";
-            var uri = string.Format(controlTemplate,
-                options.ResourceEntryPoint, options.CustomerName, string1, number1);
+            string uri;
+            const string controlTemplate = "{0}pdf-control/{1}/{2}/{3}/{4}";
+            if (options.PdfQueryType == "sequenceIndex")
+            {
+                // THIS IS ALL THE DLCS SUPPORTS
+                // But we need to replace it with the one in the else clause...
+                // in the meantime - and this is highly flaky, and doesn't work for C&D
+                // THIS WILL DEFINITELY GIVE THE WRONG PDF FOR SOME ITEMS THAT HAVE "MISSING" VOLUMES
+                // e.g., b12345678_0001, b12345678_0002, b12345678_0004, b12345678_0005 
+
+                // GET RID OF THIS BIT
+                string string1;
+                int number1;
+                ConvertToLegacyPdfArgs(identifier, out string1, out number1);
+                uri = string.Format(controlTemplate,
+                    options.ResourceEntryPoint, options.CustomerName, 
+                    options.PdfQueryName, string1, number1);
+                // END
+            }
+            else
+            {
+                // TODO: WE NEED A PDF NAMED QUERY THAT USES SPACE AND STRING3
+                // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
+                uri = string.Format(controlTemplate,
+                    options.ResourceEntryPoint, options.CustomerName,
+                    options.PdfQueryName, options.CustomerDefaultSpace, identifier);
+            }
 
             var response = await httpClient.GetAsync(uri);
             if (!response.IsSuccessStatusCode)
@@ -366,11 +394,27 @@ namespace DlcsWebClient.Dlcs
         /// <summary>
         /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
         /// </summary>
-        public async Task<bool> DeletePdf(string string1, int number1)
+        public async Task<bool> DeletePdf(string identifier)
         {
-            const string template = "{0}customers/{1}/resources/pdf/pdf-item?args={2}";
-            var uri = string.Format(template,
-                options.ApiEntryPoint, options.CustomerId, string1 + "/" + number1);
+            string uri;
+            const string template = "{0}customers/{1}/resources/pdf/{2}?args={3}/{4}";
+            if (options.PdfQueryType == "sequenceIndex")
+            {
+                // GET RID OF THIS BIT
+                string string1;
+                int number1;
+                ConvertToLegacyPdfArgs(identifier, out string1, out number1);
+                uri = string.Format(template,
+                    options.ApiEntryPoint, options.CustomerId, options.PdfQueryName, 
+                    string1, number1);
+                // END
+            }
+            else
+            {
+                uri = string.Format(template,
+                    options.ApiEntryPoint, options.CustomerId, options.PdfQueryName, 
+                    options.CustomerDefaultSpace, identifier);
+            }            
 
             var response = await httpClient.DeleteAsync(uri);
             if (!response.IsSuccessStatusCode)
@@ -381,6 +425,23 @@ namespace DlcsWebClient.Dlcs
             dynamic result = JObject.Parse(await response.Content.ReadAsStringAsync());
             return (bool) result.success;
         }
+
+
+
+        [Obsolete("This needs to be retired: SequenceIndex", false)]
+        private static void ConvertToLegacyPdfArgs(string identifier, out string string1, out int number1)
+        {
+            var ddsId = new DdsIdentifier(identifier);
+            string1 = ddsId.BNumber;
+            number1 = 0;
+            if (ddsId.IdentifierType == IdentifierType.Volume)
+            {
+                var part = ddsId.VolumePart.SplitByDelimiter('_').Last();
+                int.TryParse(part, out number1);
+            }
+            // don't even attempt issue.
+        }
+
 
         /// <summary>
         /// Return tested versions of the batches

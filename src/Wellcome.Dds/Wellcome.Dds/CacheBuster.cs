@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Utils.Storage;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds
 {
@@ -13,13 +14,13 @@ namespace Wellcome.Dds
             //throw new NotImplementedException();
         }
 
-        public ISimpleStoredFileInfo GetAltoSearchTextCacheFileInfo(string bNumber, int sequenceIndex)
+        public ISimpleStoredFileInfo GetAltoSearchTextCacheFileInfo(DdsIdentifier ddsId)
         {
             return new NonExistentFileInfo();
             //throw new NotImplementedException();
         }
 
-        public ISimpleStoredFileInfo GetAllAnnotationsCacheFileInfo(string bNumber, int sequenceIndex)
+        public ISimpleStoredFileInfo GetAllAnnotationsCacheFileInfo(DdsIdentifier ddsId)
         {
             return new NonExistentFileInfo();
             //throw new NotImplementedException();

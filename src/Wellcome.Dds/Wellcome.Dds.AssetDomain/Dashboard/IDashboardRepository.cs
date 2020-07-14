@@ -24,7 +24,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page);
 
         Task<int> FindSequenceIndex(string identifier);
-        Task<bool> DeletePdf(string string1, int number1);
+        Task<bool> DeletePdf(string identifier);
         Task<int> RemoveOldJobs(string id);
         Task<int> DeleteOrphans(string id);
         

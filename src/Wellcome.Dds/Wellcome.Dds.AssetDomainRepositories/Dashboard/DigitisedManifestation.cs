@@ -20,7 +20,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <summary>
         /// TODO: This doesn't belong here! Only here for PDF link to work and be same as in IIIF manifest
         /// </summary>
-        public int SequenceIndex { get; set; }
+        // public int SequenceIndex { get; set; }
 
         private IPdf pdf;
 
@@ -29,13 +29,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             if (pdf == null && PdfGetter != null)
             {
                 // TODO - change to use proper identifiers, not bnum/seq
-                pdf = await PdfGetter(MetsManifestation.GetRootId(), SequenceIndex);
+                pdf = await PdfGetter(MetsManifestation.Id); // GetRootId(), SequenceIndex);
             }
 
             return pdf;
         }
 
-        public Func<string, int, Task<IPdf>> PdfGetter; 
+        // public Func<string, int, Task<IPdf>> PdfGetter;
+        public Func<string, Task<IPdf>> PdfGetter;
 
         public string DlcsStatus { get; set; }
         public string DlcsResponse { get; set; }

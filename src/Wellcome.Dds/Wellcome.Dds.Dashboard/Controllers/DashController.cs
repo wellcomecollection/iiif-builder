@@ -175,7 +175,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
                 // IT MUST GO AS SOON AS THE IIIF MANIFEST KNOWS String3
                 logger.Log("Start dashboardRepository.FindSequenceIndex(id)");
-                dgManifestation.SequenceIndex = await dashboardRepository.FindSequenceIndex(id);
+                // dgManifestation.SequenceIndex = await dashboardRepository.FindSequenceIndex(id);
                 logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                 // represents the set of differences between the METS view of the world and the DLCS view
                 logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
@@ -257,11 +257,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 logger.Log("Start cacheBuster queries");
                 model.CachedPackageFileInfo = cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber);
                 logger.Log("Finished cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber)");
-                model.CachedTextModelFileInfo = cacheBuster.GetAltoSearchTextCacheFileInfo(
-                    ddsId.BNumber, dgManifestation.SequenceIndex);
+                model.CachedTextModelFileInfo = cacheBuster.GetAltoSearchTextCacheFileInfo(ddsId);
                 logger.Log("Finished cacheBuster.GetAltoSearchTextCacheFileInfo(..)");
-                model.CachedAltoAnnotationsFileInfo = cacheBuster.GetAllAnnotationsCacheFileInfo(
-                    ddsId.BNumber, dgManifestation.SequenceIndex);
+                model.CachedAltoAnnotationsFileInfo = cacheBuster.GetAllAnnotationsCacheFileInfo(ddsId);
                 logger.Log("Finished cacheBuster.GetAllAnnotationsCacheFileInfo(..)");
                 ViewBag.Log = LoggingEvent.FromTuples(logger.GetEvents());
                 if (json)
@@ -614,8 +612,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeletePdf(string id)
         {
-            var seqIndex = await dashboardRepository.FindSequenceIndex(id);
-            var deleteResult = new DeleteResult { Success = await dashboardRepository.DeletePdf(new DdsIdentifier(id).BNumber, seqIndex) };
+            var deleteResult = new DeleteResult { Success = await dashboardRepository.DeletePdf(id) };
             TempData["PdfDeletion"] = deleteResult;
             dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete PDF");
             return RedirectToAction("Manifestation", new { id });
