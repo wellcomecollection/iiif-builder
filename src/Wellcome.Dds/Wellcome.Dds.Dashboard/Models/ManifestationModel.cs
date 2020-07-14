@@ -372,7 +372,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 SyncOperation = SyncOperation,
                 MetsManifestation = DigitisedManifestation.MetsManifestation,
                 DlcsImages = DigitisedManifestation.DlcsImages,
-                SequenceIndex = DigitisedManifestation.SequenceIndex,
+                SequenceIndex = -1, // DigitisedManifestation.SequenceIndex,
                 WorkStore = DigitisedManifestation.MetsManifestation.Sequence[0].WorkStore
             };
             foreach (var physicalFile in model.MetsManifestation.Sequence)

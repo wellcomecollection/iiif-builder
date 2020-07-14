@@ -501,8 +501,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
         {
-            int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);
-            var jobQuery = GetJobQuery(identifier, legacySequenceIndex: sequenceIndex);
+            // int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);
+            var jobQuery = GetJobQuery(identifier); //, legacySequenceIndex: sequenceIndex);
             if (jobQuery == null)
             {
                 return new DlcsIngestJob[0];
@@ -530,8 +530,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> RemoveOldJobs(string id)
         {
-            int sequenceIndex = await metsRepository.FindSequenceIndex(id);
-            var jobQuery = GetJobQuery(id, legacySequenceIndex: sequenceIndex);
+            // int sequenceIndex = await metsRepository.FindSequenceIndex(id);
+            var jobQuery = GetJobQuery(id); // , legacySequenceIndex: sequenceIndex);
             if (jobQuery == null)
             {
                 return 0;
@@ -561,7 +561,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <returns></returns>
         private IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(SyncOperation syncOperation, List<Batch> activeBatches)
         {
-            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier, legacySequenceIndex: syncOperation.LegacySequenceIndex);
+            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier); // , legacySequenceIndex: syncOperation.LegacySequenceIndex);
             if (jobQuery == null)
             {
                 return new DlcsIngestJob[0];
@@ -589,7 +589,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return jobs;
         }
 
-        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier, int legacySequenceIndex = -1)
+        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
         {
             var ddsId = new DdsIdentifier(identifier);            
             IQueryable<DlcsIngestJob> jobQuery = null;
@@ -602,8 +602,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 case IdentifierType.Volume:
                     //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => (j.VolumePart != null && j.VolumePart == identifier)
-                        || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
+                        .Where(j => (j.VolumePart != null && j.VolumePart == identifier));
+                        // || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
                     break;
                 case IdentifierType.BNumberAndSequenceIndex:
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
@@ -674,17 +674,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page) => dlcs.GetErrorsByMetadata(page);
 
-        /// <summary>
-        /// This could be removed once alto search is replaced.
-        /// </summary>
-        /// <param name="identifier"></param>
-        /// <returns></returns>
+        ///// <summary>
+        ///// This could be removed once alto search is replaced.
+        ///// </summary>
+        ///// <param name="identifier"></param>
+        ///// <returns></returns>
         public async Task<int> FindSequenceIndex(string identifier)
         {
             return await metsRepository.FindSequenceIndex(identifier);
         }
 
-        public Task<bool> DeletePdf(string string1, int number1) => dlcs.DeletePdf(string1, number1);
+        public Task<bool> DeletePdf(string identifier) => dlcs.DeletePdf(identifier);
 
         public async Task<int> DeleteOrphans(string id)
         {

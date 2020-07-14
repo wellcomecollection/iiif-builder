@@ -20,7 +20,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         /// <summary>
         /// TODO: This doesn't belong here! Only here for PDF link to work and be same as in IIIF manifest
         /// </summary>
-        int SequenceIndex { get; set; }
+        // int SequenceIndex { get; set; }
 
         string DlcsStatus { get; set; }
         string DlcsResponse { get; set; }

@@ -207,7 +207,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumberAndSequenceIndex:
                     throw new ArgumentException("Identifier already assumes sequence index");
                 case IdentifierType.Issue:
-                    throw new NotImplementedException("TODO - restore issue cache mechanism");
+                    return -1; // No finding issues by sequence index ANY MORE
+                    // throw new NotSupportedException("No finding issues by sequence index ANY MORE");
                     // return GetCachedIssueSequenceIndex(ddsId);
             }
 
