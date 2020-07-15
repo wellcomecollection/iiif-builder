@@ -1,21 +1,20 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
 WORKDIR /src
 
-COPY src/Wellcome.Dds/*.sln .
 COPY src/Wellcome.Dds/Wellcome.Dds.Server/Wellcome.Dds.Server.csproj Wellcome.Dds.Server/
 COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dds.Common/
 COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
-RUN dotnet restore
+RUN dotnet restore "Wellcome.Dds.Server/Wellcome.Dds.Server.csproj"
 
 # Copy everything else
 COPY src/Wellcome.Dds/ ./
 WORKDIR "/src/Wellcome.Dds.Server"
-RUN dotnet build
+RUN dotnet build "Wellcome.Dds.Server.csproj" -c Release
 
 FROM build AS testrunner
 WORKDIR "/src"
-RUN dotnet test
+RUN dotnet test "Utils.Tests/Utils.Tests.csproj"
 
 FROM build AS publish
 WORKDIR "/src/Wellcome.Dds.Server"
