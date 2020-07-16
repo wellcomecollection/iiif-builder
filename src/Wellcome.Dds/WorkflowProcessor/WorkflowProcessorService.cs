@@ -33,7 +33,7 @@ namespace WorkflowProcessor
                 try
                 {
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
-                    await Task.Delay(TimeSpan.FromMinutes(waitMs), stoppingToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
 
                     var cutoff = DateTime.Now.AddMinutes(-1);
 
@@ -64,6 +64,7 @@ namespace WorkflowProcessor
                 }
                 catch (Exception ex)
                 {
+                    // TODO - should we set back to waiting = true if failed to process? 
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }

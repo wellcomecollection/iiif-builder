@@ -60,18 +60,10 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
                 .AddAzureAD(opts => Configuration.Bind("AzureAd", opts));
-            
-            var awsOptions = Configuration.GetAWSOptions("Dds-AWS");
-            var storageOptions = Configuration.GetAWSOptions("Storage-AWS");
 
-            // How do we have more than one IAmazonS3 - we have two different profiles
-            var factory = new NamedAmazonS3ClientFactory();
-            factory.Add("Dds", awsOptions.CreateServiceClient<IAmazonS3>());
-            factory.Add("Storage", storageOptions.CreateServiceClient<IAmazonS3>());
-
-            services.AddSingleton<INamedAmazonS3ClientFactory>(factory);
+            var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
-            services.AddDefaultAWSOptions(awsOptions);
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
 
             var dlcsSection = Configuration.GetSection("Dlcs");
             var dlcsOptions = dlcsSection.Get<DlcsOptions>();
@@ -87,13 +79,12 @@ namespace Wellcome.Dds.Dashboard
             //services.AddSingleton<IStorage, FileSystemStorage>();
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
-                    factory.Get("Dds")));
+                    factory.Get(NamedClient.Dds)));
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
-            //services.AddSingleton<IBinaryObjectCache, BinaryObjectCache>();
 
             services.AddHttpClient<IDlcs, Dlcs>(client =>
             {
@@ -111,8 +102,7 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
                 ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
-                    factory.Get("Dds")));
-
+                    factory.Get(NamedClient.Dds)));
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();

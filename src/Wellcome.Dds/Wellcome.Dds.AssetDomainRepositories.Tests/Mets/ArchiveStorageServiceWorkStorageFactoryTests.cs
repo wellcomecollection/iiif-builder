@@ -43,7 +43,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             var options = Options.Create(dlcsOptions);
 
             var storageFactory = A.Fake<INamedAmazonS3ClientFactory>();
-            A.CallTo(() => storageFactory.Get(A<string>._)).Returns(storageServiceS3);
+            A.CallTo(() => storageFactory.Get(A<NamedClient>._)).Returns(storageServiceS3);
 
             sut = new ArchiveStorageServiceWorkStorageFactory(new NullLogger<ArchiveStorageServiceWorkStorageFactory>(),
                 options, storageMapCache, cache, storageFactory, httpClient);

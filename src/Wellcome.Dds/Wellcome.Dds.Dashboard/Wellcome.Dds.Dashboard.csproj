@@ -7,7 +7,7 @@
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="3.1.2" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.3.101" />
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.24" />
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.29" />
     <PackageReference Include="EFCore.NamingConventions" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.AzureAD.UI" Version="3.1.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="3.1.5" />
