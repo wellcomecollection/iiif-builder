@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Wellcome.Dds.AssetDomainRepositories;
 
 namespace WorkflowProcessor
 {
@@ -15,8 +17,18 @@ namespace WorkflowProcessor
         
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddHealthChecks();
-            services.AddHostedService<WorkflowProcessorService>();
+            services.AddDbContext<DdsInstrumentationContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+            
+            services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
+            
+            services
+                .AddScoped<WorkflowRunner>()
+                .AddHostedService<WorkflowProcessorService>();
+            
+            services.AddHealthChecks()
+                .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db");
         }
 
         public void Configure(IApplicationBuilder app)

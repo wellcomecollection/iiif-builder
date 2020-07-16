@@ -32,6 +32,6 @@ namespace WorkflowProcessor
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                });
+                }).UseConsoleLifetime();
     }
 }

@@ -21,13 +21,9 @@ namespace Wellcome.Dds.Server
         
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DdsInstrumentationContext>(options =>
-            {
-                var connectionString = Configuration.GetConnectionString("DdsInstrumentation");
-                options
-                    .UseNpgsql(connectionString)
-                    .UseSnakeCaseNamingConvention();
-            });
+            services.AddDbContext<DdsInstrumentationContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
             
             services.AddControllers();
 

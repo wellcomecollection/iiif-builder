@@ -18,7 +18,6 @@ using Microsoft.Extensions.Logging;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
-using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
