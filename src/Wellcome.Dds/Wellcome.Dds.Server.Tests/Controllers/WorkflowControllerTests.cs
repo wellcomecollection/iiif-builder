@@ -10,6 +10,7 @@ using Xunit;
 namespace Wellcome.Dds.Server.Tests.Controllers
 {
     [Trait("Category","Integration")]
+    [Trait("Category","Database")]
     [Collection(nameof(DatabaseFixture))]
     public class WorkflowControllerTests : IClassFixture<DdsServerAppFactory>
     {

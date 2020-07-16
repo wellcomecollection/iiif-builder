@@ -4,7 +4,13 @@ WORKDIR /src
 COPY src/Wellcome.Dds/Wellcome.Dds.Server/Wellcome.Dds.Server.csproj Wellcome.Dds.Server/
 COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dds.Common/
 COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
+COPY src/Wellcome.Dds/Utils.Aws/Utils.Aws.csproj Utils.Aws/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories/Wellcome.Dds.AssetDomainRepositories.csproj Wellcome.Dds.AssetDomainRepositories/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomain/Wellcome.Dds.AssetDomain.csproj Wellcome.Dds.AssetDomain/
+
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories.Tests/Wellcome.Dds.AssetDomainRepositories.Tests.csproj Wellcome.Dds.AssetDomainRepositories.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.Server.Tests/Wellcome.Dds.Server.Tests.csproj Wellcome.Dds.Server.Tests/
 RUN dotnet restore "Wellcome.Dds.Server/Wellcome.Dds.Server.csproj"
 
 # Copy everything else
@@ -14,7 +20,7 @@ RUN dotnet build "Wellcome.Dds.Server.csproj" -c Release
 
 FROM build AS testrunner
 WORKDIR "/src"
-RUN dotnet test "Utils.Tests/Utils.Tests.csproj"
+RUN dotnet test "Utils.Tests/Utils.Tests.csproj" --filter Category=Database
 
 FROM build AS publish
 WORKDIR "/src/Wellcome.Dds.Server"
