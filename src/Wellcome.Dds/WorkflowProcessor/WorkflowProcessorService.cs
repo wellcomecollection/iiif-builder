@@ -67,6 +67,8 @@ namespace WorkflowProcessor
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }
+            
+            logger.LogInformation("Stopping WorkflowProcessorService...");
         }
 
         private static int GetWaitMs(int waitMs)

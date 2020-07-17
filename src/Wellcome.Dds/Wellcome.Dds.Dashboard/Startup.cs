@@ -86,15 +86,7 @@ namespace Wellcome.Dds.Dashboard
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
-            services.AddHttpClient<IDlcs, Dlcs>(client =>
-            {
-                var creds = Convert.ToBase64String(
-                    Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
-                client.DefaultRequestHeaders.Accept
-                    .Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
-                client.Timeout = TimeSpan.FromMilliseconds(360000);
-            });
+            services.AddDlcsClient(Configuration);
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();

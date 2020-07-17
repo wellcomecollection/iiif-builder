@@ -1,10 +1,12 @@
 ﻿using DlcsWebClient.Config;
+using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Utils.Aws.S3;
 using Utils.Caching;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -38,11 +40,17 @@ namespace DlcsJobProcessor
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
             
+            services.AddDlcsClient(Configuration);
+            
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
                 ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
+                    factory.Get(NamedClient.Dds)));
+            
+            services.AddSingleton<IStorage, S3Storage>(opts =>
+                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
             
             services.AddMemoryCache();

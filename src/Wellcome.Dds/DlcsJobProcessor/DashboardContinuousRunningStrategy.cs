@@ -61,7 +61,6 @@ namespace DlcsJobProcessor
                         default:
                             logger.LogWarning("'{mode}' is not a known command. Aborting", options.Mode);
                             return;
-                            break;
                     }
                 }
                 catch (Exception ex)
@@ -71,6 +70,8 @@ namespace DlcsJobProcessor
                 
                 await Task.Delay(fromSeconds, stoppingToken);
             }
+            
+            logger.LogInformation("Stopping DashboardContinuousRunningStrategy...");
         }
     }
 }
