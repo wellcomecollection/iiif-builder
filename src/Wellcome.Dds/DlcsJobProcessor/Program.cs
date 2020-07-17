@@ -32,6 +32,7 @@ namespace DlcsJobProcessor
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                });
+                })
+                .UseConsoleLifetime();
     }
 }

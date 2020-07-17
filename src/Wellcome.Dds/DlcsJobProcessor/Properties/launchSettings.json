@@ -5,6 +5,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
+      "commandLineArgs": "JobProcessor:Filter=what",
       "applicationUrl": "http://localhost:8082"
     }
   }

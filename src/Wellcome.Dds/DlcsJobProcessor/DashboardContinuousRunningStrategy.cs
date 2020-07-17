@@ -1,36 +1,75 @@
 ﻿using System;
-using DlcsWebClient.Config;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 
 namespace DlcsJobProcessor
 {
     public class DashboardContinuousRunningStrategy : BackgroundService
     {
-        private ILogger<DashboardContinuousRunningStrategy> logger;
-        private DlcsOptions options;
+        private readonly ILogger<DashboardContinuousRunningStrategy> logger;
+        private readonly IStatusProvider statusProvider;
+        private readonly IServiceScopeFactory serviceScopeFactory;
+        private readonly JobProcessorOptions options;
 
         public DashboardContinuousRunningStrategy(
             ILogger<DashboardContinuousRunningStrategy> logger,
-            IOptions<DlcsOptions> options)
+            IOptions<JobProcessorOptions> options,
+            IStatusProvider statusProvider,
+            IServiceScopeFactory serviceScopeFactory)
         {
             this.logger = logger;
+            this.statusProvider = statusProvider;
+            this.serviceScopeFactory = serviceScopeFactory;
             this.options = options.Value;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             logger.LogInformation("Running DashboardContinuousRunningStrategy");
-            logger.LogInformation("Customer is {0}", options.CustomerName);
-            var count = 0;
+            
+            if (!statusProvider.RunProcesses)
+            {
+                logger.LogWarning("DDS status provider returned false; will not run any processes.");
+                return;
+            }
+            
+            var fromSeconds = TimeSpan.FromSeconds(options.YieldTimeSecs);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("Loop {count}...", ++count);
-                await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+                try
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+
+                    var processor = scope.ServiceProvider.GetRequiredService<IIngestJobProcessor>();
+                    
+                    switch (options.Mode)
+                    {
+                        case "processqueue":
+                            statusProvider.WriteHeartbeat();
+                            await processor.ProcessQueue(-1, false, options.Filter);
+                            break;
+                        case "updatestatus":
+                            processor.UpdateStatus();
+                            break;
+                        default:
+                            logger.LogWarning("'{mode}' is not a known command. Aborting", options.Mode);
+                            return;
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error running DashboardContinuousRunningStrategy");
+                }
+                
+                await Task.Delay(fromSeconds, stoppingToken);
             }
         }
     }

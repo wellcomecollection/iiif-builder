@@ -64,7 +64,6 @@ namespace WorkflowProcessor
                 }
                 catch (Exception ex)
                 {
-                    // TODO - should we set back to waiting = true if failed to process? 
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }
