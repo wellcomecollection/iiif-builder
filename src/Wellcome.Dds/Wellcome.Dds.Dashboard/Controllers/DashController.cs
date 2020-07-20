@@ -476,10 +476,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(recentActions);
         }
 
-        public ActionResult StopStatus()
+        public async Task<ActionResult> StopStatus()
         {
             ViewBag.Message = "Your application description page.";
-            ViewBag.RunProcesses = statusProvider.RunProcesses;
+            ViewBag.RunProcesses = await statusProvider.ShouldRunProcesses();
             DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.Now;
             ViewBag.JobDelay = (DateTime.Now - cutoff).Minutes;
             return View("StopStatus");

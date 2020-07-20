@@ -33,7 +33,7 @@ namespace DlcsJobProcessor
         {
             logger.LogInformation("Running DashboardContinuousRunningStrategy");
             
-            if (!statusProvider.RunProcesses)
+            if (!await statusProvider.ShouldRunProcesses(stoppingToken))
             {
                 logger.LogWarning("DDS status provider returned false; will not run any processes.");
                 return;
@@ -52,7 +52,7 @@ namespace DlcsJobProcessor
                     switch (options.Mode)
                     {
                         case "processqueue":
-                            statusProvider.WriteHeartbeat();
+                            await statusProvider.WriteHeartbeat(stoppingToken);
                             await processor.ProcessQueue(-1, false, options.Filter);
                             break;
                         case "updatestatus":

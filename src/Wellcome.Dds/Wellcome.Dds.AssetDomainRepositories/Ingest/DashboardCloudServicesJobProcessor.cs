@@ -58,7 +58,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         public async Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string filter = null)
         {
-            if (!statusProvider.RunProcesses)
+            if (!await statusProvider.ShouldRunProcesses())
             {
                 logger.LogWarning("DDS status provider returned false; will not process queue");
                 return;
@@ -95,7 +95,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
             if (jobsToProcess.Any())
             {
-                var lastHeartbeat = statusProvider.GetHeartbeat() ?? DateTime.MinValue;
+                var lastHeartbeat = await statusProvider.GetHeartbeat() ?? DateTime.MinValue;
                 foreach (DlcsIngestJob job in jobsToProcess)
                 {
                     var now = DateTime.Now; // use local variable rather than keep on reading file...
@@ -104,7 +104,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                         statusProvider.WriteHeartbeat();
                         lastHeartbeat = now;
                     }
-                    if (!statusProvider.RunProcesses)
+                    if (!await statusProvider.ShouldRunProcesses())
                     {
                         logger.LogWarning("DDS status provider returned false; will not process queue");
                         return;

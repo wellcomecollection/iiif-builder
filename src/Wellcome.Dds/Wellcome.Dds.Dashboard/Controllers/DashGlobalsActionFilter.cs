@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dashboard;
 
@@ -22,8 +21,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var controller = context.Controller as Controller;
             var viewBag = controller.ViewBag;
-            viewBag.StopClass = statusProvider.RunProcesses ? "" : "btn-danger";
-            var heartbeat = statusProvider.GetHeartbeat();
+            var runProcesses = await statusProvider.ShouldRunProcesses();
+            viewBag.StopClass = runProcesses ? "" : "btn-danger";
+            var heartbeat = await statusProvider.GetHeartbeat();
             viewBag.Heartbeat = heartbeat;
             var warningState = heartbeat == null || heartbeat.Value.AddMinutes(3) < DateTime.Now;
             viewBag.HeartbeatWarning = warningState;
