@@ -101,7 +101,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     var now = DateTime.Now; // use local variable rather than keep on reading file...
                     if ((now - lastHeartbeat).Seconds > 30)
                     {
-                        statusProvider.WriteHeartbeat();
+                        await statusProvider.WriteHeartbeat();
                         lastHeartbeat = now;
                     }
                     if (!await statusProvider.ShouldRunProcesses())
@@ -117,7 +117,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     catch (Exception ex)
                     {
                         sequentialFailures++;
-                        logger.LogError("Error in job queue", ex);
+                        logger.LogError(ex, "Error in job queue");
                         if (sequentialFailures > MaximumSequentialFailuresTolerated)
                         {
                             var msg = string.Format("more than {0} errors in a row, rethrowing",
@@ -129,10 +129,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public async Task<ImageIngestResult> ProcessJobAsync(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false)
-        {
-            return await ProcessJobAsync(job, image => includeIngestingImages, forceReingest, usePriorityQueue);
-        }
+        public Task<ImageIngestResult> ProcessJobAsync(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false) 
+            => ProcessJobAsync(job, image => includeIngestingImages, forceReingest, usePriorityQueue);
 
         /// <summary>
         /// Each job is a sequence from a b number
@@ -162,7 +160,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 logger.LogInformation("ProcessJob: one found: {0}", jobs[0]);
                 job = jobs[0];
                 job.StartProcessed = DateTime.Now;
-                ddsInstrumentationContext.SaveChanges();
+                await ddsInstrumentationContext.SaveChangesAsync();
             }
             else if (jobs.Count == 0)
             {
@@ -179,7 +177,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 logger.LogWarning("Will process most recent");
                 job = jobs.OrderByDescending(j => j.Created).First();
                 job.StartProcessed = DateTime.Now;
-                ddsInstrumentationContext.SaveChanges();
+                await ddsInstrumentationContext.SaveChangesAsync();
             }
 
             // we expect a job to correspond to a manifestation
@@ -201,8 +199,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 error = ex;
             }
 
-
-
             if (digitisedManifestation == null)
             {
                 errorDataMessage = "digitisedManifestation is null for " + job.Identifier;
@@ -221,15 +217,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 }
             }
 
-
-
             if (errorDataMessage.HasText() || manifestation == null)
             {
                 WriteErrorJobData(job.Id, errorDataMessage, error);
                 return ImageIngestResult.Empty;
             }
-
-
 
             // how much do we move?
             // DashboardRepository doesn't record stuff to the DlcsIngestJob database.
@@ -242,7 +234,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             if (assetType != null)
                 job.AssetType = assetType;
             job.ImageCount = manifestation.SignificantSequence.Count;
-            ddsInstrumentationContext.SaveChanges();
+            await ddsInstrumentationContext.SaveChangesAsync();
 
 
             bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);
@@ -252,7 +244,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
                 job.EndProcessed = DateTime.Now;
                 job.Data = deferred;
-                ddsInstrumentationContext.SaveChanges();
+                await ddsInstrumentationContext.SaveChangesAsync();
                 return ImageIngestResult.Empty;
             }
 
@@ -276,7 +268,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            await dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
             var result = new ImageIngestResult
             {
@@ -310,7 +302,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 job.Data = syncOperation.Message;
             }
-            ddsInstrumentationContext.SaveChanges();
+            await ddsInstrumentationContext.SaveChangesAsync();
             return result;
         }
 
@@ -371,7 +363,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
                 job.Data = digitisedManifestation.DlcsStatus;
-                ddsInstrumentationContext.SaveChanges();
+                await ddsInstrumentationContext.SaveChangesAsync();
                 return;
             }
 
@@ -402,7 +394,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             job.Data = jobData;
             job.ReadyImageCount = readyImageCount;
             job.Succeeded = success;
-            ddsInstrumentationContext.SaveChanges();
+            await ddsInstrumentationContext.SaveChangesAsync();
         }
 
 
