@@ -1,22 +1,38 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
 {
     public class Startup
     {
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+        private IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+        
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<DdsInstrumentationContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+            
             services.AddControllers();
 
             services.AddSwagger();
 
-            services.AddHealthChecks();
+            services.AddCors();
+
+            services.AddHealthChecks()
+                .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -27,11 +43,13 @@ namespace Wellcome.Dds.Server
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors();
             app.SetupSwagger();
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapDefaultControllerRoute();
                 endpoints.MapHealthChecks("/management/healthcheck");
             });
         }

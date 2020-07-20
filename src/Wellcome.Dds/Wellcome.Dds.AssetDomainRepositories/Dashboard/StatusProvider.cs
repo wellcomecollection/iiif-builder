@@ -2,6 +2,8 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Common;
@@ -25,7 +27,7 @@ This file needs to be present and have something in for the DDS to run DLCS inge
 
 It acts as a 'dead man's handle' because if the METS file system is unavailable, this file is unavailable.";
 
-        public bool Stop()
+        public Task<bool> Stop(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -33,21 +35,22 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
                 {
                     File.Delete(ddsOptions.GoFile);
                 }
-                return true;
+
+                return Task.FromResult(true);
             }
             catch (Exception)
             {
-                return false;
+                return Task.FromResult(false);
             }
         }
 
-        public bool Start()
+        public async Task<bool> Start(CancellationToken cancellationToken = default)
         {
             try
             {
-                if (Stop())
+                if (await Stop())
                 {
-                    File.WriteAllText(ddsOptions.GoFile, GoFileText);
+                    await File.WriteAllTextAsync(ddsOptions.GoFile, GoFileText, cancellationToken);
                     return true;
                 }
             }
@@ -58,20 +61,19 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             return false;
         }
 
-        public bool RunProcesses
+        public Task<bool> ShouldRunProcesses(CancellationToken cancellationToken = default)
         {
-            get
+            if (!File.Exists(ddsOptions.GoFile))
             {
-                if (!File.Exists(ddsOptions.GoFile))
-                {
-                    return false;
-                }
-                if (new FileInfo(ddsOptions.GoFile).Length == 0)
-                {
-                    return false;
-                }
-                return true;
+                return Task.FromResult(false);
             }
+
+            if (new FileInfo(ddsOptions.GoFile).Length == 0)
+            {
+                return Task.FromResult(false);
+            }
+
+            return Task.FromResult(true);
         }
 
         public DateTime? EarliestJobToTake
@@ -95,7 +97,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         }
 
-        public DateTime? WriteHeartbeat()
+        public async Task<DateTime?> WriteHeartbeat(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
@@ -105,7 +107,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             var value = now.ToString("F", CultureInfo.CurrentCulture);
             try
             {
-                File.WriteAllText(ddsOptions.StatusProviderHeartbeat, value);
+                await File.WriteAllTextAsync(ddsOptions.StatusProviderHeartbeat, value, cancellationToken);
             }
             catch
             {
@@ -114,22 +116,24 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             return now;
         }
 
-        public DateTime? GetHeartbeat()
+        public Task<DateTime?> GetHeartbeat(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
                 return null;
             }
+
             if (File.Exists(ddsOptions.StatusProviderHeartbeat))
             {
                 DateTime dt;
                 var value = File.ReadAllText(ddsOptions.StatusProviderHeartbeat).Trim();
                 if (DateTime.TryParseExact(value, "F", CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
                 {
-                    return dt;
+                    return Task.FromResult<DateTime?>(dt);
                 }
             }
-            return null;
+
+            return Task.FromResult<DateTime?>(null);
         }
 
         public bool LogSpecial(string message)

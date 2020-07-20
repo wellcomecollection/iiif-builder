@@ -44,17 +44,15 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public WorkflowJob PutJob(string bNumber, bool forceRebuild, bool take)
+        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take)
         {
-            WorkflowJob job = WorkflowJobs.Find(bNumber);
+            WorkflowJob job = await WorkflowJobs.FindAsync(bNumber);
             if (job == null)
             {
-                // previous EF: job = WorkflowJobs.Create();
-                job = new WorkflowJob();
-                job.Identifier = bNumber;
-                WorkflowJobs.Attach(job);
-                Entry(job).State = EntityState.Added;
+                job = new WorkflowJob {Identifier = bNumber};
+                await WorkflowJobs.AddAsync(job);
             }
+
             job.Created = DateTime.Now;
             if (take)
             {
@@ -66,10 +64,11 @@ namespace Wellcome.Dds.AssetDomainRepositories
                 job.Taken = null;
                 job.Waiting = true;
             }
+
             job.Finished = false;
             job.Error = null;
             job.ForceTextRebuild = forceRebuild;
-            SaveChanges();
+            await SaveChangesAsync();
             return job;
         }
     }

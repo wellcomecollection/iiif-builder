@@ -6,13 +6,24 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="EFCore.NamingConventions" Version="1.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="3.1.5" />
       <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
       <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="5.5.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Update="appsettings.Development.json">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

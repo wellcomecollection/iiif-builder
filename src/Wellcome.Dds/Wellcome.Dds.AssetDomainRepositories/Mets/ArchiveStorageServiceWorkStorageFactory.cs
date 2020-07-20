@@ -52,7 +52,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             this.storageOptions = storageOptions.Value;
             this.storageMapCache = storageMapCache;
             Cache = cache;
-            this.storageServiceS3 = storageServiceS3.Get("Storage");
+            this.storageServiceS3 = storageServiceS3.Get(NamedClient.Storage);
             this.httpClient = httpClient;
         }
 

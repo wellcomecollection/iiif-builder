@@ -1,7 +1,5 @@
-﻿@model Wellcome.Dds.Dashboard.Models.ManifestationModel
-
-
-
+﻿@using Wellcome.Dds.Dashboard.HtmlHelpers
+@model Wellcome.Dds.Dashboard.Models.ManifestationModel
 
 @{
     ViewBag.Title = "Dash: " + Model.DigitisedManifestation.Identifier;
@@ -496,8 +494,8 @@
                         {
                             <td>
                                 @if (@pf.RelativeAltoPath.HasText())
-                                {
-                                    <a href="@Url.Action("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber, parts = pf.RelativeAltoPath})"
+                                {                                    
+                                    <a href="@Url.ActionWithPath("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
                                        title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
                                 }
                             </td>

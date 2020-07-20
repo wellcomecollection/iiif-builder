@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Utils
 {
@@ -240,6 +241,48 @@ namespace Utils
             }
 
             return string.Format(@"{0:%d} days", t);
+        }
+        
+        /// <summary> 
+        /// Removes all tags from a string of HTML, leaving just the text content.
+        /// 
+        /// Text inside tag bodies is preserved.
+        /// 
+        /// TODO: This is exactly the same as HtmlUtils.TextOnly !!
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string StripHtml(this string s)
+        {
+            return Regex.Replace(s, @"<(.|\n)*?>", string.Empty);
+        }
+        
+        /// <summary>
+        /// Removes any HTML, then truncates text cleanly, breaking on a word-boundary (space), such that the
+        /// returned text length is less than or equal to maxChars
+        /// 
+        /// "I do not like <b>green</b> eggs and ham", 27 => "I do not like green eggs..."
+        /// 
+        /// Useful for generating summary text
+        /// </summary>
+        /// <param name="fullField"></param>
+        /// <param name="maxChars"></param>
+        /// <returns></returns>
+        public static string SummariseWithEllipsis(this string fullField, int maxChars)
+        {
+            if (string.IsNullOrWhiteSpace(fullField)) return fullField;
+
+                string stripped = fullField.StripHtml();
+            if (stripped.Length <= maxChars)
+                return stripped;
+
+            stripped = stripped.Substring(0, maxChars);
+            int lastSpace = stripped.LastIndexOf(" ", StringComparison.Ordinal);
+            if (lastSpace == -1)
+            {
+                return stripped.Substring(0, maxChars);
+            }
+            return stripped.Substring(0, lastSpace) + "...";
         }
     }
 }

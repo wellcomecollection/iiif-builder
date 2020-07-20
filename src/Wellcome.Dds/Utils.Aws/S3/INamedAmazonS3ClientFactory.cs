@@ -12,13 +12,13 @@ namespace Utils.Aws.S3
         /// </summary>
         /// <param name="name">Name of client to fetch.</param>
         /// <returns>IAmazonS3 client.</returns>
-        IAmazonS3 Get(string name);
+        IAmazonS3 Get(NamedClient name);
         
         /// <summary>
         /// Add a named IAmazonS3Client.
         /// </summary>
         /// <param name="name">Name of client.</param>
         /// <param name="client">IAmazonS3Client implementation.</param>
-        void Add(string name, IAmazonS3 client);
+        void Add(NamedClient name, IAmazonS3 client);
     }
 }

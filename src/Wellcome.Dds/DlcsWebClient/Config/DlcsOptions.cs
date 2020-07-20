@@ -15,5 +15,10 @@
         public bool PreventSynchronisation { get; set; } = false;
         public string PdfQueryName { get; set; } = "pdf-item";
         public string PdfQueryType { get; set; } = "sequenceIndex";
+
+        /// <summary>
+        /// Default timeout (in ms) use for HttpClient.Timeout.
+        /// </summary>
+        public int DefaultTimeoutMs { get; set; } = 30000;
     }
 }

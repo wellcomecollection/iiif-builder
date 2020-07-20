@@ -9,10 +9,10 @@ namespace Utils.Aws.S3
     /// <remarks>Note - as it stands this will only support Singletons</remarks>
     public class NamedAmazonS3ClientFactory : INamedAmazonS3ClientFactory
     {
-        private readonly Dictionary<string, IAmazonS3> _factory = new Dictionary<string, IAmazonS3>();
+        private readonly Dictionary<NamedClient, IAmazonS3> factory = new Dictionary<NamedClient, IAmazonS3>();
         
-        public IAmazonS3 Get(string name) => _factory[name];
+        public IAmazonS3 Get(NamedClient name) => factory[name];
 
-        public void Add(string name, IAmazonS3 client) => _factory[name] = client;
+        public void Add(NamedClient name, IAmazonS3 client) => factory[name] = client;
     }
 }

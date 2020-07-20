@@ -2,11 +2,10 @@
 using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Net.Mime;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Common;
@@ -57,7 +56,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             };
         }
 
-        public bool Stop()
+        public async Task<bool> Stop(CancellationToken cancellationToken = default)
         {
             var req = new DeleteObjectRequest
             {
@@ -66,7 +65,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             };
             try
             {                
-                amazonS3.DeleteObjectAsync(req);
+                await amazonS3.DeleteObjectAsync(req, cancellationToken);
                 return true;
             }
             catch (Exception)
@@ -75,12 +74,12 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             }
         }
 
-        public bool Start()
+        public async Task<bool> Start(CancellationToken cancellationToken = default)
         {
             var req = MakePutTextRequest(ddsOptions.GoFile, GoFileText);
             try
             {                
-                var res = amazonS3.PutObjectAsync(req).Result;
+                var res = await amazonS3.PutObjectAsync(req, cancellationToken);
                 return true;         
             }
             catch (Exception)
@@ -89,25 +88,23 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             }
         }
 
-        public bool RunProcesses
+        public async Task<bool> ShouldRunProcesses(CancellationToken cancellationToken = default)
         {
-            get
+            var req = MakeGetObjectRequest(ddsOptions.GoFile);
+            try
             {
-                var req = MakeGetObjectRequest(ddsOptions.GoFile);
-                try
+                var res = await amazonS3.GetObjectAsync(req, cancellationToken);
+                if (res.HttpStatusCode == System.Net.HttpStatusCode.OK && res.ContentLength > 0)
                 {
-                    var res = amazonS3.GetObjectAsync(req).Result;
-                    if (res.HttpStatusCode == System.Net.HttpStatusCode.OK && res.ContentLength > 0)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
-                catch(Exception)
-                {
-
-                }
-                return false;
             }
+            catch (Exception)
+            {
+            }
+
+            return false;
+
         }
 
         public DateTime? EarliestJobToTake
@@ -131,7 +128,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         }
 
-        public DateTime? WriteHeartbeat()
+        public async Task<DateTime?> WriteHeartbeat(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
@@ -142,7 +139,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             var req = MakePutTextRequest(ddsOptions.StatusProviderHeartbeat, value);
             try
             {
-                var res = amazonS3.PutObjectAsync(req).Result;
+                var res = await amazonS3.PutObjectAsync(req, cancellationToken);
             }
             catch
             {
@@ -151,19 +148,20 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             return now;
         }
 
-        public DateTime? GetHeartbeat()
+        public async Task<DateTime?> GetHeartbeat(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(ddsOptions.StatusProviderHeartbeat))
             {
                 return null;
             }
+
             var req = MakeGetObjectRequest(ddsOptions.StatusProviderHeartbeat);
             try
             {
-                var res = amazonS3.GetObjectAsync(req).Result;
-                using(var stream = res.ResponseStream)
+                var res = await amazonS3.GetObjectAsync(req, cancellationToken);
+                using (var stream = res.ResponseStream)
                 {
-                    string s = new StreamReader(stream).ReadToEnd(); 
+                    string s = await new StreamReader(stream).ReadToEndAsync();
                     DateTime dt;
                     if (DateTime.TryParseExact(s.Trim(), "F", CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
                     {
@@ -171,10 +169,10 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
                     }
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
-
             }
+
             return null;
         }
 

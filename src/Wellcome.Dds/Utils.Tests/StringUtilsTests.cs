@@ -81,5 +81,26 @@ namespace Utils.Tests
             // Assert
             result.Should().Be(str);
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void SummariseWithEllipsis_HandlesNullOrWhitespace(string str)
+            => str.SummariseWithEllipsis(10).Should().Be(str);
+
+        [Fact]
+        public void SummariseWithEllipsis_ReturnsExpected()
+        {
+            // Arrange
+            const string str = "I do not like <b>green</b> eggs and ham";
+            const string expected = "I do not like green eggs...";
+            
+            // Act
+            var result = str.SummariseWithEllipsis(27);
+            
+            // Assert
+            result.Should().Be(expected);
+        }
     }
 }
