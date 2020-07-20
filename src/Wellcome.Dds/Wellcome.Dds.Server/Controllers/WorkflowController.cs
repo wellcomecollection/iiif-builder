@@ -23,7 +23,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <remarks>
         /// Sample request:
         ///
-        ///     GET /workflow/create/b1675665
+        ///     GET /workflow/process/b1675665
         /// 
         /// </remarks>
         /// <param name="id">bNumber to create job for.</param>
@@ -31,7 +31,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <returns>201 if accepted, else error.</returns>
         [HttpGet]
         [ProducesResponseType(202)]
-        public async Task<ActionResult> Create(string id, bool forceRebuild = true)
+        public async Task<ActionResult> Process(string id, bool forceRebuild = true)
         {
             try
             {

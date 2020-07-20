@@ -30,7 +30,7 @@ namespace DlcsWebClient.Dlcs
                 client.DefaultRequestHeaders.Accept
                     .Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
-                client.Timeout = TimeSpan.FromMilliseconds(360000);
+                client.Timeout = TimeSpan.FromMilliseconds(dlcsOptions.DefaultTimeoutMs);
             });
         }
     }

@@ -24,12 +24,12 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetCreate_NewBNumber_Returns202_AndCreatesJobInDatabase()
+        public async Task GetProcess_NewBNumber_Returns202_AndCreatesJobInDatabase()
         {
             // Arrange
             dbFixture.CleanUp();
             const string bnumber = "b1231231";
-            var requestUri = $"/workflow/create/{bnumber}";
+            var requestUri = $"/workflow/process/{bnumber}";
 
             var expected = new WorkflowJob
             {
@@ -62,12 +62,12 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         }
         
         [Fact]
-        public async Task GetCreate_ExistingBNumber_Returns202_AndUpdatesJobInDatabase()
+        public async Task GetProcess_ExistingBNumber_Returns202_AndUpdatesJobInDatabase()
         {
             // Arrange
             dbFixture.CleanUp();
             const string bnumber = "b1231232";
-            var requestUri = $"/workflow/create/{bnumber}";
+            var requestUri = $"/workflow/process/{bnumber}";
 
             var expected = new WorkflowJob
             {
@@ -107,7 +107,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                     .Including(job => job.Waiting)
                     .Including(job => job.Finished)
                     .Including(job => job.ForceTextRebuild));
-            fromDatabase.Created.Should().BeCloseTo(DateTime.Now, 5000); // created reset- is that right?
+            fromDatabase.Created.Should().BeCloseTo(DateTime.Now, 5000);
         }
     }
 }

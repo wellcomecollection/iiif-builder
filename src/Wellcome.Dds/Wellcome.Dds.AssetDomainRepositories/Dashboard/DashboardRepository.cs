@@ -507,11 +507,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             {
                 return new DlcsIngestJob[0];
             }
-            return jobQuery
+            return await jobQuery
                 .Include(j => j.DlcsBatches)
                 .OrderByDescending(j => j.Created)
                 .Take(number)
-                .ToList();
+                .ToListAsync();
         }
 
         public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation)
@@ -536,7 +536,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             {
                 return 0;
             }
-            var jobs = jobQuery.OrderByDescending(j => j.Created).Skip(1).ToList();
+            var jobs = await jobQuery.OrderByDescending(j => j.Created).Skip(1).ToListAsync();
             int num = jobs.Count;
             if (num > 0)
             {
@@ -544,7 +544,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 {
                     ddsInstrumentationContext.DlcsIngestJobs.Remove(jobToRemove);
                 }
-                ddsInstrumentationContext.SaveChanges();
+                await ddsInstrumentationContext.SaveChangesAsync();
             }
             return num;
         }
