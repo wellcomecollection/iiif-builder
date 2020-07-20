@@ -13,7 +13,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// <param name="identifier"></param>
         /// <param name="useInitialOrigin"></param>
         /// <returns>List of job IDs</returns>
-        Task<DlcsIngestJob[]> RegisterImage(string identifier, bool useInitialOrigin = false);
+        Task<DlcsIngestJob[]> RegisterImages(string identifier, bool useInitialOrigin = false);
 
         /// <summary>
         /// Registers a job or jobs (for MMs) with the "startProcessed" already set, so that

@@ -37,7 +37,7 @@ namespace WorkflowProcessor.Tests
             await sut.ProcessJob(job);
             
             // Assert
-            A.CallTo(() => ingestJobRegistry.RegisterImage(job.Identifier, false)).MustHaveHappened();
+            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).MustHaveHappened();
         }
         
         [Fact]
@@ -49,7 +49,7 @@ namespace WorkflowProcessor.Tests
             {
                 new DlcsIngestJob {Id = 4}, new DlcsIngestJob {Id = 1},
             };
-            A.CallTo(() => ingestJobRegistry.RegisterImage(job.Identifier, false)).Returns(jobs);
+            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
             
             // Act
             await sut.ProcessJob(job);
@@ -78,7 +78,7 @@ namespace WorkflowProcessor.Tests
         {
             // Arrange
             var job = new WorkflowJob{ Identifier = "b9998887"};
-            A.CallTo(() => ingestJobRegistry.RegisterImage(job.Identifier, false)).Returns((DlcsIngestJob[])null);
+            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns((DlcsIngestJob[])null);
             
             // Act
             await sut.ProcessJob(job);
@@ -95,7 +95,7 @@ namespace WorkflowProcessor.Tests
             var job = new WorkflowJob{ Identifier = "b9998887"};
             var jobs = new DlcsIngestJob [0];
                 
-            A.CallTo(() => ingestJobRegistry.RegisterImage(job.Identifier, false)).Returns(jobs);
+            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
             
             // Act
             await sut.ProcessJob(job);

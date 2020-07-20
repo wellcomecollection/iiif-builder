@@ -112,7 +112,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public async Task<DlcsIngestJob[]> RegisterImage(string identifier, bool useInitialOrigin = false)
+        public async Task<DlcsIngestJob[]> RegisterImages(string identifier, bool useInitialOrigin = false)
         {
             // Can this not return an array? Why does it need to?
             var jobs = new List<DlcsIngestJob>();

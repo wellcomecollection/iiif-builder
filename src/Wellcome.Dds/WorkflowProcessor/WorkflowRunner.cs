@@ -33,7 +33,7 @@ namespace WorkflowProcessor
             {
                 if (runnerOptions.RegisterImages)
                 {
-                    var batchResponse = await ingestJobRegistry.RegisterImage(job.Identifier);
+                    var batchResponse = await ingestJobRegistry.RegisterImages(job.Identifier);
                     if (batchResponse.Length > 0)
                     {
                         job.FirstDlcsJobId = batchResponse[0].Id;
