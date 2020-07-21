@@ -5,24 +5,20 @@
         public const char Underscore = '_';
         public const char Slash = '/';
         public static readonly char[] Separators = { Underscore, Slash };
-        private readonly string[] _parts;
+        private readonly string[] parts;
+        private readonly string value;
 
-        public string this[int index]
-        {
-            get { return _parts[index]; }
-        }
+        public string this[int index] => parts[index];
 
-        public string BNumber
-        {
-            get { return _parts[0]; }
-        }
+        public string BNumber => parts[0];
+
         public string VolumePart
         {
             get
             {
-                if (_parts.Length > 1)
+                if (parts.Length > 1)
                 {
-                    return _parts[0] + Underscore + _parts[1];
+                    return parts[0] + Underscore + parts[1];
                 }
                 return null;
             }
@@ -32,56 +28,47 @@
             get
             {
 
-                if (_parts.Length > 2)
+                if (parts.Length > 2)
                 {
-                    return _parts[0] + Underscore + _parts[1] + Underscore + _parts[2];
+                    return parts[0] + Underscore + parts[1] + Underscore + parts[2];
                 }
                 return null;
             }
         }
+        
+        public int SequenceIndex { get; }
 
-        public int SequenceIndex { get; private set; }
+        public IdentifierType IdentifierType { get; }
 
-        public IdentifierType IdentifierType { get; private set; }
-
-        readonly string _value;
         public DdsIdentifier(string value)
         {
             IdentifierType = IdentifierType.Unknown;
-            _value = value;
-            _parts = value.Split(Separators);
-            if (_parts.Length == 1)
+            this.value = value;
+            parts = value.Split(Separators);
+            if (parts.Length == 1)
             {
                 IdentifierType = IdentifierType.BNumber;
             }
-            if (_parts.Length == 2 && _value.StartsWith(_parts[0] + Underscore))
+            if (parts.Length == 2 && this.value.StartsWith(parts[0] + Underscore))
             {
                 IdentifierType = IdentifierType.Volume;
             }
-            if (_parts.Length == 2 && _value.StartsWith(_parts[0] + Slash))
+            if (parts.Length == 2 && this.value.StartsWith(parts[0] + Slash))
             {
-                SequenceIndex = int.Parse(_parts[1]);
+                SequenceIndex = int.Parse(parts[1]);
                 IdentifierType = IdentifierType.BNumberAndSequenceIndex;
             }
-            if (_parts.Length == 3)
+            if (parts.Length == 3)
             {
                 IdentifierType = IdentifierType.Issue;
             }
         }
 
-        public static implicit operator string(DdsIdentifier di)
-        {
-            return di.ToString();
-        }
-        public static implicit operator DdsIdentifier(string di)
-        {
-            return new DdsIdentifier(di);
-        }
+        public static implicit operator string(DdsIdentifier di) => di.ToString();
 
-        public override string ToString()
-        {
-            return _value;
-        }
+        public static implicit operator DdsIdentifier(string di) => new DdsIdentifier(di);
+
+        public override string ToString() => value;
     }
 
     public enum IdentifierType

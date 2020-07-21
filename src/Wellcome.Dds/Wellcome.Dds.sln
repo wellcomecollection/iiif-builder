@@ -49,6 +49,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{5D9253C3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogueClient", "CatalogueClient\CatalogueClient.csproj", "{07603EFE-6A3F-481B-86A8-1C9362865CB3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Common.Tests", "Wellcome.Dds.Common.Tests\Wellcome.Dds.Common.Tests.csproj", "{29BA804F-73FA-4AFF-A678-91738D0169F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -139,6 +141,10 @@ Global
 		{07603EFE-6A3F-481B-86A8-1C9362865CB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07603EFE-6A3F-481B-86A8-1C9362865CB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07603EFE-6A3F-481B-86A8-1C9362865CB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29BA804F-73FA-4AFF-A678-91738D0169F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29BA804F-73FA-4AFF-A678-91738D0169F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29BA804F-73FA-4AFF-A678-91738D0169F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29BA804F-73FA-4AFF-A678-91738D0169F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -152,6 +158,7 @@ Global
 		{9D29EF36-F17D-4FAA-BCD7-5AB00B604E6C} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{F6257515-8FE4-44DF-A8BA-AF446249EBB0} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{07603EFE-6A3F-481B-86A8-1C9362865CB3} = {5D9253C3-38DA-4125-9676-12E43AEBDD1D}
+		{29BA804F-73FA-4AFF-A678-91738D0169F4} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2745EEFB-05EA-40E0-BECC-7F24548F7DE7}
