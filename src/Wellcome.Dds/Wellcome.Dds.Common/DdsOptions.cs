@@ -1,5 +1,6 @@
 ﻿namespace Wellcome.Dds.Common
 {
+    // Which class Library does this class live in?
     public class DdsOptions
     {
         public string StatusContainer { get; set; }
@@ -18,5 +19,8 @@
         public string WorkflowProcessorLog { get; set; }
         public string DashBodyInject { get; set; } = "";
         public string GoobiCall { get; set; }
+
+        // New, Catalogue
+        public string ApiWorkTemplate { get; set; }
     }
 }
