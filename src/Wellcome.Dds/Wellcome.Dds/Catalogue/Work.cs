@@ -19,5 +19,15 @@
         public LabelledEntity Language { get; set; }
         public string Edition { get; set; }
         public Note[] Notes { get; set; }
+
+        /// <summary>
+        /// Optional extra: works that are matches on the same identifier (b number)
+        /// </summary>
+        public Work[] RelatedByIdentifier { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Id}: {Title}";
+        }
     }
 }
