@@ -9,7 +9,6 @@
         public string PhysicalDescription { get; set; }
         public LabelledEntity WorkType { get; set; }
         public string Lettering { get; set; }
-        public IdentifiedEntity CreatedDate { get; set; } // is this used?
         public Contributor[] Contributors { get; set; }
         public Identifier[] Identifiers { get; set; }
         public Classification[] Subjects { get; set; }
