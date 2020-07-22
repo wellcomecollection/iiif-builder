@@ -147,7 +147,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
                 logger.Log("Start dashboardRepository.GetDigitisedResource(id)");
-                dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+                dgResource = await dashboardRepository.GetDigitisedResource(id, true);
                 logger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
             }
             catch (Exception ex)
@@ -270,13 +270,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
                 return View("Manifestation", model);
             }
-            if (dgResource is IDigitisedCollection)
+            if (dgResource is IDigitisedCollection dgCollection)
             {
                 // This is the manifestation controller, not the volume or issue controller.
                 // So redirect to the first manifestation that we can find for this collection.
                 // Put this and any intermediary collections in the short term cache,
                 // so that we don't need to build them from scratch after the redirect.
-                var dgCollection = dgResource as IDigitisedCollection;
                 string redirectId;
                 PutCollectionInShortTermCache(dgCollection);
                 if (dgCollection.MetsCollection.Manifestations.HasItems())
@@ -315,7 +314,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => (await dashboardRepository.GetDigitisedResourceAsync(identifier)));
+                async () => (await dashboardRepository.GetDigitisedResource(identifier, true)));
             return (IDigitisedCollection)coll;
         }
 
@@ -345,7 +344,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await dashboardRepository.GetDigitisedResourceAsync(id)) as IDigitisedCollection;
+                collection = (await dashboardRepository.GetDigitisedResource(id)) as IDigitisedCollection;
             }
             catch (Exception metsEx)
             {

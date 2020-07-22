@@ -22,21 +22,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// </summary>
         // public int SequenceIndex { get; set; }
 
-        private IPdf pdf;
-
-        public async Task<IPdf> GetPdf()
-        {
-            if (pdf == null && PdfGetter != null)
-            {
-                // TODO - change to use proper identifiers, not bnum/seq
-                pdf = await PdfGetter(MetsManifestation.Id); // GetRootId(), SequenceIndex);
-            }
-
-            return pdf;
-        }
-
-        // public Func<string, int, Task<IPdf>> PdfGetter;
-        public Func<string, Task<IPdf>> PdfGetter;
+        // private IPdf pdf;
+        //
+        // public async Task<IPdf> GetPdf()
+        // {
+        //     if (pdf == null && PdfGetter != null)
+        //     {
+        //         // TODO - change to use proper identifiers, not bnum/seq
+        //         pdf = await PdfGetter(MetsManifestation.Id); // GetRootId(), SequenceIndex);
+        //     }
+        //
+        //     return pdf;
+        // }
+        //
+        // // public Func<string, int, Task<IPdf>> PdfGetter;
+        // public Func<string, Task<IPdf>> PdfGetter;
+        
+        public IPdf PdfControlFile { get; set; }
 
         public string DlcsStatus { get; set; }
         public string DlcsResponse { get; set; }
