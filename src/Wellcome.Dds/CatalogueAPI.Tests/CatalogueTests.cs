@@ -4,8 +4,10 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using NuGet.Frameworks;
 using Test.Helpers;
 using Wellcome.Dds.Common;
 using Xunit;
@@ -14,7 +16,6 @@ namespace CatalogueAPI.Tests
 {
     public class CatalogueTests
     {
-        private readonly ControllableHttpMessageHandler httpHandler;
         private readonly Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue sut;
         private readonly JsonSerializerSettings serializer;
 
@@ -32,11 +33,6 @@ namespace CatalogueAPI.Tests
             var options = Options.Create(ddsOptions);
             var logger = new NullLogger<Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue>();
             sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(logger, options, httpClient);
-            serializer = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            };
         }
 
         [Fact]
@@ -49,24 +45,72 @@ namespace CatalogueAPI.Tests
             var resultPage = await sut.GetWorkResultPage(null, identifier);
 
             // Assert
-            resultPage.Results.Length.Should().Be(8);
+            resultPage.Results.Length.Should().BeGreaterThan(1);
+        }
+        
+        
+        [Fact]
+        public async Task Can_Pick_Single_Work_When_Multiple_Matches()
+        {
+            // Arrange
+            var identifier = "b14658197";
 
+            // Act
+            var work = await sut.GetWork(identifier);
+
+            // Assert
+            work.Id.Should().Be("nydjbrr7");
         }
 
         [Fact]
-        public async Task MoH_Report_Shape()
+        public async Task MoH_Report_Title()
         {
             // Arrange
             var identifier = "b30125285";
-
-            //HttpRequestMessage message = null;
-            //httpHandler.RegisterCallback(r => message = r);
 
             // Act
             var work = await sut.GetWork(identifier);
 
             // Assert
             work.Title.Should().Be("[Report 1954]");
+        }
+        
+        
+        [Fact]
+        public async Task Asked_For_BNumber_Is_Returned()
+        {
+            // Arrange
+            var identifier = "b14658197";
+
+            // Act
+            var work = await sut.GetWork(identifier);
+
+            // Assert
+            work.Identifiers.Should().ContainSingle(i => i.Value == identifier);
+            var b14658197 = work.Identifiers.Single(i => i.Value == identifier);
+            b14658197.IdentifierType.Id.Should().Be("sierra-system-number");
+        }
+        
+        
+        [Fact]
+        public async Task Work_Has_Expected_Subjects_And_Genres()
+        {
+            // Arrange
+            var identifier = "b14658197";
+
+            // Act
+            var work = await sut.GetWork(identifier);
+
+            // Assert
+            work.Subjects.Should().NotBeEmpty();
+            work.Subjects.Should().ContainSingle(s => s.Id == "zp2kkmjt");
+            var lcshChemistry = work.Subjects.Single(s => s.Id == "zp2kkmjt");
+            lcshChemistry.Identifiers.Should().ContainSingle(i => i.Value == "sh85022996");
+            lcshChemistry.Label.Should().Be("Chemistry - Experiments.");
+            lcshChemistry.Concepts.Should().ContainSingle(c => c.Label == "Chemistry");
+            
+            work.Genres.Should().NotBeEmpty();
+            work.Genres.Should().ContainSingle(g => g.Label == "Oil paintings.");
         }
     }
 }
