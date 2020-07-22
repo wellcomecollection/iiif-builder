@@ -3,5 +3,6 @@
     public class Classification : IdentifiedEntity
     {
         public LabelledEntity[] Concepts { get; set; }
+
     }
 }

@@ -112,6 +112,11 @@ namespace Wellcome.Dds.Repositories.Catalogue
         private string BuildQueryString(string query, string identifiers, IEnumerable<string> include, int pageSize)
         {
             var args = new List<string>();
+            if (include == null)
+            {
+                include = allIncludes;
+            }
+            var includes = include.ToArray();
             if (query.HasText())
             {
                 args.Add($"query={query}");
@@ -120,21 +125,18 @@ namespace Wellcome.Dds.Repositories.Catalogue
             {
                 args.Add($"identifiers={identifiers}");
             }
-            if (include == null)
+            if (includes.Length > 0)
             {
-                include = allIncludes;
+                args.Add($"include={string.Join(',', includes)}");
             }
-            if (include.HasItems())
+            if (pageSize <= 0)
             {
-                args.Add($"include={string.Join(',', include)}");
+                // default to 100, rather than the API default of 10
+                pageSize = 100;
             }
-            if (pageSize > 0)
-            {
-                args.Add($"pageSize={pageSize}");
-            }
+            args.Add($"pageSize={pageSize}");
             var queryString = "?" + string.Join('&', args);
             return queryString;
         }
-
     }
 }

@@ -4,5 +4,10 @@
     {
         public IdentifiedEntity Agent { get; set; }
         public IdentifiedEntity[] Roles { get; set; }
+
+        public override string ToString()
+        {
+            return Agent.ToString();
+        }
     }
 }
