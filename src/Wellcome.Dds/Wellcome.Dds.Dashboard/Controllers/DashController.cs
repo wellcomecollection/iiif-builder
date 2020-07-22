@@ -176,7 +176,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                 // represents the set of differences between the METS view of the world and the DLCS view
                 logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                var getSyncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
                 logger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                 IDigitisedCollection parent;
@@ -212,8 +212,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     Url = Url,
                     DdsIdentifier = ddsId,
                     DigitisedManifestation = dgManifestation,
-                    Parent = parent,
-                    GrandParent = grandparent,
+                    Parent = getParents.Result.parent,
+                    GrandParent = getParents.Result.grandparent,
                     SyncOperation = syncOperation,
                     DlcsOptions = dlcsOptions,
                     DlcsSkeletonManifest = skeletonPreview
@@ -303,7 +303,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             return View("ManifestationError");
         }
-
 
         private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
         {
