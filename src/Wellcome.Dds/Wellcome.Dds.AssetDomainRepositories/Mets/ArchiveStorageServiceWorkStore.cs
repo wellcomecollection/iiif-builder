@@ -17,9 +17,12 @@ using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
+    /// <summary>
+    /// Workstore object from Wellcome Storage service.
+    /// </summary>
     public class ArchiveStorageServiceWorkStore : IWorkStore
     {
-        private IAmazonS3 storageServiceS3;
+        private readonly IAmazonS3 storageServiceS3;
         private readonly ArchiveStorageServiceWorkStorageFactory factory;
 
         public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; private set; }
@@ -80,12 +83,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return string.Format(fullUriTemplate, ArchiveStorageMap.BucketName, foundKey);
         }
 
-        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForPathAsync(string relativePath)
-        {
-            return await LoadXmlForPathAsync(relativePath, true);
-        }
+        public Task<XmlSource> LoadXmlForPathAsync(string relativePath) => LoadXmlForPathAsync(relativePath, true);
 
-        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache)
+        public async Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache)
         {
             XElement metsXml;
             if (useCache)
@@ -103,15 +103,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        public async System.Threading.Tasks.Task<XmlSource> LoadXmlForIdentifierAsync(string identifier)
+        public async Task<XmlSource> LoadXmlForIdentifierAsync(string identifier)
         {
-            string relativePath = identifier + ".xml";
+            string relativePath = $"{identifier}.xml";
             return await LoadXmlForPathAsync(relativePath);
         }
 
         public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)
         {
-            var relativePath = identifier + ".xml";
+            var relativePath = $"{identifier}.xml";
             return GetFileInfoForPath(relativePath);
         }
 
@@ -123,14 +123,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 relativePath);
         }
 
-        public async System.Threading.Tasks.Task<Stream> GetStreamForPathAsync(string relativePath)
+        public async Task<Stream> GetStreamForPathAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
             using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
             using (Stream responseStream = response.ResponseStream)
             {
                 MemoryStream stream = new MemoryStream();
-                responseStream.CopyTo(stream);
+                await responseStream.CopyToAsync(stream);
                 stream.Position = 0;
                 return stream;
             }
@@ -145,7 +145,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        private async System.Threading.Tasks.Task<XElement> LoadXElementAsync(string relativePath)
+        private async Task<XElement> LoadXElementAsync(string relativePath)
         {
             var req = MakeGetObjectRequest(relativePath);
             using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
@@ -165,7 +165,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return factory.GetStorageManifest(Identifier);
         }
 
-        public async System.Threading.Tasks.Task WriteFileAsync(string relativePath, string destination)
+        public async Task WriteFileAsync(string relativePath, string destination)
         {
             var req = MakeGetObjectRequest(relativePath);
             using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))

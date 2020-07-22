@@ -5,6 +5,9 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomain
 {
+    /// <summary>
+    /// Interface for data related to a single bNumber.
+    /// </summary>
     public interface IWorkStore
     {
         string Identifier { get; set; }

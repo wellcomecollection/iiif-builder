@@ -214,7 +214,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 Identifier = metsCollection.Id
             };
             
-            // TODO - this is pretty nasty, and potentially slow
+            // There are currently 0 instances of an item with both collection + manifestation here.
             if (metsCollection.Collections.HasItems())
             {
                 var collections = metsCollection.Collections
@@ -232,6 +232,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 await Task.WhenAll(manifestations);
                 dc.Manifestations = manifestations.Select(m => m.Result);
             }
+            
             return dc;
         }
 
@@ -239,13 +240,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Id);
             var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Id) : Task.FromResult<IPdf>(null);
+
+            await Task.WhenAll(getDlcsImages, getPdf);
             
             return new DigitisedManifestation
             {
                 MetsManifestation = metsManifestation,
                 Identifier = metsManifestation.Id,
-                DlcsImages = await getDlcsImages,
-                PdfControlFile = await getPdf
+                DlcsImages = getDlcsImages.Result,
+                PdfControlFile = getPdf.Result
             };
         }
 

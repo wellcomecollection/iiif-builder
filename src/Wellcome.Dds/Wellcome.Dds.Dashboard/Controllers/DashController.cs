@@ -137,7 +137,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             var json = AskedForJson();
-            var logger = new SmallJobLogger("", null);
+            var logger = new SmallJobLogger(string.Empty, null);
             logger.Start();
             IDigitisedResource dgResource;
             SyncOperation syncOperation;
