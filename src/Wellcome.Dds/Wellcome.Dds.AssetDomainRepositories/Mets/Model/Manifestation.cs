@@ -73,12 +73,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                             ParentModsData.PlayerOptions, FirstSignificantInternetType);
                     }
                 }
-                if (ModsData.PlayerOptions > 0)
+                // ModsData will be null if Partial == true
+                if (ModsData != null && ModsData.PlayerOptions > 0)
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
                         ModsData.PlayerOptions, FirstSignificantInternetType);
                 }
-                if (ModsData.DzLicenseCode.HasText())
+                if (ModsData != null && ModsData.DzLicenseCode.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
                         ModsData.DzLicenseCode, Type, FirstSignificantInternetType);
