@@ -136,7 +136,8 @@ namespace Wellcome.Dds.Dashboard
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedProto
             });
-            
+
+            app.UsePathBase("/dash");
             app.UseStaticFiles();
             app.UseRouting();
             
@@ -148,7 +149,6 @@ namespace Wellcome.Dds.Dashboard
                 endpoints.MapControllerRoute("Default", "{controller}/{action}/{id?}/{*parts}",
                     defaults: new { controller = "Dash", action = "Index" }
                 );
-                endpoints.MapDefaultControllerRoute();
                 endpoints.MapHealthChecks("/management/healthcheck");
             });
         }
