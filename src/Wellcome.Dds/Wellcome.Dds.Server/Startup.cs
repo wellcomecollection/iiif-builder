@@ -1,3 +1,6 @@
+using System;
+using DlcsWebClient.Config;
+using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +8,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Utils.Aws.S3;
+using Utils.Caching;
+using Utils.Storage;
+using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.Ingest;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
+using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
@@ -13,26 +32,82 @@ namespace Wellcome.Dds.Server
     public class Startup
     {
         private IConfiguration Configuration { get; }
+        private IWebHostEnvironment WebHostEnvironment { get; }
 
-        public Startup(IConfiguration configuration)
+        public Startup(IWebHostEnvironment webHostEnvironment, IConfiguration configuration)
         {
             Configuration = configuration;
+            WebHostEnvironment = webHostEnvironment;
         }
         
         public void ConfigureServices(IServiceCollection services)
         {
+            // Temporarily here to demonstrate IIIFPrecursor - should not be required in production DDS.Server
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
             
-            services.AddControllers();
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds"))
+                .UseSnakeCaseNamingConvention());
 
+            services.AddMemoryCache();
+            
             services.AddSwagger();
 
             services.AddCors();
 
             services.AddHealthChecks()
-                .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db");
+                .AddDbContextCheck<DdsContext>("Dds-db");
+
+
+            // The following setup pulls in everything required to read from SOURCES
+            // The new DDS should not need all of this, because it will do most of its work
+            // proxying things from S3 that have been built by the other processors.
+            // This is a temporary setup to demonstrate the RAW materials for IIIF building.
+            
+            var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
+            
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
+
+            var dlcsSection = Configuration.GetSection("Dlcs");
+            var dlcsOptions = dlcsSection.Get<DlcsOptions>();
+            
+            services.Configure<DlcsOptions>(dlcsSection);
+            services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
+            services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
+
+            // we need more than one of these
+            services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+
+            // This will require an S3 implementation in production
+            //services.AddSingleton<IStorage, FileSystemStorage>();
+            services.AddSingleton<IStorage, S3Storage>(opts =>
+                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
+                    factory.Get(NamedClient.Dds)));
+
+            services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
+            services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+
+            // should cover all the resolved type usages...
+            services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
+
+            services.AddDlcsClient(Configuration);
+
+            // This is the one that needs an IAmazonS3 with the storage profile
+            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+            services.AddSingleton<IMetsRepository, MetsRepository>();
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+
+            
+            
+            services.AddControllers().AddJsonOptions(
+                options => {
+                    options.JsonSerializerOptions.IgnoreNullValues = true;
+                    options.JsonSerializerOptions.WriteIndented = true;
+                });
+            
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

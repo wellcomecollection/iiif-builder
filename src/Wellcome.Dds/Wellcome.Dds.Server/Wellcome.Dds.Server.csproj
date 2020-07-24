@@ -6,12 +6,17 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
+      <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
+      <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.105.31" />
       <PackageReference Include="EFCore.NamingConventions" Version="1.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="3.1.6" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="3.1.5" />
       <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
       <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
