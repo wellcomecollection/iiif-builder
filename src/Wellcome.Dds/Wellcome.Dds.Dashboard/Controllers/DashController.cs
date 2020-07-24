@@ -205,6 +205,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     default:
                         throw new ArgumentException("id", "Could not get resource for identifier " + id);
                 }
+
+                var skeletonPreview = string.Format(
+                    dlcsOptions.SkeletonNamedQueryTemplate, id, dlcsOptions.CustomerDefaultSpace);
+                
                 var model = new ManifestationModel
                 {
                     DefaultSpace = dashboardRepository.DefaultSpace,
@@ -214,7 +218,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     Parent = parent,
                     GrandParent = grandparent,
                     SyncOperation = syncOperation,
-                    DlcsOptions = dlcsOptions
+                    DlcsOptions = dlcsOptions,
+                    DlcsSkeletonManifest = skeletonPreview
                 };
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
@@ -523,54 +528,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(model);
         }
 
-        public async Task<ActionResult> StorageManifest(string id)
-        {
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
-
-            string errorMessage = null;
-            string jsonAsString = "";
-            try
-            {
-                var storageManifest = await archiveStore.GetStorageManifest();
-                jsonAsString = storageManifest.ToString(Formatting.Indented);
-            }
-            catch (Exception ex)
-            {
-                errorMessage = ex.Message;
-            }
-            var model = new JsonModel
-            {
-                BNumber = id,
-                JsonAsString = jsonAsString,
-                ErrorMessage = errorMessage
-            };
-            return View(model);
-
-        }
-
-        public async Task<ActionResult> XmlView(string id, string parts)
-        {
-            var store = await workStorageFactory.GetWorkStore(id);
-            string errorMessage = null;
-            string xmlAsString = "";
-            try
-            {
-                var xmlSource = await store.LoadXmlForPathAsync(parts);
-                xmlAsString = xmlSource.XElement.ToString();
-            }
-            catch (Exception ex)
-            {
-                errorMessage = ex.Message;
-            }
-            var model = new XmlModel
-            {
-                BNumber = id,
-                RelativePath = parts,
-                XmlAsString = xmlAsString,
-                ErrorMessage = errorMessage
-            };
-            return View(model);
-        }
 
         public ActionResult CacheBust(string id)
         {

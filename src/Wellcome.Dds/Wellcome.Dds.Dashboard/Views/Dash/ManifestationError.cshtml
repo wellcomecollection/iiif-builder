@@ -13,7 +13,7 @@
     <p>You can still try to @Html.ActionLink("purge caches for this item", "CacheBust", "Dash", new {id = ViewBag.TryInstead}, new {}).</p>
 
     <h3>Other tools</h3>
-    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", new {id = ViewBag.DdsId.BNumber})</p>
-    <p><a href="@Url.Action("XmlView", "Dash", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
+    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", "Peek", new {id = ViewBag.DdsId.BNumber})</p>
+    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
 }
 

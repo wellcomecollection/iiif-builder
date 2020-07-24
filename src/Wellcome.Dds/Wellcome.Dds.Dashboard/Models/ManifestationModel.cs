@@ -36,6 +36,8 @@ namespace Wellcome.Dds.Dashboard.Models
         public ISimpleStoredFileInfo CachedTextModelFileInfo { get; set; }
         public ISimpleStoredFileInfo CachedAltoAnnotationsFileInfo { get; set; }
 
+        public string DlcsSkeletonManifest { get; set; }
+        
         public bool IsStandardMultipleManifestation { get; set; }
         public string PreviousLink { get; set; }
         public string NextLink { get; set; }
@@ -123,6 +125,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 return DigitisedManifestation.MetsManifestation.FirstSignificantInternetType.GetAssetFamily();
             }
         }
+
 
 
         public string GetPortalPageForImage(Image image)

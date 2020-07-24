@@ -2,13 +2,6 @@
 
 namespace Wellcome.Dds.Dashboard.Models
 {
-    public class JsonModel
-    {
-        public string BNumber { get; set; }
-        public string JsonAsString { get; set; }
-        public string ErrorMessage { get; set; }
-    }
-
     public class StorageMapModel
     {
         public string BNumber { get; set; }

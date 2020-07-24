@@ -74,7 +74,7 @@
     }
     else
     {
-        <p>There is a @Html.ActionLink("storage manifest for " + Model.Identifier, "StorageManifest", "Dash", new { id = Model.Identifier }, new { }).</p>
+        <p>There is a @Html.ActionLink("storage manifest for " + Model.Identifier, "StorageManifest", "Peek", new { id = Model.Identifier }, new { }).</p>
         <p>It was created @Model.StorageManifestDescription.</p>
         <p>@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new {id = @Model.Identifier}, new {})</p>
         <a class="btn btn-primary" href="@Url.Action("DdsCall", "Dash", new {id = Model.Identifier})">
