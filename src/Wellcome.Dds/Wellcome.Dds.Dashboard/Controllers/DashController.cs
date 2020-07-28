@@ -575,14 +575,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("Manifestation", new { id });
         }
 
-        public async Task<ActionResult> DoStopAsync(object id)
+        public async Task<ActionResult> DoStop(object id)
         {
             dashboardRepository.LogAction(null, null, User.Identity.Name, "STOP services");
             TempData["stop-result"] = await statusProvider.Stop();
             return RedirectToAction("StopStatus");
         }
 
-        public async Task<ActionResult> DoStartAsync(object id)
+        public async Task<ActionResult> DoStart(object id)
         {
             dashboardRepository.LogAction(null, null, User.Identity.Name, "START services");
             TempData["start-result"] = await statusProvider.Start();
