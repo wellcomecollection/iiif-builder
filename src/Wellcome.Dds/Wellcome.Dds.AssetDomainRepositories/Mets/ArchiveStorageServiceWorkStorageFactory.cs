@@ -68,7 +68,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 return false;
             }
 
-            var age = DateTime.Now - map.Built;
+            var age = DateTime.UtcNow - map.Built;
             return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
         }
 
@@ -118,7 +118,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
             // now order the dict by largest member
             archiveStorageMap.VersionSets = versionToFiles.OrderBy(kv => kv.Value.Count).ToList();
-            archiveStorageMap.Built = DateTime.Now;
+            archiveStorageMap.Built = DateTime.UtcNow;
             return archiveStorageMap;
         }
 
