@@ -1,7 +1,7 @@
 ﻿@inject IOptions<DdsOptions> DdsOptions
 @{
     var heartBeat = (DateTime?) ViewBag.Heartbeat;
-    var heartBeatDisplay = $"Last seen: {heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
+    var heartBeatDisplay = $"Seen: {heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
 }
 <!DOCTYPE html>
 <html>
