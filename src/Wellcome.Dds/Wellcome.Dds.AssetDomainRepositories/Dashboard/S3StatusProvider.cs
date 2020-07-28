@@ -134,8 +134,8 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
             {
                 return null;
             }
-            var now = DateTime.Now;
-            var value = now.ToString("F", CultureInfo.CurrentCulture);
+            var now = DateTime.UtcNow;
+            var value = now.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
             var req = MakePutTextRequest(ddsOptions.StatusProviderHeartbeat, value);
             try
             {
@@ -163,7 +163,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
                 {
                     string s = await new StreamReader(stream).ReadToEndAsync();
                     DateTime dt;
-                    if (DateTime.TryParseExact(s.Trim(), "F", CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
+                    if (DateTime.TryParseExact(s.Trim(), "s", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
                     {
                         return dt;
                     }
@@ -178,7 +178,7 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
         public bool LogSpecial(string message)
         {
-            string key = ddsOptions.StatusProviderLogSpecialFile + DateTime.Now.ToString("s");
+            string key = ddsOptions.StatusProviderLogSpecialFile + DateTime.UtcNow.ToString("s");
             var req = MakePutTextRequest(key, message);
             try
             {
