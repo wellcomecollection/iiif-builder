@@ -23,8 +23,8 @@ else
     <ul>
         <li>@Html.ActionLink("Show Recent Calls", "GoobiCall", "Dash", new { id = "" }, new { })</li>
         <li>@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new { id = @Model.Identifier }, new { })</li>
-        <li><a href="@Url.Action("StorageManifest", "Dash", new { id = Model.Identifier })">Storage Manifest</a></li>
-        <li><a href="@Url.Action("XmlView", "Dash", new {id = Model.Identifier, parts = Model.Identifier + ".xml" })">METS file</a></li>
+        <li><a href="@Url.Action("StorageManifest", "Peek", new { id = Model.Identifier })">Storage Manifest</a></li>
+        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.Identifier, parts = Model.Identifier + ".xml" })">METS file</a></li>
     </ul>
 
     <table class="table">

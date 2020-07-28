@@ -1,0 +1,52 @@
+﻿@model CodeModel
+
+@{
+    ViewBag.Title = Model.Title;
+}
+<style type="text/css" media="screen">
+    #aceView {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 82vh;
+    }
+</style>
+
+<div class="row" style="height:100%">
+    <div class="col-md-12">
+        <h3>
+            @(Model.RelativePath ?? Model.BNumber)
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            ( 
+            <a href="@Model.Raw">Raw</a> 
+            |
+            @Html.ActionLink( "Manifestation", "Manifestation", "Dash", new {id = Model.Manifestation})
+            @if (Model.AnchorFile.HasText())
+            {
+                @: | <a href="@Model.AnchorFile">Anchor file</a>
+            } )
+        </h3>
+        @if (Model.Description.HasText())
+        {
+            <p>@Model.Description</p>
+        }
+    </div>
+</div>
+
+<div class="row" style="height:100%">
+    <div class="col-md-12">
+        <div id="aceView">@Model.CodeAsString</div>
+
+        @Model.ErrorMessage
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.1/ace.js"></script>
+<script>
+    var aceView = ace.edit("aceView");
+    aceView.setTheme("ace/theme/chrome");
+    aceView.session.setMode("@Model.Mode");
+</script>
+

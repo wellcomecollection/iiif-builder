@@ -165,7 +165,13 @@
                         <li><a href="@Model.DigitisedManifestation.BNumberModel.EncoreBiblioRecordUrl">Encore bibliographic record</a></li>
                     </ul>
                 </li>
-                <li class="list-group-item"><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF Manifest</a></li>
+                <li class="list-group-item">
+                    <ul class="list-unstyled">
+                        <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
+                        <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
+                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF-Builder Manifest</a></li>
+                    </ul>
+                </li>
                 @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
                 {
                     <li class="list-group-item">
@@ -189,12 +195,12 @@
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Url.Action("StorageManifest", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
+                        <li><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
                         <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.BNumber })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
                         @{
                             var sourceFile = ((IFileBasedResource)metsManifestation).SourceFile;
                         }
-                        <li><a href="@Url.Action("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
+                        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.BNumber, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
@@ -212,7 +218,7 @@
                     {
                         <li class="list-group-item">
                             <span class="glyphicon glyphicon-flash"></span>
-                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Dash", new { id = Model.DdsIdentifier.BNumber }, new { })</text>
+                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Peek", new { id = Model.DdsIdentifier.BNumber }, new { })</text>
                         </li>
                     }
                 }
