@@ -343,39 +343,13 @@ namespace DlcsWebClient.Dlcs
         }
 
         /// <summary>
-        /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
+        /// Get details of PDF from PDF-control file
         /// </summary>
-        /// <param name="identifier"></param>
-        /// <returns></returns>
         public async Task<IPdf> GetPdfDetails(string identifier)
         {
-            string uri;
-            const string controlTemplate = "{0}pdf-control/{1}/{2}/{3}/{4}";
-            if (options.PdfQueryType == "sequenceIndex")
-            {
-                // THIS IS ALL THE DLCS SUPPORTS
-                // But we need to replace it with the one in the else clause...
-                // in the meantime - and this is highly flaky, and doesn't work for C&D
-                // THIS WILL DEFINITELY GIVE THE WRONG PDF FOR SOME ITEMS THAT HAVE "MISSING" VOLUMES
-                // e.g., b12345678_0001, b12345678_0002, b12345678_0004, b12345678_0005 
-
-                // GET RID OF THIS BIT
-                string string1;
-                int number1;
-                ConvertToLegacyPdfArgs(identifier, out string1, out number1);
-                uri = string.Format(controlTemplate,
-                    options.ResourceEntryPoint, options.CustomerName, 
-                    options.PdfQueryName, string1, number1);
-                // END
-            }
-            else
-            {
-                // TODO: WE NEED A PDF NAMED QUERY THAT USES SPACE AND STRING3
-                // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
-                uri = string.Format(controlTemplate,
-                    options.ResourceEntryPoint, options.CustomerName,
-                    options.PdfQueryName, options.CustomerDefaultSpace, identifier);
-            }
+            // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
+            var uri =
+                $"{options.ResourceEntryPoint}pdf-control/{options.CustomerName}/{options.PdfQueryName}/{options.CustomerDefaultSpace}/{identifier}";
 
             var response = await httpClient.GetAsync(uri);
             if (!response.IsSuccessStatusCode)
@@ -388,61 +362,31 @@ namespace DlcsWebClient.Dlcs
             {
                 pdf.Url = uri.Replace("pdf-control", "pdf");
             }
+
             return pdf;
         }
 
         /// <summary>
-        /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
+        /// Delete PDF for specified identifier.
         /// </summary>
         public async Task<bool> DeletePdf(string identifier)
         {
-            string uri;
-            const string template = "{0}customers/{1}/resources/pdf/{2}?args={3}/{4}";
-            if (options.PdfQueryType == "sequenceIndex")
-            {
-                // GET RID OF THIS BIT
-                string string1;
-                int number1;
-                ConvertToLegacyPdfArgs(identifier, out string1, out number1);
-                uri = string.Format(template,
-                    options.ApiEntryPoint, options.CustomerId, options.PdfQueryName, 
-                    string1, number1);
-                // END
-            }
-            else
-            {
-                uri = string.Format(template,
-                    options.ApiEntryPoint, options.CustomerId, options.PdfQueryName, 
-                    options.CustomerDefaultSpace, identifier);
-            }            
+            // e.g., customers/2/resources/pdf/pdf?args=5/b12345678_0004
+            var uri =
+                $"{options.ApiEntryPoint}customers/{options.CustomerId}/resources/pdf/{options.PdfQueryName}?args={options.CustomerDefaultSpace}/{identifier}";
 
             var response = await httpClient.DeleteAsync(uri);
             if (!response.IsSuccessStatusCode)
             {
+                logger.LogWarning("Error deleting PDF for {identifier}. StatusCode: {statusCode}", identifier,
+                    response.StatusCode);
                 return false;
             }
 
             dynamic result = JObject.Parse(await response.Content.ReadAsStringAsync());
             return (bool) result.success;
         }
-
-
-
-        [Obsolete("This needs to be retired: SequenceIndex", false)]
-        private static void ConvertToLegacyPdfArgs(string identifier, out string string1, out int number1)
-        {
-            var ddsId = new DdsIdentifier(identifier);
-            string1 = ddsId.BNumber;
-            number1 = 0;
-            if (ddsId.IdentifierType == IdentifierType.Volume)
-            {
-                var part = ddsId.VolumePart.SplitByDelimiter('_').Last();
-                int.TryParse(part, out number1);
-            }
-            // don't even attempt issue.
-        }
-
-
+        
         /// <summary>
         /// Return tested versions of the batches
         /// </summary>

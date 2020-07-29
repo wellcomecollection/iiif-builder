@@ -167,10 +167,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
                 return View("ManifestationError");
             }
-            if (dgResource is IDigitisedManifestation)
+            
+            if (dgResource is IDigitisedManifestation dgManifestation)
             {
-                var dgManifestation = dgResource as IDigitisedManifestation;
-
                 // ***************************************************
                 // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
                 // IT MUST GO AS SOON AS THE IIIF MANIFEST KNOWS String3
@@ -207,7 +206,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
 
                 var skeletonPreview = string.Format(
-                    dlcsOptions.SkeletonNamedQueryTemplate, id, dlcsOptions.CustomerDefaultSpace);
+                    dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, id);
                 
                 var model = new ManifestationModel
                 {
@@ -569,9 +568,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeletePdf(string id)
         {
-            var deleteResult = new DeleteResult { Success = await dashboardRepository.DeletePdf(id) };
-            TempData["PdfDeletion"] = deleteResult;
-            dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete PDF");
+            var success = await dashboardRepository.DeletePdf(id);
+            var message = success ? "success" : "failed";
+            TempData["delete-pdf"] = success;
+            dashboardRepository.LogAction(id, null, User.Identity.Name, $"Delete PDF: {message}");
             return RedirectToAction("Manifestation", new { id });
         }
 
@@ -716,9 +716,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
             return Content(result, "application/json");
-            // return Json(result, JsonRequestBehavior.AllowGet);
         }
-
 
         public async Task<ActionResult> StorageIngest(string id)
         {
@@ -730,8 +728,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var ingest = await archivalStorageFactory.GetIngest(id);
             return View(Models.Ingest.FromJObject(ingest));
         }
-
-
 
         public ActionResult DdsCall(string id)
         {

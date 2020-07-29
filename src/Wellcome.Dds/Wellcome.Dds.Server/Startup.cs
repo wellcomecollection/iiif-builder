@@ -60,7 +60,6 @@ namespace Wellcome.Dds.Server
             services.AddHealthChecks()
                 .AddDbContextCheck<DdsContext>("Dds-db");
 
-
             // The following setup pulls in everything required to read from SOURCES
             // The new DDS should not need all of this, because it will do most of its work
             // proxying things from S3 that have been built by the other processors.
@@ -69,11 +68,8 @@ namespace Wellcome.Dds.Server
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
-
-            var dlcsSection = Configuration.GetSection("Dlcs");
-            var dlcsOptions = dlcsSection.Get<DlcsOptions>();
             
-            services.Configure<DlcsOptions>(dlcsSection);
+            services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
 
@@ -99,15 +95,11 @@ namespace Wellcome.Dds.Server
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
 
-            
-            
             services.AddControllers().AddJsonOptions(
                 options => {
                     options.JsonSerializerOptions.IgnoreNullValues = true;
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
-            
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
