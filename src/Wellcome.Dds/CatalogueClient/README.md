@@ -14,4 +14,4 @@ dotnet run --id b28047345
 dotnet run --file examples.txt
 ```
 
-This baseline app can be extended for utilties that need to process batches of b numbers (or other catalogue identifiers).
+This baseline app can be extended for utilities that need to process batches of b numbers (or other catalogue identifiers).
