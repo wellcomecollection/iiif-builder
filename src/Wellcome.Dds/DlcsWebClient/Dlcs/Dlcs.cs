@@ -378,6 +378,8 @@ namespace DlcsWebClient.Dlcs
             var response = await httpClient.DeleteAsync(uri);
             if (!response.IsSuccessStatusCode)
             {
+                logger.LogWarning("Error deleting PDF for {identifier}. StatusCode: {statusCode}", identifier,
+                    response.StatusCode);
                 return false;
             }
 
