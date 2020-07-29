@@ -127,13 +127,23 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <Content Update="Views\GoobiCall\GoobiCall.cshtml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Update="Views\GoobiCall\GoobiCallList.cshtml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Update="Views\GoobiCall\Stats.cshtml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Views\Dash\AssetType.cshtml" />
     <None Include="Views\Dash\Collection.cshtml" />
-    <None Include="Views\Dash\GoobiCall.cshtml" />
-    <None Include="Views\Dash\GoobiCallList.cshtml" />
     <None Include="Views\Dash\Index.cshtml" />
     <None Include="Views\Dash\Job.cshtml" />
     <None Include="Views\Dash\Jobs.cshtml" />

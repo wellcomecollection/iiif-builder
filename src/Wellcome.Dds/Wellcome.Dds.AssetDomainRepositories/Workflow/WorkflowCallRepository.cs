@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
         }
 
         private const int RecentSampleHours = 2;
+
+        public async Task<WorkflowJob> CreateWorkflowJob(string id)
+        {
+            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false);
+            return workflowJob;
+        }
 
         public List<WorkflowJob> GetRecent()
         {

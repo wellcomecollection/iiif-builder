@@ -258,37 +258,43 @@
 
 
 
-        <h3>Jobs</h3>
-        <ul class="list-group">
-            @foreach (var job in Model.IngestJobs)
-            {
-                <li class="list-group-item">
-                    <span class="badge">@job.ImageCount</span>
-                    @Html.ActionLink("" + job.Created, "Job", "Dash", new { id = job.Id }, new { })
-                    @{
-                        if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
+    <h3>Jobs</h3>
+    <ul class="list-group">
+        <li class="list-group-item">
+            <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
+        </li>    
+        <li class="list-group-item">
+            <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
+        </li>
+        @foreach (var job in Model.IngestJobs)
+        {
+            <li class="list-group-item">
+                <span class="badge">@job.ImageCount</span>
+                @Html.ActionLink("" + job.Created, "Job", "Dash", new {id = job.Id}, new {})
+                @{
+                    if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
+                    {
+                        foreach (var batch in Model.DbJobIdsToActiveBatches[job.Id])
                         {
-                            foreach (var batch in Model.DbJobIdsToActiveBatches[job.Id])
-                            {
-                                RenderBatchProgress(batch);
-                            }
+                            RenderBatchProgress(batch);
                         }
                     }
-                </li>
-            }
-            @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
-            {
-                <li class="list-group-item">
-                    <a href="@Url.Action("CleanOldJobs", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
-                </li>
-            }
-            @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
-            {
-                <li class="list-group-item">
-                    <a href="@Url.Action("ForceReingest", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
-                </li>
-            }
-        </ul>
+                }
+            </li>
+        }
+        @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
+        {
+            <li class="list-group-item">
+                <a href="@Url.Action("CleanOldJobs", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
+            </li>
+        }
+        @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
+        {
+            <li class="list-group-item">
+                <a href="@Url.Action("ForceReingest", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
+            </li>
+        }
+    </ul>
 
 
 

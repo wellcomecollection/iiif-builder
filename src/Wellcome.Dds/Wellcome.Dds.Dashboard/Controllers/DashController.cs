@@ -40,7 +40,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
         private readonly IWebHostEnvironment webHostEnvironment;
-        private readonly IWorkflowCallRepository workflowCallRepository;
 
         const string CacheKeyPrefix = "dashcontroller_";
         const int CacheSeconds = 5;
@@ -59,8 +58,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
-            IWebHostEnvironment webHostEnvironment,
-            IWorkflowCallRepository workflowCallRepository)
+            IWebHostEnvironment webHostEnvironment
+        )
         {
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
@@ -75,7 +74,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
             this.webHostEnvironment = webHostEnvironment;
-            this.workflowCallRepository = workflowCallRepository;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -663,37 +661,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(q);
         }
 
-        public ActionResult GoobiCall(string id = null)
-        {
-            if (id == null)
-            {
-                ViewBag.IsErrorList = false;
-                var top100 = workflowCallRepository.GetRecent();
-                return View("GoobiCallList", top100);
-            }
-            if (id == "errors")
-            {
-                ViewBag.IsErrorList = true;
-                var top100 = workflowCallRepository.GetRecentErrors();
-                return View("GoobiCallList", top100);
-            }
-            if (id == "stats")
-            {
-                var stats = workflowCallRepository.GetStatsModel();
-                return View("Stats", stats);
-            }
-            var job = workflowCallRepository.GetWorkflowJob(id);
-            if (job == null)
-            {
-                return NotFound();
-            }
-            if (AskedForJson())
-            {
-                return AsJson(job);
-            }
-            return View(job);
-        }
-
         public bool AskedForJson()
         {
             // TODO: this should be done in a .NET Core way
@@ -731,14 +698,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(Models.Ingest.FromJObject(ingest));
         }
 
-
-
-        public ActionResult DdsCall(string id)
-        {
-            throw new NotImplementedException("Make an API call to DDS, as Goobi does. Not implemented because we want to change this, probably to a queue");
-            // TempData["DdsCallResult"] = MigrationSupport.GoobiCall(id);
-            // return RedirectToAction("Migration", new { id });
-        }
 
         public ActionResult Settings()
         {

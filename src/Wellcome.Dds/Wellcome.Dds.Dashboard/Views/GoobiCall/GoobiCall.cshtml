@@ -1,7 +1,7 @@
 ﻿@model Wellcome.Dds.AssetDomain.Workflow.WorkflowJob
 
 @{
-    if (Model == null)
+    if (!Model.Created.HasValue)
     {
         ViewBag.Title = "b number not called";
     }
@@ -11,22 +11,42 @@
     }
 }
 
+    @if (TempData["new-workflow-job"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Success!</strong> Workflow Job created.
+        </div>
+    }
+    @if (TempData["new-workflow-job-error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to create new workflow job!</strong> @TempData["new-workflow-job-error"]
+        </div>
+    }
 
-@if (Model == null)
+@if (!Model.Created.HasValue)
 {
-    <h2>No DDS Call found for this b number</h2>
+    <h2>No DDS Call found for @Model.Identifier</h2>
 }
 else
 {
     <h2>Goobi call for @Model.Identifier</h2>
+}
 
-    <ul>
-        <li>@Html.ActionLink("Show Recent Calls", "GoobiCall", "Dash", new { id = "" }, new { })</li>
-        <li>@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new { id = @Model.Identifier }, new { })</li>
-        <li><a href="@Url.Action("StorageManifest", "Peek", new { id = Model.Identifier })">Storage Manifest</a></li>
-        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.Identifier, parts = Model.Identifier + ".xml" })">METS file</a></li>
-    </ul>
+<ul class="list-group">
+    <li class="list-group-item"><a href="@Url.Action("Create", "GoobiCall", new {id = Model.Identifier})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a></li>
+    <li class="list-group-item">@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new {id = @Model.Identifier}, new {})</li>
+    <li class="list-group-item"><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.Identifier})">Storage Manifest</a></li>
+    <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = Model.Identifier, parts = Model.Identifier + ".xml"})">METS file</a></li>
+</ul>
+<ul class="list-group">
+    <li class="list-group-item">@Html.ActionLink("Show Recent Calls", "GoobiCall", "GoobiCall", new {id = ""}, new {})</li>
+</ul>
 
+@if (Model.Created.HasValue)
+{
     <table class="table">
         <thead>
         <tr>

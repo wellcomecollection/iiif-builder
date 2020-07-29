@@ -15,7 +15,7 @@
         @foreach (var workflowJob in Model)
         {
             <tr>
-                <td>@Html.ActionLink(workflowJob.Identifier, "GoobiCall", "Dash", new { id = workflowJob.Identifier }, new { })</td>
+                <td>@Html.ActionLink(workflowJob.Identifier, "GoobiCall", "GoobiCall", new { id = workflowJob.Identifier }, new { })</td>
                 <td>@StringUtils.GetFriendlyAge(workflowJob.Created)</td>
                 <td>@StringUtils.GetFriendlyAge(workflowJob.Taken)</td>
                 <td>@workflowJob.GetAltoRate()</td>
