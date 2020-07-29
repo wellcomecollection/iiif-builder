@@ -14,8 +14,7 @@
         public string PortalBatchTemplate { get; set; }
         public string SkeletonNamedQueryTemplate { get; set; }
         public bool PreventSynchronisation { get; set; } = false;
-        public string PdfQueryName { get; set; } = "pdf-item";
-        public string PdfQueryType { get; set; } = "sequenceIndex";
+        public string PdfQueryName { get; set; } = "pdf";
 
         /// <summary>
         /// Default timeout (in ms) use for HttpClient.Timeout.

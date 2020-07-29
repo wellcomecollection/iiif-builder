@@ -207,7 +207,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
 
                 var skeletonPreview = string.Format(
-                    dlcsOptions.SkeletonNamedQueryTemplate, id, dlcsOptions.CustomerDefaultSpace);
+                    dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, id);
                 
                 var model = new ManifestationModel
                 {
