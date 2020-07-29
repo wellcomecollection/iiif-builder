@@ -11,6 +11,8 @@ COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomain/Wellcome.Dds.AssetDomain.csproj W
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
 COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories.Tests/Wellcome.Dds.AssetDomainRepositories.Tests.csproj Wellcome.Dds.AssetDomainRepositories.Tests/
 COPY src/Wellcome.Dds/Wellcome.Dds.Server.Tests/Wellcome.Dds.Server.Tests.csproj Wellcome.Dds.Server.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.Common.Tests/Wellcome.Dds.Common.Tests.csproj Wellcome.Dds.Common.Tests/
+
 RUN dotnet restore "Wellcome.Dds.Server/Wellcome.Dds.Server.csproj"
 
 # Copy everything else

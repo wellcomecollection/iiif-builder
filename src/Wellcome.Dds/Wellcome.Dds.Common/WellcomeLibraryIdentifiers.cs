@@ -86,7 +86,7 @@ namespace Wellcome.Dds.Common
         /// <returns></returns>
         public static char GetExpectedBNumberCheckDigit(string s)
         {
-            if (s.Length != 7)
+            if (s == null || s.Length != 7)
             {
                 throw new ArgumentException("string must be 7 characters", nameof(s));
             }

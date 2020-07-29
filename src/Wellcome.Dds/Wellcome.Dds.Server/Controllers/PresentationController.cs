@@ -36,7 +36,7 @@ namespace Wellcome.Dds.Server.Controllers
             // No error handling in here at all for demo
             var ddsId = new DdsIdentifier(id);
             var workTask = catalogue.GetWork(ddsId.BNumber);
-            var ddsTask = dashboardRepository.GetDigitisedResourceAsync(id);
+            var ddsTask = dashboardRepository.GetDigitisedResource(id);
             await Task.WhenAll(new List<Task> {ddsTask, workTask});
 
             var digitisedResource = ddsTask.Result;

@@ -140,7 +140,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var logger = new SmallJobLogger(string.Empty, null);
             logger.Start();
             IDigitisedResource dgResource;
-            SyncOperation syncOperation;
             DdsIdentifier ddsId = null;
             try
             {
@@ -176,7 +175,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                 // represents the set of differences between the METS view of the world and the DLCS view
                 logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                var getSyncOperation = dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
                 logger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                 IDigitisedCollection parent;
@@ -212,8 +211,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     Url = Url,
                     DdsIdentifier = ddsId,
                     DigitisedManifestation = dgManifestation,
-                    Parent = getParents.Result.parent,
-                    GrandParent = getParents.Result.grandparent,
+                    Parent = parent,
+                    GrandParent = grandparent,
                     SyncOperation = syncOperation,
                     DlcsOptions = dlcsOptions,
                     DlcsSkeletonManifest = skeletonPreview

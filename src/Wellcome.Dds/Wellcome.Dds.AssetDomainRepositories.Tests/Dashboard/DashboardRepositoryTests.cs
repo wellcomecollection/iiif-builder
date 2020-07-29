@@ -86,7 +86,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             bNumberModel.Should().BeEquivalentTo(expected);
         }
 
-        [Theory]
+        [Theory(Skip = "Verify this is expected behaviour")]
         [InlineData(null)]
         [InlineData("")]
         [InlineData(" ")]

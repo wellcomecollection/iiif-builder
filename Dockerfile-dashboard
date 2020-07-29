@@ -11,8 +11,11 @@ COPY src/Wellcome.Dds/Wellcome.Dds/Wellcome.Dds.csproj Wellcome.Dds/
 COPY src/Wellcome.Dds/Wellcome.Dds.Repositories/Wellcome.Dds.Repositories.csproj Wellcome.Dds.Repositories/
 COPY src/Wellcome.Dds/Utils/Utils.csproj Utils/
 COPY src/Wellcome.Dds/Utils.Aws/Utils.Aws.csproj Utils.Aws/
+
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
 COPY src/Wellcome.Dds/DlcsWebClient.Tests/DlcsWebClient.Tests.csproj DlcsWebClient.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories.Tests/Wellcome.Dds.AssetDomainRepositories.Tests.csproj Wellcome.Dds.AssetDomainRepositories.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.Common.Tests/Wellcome.Dds.Common.Tests.csproj Wellcome.Dds.Common.Tests/
 
 RUN dotnet restore "Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj"
 
@@ -23,8 +26,7 @@ RUN dotnet build "Wellcome.Dds.Dashboard.csproj" -c Release
 
 FROM build AS testrunner
 WORKDIR "/src"
-RUN dotnet test "Utils.Tests/Utils.Tests.csproj"
-RUN dotnet test "DlcsWebClient.Tests/DlcsWebClient.Tests.csproj"
+RUN dotnet test "Wellcome.Dds.sln" --filter Category\!=Database
 
 FROM build AS publish
 WORKDIR "/src/Wellcome.Dds.Dashboard"
