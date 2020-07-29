@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using FizzWare.NBuilder;
@@ -29,10 +31,12 @@ namespace DlcsWebClient.Tests.Dlcs
             var dlcsOptions = new DlcsOptions
             {
                 CustomerId = 99,
+                CustomerName = "tester",
                 CustomerDefaultSpace = 15,
                 BatchSize = 5,
                 ApiEntryPoint = "https://api.dlcs.test/",
-                ResourceEntryPoint = "https://dlcs.test/"
+                ResourceEntryPoint = "https://dlcs.test/",
+                PdfQueryName = "pdf-q"
             };
             httpHandler = new ControllableHttpMessageHandler();
             var httpClient = new HttpClient(httpHandler);
@@ -308,6 +312,104 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.CallsMade.Should().ContainSingle()
                 .Which.Should().Be($"https://api.dlcs.test/customers/99/spaces/15/images?q={{{Environment.NewLine}  \"string3\": \"issue-ident\"{Environment.NewLine}}}");
             message.Method.Should().Be(HttpMethod.Get);
+        }
+
+        [Theory]
+        [InlineData("b1234567")]
+        [InlineData("b1234567_001")]
+        [InlineData("b1234567_001_002")]
+        public async Task GetPdfDetails_CallsCorrectPath(string identifier)
+        {
+            // Arrange
+            var expected = $"https://dlcs.test/pdf-control/tester/pdf-q/15/{identifier}";
+            httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.NotFound));
+            HttpRequestMessage message = null;
+            httpHandler.RegisterCallback(r => message = r);
+            
+            // Act
+            await sut.GetPdfDetails(identifier);
+
+            // Assert
+            httpHandler.CallsMade.Should().ContainSingle(s => s == expected);
+            message.Method.Should().Be(HttpMethod.Get);
+        }
+
+        [Theory]
+        [InlineData(HttpStatusCode.NotFound)]
+        [InlineData(HttpStatusCode.InternalServerError)]
+        public async Task GetPdfDetails_ReturnsNull_IfCallUnsuccessful(HttpStatusCode statusCode)
+        {
+            // Arrange
+            httpHandler.SetResponse(new HttpResponseMessage(statusCode));
+            
+            // Act
+            var result = await sut.GetPdfDetails("b1234123");
+            
+            // Assert
+            result.Should().BeNull();
+        }
+        
+        [Fact]
+        public async Task GetPdfDetails_ReturnsPdf()
+        {
+            // Arrange
+            var pdf = Builder<Pdf>.CreateNew().Build();
+
+            var httpResponseMessage = httpHandler.GetResponseMessage(JsonConvert.SerializeObject(pdf),
+                HttpStatusCode.OK);
+            httpResponseMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            httpHandler.SetResponse(httpResponseMessage);
+            
+            // Act
+            var result = await sut.GetPdfDetails("b1234123");
+            
+            // Assert
+            result.Should().BeEquivalentTo(pdf);
+        }
+        
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public async Task GetPdfDetails_ReturnsPdf_WithUpdatedUrl_IfNoUrlReturned(string url)
+        {
+            // Arrange
+            var pdf = Builder<Pdf>.CreateNew()
+                .With(p => p.Url, url)
+                .Build();
+            
+            const string expected = "https://dlcs.test/pdf/tester/pdf-q/15/b1234123";
+
+            var httpResponseMessage = httpHandler.GetResponseMessage(JsonConvert.SerializeObject(pdf),
+                HttpStatusCode.OK);
+            httpResponseMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            httpHandler.SetResponse(httpResponseMessage);
+            
+            // Act
+            var result = await sut.GetPdfDetails("b1234123");
+            
+            // Assert
+            result.Should().BeEquivalentTo(pdf, opts => opts.Excluding(p => p.Url));
+            result.Url.Should().Be(expected);
+        }
+        
+        [Theory]
+        [InlineData("b1234567")]
+        [InlineData("b1234567_001")]
+        [InlineData("b1234567_001_002")]
+        public async Task DeletePdf_CallsCorrectPath(string identifier)
+        {
+            // Arrange
+            var expected = $"https://api.dlcs.test/customers/99/resources/pdf/pdf-q?args=15/{identifier}";
+            httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.NotFound));
+            HttpRequestMessage message = null;
+            httpHandler.RegisterCallback(r => message = r);
+            
+            // Act
+            await sut.DeletePdf(identifier);
+
+            // Assert
+            httpHandler.CallsMade.Should().ContainSingle(s => s == expected);
+            message.Method.Should().Be(HttpMethod.Delete);
         }
     }
 }

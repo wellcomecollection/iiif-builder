@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DlcsWebClient.Config;
+using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
@@ -13,15 +16,18 @@ namespace Wellcome.Dds.Server.Controllers
     [ApiController]
     public class PresentationController : ControllerBase
     {
-        private IDashboardRepository dashboardRepository;
-        private ICatalogue catalogue;
-        
+        private readonly IDashboardRepository dashboardRepository;
+        private readonly ICatalogue catalogue;
+        private readonly DlcsOptions dlcsOptions;
+
         public PresentationController(
             IDashboardRepository dashboardRepository,
-            ICatalogue catalogue)
+            ICatalogue catalogue,
+            IOptions<DlcsOptions> dlcsOptions)
         {
             this.dashboardRepository = dashboardRepository;
             this.catalogue = catalogue;
+            this.dlcsOptions = dlcsOptions.Value;
         }
         
         [HttpGet("{id}")] 
@@ -43,7 +49,8 @@ namespace Wellcome.Dds.Server.Controllers
                 Label = digitisedResource.BNumberModel.DisplayTitle,
                 Comment = "This is a " + digitisedResource.GetType(),
                 ManifestSource = digitisedResource as DigitisedManifestation,
-                SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection)
+                SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
+                Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, id)
             };
             return model;
         }

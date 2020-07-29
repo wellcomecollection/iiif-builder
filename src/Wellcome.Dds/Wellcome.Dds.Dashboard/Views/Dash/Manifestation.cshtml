@@ -61,6 +61,24 @@
             the string3 metadata value @Model.DigitisedManifestation.Identifier that are not present in the METS manifestation.
         </div>
     }
+    
+    @if (TempData.TryGetValue("delete-pdf", out var pdfDelete))
+    {
+        if ((bool)pdfDelete)
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">x</span></button>
+                <strong>PDF deleted!</strong>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">x</span></button>
+                <strong>Error deleting PDF. The error has been logged. This may be a transient error, in which case trying again may work.</strong>
+            </div>
+        }
+    }
 
     <div class="col-md-9">
         <h3 style="margin-top: 13px;">@Model.DigitisedManifestation.Identifier - @metsManifestation.Label</h3>

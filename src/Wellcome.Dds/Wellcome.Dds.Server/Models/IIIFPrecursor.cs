@@ -1,4 +1,3 @@
-using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 
@@ -12,5 +11,6 @@ namespace Wellcome.Dds.Server.Models
         public Work CatalogueMetadata { get; set; }
         public DigitisedManifestation ManifestSource { get; set; }
         public SimpleCollectionModel SimpleCollectionSource { get; set; }
+        public string Pdf { get; set; }
     }
 }
