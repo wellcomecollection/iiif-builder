@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Wellcome.Dds.AssetDomain.Workflow
 {
@@ -11,5 +12,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         WorkflowJob GetWorkflowJob(string id);
         List<WorkflowJob> GetRecentErrors();
         WorkflowCallStats GetStatsModel();
+
+        Task<WorkflowJob> CreateWorkflowJob(string id);
     }
 }

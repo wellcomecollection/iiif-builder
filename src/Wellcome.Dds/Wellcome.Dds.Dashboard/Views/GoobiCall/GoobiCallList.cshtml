@@ -13,11 +13,11 @@
 
 @if (ViewBag.IsErrorList)
 {
-    <p>(showing errors only) @Html.ActionLink("Show all", "GoobiCall", "Dash", new { id = "" }, new { })</p>
+    <p>(showing errors only) @Html.ActionLink("Show all", "GoobiCall", "GoobiCall", new { id = "" }, new { })</p>
 }
 else
 {
-    <p>@Html.ActionLink("Show errors only", "GoobiCall", "Dash", new { id = "errors" }, new { })</p>
+    <p>@Html.ActionLink("Show errors only", "GoobiCall", "GoobiCall", new { id = "errors" }, new { })</p>
 }
 
 <partial name="_WorkflowJobList" model="Model" />
