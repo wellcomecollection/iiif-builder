@@ -88,7 +88,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 BNumber = bNumber,
                 DisplayTitle = label,
                 EncoreRecordUrl = string.Format(ddsOptions.PersistentCatalogueRecord, shortB),
-                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri.Replace("/player/", "/item/"), bNumber), // TODO - can the setting just reflect this?
+                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri, bNumber),
                 ManifestUrl = string.Format(ddsOptions.ManifestTemplate, bNumber),
                 EncoreBiblioRecordUrl = string.Format(ddsOptions.EncoreBibliographicData, shortB)
             };
