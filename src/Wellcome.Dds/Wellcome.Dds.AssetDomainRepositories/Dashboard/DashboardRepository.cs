@@ -48,7 +48,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// 
         /// </summary>
         /// <param name="identifier">Same as used for METS</param>
-        /// <param name="includePdfDetails">If true, includes details of PDF with result.</param>
+        /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
         public async Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false)
         {
