@@ -11,9 +11,6 @@ namespace Wellcome.Dds.Common
         public string Label { get; set; }
         public DateTime Date { get; set; }
 
-        public override string ToString()
-        {
-            return string.Format("[DatedIdentifier] {0} {1:s} {2}", Identifier, Date, Label);
-        }
+        public override string ToString() => $"[DatedIdentifier] {Identifier} {Date:s} {Label}";
     }
 }

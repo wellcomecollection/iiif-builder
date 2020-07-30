@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
+    /// <summary>
+    /// Stores all individual files related to a bNumber, split by version.
+    /// </summary>
+    /// <remarks>See https://gist.github.com/tomcrane/441f82c635292c737323e98d6340f8df</remarks>
     [Serializable]
     public class WellcomeBagAwareArchiveStorageMap
     {

@@ -70,7 +70,7 @@ namespace Utils.Aws.S3
             try
             {
                 IFormatter formatter = new BinaryFormatter();
-                await using (request.InputStream =  new MemoryStream())
+                await using (request.InputStream = new MemoryStream())
                 {
                     formatter.Serialize(request.InputStream, t);
                     await amazonS3.PutObjectAsync(request);

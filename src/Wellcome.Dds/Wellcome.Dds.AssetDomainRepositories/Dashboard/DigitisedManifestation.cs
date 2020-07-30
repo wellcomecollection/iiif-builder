@@ -12,31 +12,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
     public class DigitisedManifestation : BaseDigitisedResource, IDigitisedManifestation
     {
         public IManifestation MetsManifestation { get; set; }
+        
         /// <summary>
         /// The images already on the DLCS for this manifestation
         /// </summary>
         public IEnumerable<Image> DlcsImages { get; set; }
 
-        /// <summary>
-        /// TODO: This doesn't belong here! Only here for PDF link to work and be same as in IIIF manifest
-        /// </summary>
-        // public int SequenceIndex { get; set; }
-
-        private IPdf pdf;
-
-        public async Task<IPdf> GetPdf()
-        {
-            if (pdf == null && PdfGetter != null)
-            {
-                // TODO - change to use proper identifiers, not bnum/seq
-                pdf = await PdfGetter(MetsManifestation.Id); // GetRootId(), SequenceIndex);
-            }
-
-            return pdf;
-        }
-
-        // public Func<string, int, Task<IPdf>> PdfGetter;
-        public Func<string, Task<IPdf>> PdfGetter;
+        public IPdf PdfControlFile { get; set; }
 
         public string DlcsStatus { get; set; }
         public string DlcsResponse { get; set; }

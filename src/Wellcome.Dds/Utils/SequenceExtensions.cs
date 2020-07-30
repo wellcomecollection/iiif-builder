@@ -82,6 +82,5 @@ namespace Utils
             if (bucket != null && count > 0)
                 yield return bucket.Take(count);
         }
-
     }
 }

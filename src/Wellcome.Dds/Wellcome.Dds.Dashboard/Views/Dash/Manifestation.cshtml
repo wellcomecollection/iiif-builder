@@ -4,7 +4,7 @@
 @{
     ViewBag.Title = "Dash: " + Model.DigitisedManifestation.Identifier;
     var metsManifestation = Model.DigitisedManifestation.MetsManifestation;
-    var pdf = await Model.DigitisedManifestation.GetPdf();
+    var pdf = Model.DigitisedManifestation.PdfControlFile;
 }
 
 <a id="top"></a>

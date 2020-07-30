@@ -10,6 +10,9 @@ COPY src/Wellcome.Dds/Wellcome.Dds.Common/Wellcome.Dds.Common.csproj Wellcome.Dd
 
 COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
 COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories.Tests/Wellcome.Dds.AssetDomainRepositories.Tests.csproj Wellcome.Dds.AssetDomainRepositories.Tests/
+COPY src/Wellcome.Dds/WorkflowProcessor.Tests/WorkflowProcessor.Tests.csproj WorkflowProcessor.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.Common.Tests/Wellcome.Dds.Common.Tests.csproj Wellcome.Dds.Common.Tests/
+
 RUN dotnet restore "WorkflowProcessor/WorkflowProcessor.csproj"
 
 # Copy everything else

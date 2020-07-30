@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -24,8 +23,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
 
         string DlcsStatus { get; set; }
         string DlcsResponse { get; set; }
-        
-        Task<IPdf> GetPdf();
-    }
 
+        IPdf PdfControlFile { get; set; }
+    }
 }

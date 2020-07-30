@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dashboard;
 
@@ -30,7 +31,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
             viewBag.HeartbeatClass = warningState ? "btn-danger" : "";
             var getQueueLevel = dashboardRepository.GetDlcsQueueLevel();
             await next();
-            viewBag.QueueLevels = await getQueueLevel;
+
+            try
+            {
+                viewBag.QueueLevels = await getQueueLevel;
+            }
+            catch (Exception)
+            {
+                // can happen due to timeouts
+                viewBag.QueueLevels = new Dictionary<string, long>
+                {
+                    ["incoming"] = -1,
+                    ["priority"] = -1
+                };
+            }
         }
     }
 }

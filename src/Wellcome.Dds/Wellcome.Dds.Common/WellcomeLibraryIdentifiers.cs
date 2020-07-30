@@ -54,8 +54,7 @@ namespace Wellcome.Dds.Common
                     if (errorOnInvalidChecksum && suppliedCheckDigit != 'a' && suppliedCheckDigit != expectedCheckDigit)
                     {
                         throw new ArgumentException(
-                            "Supplied check digit '" + suppliedCheckDigit
-                            + "' does not match expected check digit '" + expectedCheckDigit + "'", 
+                            $"Supplied check digit '{suppliedCheckDigit}' does not match expected check digit '{expectedCheckDigit}'", 
                             nameof(bNumber));
                     }
                 }
@@ -87,23 +86,27 @@ namespace Wellcome.Dds.Common
         /// <returns></returns>
         public static char GetExpectedBNumberCheckDigit(string s)
         {
-            if(s.Length != 7)
+            if (s == null || s.Length != 7)
             {
-                throw new ArgumentException("string must be 7 characters", "s");
+                throw new ArgumentException("string must be 7 characters", nameof(s));
             }
+
             int total = 0;
             int multiplier = 2;
-            for(int i=6; i>=0; i--)
+            
+            for (int i = 6; i >= 0; i--)
             {
                 int digit = int.Parse(s[i].ToString(CultureInfo.InvariantCulture));
-                total += digit*multiplier;
+                total += digit * multiplier;
                 multiplier++;
             }
-            int remainder = total%11;
-            if(remainder == 10)
+
+            int remainder = total % 11;
+            if (remainder == 10)
             {
                 return 'x';
             }
+
             return remainder.ToString(CultureInfo.InvariantCulture)[0];
         }
 

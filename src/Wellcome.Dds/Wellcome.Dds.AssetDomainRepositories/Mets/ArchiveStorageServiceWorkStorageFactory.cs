@@ -20,6 +20,9 @@ using Wellcome.Dds.AssetDomain;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
+    /// <summary>
+    /// Implementation of <see cref="IWorkStorageFactory"/> for works from Wellcome storage service.
+    /// </summary>
     public class ArchiveStorageServiceWorkStorageFactory : IWorkStorageFactory
     {
         internal readonly ISimpleCache Cache;
@@ -56,6 +59,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             this.httpClient = httpClient;
         }
 
+        public async Task<IWorkStore> GetWorkStore(string identifier)
+        {
+            Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => BuildStorageMap(identifier);
+            logger.LogInformation("Getting IWorkStore for {identifier}", identifier);
+            WellcomeBagAwareArchiveStorageMap storageMap = await storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
+            return new ArchiveStorageServiceWorkStore(identifier, storageMap, this, storageServiceS3);
+        }
+        
+        private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string identifier)
+        {
+            logger.LogInformation("Requires new build of storage map for {identifier}", identifier);
+            var storageManifest = LoadStorageManifest(identifier);
+            return BuildStorageMapFromManifest(await storageManifest, identifier);
+        }
+        
         private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap map)
         {
             if (storageOptions.PreferCachedStorageMap)
@@ -70,21 +88,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             var age = DateTime.UtcNow - map.Built;
             return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
-        }
-
-        public async Task<IWorkStore> GetWorkStore(string identifier)
-        {
-            Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => BuildStorageMap(identifier);
-            logger.LogInformation("Getting IWorkStore for {identifier}", identifier);
-            WellcomeBagAwareArchiveStorageMap storageMap = await storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
-            return new ArchiveStorageServiceWorkStore(identifier, storageMap, this, storageServiceS3);
-        }
-
-        private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string identifier)
-        {
-            logger.LogInformation("Requires new build of storage map for {identifier}", identifier);
-            var storageManifest = LoadStorageManifest(identifier);
-            return BuildStorageMapFromManifest(await storageManifest, identifier);
         }
 
         private WellcomeBagAwareArchiveStorageMap BuildStorageMapFromManifest(JObject storageManifest, string identifier)
@@ -180,8 +183,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += "?ts=" + DateTime.Now.Ticks;
 
-            var oAuthedJToken = await GetOAuthedJToken(storageManifestUrl);
-            return (JObject)oAuthedJToken;
+            var storageManifestJson = await GetOAuthedJToken(storageManifestUrl);
+            return (JObject)storageManifestJson;
         }
 
         private async Task<JToken> GetOAuthedJToken(string url, string scope = null)
@@ -246,8 +249,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public async Task<JObject> GetIngest(string ingestId)
         {
             var url = storageOptions.StorageApiTemplateIngest + "/" + ingestId;
-            var authedJToken = await GetOAuthedJToken(url, storageOptions.ScopeIngest);
-            return (JObject)authedJToken;
+            var ingestJson = await GetOAuthedJToken(url, storageOptions.ScopeIngest);
+            return (JObject)ingestJson;
         }
 
         public async Task<JObject> PostIngest(string body)

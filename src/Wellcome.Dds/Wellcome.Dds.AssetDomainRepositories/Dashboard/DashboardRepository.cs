@@ -17,13 +17,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
     public class DashboardRepository : IDashboardRepository
     {
-        private ILogger<DashboardRepository> logger;
-        private DdsOptions ddsOptions;
+        private readonly ILogger<DashboardRepository> logger;
+        private readonly DdsOptions ddsOptions;
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
-        private DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly DdsInstrumentationContext ddsInstrumentationContext;
 
-        public int DefaultSpace { get; set; }
+        public int DefaultSpace { get; }
 
         public DashboardRepository(
             ILogger<DashboardRepository> logger,
@@ -48,22 +48,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// 
         /// </summary>
         /// <param name="identifier">Same as used for METS</param>
+        /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
-        public async Task<IDigitisedResource> GetDigitisedResourceAsync(string identifier)
+        public async Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false)
         {
             IDigitisedResource digResource;
             var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation resource)
             {
-                digResource = await MakeDigitisedManifestation(resource);
+                digResource = await MakeDigitisedManifestation(resource, includePdfDetails);
             }
             else if (metsResource is ICollection collection)
             {
-                digResource = await MakeDigitisedCollection(collection);
+                digResource = await MakeDigitisedCollection(collection, includePdfDetails);
             }
             else
             {
-                throw new ArgumentException("Cannot get a digitised resource from METS for identifier " + identifier);
+                throw new ArgumentException($"Cannot get a digitised resource from METS for identifier {identifier}",
+                    nameof(identifier));
             }
             digResource.Identifier = metsResource.Id;
             digResource.Partial = metsResource.Partial;
@@ -78,46 +80,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return digResource;
         }
 
-        private async Task<DigitisedCollection> MakeDigitisedCollection(ICollection metsCollection)
-        {
-            var dc = new DigitisedCollection
-            {
-                MetsCollection = metsCollection,
-                Identifier = metsCollection.Id
-            };
-            
-            // TODO - this is pretty nasty, and potentially slow
-            if (metsCollection.Collections.HasItems())
-            {
-                var collections = metsCollection.Collections
-                    .Select(MakeDigitisedCollection)
-                    .ToList();
-
-                await Task.WhenAll(collections);
-                dc.Collections = collections.Select(c => c.Result);
-            }
-            if (metsCollection.Manifestations.HasItems())
-            {
-                var manifestations = metsCollection.Manifestations
-                    .Select(MakeDigitisedManifestation)
-                    .ToList();
-                await Task.WhenAll(manifestations);
-                dc.Manifestations = manifestations.Select(m => m.Result);
-            }
-            return dc;
-        }
-
-        private async Task<DigitisedManifestation> MakeDigitisedManifestation(IManifestation metsManifestation)
-        {
-            return new DigitisedManifestation
-            {
-                MetsManifestation = metsManifestation,
-                Identifier = metsManifestation.Id,
-                DlcsImages = await dlcs.GetImagesForString3(metsManifestation.Id), // deferred IEnumerable
-                PdfGetter = dlcs.GetPdfDetails // Func<IPdf> for deferred call
-            };
-        }
-
         public BNumberModel GetBNumberModel(string bNumber, string label)
         {
             var shortB = bNumber.Remove(8);
@@ -126,7 +88,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 BNumber = bNumber,
                 DisplayTitle = label,
                 EncoreRecordUrl = string.Format(ddsOptions.PersistentCatalogueRecord, shortB),
-                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri.Replace("/player/", "/item/"), bNumber),
+                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri, bNumber),
                 ManifestUrl = string.Format(ddsOptions.ManifestTemplate, bNumber),
                 EncoreBiblioRecordUrl = string.Format(ddsOptions.EncoreBibliographicData, shortB)
             };
@@ -140,12 +102,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     @"Configuration prevents this application from synchronising with the DLCS. Is it a staging test environment for archive storage?";
                 throw new InvalidOperationException(syncError);
             }
+
+            var ingestOps = new List<Task>(2);
             logger.LogInformation("Registering BATCH INGESTS for METS resource (manifestation) with Id {0}", syncOperation.ManifestationIdentifier);
-            await DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue);
+            ingestOps.Add(DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue));
 
             logger.LogInformation("Registering BATCH PATCHES for METS resource (manifestation) with Id {0}", syncOperation.ManifestationIdentifier);
-            await DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation);
+            ingestOps.Add(DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation));
 
+            await Task.WhenAll(ingestOps);
             syncOperation.Succeeded = true;
         }
 
@@ -241,6 +206,51 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return syncOperation;
         }
         
+        private async Task<DigitisedCollection> MakeDigitisedCollection(ICollection metsCollection, bool includePdf)
+        {
+            var dc = new DigitisedCollection
+            {
+                MetsCollection = metsCollection,
+                Identifier = metsCollection.Id
+            };
+            
+            // There are currently 0 instances of an item with both collection + manifestation here.
+            if (metsCollection.Collections.HasItems())
+            {
+                var collections = metsCollection.Collections
+                    .Select(m => MakeDigitisedCollection(m, includePdf))
+                    .ToList();
+
+                await Task.WhenAll(collections);
+                dc.Collections = collections.Select(c => c.Result);
+            }
+            if (metsCollection.Manifestations.HasItems())
+            {
+                var manifestations = metsCollection.Manifestations
+                    .Select(m => MakeDigitisedManifestation(m, includePdf))
+                    .ToList();
+                await Task.WhenAll(manifestations);
+                dc.Manifestations = manifestations.Select(m => m.Result);
+            }
+            
+            return dc;
+        }
+
+        private async Task<DigitisedManifestation> MakeDigitisedManifestation(IManifestation metsManifestation, bool includePdf)
+        {
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Id);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Id) : Task.FromResult<IPdf>(null);
+
+            await Task.WhenAll(getDlcsImages, getPdf);
+            
+            return new DigitisedManifestation
+            {
+                MetsManifestation = metsManifestation,
+                Identifier = metsManifestation.Id,
+                DlcsImages = getDlcsImages.Result,
+                PdfControlFile = getPdf.Result
+            };
+        }
 
         /// <summary>
         /// Images that match the metadata but are not in the METS
@@ -311,6 +321,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         private async Task DoBatchPatch(List<Image> dlcsImagesToPatch, SyncOperation syncOperation)
         {
+            if (dlcsImagesToPatch.IsNullOrEmpty()) return;
+            
             // TODO - refactor this and DoBatchIngest - They use a different kind of Operation
             foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
             {
@@ -348,6 +360,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         private async Task DoBatchIngest(List<Image> dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
         {
+            if (dlcsImagesToIngest.IsNullOrEmpty()) return;
+            
             foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
                 var imageRegistrations = batch.ToArray();
@@ -688,7 +702,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = (await GetDigitisedResourceAsync(id)) as IDigitisedManifestation;
+            var manifestation = (await GetDigitisedResource(id)) as IDigitisedManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return await dlcs.DeleteImages(syncOp.Orphans);
         }

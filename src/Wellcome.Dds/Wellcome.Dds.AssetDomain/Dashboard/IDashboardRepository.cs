@@ -8,11 +8,11 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
 {
     public interface IDashboardRepository
     {
-        Task<IDigitisedResource> GetDigitisedResourceAsync(string identifier);
+        Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false);
         Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
             bool reIngestErrorImages);
         Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);
-        int DefaultSpace { get; set; }
+        int DefaultSpace { get; }
         Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number);
         //IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(string identifier, SyncOperation syncOperation);
         Task<Batch> GetBatch(string batchId);

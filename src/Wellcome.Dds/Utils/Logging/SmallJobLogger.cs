@@ -39,7 +39,7 @@ namespace Utils.Logging
 
         public void LogFormat(string format, params object[] args)
         {
-            Log(String.Format(format, args));
+            Log(string.Format(format, args));
         }
 
         public void Log(string message)
@@ -50,7 +50,7 @@ namespace Utils.Logging
 
             var ev = new Tuple<long, long, string>(total, split, message);
             eventList.Add(ev);
-            callback?.Invoke(String.Format("{0} [{1}|{2}] {3}", callbackPrefix, total, split, message));
+            callback?.Invoke($"{callbackPrefix} [{total}|{split}] {message}");
         }
 
     }

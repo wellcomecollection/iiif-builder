@@ -189,7 +189,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             try
             {
                 digitisedManifestation = (await dashboardRepository
-                    .GetDigitisedResourceAsync(job.GetManifestationIdentifier()))
+                    .GetDigitisedResource(job.GetManifestationIdentifier()))
                     as IDigitisedManifestation;
             }
             catch (Exception ex)
@@ -344,7 +344,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         private async Task UpdateJobAsync(DlcsIngestJob job)
         {
             var digitisedManifestation = (await dashboardRepository
-                     .GetDigitisedResourceAsync(job.GetManifestationIdentifier()))
+                     .GetDigitisedResource(job.GetManifestationIdentifier()))
                      as IDigitisedManifestation;
 
             var query = new ImageQuery

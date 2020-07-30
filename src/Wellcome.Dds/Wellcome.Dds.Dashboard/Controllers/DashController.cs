@@ -137,17 +137,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             var json = AskedForJson();
-            var logger = new SmallJobLogger("", null);
+            var logger = new SmallJobLogger(string.Empty, null);
             logger.Start();
             IDigitisedResource dgResource;
-            SyncOperation syncOperation;
             DdsIdentifier ddsId = null;
             try
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
                 logger.Log("Start dashboardRepository.GetDigitisedResource(id)");
-                dgResource = await dashboardRepository.GetDigitisedResourceAsync(id);
+                dgResource = await dashboardRepository.GetDigitisedResource(id, true);
                 logger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
             }
             catch (Exception ex)
@@ -176,7 +175,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                 // represents the set of differences between the METS view of the world and the DLCS view
                 logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
                 logger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                 IDigitisedCollection parent;
@@ -270,13 +269,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
                 return View("Manifestation", model);
             }
-            if (dgResource is IDigitisedCollection)
+            if (dgResource is IDigitisedCollection dgCollection)
             {
                 // This is the manifestation controller, not the volume or issue controller.
                 // So redirect to the first manifestation that we can find for this collection.
                 // Put this and any intermediary collections in the short term cache,
                 // so that we don't need to build them from scratch after the redirect.
-                var dgCollection = dgResource as IDigitisedCollection;
                 string redirectId;
                 PutCollectionInShortTermCache(dgCollection);
                 if (dgCollection.MetsCollection.Manifestations.HasItems())
@@ -305,7 +303,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("ManifestationError");
         }
 
-
         private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
         {
             // The cache is caching a Task<IDigitisedResource> (from the callback)
@@ -315,7 +312,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => (await dashboardRepository.GetDigitisedResourceAsync(identifier)));
+                async () => (await dashboardRepository.GetDigitisedResource(identifier, true)));
             return (IDigitisedCollection)coll;
         }
 
@@ -345,7 +342,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await dashboardRepository.GetDigitisedResourceAsync(id)) as IDigitisedCollection;
+                collection = (await dashboardRepository.GetDigitisedResource(id)) as IDigitisedCollection;
             }
             catch (Exception metsEx)
             {
