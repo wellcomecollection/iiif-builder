@@ -284,5 +284,56 @@ namespace Utils
             }
             return stripped.Substring(0, lastSpace) + "...";
         }
+
+        /// <summary>
+        /// True if EVERY supplied string has significant content.
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <returns></returns>
+        public static bool AllHaveText(params string[] strings)
+        {
+            return strings.AllHaveText();
+        }
+
+        /// <summary>
+        /// True if EVERY supplied string has significant content.
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <returns></returns>
+        public static bool AllHaveText(this IEnumerable<string> strings)
+        {
+            foreach (string s in strings)
+            {
+                if (!HasText(s)) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// True if ANY supplied string has significant content.
+        /// </summary>
+        /// <param name="tests"></param>
+        /// <returns></returns>
+        public static bool AnyHaveText(params string[] tests)
+        {
+            foreach (string s in tests)
+            {
+                if (s.HasText())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Inversion of AnyHaveText, for readability
+        /// </summary>
+        /// <param name="tests"></param>
+        /// <returns></returns>
+        public static bool NoneHaveText(params string[] tests)
+        {
+            return !AnyHaveText(tests);
+        }
     }
 }

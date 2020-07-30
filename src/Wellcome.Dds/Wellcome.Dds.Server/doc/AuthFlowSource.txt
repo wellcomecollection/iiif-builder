@@ -1,0 +1,57 @@
+﻿title DLCS Auth
+
+note right of browser: 
+    A client of DLCS only via 
+    IIIF Auth interaction patterns
+end note
+note over browser: window.open()
+browser->DLCS: GET dlcs/io/loginService
+DLCS->browser: (redirect)
+note over DLCS:
+    DLCS has redirected to its configured role provider, the DDS.
+    DLCS doesn't know how the DDS does auth; it gets pulled back
+    into this flow a few steps later.
+end note
+browser->DDS: GET wl.org/iiif/dlcslogin
+note right of DDS:
+    Role Provider renders
+    login form HTML
+end note
+note left of browser: 
+    User fills out
+    login form
+end note
+browser->DDS: POST (creds)
+activate DDS
+DDS->Sierra: (authorise)
+DDS->Sierra: (get patron)
+DDS->DDS:establish DDS session
+DDS->browser: (redirect)
+deactivate DDS
+note left of DDS:
+    This token/role exchange is what makes
+    DDS a Role Provider for DLCS
+end note
+browser->DLCS: GET dlcs.io/fromcas?token=
+activate DLCS
+DLCS->DDS: (validate token)
+DLCS->DDS: (backchannel role acquisition)
+note right of DLCS:
+    This is a server-to-server API call. The DLCS
+    knows the URL pattern to call the Role Provider,
+    and expects a JSON array of roles for the token.
+end note
+DLCS->DLCS: establish DLCS session
+deactivate DLCS
+note over DLCS: window.close()
+note right of browser:
+    browser now has a cookie it can present on
+    *simple* (in CORS terms) web requests for
+    IIIF Images, videos, etc; DLCS knows what roles
+    that cookie is entitled to, and what roles the
+    requested image or video has.
+end note
+browser->+DLCS: (follow IIIF Auth Interaction patterns)
+
+
+

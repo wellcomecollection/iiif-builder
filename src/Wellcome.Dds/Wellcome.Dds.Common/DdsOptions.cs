@@ -22,5 +22,10 @@
 
         // New, Catalogue
         public string ApiWorkTemplate { get; set; }
+
+        // New, Dds
+        public string DlcsOriginUsername { get; set; }
+        public string DlcsOriginPassword { get; set; }
+        public string PinVerifyUrlFormat { get; set; } // suggest this should be secret
     }
 }

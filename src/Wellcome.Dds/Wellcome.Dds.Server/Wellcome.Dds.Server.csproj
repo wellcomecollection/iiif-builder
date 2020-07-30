@@ -8,6 +8,7 @@
     <ItemGroup>
       <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
+      <ProjectReference Include="..\Wellcome.Dds.Auth.Web\Wellcome.Dds.Auth.Web.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
       <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />

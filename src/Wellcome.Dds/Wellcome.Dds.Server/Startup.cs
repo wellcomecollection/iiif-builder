@@ -52,7 +52,14 @@ namespace Wellcome.Dds.Server
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
-            
+            services.AddDistributedMemoryCache();
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromSeconds(3600);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
             services.AddSwagger();
 
             services.AddCors();
@@ -112,7 +119,10 @@ namespace Wellcome.Dds.Server
 
             app.UseCors();
             app.SetupSwagger();
+            app.UseStaticFiles();
             app.UseRouting();
+            // For discussion: we only need session state on one particular controller.
+            // app.UseSession();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
