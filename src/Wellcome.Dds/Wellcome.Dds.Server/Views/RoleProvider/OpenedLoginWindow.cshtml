@@ -1,0 +1,149 @@
+﻿@using Utils;
+@model Wellcome.Dds.Server.Models.LoginModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en" data-placeholder-focus="false" class=" has-js">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Wellcome Library | Restricted Digital Content</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <script>document.getElementsByTagName('html')[0].className += ' has-js';</script>
+    <link rel="stylesheet" href="/dds-static/login/assets/sso-core.min.css">
+    <link rel="stylesheet" media="all and (min-width: 50em)" href="/dds-static/login/assets/sso-layout.min.css">
+    <!--[if (lt IE 9)&(!IEMobile)]><link rel="stylesheet" media="screen" href="/cas/css/sso-layout.min.css" /><![endif]-->
+    <link rel="stylesheet" href="/dds-static/login/assets/sso.min.css">
+    <link rel="stylesheet" media="print" class="contrast-css" href="/dds-static/login/assets/sso-print.min.css">
+</head>
+<body class="logged-in theme theme--">
+    <div class="page-wrap">
+        <header>
+            <div class="section header" role="banner">
+                <div class="wrap">
+                    <ul class="top-nav" role="navigation">
+                        <li class="account-links"><a class="join button" href="#" onclick="window.close()">Close this window</a></li>
+                    </ul>
+                </div>
+                <div class="wrap">
+                    <div class="group relative">
+                        <div class="site-title wellcome-trust-title">
+                            <a href="https://wellcomelibrary.org">
+                                <img src="/dds-static/login/images/wellcome-logo.png" alt="Wellcome Trust"
+                                     width="145" height="58">
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <section>
+            <div class="section">
+                <div class="grid-pattern page-heading">
+                    <div class="wrap">
+                        <div class="group fixed-left">
+                            <div class="fixed-column">
+                                <div class="section-title">
+                                    <h2>Account</h2>
+                                </div>
+                            </div>
+                            <div class="fluid-column">
+                                <h1 class="page-title">Restricted Content</h1>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wrap">
+                    <div class="group fixed-left">
+                        <div class="fixed-column"></div>
+                        <div class="fluid-column">
+                            <div class="group fixed-right">
+                                <div class="fluid-column">
+                                    <div>
+                                    </div>
+                                    <div class="callout group login">
+                                        <form id="fm1" action="/iiif/dlcslogin" method="post">
+                                            <p class="field">
+                                                <label for="username"><span class="accesskey">U</span>sername or Library card number</label>
+                                                <input id="username" name="directlogin_u" tabindex="1" accesskey="u" type="text" value="@Model.Username" size="25" autocomplete="off">
+                                            </p>
+                                            <div id="ipssopinentry">
+                                                <p style="position:relative;" class="field">
+                                                    <label for="password"><span class="accesskey">P</span>assword:</label>
+                                                    <input id="password" name="directlogin_p" class="js-hide-show-password" tabindex="2" accesskey="p" type="password"
+                                                           value="" size="25" autocomplete="off">
+                                                    <span class="hideshow js-hide-show-link">Show</span>
+                                                </p>
+                                            </div>
+                                            @if (Model.Message.HasText())
+                                            {
+                                                <p style="color: darkred">
+                                                    @Model.Message
+                                                </p>
+                                            }
+                                            <p class="group">
+                                                @*<input type="hidden" name="lt" value="LT-2512-qvIfBJyxORoY9qTexiU0TBajq4LjMw-wt-brush">
+                                                    <input type="hidden" name="execution" value="c02b4716-0470-4787-a326-873483dd4366_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" />
+                                                    <input type="hidden" name="_eventId" value="submit">*@
+                                                <input class="btn-submit float-right" name="submit" accesskey="l" value="LOGIN" tabindex="4" type="submit">
+                                            </p>
+                                            <div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <ul class="plain-list">
+                                        <li><a class="action" href="https://catalogue.wellcomelibrary.org/patroninfo/">Forgot username?</a></li>
+                                        <li><a class="action" href="https://catalogue.wellcomelibrary.org/pinreset">Forgot password?</a></li>
+                                        <li><a class="action" href="https://catalogue.wellcomelibrary.org/patroninfo">Register</a></li>
+                                    </ul>
+                                    <br>
+                                    @*<div class="callout group">
+                                            <div class="beside-social-logins">
+                                                <p><strong>Anyone can log in here to:</strong></p>
+                                                <ul>
+                                                    <li>see saved items from the digital player</li>
+                                                    <li>access restricted digital content</li>
+                                                </ul>
+                                                <p>More text here...</p>
+                                            </div>
+                                        </div>*@
+                                    <p>Having trouble logging in to your account? <a href="mailto:library@wellcome.ac.uk" tabindex="75">Get in touch</a>.</p>
+                                    <br>
+                                </div>
+                                <div class="fixed-column">
+                                    <div class="search-tips">
+                                        <h3>Login tips</h3>
+                                        <p>To view restricted content, you'll need to log in with your Library card number or Library username.</p>
+                                        <p>If you don't have a Library card, <a href="https://catalogue.wellcomelibrary.org/patroninfo">register</a> for an account.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer>
+            <div class="section footer">
+                <div class="wrap">
+                    <div class="group third">
+                        <div class="column two-thirds">
+                            <p><small><a href="https://wellcome.ac.uk/about-us/privacy-and-terms" target="_blank">Privacy and terms</a></small></p>
+                            <p><small>© 2020 Wellcome Trust</small></p>
+                        </div><!-- /.column.two-thirds -->
+                        <div class="column text-right wellcome-trust">
+                            <a href="https://wellcomelibrary.org/" title="Visit the Wellcome Library">
+                                <img src="/dds-static/login/images/wellcome-logo.png"
+                                     alt="Wellcome Library" width="145" height="58">
+                            </a>
+                        </div><!-- /.column -->
+                    </div><!-- /.group.third -->
+                </div><!-- /.wrap -->
+            </div><!-- /.section.footer -->
+        </footer>
+        <script src="/dds-static/login/assets/jquery.min.js"></script>
+        <script src="/dds-static/login/assets/sso-pack.min.js"></script>
+    </div>
+</body>
+</html>
+

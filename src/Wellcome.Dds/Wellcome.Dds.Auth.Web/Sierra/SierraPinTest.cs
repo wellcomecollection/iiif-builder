@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using Utils;
@@ -10,24 +8,17 @@ using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Auth.Web.Sierra
 {
-    public class MillenniumPatronAPI : IAuthenticationService
+    public class SierraPinTest : IAuthenticationService
     {
         private HttpClient httpClient;
         private DdsOptions ddsOptions;
 
-        public MillenniumPatronAPI(
+        public SierraPinTest(
             HttpClient httpClient,
             IOptions<DdsOptions> options)
         {
             this.httpClient = httpClient;
-            this.ddsOptions = options.Value;
-        }
-
-        private readonly string pinVerifyUrlFormat;
-
-        public MillenniumPatronAPI(string pinVerifyUrlFormat)
-        {
-            this.pinVerifyUrlFormat = pinVerifyUrlFormat;
+            ddsOptions = options.Value;
         }
 
         public async Task<AuthenticationResult> Authenticate(string username, string password)
@@ -36,7 +27,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
             {
                 username = HttpUtility.UrlEncode(username);
                 password = HttpUtility.UrlEncode(password);
-                var reqUrl = String.Format(pinVerifyUrlFormat, username, password);
+                var reqUrl = string.Format(ddsOptions.PinVerifyUrlFormat, username, password);
                 var resText = await httpClient.GetStringAsync(reqUrl);
                 var msg = HtmlUtils.TextOnly(resText).Trim();
                 if ("RETCOD=0".Equals(msg))
@@ -76,6 +67,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
             // ERRNUM=1
             // ERRMSG=Requested record not found
 
+            // retaining this in case we want different messages/behaviours
             if (patronApiMessage.Contains("RETCOD=1") && patronApiMessage.Contains("ERRNUM=4"))
             {
                 return universalMessage;

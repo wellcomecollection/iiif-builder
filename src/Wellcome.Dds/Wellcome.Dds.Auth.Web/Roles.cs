@@ -1,24 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Wellcome.Dds.Auth.Web
 {
     public class Roles
     {
-        private string[] roles;
+        private string[] sierraRoles;
 
-        public Roles(string[] roles)
+        public Roles(string[] sierraRoles)
         {
-            this.roles = roles;
+            this.sierraRoles = sierraRoles;
         }
 
         public Roles(string serialisedRoles)
         {
-            roles = serialisedRoles.Substring(2).Split('|', StringSplitOptions.RemoveEmptyEntries);
+            sierraRoles = serialisedRoles.Substring(2).Split('|', StringSplitOptions.RemoveEmptyEntries);
         }
 
         public override string ToString()
         {
-            return "r-" + string.Join('|', roles);
+            return "r-" + string.Join('|', sierraRoles);
         }
 
         public bool HasAcceptedTerms
@@ -32,17 +34,49 @@ namespace Wellcome.Dds.Auth.Web
         {
             get
             {
-                return Array.IndexOf(roles, "HHHHHHHHHHH TODO !!!!") != -1;
+                return Array.IndexOf(sierraRoles, "HHHHHHHHHHH TODO !!!!") != -1;
             }
         }
         public bool IsWellcomeStaffMember
         {
             get
             {
-                return Array.IndexOf(roles, "WWWWWWWWW TODO !!!!") != -1;
+                return Array.IndexOf(sierraRoles, "WWWWWWWWW TODO !!!!") != -1;
             }
         }
 
         public DateTime Expires { get; set; }
+
+        public string[] GetSierraRoles()
+        {
+            return sierraRoles;
+        }
+
+        public string[] GetDlcsRoles()
+        {
+            const string clickthrough = "https://api.dlcs.io/customers/2/roles/clickthrough";
+            const string clinicalImages = "https://api.dlcs.io/customers/2/roles/clinicalImages";
+            const string restrictedFiles = "https://api.dlcs.io/customers/2/roles/restrictedFiles";
+            // const string closed = "https://api.dlcs.io/customers/2/roles/closed";
+
+            var dlcsRoles = new HashSet<string>();
+            if (HasAcceptedTerms)
+            {
+                dlcsRoles.Add(clickthrough);
+            }
+            if (IsHealthCareProfessional)
+            {
+                dlcsRoles.Add(clickthrough);
+                dlcsRoles.Add(clinicalImages);
+            }
+            if (IsWellcomeStaffMember)
+            {
+                dlcsRoles.Add(clickthrough);
+                dlcsRoles.Add(clinicalImages);
+                dlcsRoles.Add(restrictedFiles);
+            }
+
+            return dlcsRoles.ToArray();
+        }
     }
 }

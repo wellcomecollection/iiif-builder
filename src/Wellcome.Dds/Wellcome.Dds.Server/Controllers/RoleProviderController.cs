@@ -40,7 +40,11 @@ namespace Wellcome.Dds.Server.Controllers
             this.ddsOptions = options.Value;
         }
 
+        // Move these to config later
         private const string dlcsReturnUrl = "https://dlcs.io/auth/2/fromcas";
+        private const string testReturnUrl = "/roleprovider/info";
+        private const string sessionFlagKey = "roles_acquired";
+
         /// <summary>
         /// DLCS delegated login screen redirects to here. 
         /// This is hard-coded to redirect to https://dlcs.io/auth/2/fromcas?token=xyz 
@@ -63,23 +67,32 @@ namespace Wellcome.Dds.Server.Controllers
         /// This is very simple, but is it safe?
         /// </summary>
         /// <returns></returns>
-        public async Task<ActionResult> DlcsLoginAsync()
+        public async Task<ActionResult> DlcsLogin()
+        {
+            return await Login(dlcsReturnUrl);
+        }
+
+        public async Task<ActionResult> TestLogin()
+        {
+            return await Login(testReturnUrl);
+        }
+
+        private async Task<ActionResult> Login(string returnUrl)
         {
             var session = HttpContext.Session;
-            const string sessionFlagKey = "roles_acquired";
             Response.Headers["Access-Control-Allow-Origin"] = "*";
             Response.AppendStandardNoCacheHeaders();
             var username = Request.Form["directlogin_u"].FirstOrDefault();
             var password = Request.Form["directlogin_p"].FirstOrDefault();
             LoginResult loginResult = null;
             if (username.HasText())
-            {               
+            {
                 loginResult = await millenniumIntegration.LoginWithMillenniumAsync(username, password);
                 if (loginResult.Success)
                 {
                     session.SetInt32(sessionFlagKey, 1);
                     distributedCache.SetString(GetRolesKey(session), loginResult.Roles.ToString());
-                    return new RedirectResult(dlcsReturnUrl + "?token=" + session.Id);
+                    return new RedirectResult(returnUrl + "?token=" + session.Id);
                 }
             }
             var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
@@ -89,7 +102,7 @@ namespace Wellcome.Dds.Server.Controllers
                 var storedRoleString = distributedCache.GetString(GetRolesKey(session));
                 if (storedRoleString.HasText())
                 {
-                    return new RedirectResult(dlcsReturnUrl + "?token=" + session.Id);
+                    return new RedirectResult(returnUrl + "?token=" + session.Id);
                 }
                 // We recognised the session, but don't have roles stored that the DLCS could retrieve
                 session.SetInt32(sessionFlagKey, 0);
@@ -99,8 +112,9 @@ namespace Wellcome.Dds.Server.Controllers
                 Username = username,
                 Message = loginResult.Message
             };
-            return View(model);
+            return View("OpenedLoginWindow", model);
         }
+
 
         private string GetRolesKey(ISession session)
         {
@@ -112,6 +126,34 @@ namespace Wellcome.Dds.Server.Controllers
             return $"roles_{token}";
         }
 
+        public async Task<ActionResult> Info()
+        {
+            var info = new RoleProviderInfoModel();
+            string token = Request.Query["token"].FirstOrDefault();
+            if (token.HasText())
+            {
+                info.SuppliedToken = token;
+                var storedRoles = distributedCache.GetString(GetRolesKey(token));
+                if (storedRoles.HasText())
+                {
+                    info.RolesFromToken = new Roles(storedRoles);
+                }
+            }
+                        
+            var session = HttpContext.Session;
+            var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
+            info.SessionFlag = sessionFlag;
+
+            // In this info action, we'll attempt to read cached roles regardless of "login state"
+            var storedRoleString = distributedCache.GetString(GetRolesKey(session));
+            if (storedRoleString.HasText())
+            {
+                info.RolesFromSession = new Roles(storedRoleString);
+            }
+
+            return View(info);
+        }
+
         /// <summary>
         /// This is what the DLCS calls out of band using its secret knowledge
         /// </summary>
@@ -121,32 +163,11 @@ namespace Wellcome.Dds.Server.Controllers
             string token = Request.Query["token"].FirstOrDefault();
             if (AuthorizeDlcs(Request, Response) && token.HasText())
             {
-                const string clickthrough = "https://api.dlcs.io/customers/2/roles/clickthrough";
-                const string clinicalImages = "https://api.dlcs.io/customers/2/roles/clinicalImages";
-                const string restrictedFiles = "https://api.dlcs.io/customers/2/roles/restrictedFiles";
-                // const string closed = "https://api.dlcs.io/customers/2/roles/closed";
-
                 var storedRoles = distributedCache.GetString(GetRolesKey(token));
                 if(storedRoles.HasText())
                 {
                     var sierraRoles = new Roles(storedRoles);
-                    var roles = new HashSet<string>();
-                    if (sierraRoles.HasAcceptedTerms)
-                    {
-                        roles.Add(clickthrough);
-                    }
-                    if (sierraRoles.IsHealthCareProfessional)
-                    {
-                        roles.Add(clickthrough);
-                        roles.Add(clinicalImages);
-                    }
-                    if (sierraRoles.IsWellcomeStaffMember)
-                    {
-                        roles.Add(clickthrough);
-                        roles.Add(clinicalImages);
-                        roles.Add(restrictedFiles);
-                    }
-                    return Json(roles.ToArray());
+                    return Json(sierraRoles.GetDlcsRoles());
                 }
                 return NotFound("Could not find user for token " + token);
             }

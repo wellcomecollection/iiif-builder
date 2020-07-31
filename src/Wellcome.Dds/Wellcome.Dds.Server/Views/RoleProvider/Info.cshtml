@@ -1,0 +1,65 @@
+﻿@using Utils;
+@model Wellcome.Dds.Server.Models.RoleProviderInfoModel
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>RoleProvider Info page</title>
+</head>
+<body>
+    <h2>RoleProvider information</h2>
+    <p><i>This page is for diagnostics only, it serves no purpose for live user flows.</i></p>
+
+    <p>The DDS doesn't need to know your identity. It doesn't need to authorise you for anything either - it's not controlling access. So the usual auth features are missing.</p>
+    <p>The DDS needs to maintain a session with your role information, so that the DLCS can delegate acquisition of roles to it.</p>
+    <p>This implementation uses the absolute minimum of information to do this - roles for sessions, without ever knowing who you are.</p>
+
+    <h2>Diagnostics</h2>
+
+
+    @if (Model.SuppliedToken.HasText())
+    {
+        <h3>Roles from token</h3>
+
+        <p>
+            <b>Token supplied on query string:</b> @Model.SuppliedToken<br />
+            <i>This is what the DLCS will call with. This should work in an incognito window.</i>
+        </p>
+
+        @if (Model.RolesFromToken != null)
+        {
+            <p>This is all we know about the roles for this token.</p>
+            <partial name="RoleProvide/_Roles.cshtml" for="Model.RolesFromToken" />
+        }
+        else
+        {
+            <p>No Roles from token found in cache.</p>
+        }
+    }
+    else
+    {
+        <p><i>No token supplied on query string</i></p>
+    }
+
+    <h3>Roles from Session</h3>
+
+    <p>
+        <b>Session flag: </b> @Model.SessionFlag<br />
+        <i>1 = Session Established; 0 = No login flagged in session.</i>
+    </p>
+
+    @if (Model.RolesFromSession != null)
+    {
+        <p>This is all we know about the roles associated with this session.</p>
+        <i>This will not work in an incognito window unless you establiesh a new session there.</i>
+
+        <partial name="RoleProvide/_Roles.cshtml" for="Model.RolesFromSession" />
+    }
+    else
+    {
+        <p>No Roles from session found in cache.</p>
+    }
+
+</body>
+</html>

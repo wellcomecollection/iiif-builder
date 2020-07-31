@@ -1,7 +1,9 @@
-﻿namespace Wellcome.Dds.Auth.Web
+﻿using System.Threading.Tasks;
+
+namespace Wellcome.Dds.Auth.Web
 {
     public interface IUserService
     {
-        Roles GetUserRoles(string username, out string failureMessage);
+        Task<UserRolesResult> GetUserRoles(string username);
     }
 }

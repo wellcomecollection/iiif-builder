@@ -22,23 +22,23 @@ namespace Wellcome.Dds.Auth.Web
 
         public async Task<LoginResult> LoginWithMillenniumAsync(string username, string password)
         {
-            string message;
-            Roles userRoles = null;
+            string message = null;
+            UserRolesResult userRoles = null;
             if (StringUtils.AllHaveText(username, password))
             {
                 var authenticationResult = await authenticationService.Authenticate(username, password);
                 if (authenticationResult.Success)
                 {
-                    userRoles = userService.GetUserRoles(username, out message);
-                    if (userRoles != null)
+                    userRoles = await userService.GetUserRoles(username);
+                    if (userRoles.Success)
                     {
-                        if (userRoles.Expires > DateTime.Now.AddDays(-1))
+                        if (userRoles.Roles.Expires > DateTime.Now.AddDays(-1))
                         {
                             message = "Success";
                         }
                         else
                         {
-                            message = "Your account expired on " + userRoles.Expires;
+                            message = "Your account expired on " + userRoles.Roles.Expires;
                         }
                     }
                 }
@@ -57,7 +57,7 @@ namespace Wellcome.Dds.Auth.Web
             }
             var result = new LoginResult
             {
-                Roles = userRoles,
+                Roles = userRoles.Roles,
                 Message = message,
                 Success = message == "Success"
             };
