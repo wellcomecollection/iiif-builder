@@ -27,5 +27,8 @@
         public string DlcsOriginUsername { get; set; }
         public string DlcsOriginPassword { get; set; }
         public string PinVerifyUrlFormat { get; set; } // suggest this should be secret
+        public string PatronApiEndpoint { get; set; }
+        public string MillenniumUserName { get; set; }
+        public string MillenniumPassword { get; set; }
     }
 }

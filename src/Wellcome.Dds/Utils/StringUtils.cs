@@ -335,5 +335,39 @@ namespace Utils
         {
             return !AnyHaveText(tests);
         }
+
+        /// <summary>
+        /// attempt to parse a boolean value from common representations (more flexible than bool.Parse)
+        /// 
+        /// "yes" => true
+        /// "y" => true
+        /// "1" => true
+        /// "YES" => true
+        /// "trUE" => true
+        /// "0" => false
+        /// "NO" => false
+        /// 
+        /// ... and so on.
+        /// 
+        /// "", false => false
+        /// "", true => true
+        /// 
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="valueIfEmpty">if string s doesn't contain any text, return this value</param>
+        /// <returns></returns>
+        public static bool GetBoolValue(string s, bool valueIfEmpty)
+        {
+            if (!s.HasText())
+            {
+                return valueIfEmpty;
+            }
+            s = s.ToLowerInvariant().Trim();
+            if (s.StartsWith("y") || s == "1" || s == "true")
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

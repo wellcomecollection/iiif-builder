@@ -6,6 +6,12 @@ namespace Wellcome.Dds.Auth.Web
 {
     public class Roles
     {
+        public const string ClosedArchiveFieldTag = "d";
+        public const string HealthCareProfessionalFieldTag = "k";
+        public const string RestrictedArchiveFieldTag = "r";
+        public const string PatronTypeFieldTag = "47";
+        public const string PseudoWellcomeStaffTag = "w";
+
         private string[] sierraRoles;
 
         public Roles(string[] sierraRoles)
@@ -34,14 +40,23 @@ namespace Wellcome.Dds.Auth.Web
         {
             get
             {
-                return Array.IndexOf(sierraRoles, "HHHHHHHHHHH TODO !!!!") != -1;
+                return Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:true") != -1;
             }
         }
         public bool IsWellcomeStaffMember
         {
             get
             {
-                return Array.IndexOf(sierraRoles, "WWWWWWWWW TODO !!!!") != -1;
+                return Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:true") != -1;
+            }
+        }
+
+        // this is currently not used, but could be
+        public bool HasCompletedRestrictedAccessForm
+        {
+            get
+            {
+                return Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:true") != -1;
             }
         }
 
@@ -74,6 +89,10 @@ namespace Wellcome.Dds.Auth.Web
                 dlcsRoles.Add(clickthrough);
                 dlcsRoles.Add(clinicalImages);
                 dlcsRoles.Add(restrictedFiles);
+            }
+            if(HasCompletedRestrictedAccessForm)
+            {
+                // nothing, but there could be!
             }
 
             return dlcsRoles.ToArray();
