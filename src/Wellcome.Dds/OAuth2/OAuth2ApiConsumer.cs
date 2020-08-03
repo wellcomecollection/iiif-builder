@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
@@ -23,23 +24,37 @@ namespace OAuth2
 
         public async Task<OAuth2Token> GetToken(ClientCredentials clientCredentials)
         {
+            // https://tools.ietf.org/html/rfc6749#section-2.3
+            bool credentialsInContent = false;
             var haveToken = Tokens.TryGetValue(clientCredentials.Scope, out var currentToken);
             if (haveToken && !(currentToken.GetTimeToLive().TotalSeconds < 60)) return currentToken;
 
-            // Can we always use this approach?
-            // Or do we need to use the clentId:clientSecret Sierra method?
             var data = new Dictionary<string, string>
             {
-                ["grant_type"] = "client_credentials",
-                ["client_id"] = clientCredentials.ClientId,
-                ["client_secret"] = clientCredentials.ClientSecret,
-                ["scope"] = clientCredentials.Scope,
+                ["grant_type"] = "client_credentials"
             };
 
-            var response = await httpClient.PostAsync(
-                clientCredentials.TokenEndPoint,
-                new FormUrlEncodedContent(data));
+            if(clientCredentials.Scope.HasText())
+            {
+                data["scope"] = clientCredentials.Scope;
+            }
 
+            var request = new HttpRequestMessage(HttpMethod.Post, clientCredentials.TokenEndPoint);
+            if (credentialsInContent)
+            {
+                data["client_id"] = clientCredentials.ClientId;
+                data["client_secret"] = clientCredentials.ClientSecret;
+            }
+            else
+            {
+                var rawCredential = $"{clientCredentials.ClientId}:{clientCredentials.ClientSecret}";
+                var bytes = Encoding.UTF8.GetBytes(rawCredential);
+                var base64 = Convert.ToBase64String(bytes);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64);
+            }
+
+            request.Content = new FormUrlEncodedContent(data);
+            var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var token = await response.Content.ReadAsAsync<OAuth2Token>();
@@ -47,7 +62,10 @@ namespace OAuth2
             return token;
         }
 
-        public async Task<JToken> GetOAuthedJToken(string url, ClientCredentials clientCredentials)
+        public async Task<JToken> GetOAuthedJToken(
+            string url, 
+            ClientCredentials clientCredentials, 
+            bool throwOnFailure = true)
         {
             var accessToken = (await GetToken(clientCredentials)).AccessToken;
 
@@ -58,10 +76,11 @@ namespace OAuth2
             try
             {
                 response = await httpClient.SendAsync(request);
-                response.EnsureSuccessStatusCode();
-
+                if (throwOnFailure)
+                {
+                    response.EnsureSuccessStatusCode();
+                }
                 var jsonStr = await response.Content.ReadAsStringAsync();
-
                 // TODO - debugging statements need tidied
                 HttpClientDebugHelpers.DebugHeaders(request.Headers);
                 Debug.WriteLine("-");
@@ -81,21 +100,52 @@ namespace OAuth2
             }
         }
 
-        public async Task<JObject> PostBody(
+        //public async Task<JObject> PostBody(
+        //    string requestUrl,
+        //    string body,
+        //    ClientCredentials clientCredentials
+        //)
+        //{
+        //    var token = await GetToken(clientCredentials);
+
+        //    var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+        //    request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+
+        //    var response = await httpClient.SendAsync(request);
+        //    var jsonStr = await response.Content.ReadAsStringAsync();
+        //    return JObject.Parse(jsonStr);
+        //}
+
+
+        public async Task<PostBodyResponse> PostBody(
             string requestUrl,
             string body,
             ClientCredentials clientCredentials
         )
         {
             var token = await GetToken(clientCredentials);
-
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-
             var response = await httpClient.SendAsync(request);
-            var jsonStr = await response.Content.ReadAsStringAsync();
-            return JObject.Parse(jsonStr);
+            var result = new PostBodyResponse()
+            {
+                HttpStatusCode = response.StatusCode
+            };
+            try
+            {
+                var jsonStr = await response.Content.ReadAsStringAsync();
+                if (jsonStr.HasText())
+                {
+                    result.ResponseObject = JObject.Parse(jsonStr);
+                }
+            }
+            catch(Exception ex)
+            {
+                result.TransportError = ex.Message;
+            }
+            return result;
         }
     }
 }

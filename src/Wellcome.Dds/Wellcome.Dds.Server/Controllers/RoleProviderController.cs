@@ -79,11 +79,17 @@ namespace Wellcome.Dds.Server.Controllers
 
         private async Task<ActionResult> Login(string returnUrl)
         {
+            
             var session = HttpContext.Session;
             Response.Headers["Access-Control-Allow-Origin"] = "*";
             Response.AppendStandardNoCacheHeaders();
-            var username = Request.Form["directlogin_u"].FirstOrDefault();
-            var password = Request.Form["directlogin_p"].FirstOrDefault();
+            string username = null;
+            string password = null;
+            if (Request.Method == "POST")
+            {
+                username = Request.Form["directlogin_u"].FirstOrDefault();
+                password = Request.Form["directlogin_p"].FirstOrDefault();
+            }
             LoginResult loginResult = null;
             if (username.HasText())
             {
@@ -110,7 +116,7 @@ namespace Wellcome.Dds.Server.Controllers
             var model = new LoginModel
             {
                 Username = username,
-                Message = loginResult.Message
+                Message = loginResult?.Message
             };
             return View("OpenedLoginWindow", model);
         }

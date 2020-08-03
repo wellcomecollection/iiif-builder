@@ -10,6 +10,7 @@ namespace Wellcome.Dds.Auth.Web
         public const string HealthCareProfessionalFieldTag = "k";
         public const string RestrictedArchiveFieldTag = "r";
         public const string PatronTypeFieldTag = "47";
+        public const string PatronExpiryFieldTag = "43";
         public const string PseudoWellcomeStaffTag = "w";
 
         private string[] sierraRoles;

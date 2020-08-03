@@ -11,15 +11,15 @@ using Wellcome.Dds.MillenniumClient;
 
 namespace Wellcome.Dds.Auth.Web.Sierra
 {
-    public class SierraPatronAPI : IUserService
+    public class SierraSoapPatronAPI : IUserService
     {
         private DdsOptions ddsOptions;
-        private ILogger<SierraPatronAPI> logger;
+        private ILogger<SierraSoapPatronAPI> logger;
 
 
 
-        public SierraPatronAPI(
-            ILogger<SierraPatronAPI> logger,
+        public SierraSoapPatronAPI(
+            ILogger<SierraSoapPatronAPI> logger,
             IOptions<DdsOptions> options)
         {
             this.logger = logger;

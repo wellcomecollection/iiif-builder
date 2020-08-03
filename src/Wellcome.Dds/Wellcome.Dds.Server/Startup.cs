@@ -22,6 +22,8 @@ using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
+using Wellcome.Dds.Auth.Web;
+using Wellcome.Dds.Auth.Web.Sierra;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
@@ -62,8 +64,8 @@ namespace Wellcome.Dds.Server
             });
 
             services.AddSwagger();
-
             services.AddCors();
+            services.AddMvc();
 
             services.AddHealthChecks()
                 .AddDbContextCheck<DdsContext>("Dds-db");
@@ -103,6 +105,10 @@ namespace Wellcome.Dds.Server
             services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
+
+            services.AddSingleton<IAuthenticationService, SierraRestPatronAPI>();
+            services.AddSingleton<IUserService, SierraRestPatronAPI>();
+            services.AddSingleton<MillenniumIntegration>();
 
             services.AddControllers().AddJsonOptions(
                 options => {

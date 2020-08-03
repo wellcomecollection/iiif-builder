@@ -57,7 +57,7 @@ namespace Wellcome.Dds.Auth.Web
             }
             var result = new LoginResult
             {
-                Roles = userRoles.Roles,
+                Roles = userRoles?.Roles,
                 Message = message,
                 Success = message == "Success"
             };

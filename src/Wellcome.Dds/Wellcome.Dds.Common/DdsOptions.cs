@@ -30,5 +30,13 @@
         public string PatronApiEndpoint { get; set; }
         public string MillenniumUserName { get; set; }
         public string MillenniumPassword { get; set; }
+
+        // Refactor this into SierraOptions?
+        public string SierraRestApiTokenEndPoint { get; set; }
+        public string SierraRestApiScope { get; set; }
+        public string SierraRestApiClientId { get; set; }
+        public string SierraRestApiClientSecret { get; set; }
+        public string SierraRestApiPatronValidateUrl { get; set; }
+        public string SierraRestApiPatronFindUrl { get; set; }
     }
 }
