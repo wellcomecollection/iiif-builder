@@ -45,7 +45,8 @@ namespace Wellcome.Dds.Auth.Web.Sierra
         public async Task<UserRolesResult> GetUserRoles(string username)
         {
             var result = new UserRolesResult();
-            var url = $"{sierraRestAPIOptions.PatronFindUrl}?varFieldTag=s&varFieldContent={username}&fields=varFields,expirationDate";
+            const string requiredFields = "varFields,expirationDate,patronType";
+            var url = $"{sierraRestAPIOptions.PatronFindUrl}?varFieldTag=s&varFieldContent={username}&fields={requiredFields}";
             try
             {
                 var patron = await oAuth2ApiConsumer.GetOAuthedJToken(url, clientCredentials, false);
@@ -73,10 +74,12 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                                 patronRoles.Add($"{Roles.RestrictedArchiveFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
                                 break;
 
-                            case Roles.PatronTypeFieldTag:
-                                // IsWellcomeStaffMember
-                                patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(field.Value<string>("content"))}");
-                                break;
+                                // The following tags don't come back in the REST API (unlike the SOAP API)
+
+                            //case Roles.PatronTypeFieldTag:
+                            //    // IsWellcomeStaffMember
+                            //    patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(field.Value<string>("content"))}");
+                            //    break;
 
                                 // This tag doesn't come back in varFields.
                             //case Roles.PatronExpiryFieldTag:
@@ -87,6 +90,8 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                     }
 
                     var expires = GetExpiryDate(patron.Value<string>("expirationDate"));
+                    var patronType = patron.Value<string>("patronType");
+                    patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(patronType)}");
                     var roles = new Roles(patronRoles.ToArray(), expires);
 
                     result.Roles = roles;
