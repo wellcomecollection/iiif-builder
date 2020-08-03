@@ -15,25 +15,25 @@ namespace Wellcome.Dds.Auth.Web.Sierra
     public class SierraRestPatronAPI : IUserService, IAuthenticationService
     {
         private OAuth2ApiConsumer oAuth2ApiConsumer;
-        private DdsOptions ddsOptions;
+        private SierraRestAPIOptions sierraRestAPIOptions;
         private ILogger<SierraRestPatronAPI> logger;
         private ClientCredentials clientCredentials;
         private JsonSerializerSettings jsonSerializerSettings;
 
         public SierraRestPatronAPI(
             ILogger<SierraRestPatronAPI> logger,
-            IOptions<DdsOptions> options,
+            IOptions<SierraRestAPIOptions> options,
             OAuth2ApiConsumer oAuth2ApiConsumer)
         {
             this.oAuth2ApiConsumer = oAuth2ApiConsumer;
-            ddsOptions = options.Value;
+            sierraRestAPIOptions = options.Value;
             this.logger = logger;
             clientCredentials = new ClientCredentials
             {
-                TokenEndPoint = ddsOptions.SierraRestApiTokenEndPoint,
-                Scope = ddsOptions.SierraRestApiScope,
-                ClientId = ddsOptions.SierraRestApiClientId,
-                ClientSecret = ddsOptions.SierraRestApiClientSecret
+                TokenEndPoint = sierraRestAPIOptions.TokenEndPoint,
+                Scope = sierraRestAPIOptions.Scope,
+                ClientId = sierraRestAPIOptions.ClientId,
+                ClientSecret = sierraRestAPIOptions.ClientSecret
             };
             DefaultContractResolver contractResolver = new DefaultContractResolver
             {
@@ -45,7 +45,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
         public async Task<UserRolesResult> GetUserRoles(string username)
         {
             var result = new UserRolesResult();
-            var url = $"{ddsOptions.SierraRestApiPatronFindUrl}?varFieldTag=s&varFieldContent={username}&fields=varFields";
+            var url = $"{sierraRestAPIOptions.PatronFindUrl}?varFieldTag=s&varFieldContent={username}&fields=varFields,expirationDate";
             try
             {
                 var patron = await oAuth2ApiConsumer.GetOAuthedJToken(url, clientCredentials, false);
@@ -78,15 +78,17 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                                 patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(field.Value<string>("content"))}");
                                 break;
 
-                            case Roles.PatronExpiryFieldTag:
-                                expiryDate = GetExpiryDate(field.Value<string>("content"));
-                                break;
+                                // This tag doesn't come back in varFields.
+                            //case Roles.PatronExpiryFieldTag:
+                            //    expiryDate = GetExpiryDate(field.Value<string>("content"));
+                            //    break;
 
                         }
                     }
 
-                    var roles = new Roles(patronRoles.ToArray());
-                    roles.Expires = expiryDate;
+                    var expires = GetExpiryDate(patron.Value<string>("expirationDate"));
+                    var roles = new Roles(patronRoles.ToArray(), expires);
+
                     result.Roles = roles;
                     result.Success = true;
                 }
@@ -118,6 +120,14 @@ namespace Wellcome.Dds.Auth.Web.Sierra
 
         private DateTime GetExpiryDate(string value)
         {
+            // The REST API returns the date in a different format...
+            int monthStart = 4;
+            int dayStart = 6;
+            if(value.Contains("-"))
+            {
+                monthStart = 5;
+                dayStart = 8;
+            }
             DateTime dt = DateTime.Now;
             if (string.IsNullOrWhiteSpace(value))
             {
@@ -128,8 +138,8 @@ namespace Wellcome.Dds.Auth.Web.Sierra
             {
                 dt = new DateTime(
                     Convert.ToInt32(value.Substring(0, 4)),
-                    Convert.ToInt32(value.Substring(4, 2)),
-                    Convert.ToInt32(value.Substring(6, 2)));
+                    Convert.ToInt32(value.Substring(monthStart, 2)),
+                    Convert.ToInt32(value.Substring(dayStart, 2)));
             }
             catch (Exception ex)
             {
@@ -168,7 +178,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
             };
 
             var body = JsonConvert.SerializeObject(patronValidation, jsonSerializerSettings);
-            var apiResult = await oAuth2ApiConsumer.PostBody(ddsOptions.SierraRestApiPatronValidateUrl, body, clientCredentials);
+            var apiResult = await oAuth2ApiConsumer.PostBody(sierraRestAPIOptions.PatronValidateUrl, body, clientCredentials);
             var result = new AuthenticationResult
             {
                 Success = apiResult.HttpStatusCode == System.Net.HttpStatusCode.NoContent

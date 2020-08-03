@@ -15,19 +15,22 @@ namespace Wellcome.Dds.Auth.Web
 
         private string[] sierraRoles;
 
-        public Roles(string[] sierraRoles)
+        public Roles(string[] sierraRoles, DateTime expires)
         {
             this.sierraRoles = sierraRoles;
+            this.Expires = expires;
         }
 
         public Roles(string serialisedRoles)
         {
-            sierraRoles = serialisedRoles.Substring(2).Split('|', StringSplitOptions.RemoveEmptyEntries);
+            var parts = serialisedRoles.Substring(2).Split('|', StringSplitOptions.RemoveEmptyEntries);
+            sierraRoles = parts.SkipLast(1).ToArray();
+            Expires = DateTime.Parse(parts.Last());
         }
 
         public override string ToString()
         {
-            return "r-" + string.Join('|', sierraRoles);
+            return "r-" + string.Join('|', sierraRoles) + "|" + Expires.ToString("yyyy-MM-dd");
         }
 
         public bool HasAcceptedTerms
@@ -41,14 +44,14 @@ namespace Wellcome.Dds.Auth.Web
         {
             get
             {
-                return Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:true") != -1;
+                return Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:True") != -1;
             }
         }
         public bool IsWellcomeStaffMember
         {
             get
             {
-                return Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:true") != -1;
+                return Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:True") != -1;
             }
         }
 
@@ -57,7 +60,7 @@ namespace Wellcome.Dds.Auth.Web
         {
             get
             {
-                return Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:true") != -1;
+                return Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:True") != -1;
             }
         }
 

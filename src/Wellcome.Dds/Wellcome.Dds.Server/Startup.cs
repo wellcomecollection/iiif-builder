@@ -82,6 +82,7 @@ namespace Wellcome.Dds.Server
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
+            services.Configure<SierraRestAPIOptions>(Configuration.GetSection("SierraRestAPI"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
@@ -107,6 +108,7 @@ namespace Wellcome.Dds.Server
             services.AddScoped<IDashboardRepository, DashboardRepository>();
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronAPI>();
+            // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();
             services.AddSingleton<IUserService, SierraRestPatronAPI>();
             services.AddSingleton<MillenniumIntegration>();
 

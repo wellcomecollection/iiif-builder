@@ -78,8 +78,7 @@ namespace Wellcome.Dds.Server.Controllers
         }
 
         private async Task<ActionResult> Login(string returnUrl)
-        {
-            
+        {            
             var session = HttpContext.Session;
             Response.Headers["Access-Control-Allow-Origin"] = "*";
             Response.AppendStandardNoCacheHeaders();

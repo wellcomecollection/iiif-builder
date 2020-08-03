@@ -73,8 +73,9 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                         }
                     }
 
-                    var roles = new Roles(patronRoles.ToArray());
-                    roles.Expires = GetExpiryDate(patron.patronFields.Single(f => f.fieldTag == "43").value);
+                    var expires = GetExpiryDate(patron.patronFields.Single(f => f.fieldTag == "43").value);
+                    var roles = new Roles(patronRoles.ToArray(), expires);
+
                     result.Roles = roles;
                     result.Success = true;
                 }

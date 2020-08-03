@@ -1,5 +1,6 @@
 ﻿@using Utils;
 @model Wellcome.Dds.Server.Models.RoleProviderInfoModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 <!DOCTYPE html>
 <html>
@@ -20,26 +21,26 @@
 
     @if (Model.SuppliedToken.HasText())
     {
-        <h3>Roles from token</h3>
+    <h3>Roles from token</h3>
 
-        <p>
-            <b>Token supplied on query string:</b> @Model.SuppliedToken<br />
-            <i>This is what the DLCS will call with. This should work in an incognito window.</i>
-        </p>
+    <p>
+        <b>Token supplied on query string:</b> @Model.SuppliedToken<br />
+        <i>This is what the DLCS will call with. This should work in an incognito window.</i>
+    </p>
 
-        @if (Model.RolesFromToken != null)
+    @if (Model.RolesFromToken != null)
         {
-            <p>This is all we know about the roles for this token.</p>
-            <partial name="RoleProvide/_Roles.cshtml" for="Model.RolesFromToken" />
+    <p>This is all we know about the roles for this token.</p>
+    <partial name="_Roles.cshtml" for="RolesFromToken" />
         }
         else
         {
-            <p>No Roles from token found in cache.</p>
+    <p>No Roles from token found in cache.</p>
         }
     }
     else
     {
-        <p><i>No token supplied on query string</i></p>
+    <p><i>No token supplied on query string</i></p>
     }
 
     <h3>Roles from Session</h3>
@@ -51,14 +52,14 @@
 
     @if (Model.RolesFromSession != null)
     {
-        <p>This is all we know about the roles associated with this session.</p>
-        <i>This will not work in an incognito window unless you establiesh a new session there.</i>
+    <p>This is all we know about the roles associated with this session.</p>
+    <i>This will not work in an incognito window unless you establish a new session there.</i>
 
-        <partial name="RoleProvide/_Roles.cshtml" for="Model.RolesFromSession" />
+    <partial name="_Roles.cshtml" for="RolesFromSession" />
     }
     else
     {
-        <p>No Roles from session found in cache.</p>
+    <p>No Roles from session found in cache.</p>
     }
 
 </body>
