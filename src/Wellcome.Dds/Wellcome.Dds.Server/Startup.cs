@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -98,7 +99,8 @@ namespace Wellcome.Dds.Server
             services.AddDlcsClient(Configuration);
 
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+            services.AddHttpClient<OAuth2ApiConsumer>();
+            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
 

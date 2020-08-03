@@ -23,4 +23,8 @@
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mets\" />
+  </ItemGroup>
+
 </Project>

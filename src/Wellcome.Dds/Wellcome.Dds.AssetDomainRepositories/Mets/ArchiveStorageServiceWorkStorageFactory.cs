@@ -1,19 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Utils;
+using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
@@ -30,11 +25,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private readonly IAmazonS3 storageServiceS3;
         private readonly ILogger<ArchiveStorageServiceWorkStorageFactory> logger;
         private readonly StorageOptions storageOptions;
-        private readonly HttpClient httpClient;
         private readonly IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache;
+        private readonly OAuth2ApiConsumer oAuth2ApiConsumer;
+        private readonly ClientCredentials defaultClientCredentials;
         
         // A collection of tokens by scope
-        private static readonly Dictionary<string, WellcomeApiToken> Tokens = new Dictionary<string, WellcomeApiToken>();
+        private static readonly Dictionary<string, OAuth2Token> Tokens = new Dictionary<string, OAuth2Token>();
 
         //private readonly BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         // if using with a shared cache. But you should really only use this with a request.items cache.
@@ -49,14 +45,26 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache,
             ISimpleCache cache,
             INamedAmazonS3ClientFactory storageServiceS3,
-            HttpClient httpClient)
+            OAuth2ApiConsumer oAuth2ApiConsumer)
         {
             this.logger = logger;
             this.storageOptions = storageOptions.Value;
             this.storageMapCache = storageMapCache;
             Cache = cache;
             this.storageServiceS3 = storageServiceS3.Get(NamedClient.Storage);
-            this.httpClient = httpClient;
+            this.oAuth2ApiConsumer = oAuth2ApiConsumer;
+            defaultClientCredentials = GetClientCredentials(storageOptions.Value);
+        }
+
+        private static ClientCredentials GetClientCredentials(StorageOptions storageOptions)
+        {
+            return new ClientCredentials
+            {
+                TokenEndPoint = storageOptions.TokenEndPoint,
+                Scope = storageOptions.Scope,
+                ClientId = storageOptions.ClientId,
+                ClientSecret = storageOptions.ClientSecret
+            };
         }
 
         public async Task<IWorkStore> GetWorkStore(string identifier)
@@ -177,120 +185,89 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return false;
         }
 
+
+
         public async Task<JObject> GetStorageManifest(string identifier)
         {
             var storageManifestUrl = string.Format(storageOptions.StorageApiTemplate, identifier);
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += "?ts=" + DateTime.Now.Ticks;
 
-            var storageManifestJson = await GetOAuthedJToken(storageManifestUrl);
+            var storageManifestJson = await oAuth2ApiConsumer.GetOAuthedJToken(storageManifestUrl, defaultClientCredentials);
             return (JObject)storageManifestJson;
         }
 
-        private async Task<JToken> GetOAuthedJToken(string url, string scope = null)
-        {
-            Debug.WriteLine("######### " + url);
-            var accessToken = (await GetToken(scope)).AccessToken;
+        //private async Task<JToken> GetOAuthedJToken(string url, string scope = null)
+        //{
+        //    Debug.WriteLine("######### " + url);
+        //    var accessToken = (await GetToken(scope)).AccessToken;
 
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            HttpResponseMessage response = null;
+        //    var request = new HttpRequestMessage(HttpMethod.Get, url);
+        //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        //    HttpResponseMessage response = null;
 
-            try
-            {
-                response = await httpClient.SendAsync(request);
-                response.EnsureSuccessStatusCode();
+        //    try
+        //    {
+        //        response = await httpClient.SendAsync(request);
+        //        response.EnsureSuccessStatusCode();
                 
-                var jsonStr = await response.Content.ReadAsStringAsync();
+        //        var jsonStr = await response.Content.ReadAsStringAsync();
                 
-                // TODO - debugging statements need tidied
-                HttpClientDebugHelpers.DebugHeaders(request.Headers);
-                Debug.WriteLine("-");
-                HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
-                return JToken.Parse(jsonStr);
-            }
-            catch (HttpRequestException webex)
-            {
-                Debug.Write(webex.Message);
-                HttpClientDebugHelpers.DebugHeaders(request.Headers);
-                Debug.WriteLine("-");
-                if (response != null)
-                {
-                    HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
-                }
-                throw;
-            }
-        }
+        //        // TODO - debugging statements need tidied
+        //        HttpClientDebugHelpers.DebugHeaders(request.Headers);
+        //        Debug.WriteLine("-");
+        //        HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
+        //        return JToken.Parse(jsonStr);
+        //    }
+        //    catch (HttpRequestException webex)
+        //    {
+        //        Debug.Write(webex.Message);
+        //        HttpClientDebugHelpers.DebugHeaders(request.Headers);
+        //        Debug.WriteLine("-");
+        //        if (response != null)
+        //        {
+        //            HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
+        //        }
+        //        throw;
+        //    }
+        //}
 
-        public async Task<WellcomeApiToken> GetToken(string scope = null)
-        {
-            var targetScope = scope ?? storageOptions.Scope;
-            var haveToken = Tokens.TryGetValue(targetScope, out var currentToken);
+        //public async Task<OAuth2Token> GetToken(string scope = null)
+        //{
+        //    var targetScope = scope ?? storageOptions.Scope;
+        //    var haveToken = Tokens.TryGetValue(targetScope, out var currentToken);
             
-            if (haveToken && !(currentToken.GetTimeToLive().TotalSeconds < 60)) return currentToken;
+        //    if (haveToken && !(currentToken.GetTimeToLive().TotalSeconds < 60)) return currentToken;
             
-            var data = new Dictionary<string, string>
-            {
-                ["grant_type"] = "client_credentials",
-                ["client_id"] = storageOptions.ClientId,
-                ["client_secret"] = storageOptions.ClientSecret,
-                ["scope"] = targetScope,
-            };
+        //    var data = new Dictionary<string, string>
+        //    {
+        //        ["grant_type"] = "client_credentials",
+        //        ["client_id"] = storageOptions.ClientId,
+        //        ["client_secret"] = storageOptions.ClientSecret,
+        //        ["scope"] = targetScope,
+        //    };
 
-            var response = await httpClient.PostAsync(storageOptions.TokenEndPoint, new FormUrlEncodedContent(data));
+        //    var response = await httpClient.PostAsync(storageOptions.TokenEndPoint, new FormUrlEncodedContent(data));
 
-            response.EnsureSuccessStatusCode();
+        //    response.EnsureSuccessStatusCode();
 
-            var token = await response.Content.ReadAsAsync<WellcomeApiToken>();
-            Tokens[targetScope] = token;
-            return token;
-        }
+        //    var token = await response.Content.ReadAsAsync<OAuth2Token>();
+        //    Tokens[targetScope] = token;
+        //    return token;
+        //}
 
         public async Task<JObject> GetIngest(string ingestId)
         {
+            var ingestCredentials = new ClientCredentials()
+            {
+                Scope = storageOptions.ScopeIngest,
+                TokenEndPoint = defaultClientCredentials.TokenEndPoint,
+                ClientId = defaultClientCredentials.ClientId,
+                ClientSecret = defaultClientCredentials.ClientSecret
+            };
             var url = storageOptions.StorageApiTemplateIngest + "/" + ingestId;
-            var ingestJson = await GetOAuthedJToken(url, storageOptions.ScopeIngest);
+            var ingestJson = await oAuth2ApiConsumer.GetOAuthedJToken(url, ingestCredentials);
             return (JObject)ingestJson;
         }
-
-        public async Task<JObject> PostIngest(string body)
-        {
-            var ingestToken = await GetToken(storageOptions.ScopeIngest);
-
-            var request = new HttpRequestMessage(HttpMethod.Post, storageOptions.StorageApiTemplateIngest);
-            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ingestToken.AccessToken);
-
-            var response = await httpClient.SendAsync(request);
-            var jsonStr = await response.Content.ReadAsStringAsync();
-            return JObject.Parse(jsonStr);
-        }
-    }
-
-    /// <summary>
-    /// This is a OAuth2 token acquired via the Client Credentials grant type
-    /// </summary>
-    public class WellcomeApiToken
-    {
-        [JsonProperty("token_type")]
-        public string TokenType { get; set; }
-        
-        [JsonProperty("access_token")]
-        public string AccessToken { get; set; }
-        
-        [JsonProperty("expires_in")]
-        public int ExpiresIn { get; set; }
-        
-        public DateTime Acquired { get; set; }
-
-        public WellcomeApiToken()
-        {
-            Acquired = DateTime.Now;
-        }
-
-        public TimeSpan GetTimeToLive()
-        {
-            return (Acquired + new TimeSpan(0, 0, ExpiresIn)) - DateTime.Now;
-        }  
     }
 }

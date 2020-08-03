@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -54,8 +55,9 @@ namespace DlcsJobProcessor
                     factory.Get(NamedClient.Dds)));
             
             services.AddMemoryCache();
-            
-            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+
+            services.AddHttpClient<OAuth2ApiConsumer>();
+            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
 
             services
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
