@@ -26,12 +26,14 @@
         // New, Dds
         public string DlcsOriginUsername { get; set; }
         public string DlcsOriginPassword { get; set; }
+
+        // These FOUR can probably go, as we don't use these old APIs any more
         public string PinVerifyUrlFormat { get; set; } // suggest this should be secret
         public string PatronApiEndpoint { get; set; }
         public string MillenniumUserName { get; set; }
         public string MillenniumPassword { get; set; }
 
-        // Refactor this into SierraOptions?
+        // ...And these ones can be refactored into their own SierraRestApiOptions?
         public string SierraRestApiTokenEndPoint { get; set; }
         public string SierraRestApiScope { get; set; }
         public string SierraRestApiClientId { get; set; }
