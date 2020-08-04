@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -86,8 +87,10 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddDlcsClient(Configuration);
 
+            services.AddHttpClient<OAuth2ApiConsumer>();
+
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>

@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OAuth2\OAuth2.csproj" />
     <ProjectReference Include="..\Utils.Aws\Utils.Aws.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />

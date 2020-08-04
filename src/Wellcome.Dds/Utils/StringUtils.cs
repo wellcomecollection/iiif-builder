@@ -284,5 +284,90 @@ namespace Utils
             }
             return stripped.Substring(0, lastSpace) + "...";
         }
+
+        /// <summary>
+        /// True if EVERY supplied string has significant content.
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <returns></returns>
+        public static bool AllHaveText(params string[] strings)
+        {
+            return strings.AllHaveText();
+        }
+
+        /// <summary>
+        /// True if EVERY supplied string has significant content.
+        /// </summary>
+        /// <param name="strings"></param>
+        /// <returns></returns>
+        public static bool AllHaveText(this IEnumerable<string> strings)
+        {
+            foreach (string s in strings)
+            {
+                if (!HasText(s)) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// True if ANY supplied string has significant content.
+        /// </summary>
+        /// <param name="tests"></param>
+        /// <returns></returns>
+        public static bool AnyHaveText(params string[] tests)
+        {
+            foreach (string s in tests)
+            {
+                if (s.HasText())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Inversion of AnyHaveText, for readability
+        /// </summary>
+        /// <param name="tests"></param>
+        /// <returns></returns>
+        public static bool NoneHaveText(params string[] tests)
+        {
+            return !AnyHaveText(tests);
+        }
+
+        /// <summary>
+        /// attempt to parse a boolean value from common representations (more flexible than bool.Parse)
+        /// 
+        /// "yes" => true
+        /// "y" => true
+        /// "1" => true
+        /// "YES" => true
+        /// "trUE" => true
+        /// "0" => false
+        /// "NO" => false
+        /// 
+        /// ... and so on.
+        /// 
+        /// "", false => false
+        /// "", true => true
+        /// 
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="valueIfEmpty">if string s doesn't contain any text, return this value</param>
+        /// <returns></returns>
+        public static bool GetBoolValue(string s, bool valueIfEmpty)
+        {
+            if (!s.HasText())
+            {
+                return valueIfEmpty;
+            }
+            s = s.ToLowerInvariant().Trim();
+            if (s.StartsWith("y") || s == "1" || s == "true")
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

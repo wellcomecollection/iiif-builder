@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -21,6 +22,8 @@ using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
+using Wellcome.Dds.Auth.Web;
+using Wellcome.Dds.Auth.Web.Sierra;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
@@ -52,10 +55,17 @@ namespace Wellcome.Dds.Server
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
-            
-            services.AddSwagger();
+            services.AddDistributedMemoryCache();
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromSeconds(3600);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
 
+            services.AddSwagger();
             services.AddCors();
+            services.AddMvc();
 
             services.AddHealthChecks()
                 .AddDbContextCheck<DdsContext>("Dds-db");
@@ -72,6 +82,7 @@ namespace Wellcome.Dds.Server
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
+            services.Configure<SierraRestAPIOptions>(Configuration.GetSection("SierraRestAPI"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
@@ -91,9 +102,15 @@ namespace Wellcome.Dds.Server
             services.AddDlcsClient(Configuration);
 
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddHttpClient<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
+            services.AddHttpClient<OAuth2ApiConsumer>();
+            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
             services.AddSingleton<IMetsRepository, MetsRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
+
+            services.AddSingleton<IAuthenticationService, SierraRestPatronAPI>();
+            // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();
+            services.AddSingleton<IUserService, SierraRestPatronAPI>();
+            services.AddSingleton<MillenniumIntegration>();
 
             services.AddControllers().AddJsonOptions(
                 options => {
@@ -112,7 +129,10 @@ namespace Wellcome.Dds.Server
 
             app.UseCors();
             app.SetupSwagger();
+            app.UseStaticFiles();
             app.UseRouting();
+            // For discussion: we only need session state on one particular controller.
+            // app.UseSession();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

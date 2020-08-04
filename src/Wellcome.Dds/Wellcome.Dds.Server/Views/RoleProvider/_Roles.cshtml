@@ -1,0 +1,30 @@
+﻿@model Wellcome.Dds.Auth.Web.Roles
+
+<div style="border: 1px solid gray; padding:1em;">
+
+    <p>User expires (from Sierra): @Model.Expires</p>
+
+    <p>Sierra Roles:</p>
+    <ul>
+        @foreach (var role in Model.GetSierraRoles())
+        {
+            <li>@role</li>
+        }
+    </ul>
+
+    <p>DLCS Roles:</p>
+    <ul>
+        @foreach (var role in Model.GetDlcsRoles())
+        {
+            <li>@role</li>
+        }
+    </ul>
+
+    <p>Inferred permissions</p>
+    <ul>
+        <li>User has accepted terms (should always be true): <b>@Model.HasAcceptedTerms</b></li>
+        <li>User is a heath care professional (can see clinical): <b>@Model.IsHealthCareProfessional</b></li>
+        <li>User is Wellcome staff (can see restricted): <b>@Model.IsWellcomeStaffMember</b></li>
+    </ul>
+
+</div>
