@@ -18,7 +18,7 @@
         /// <summary>
         /// Create IIIF v3 and save to S3.
         /// </summary>
-        public bool RebuildPackageCaches { get; set; }
+        public bool RebuildIIIF3 { get; set; }
         
         public bool RebuildTextCaches { get; set; } 
         
