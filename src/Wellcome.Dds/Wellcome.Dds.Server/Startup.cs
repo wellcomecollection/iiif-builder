@@ -1,4 +1,5 @@
 using System;
+using Community.Microsoft.Extensions.Caching.PostgreSql;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
@@ -45,13 +46,22 @@ namespace Wellcome.Dds.Server
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
-            
+
+            var ddsConnectionString = Configuration.GetConnectionString("Dds");
             services.AddDbContext<DdsContext>(options => options
-                .UseNpgsql(Configuration.GetConnectionString("Dds"))
+                .UseNpgsql(ddsConnectionString)
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
-            services.AddDistributedMemoryCache();
+            services.AddDistributedPostgreSqlCache(setup =>
+            {
+                setup.ConnectionString = ddsConnectionString;
+                setup.SchemaName = "public";
+                setup.TableName = "__dist_cache";
+                setup.CreateInfrastructure = !WebHostEnvironment.IsProduction();
+                setup.DefaultSlidingExpiration = TimeSpan.FromMinutes(20); // TODO - is this right?
+            });
+            
             services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromSeconds(3600);

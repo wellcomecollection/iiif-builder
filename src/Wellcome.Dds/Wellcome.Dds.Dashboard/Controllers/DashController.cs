@@ -683,13 +683,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> StorageIngest(string id)
         {
-            var archivalStorageFactory = workStorageFactory as ArchiveStorageServiceWorkStorageFactory;
-            if (archivalStorageFactory == null)
+            if (!(workStorageFactory is ArchiveStorageServiceWorkStorageFactory archivalStorageFactory))
             {
                 throw new NotSupportedException("This page only works with the new storage service");
             }
             var ingest = await archivalStorageFactory.GetIngest(id);
-            return View(Models.Ingest.FromJObject(ingest));
+            return View(Ingest.FromJObject(ingest));
         }
 
         public ActionResult Settings()

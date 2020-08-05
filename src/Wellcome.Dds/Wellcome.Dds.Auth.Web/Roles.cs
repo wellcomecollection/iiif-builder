@@ -40,29 +40,15 @@ namespace Wellcome.Dds.Auth.Web
             get { return true; }
         }
 
-        public bool IsHealthCareProfessional
-        {
-            get
-            {
-                return Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:True") != -1;
-            }
-        }
-        public bool IsWellcomeStaffMember
-        {
-            get
-            {
-                return Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:True") != -1;
-            }
-        }
+        public bool IsHealthCareProfessional 
+            => Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:True") != -1;
+        
+        public bool IsWellcomeStaffMember 
+            => Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:True") != -1;
 
         // this is currently not used, but could be
-        public bool HasCompletedRestrictedAccessForm
-        {
-            get
-            {
-                return Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:True") != -1;
-            }
-        }
+        public bool HasCompletedRestrictedAccessForm 
+            => Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:True") != -1;
 
         public DateTime Expires { get; set; }
 
