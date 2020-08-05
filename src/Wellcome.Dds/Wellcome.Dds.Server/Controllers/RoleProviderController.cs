@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Options;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Auth.Web;
-using Wellcome.Dds.Common;
+using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Infrastructure;
 using Wellcome.Dds.Server.Models;
 
@@ -25,19 +22,16 @@ namespace Wellcome.Dds.Server.Controllers
     [MiddlewareFilter(typeof(SessionPipeline))]
     public class RoleProviderController : Controller
     {
-        private MillenniumIntegration millenniumIntegration;
-        private IDistributedCache distributedCache;
-        private DdsOptions ddsOptions;
+        private readonly MillenniumIntegration millenniumIntegration;
+        private readonly IDistributedCache distributedCache;
 
         public RoleProviderController(
             MillenniumIntegration millenniumIntegration,
-            IDistributedCache distributedCache,
-            IOptions<DdsOptions> options
+            IDistributedCache distributedCache
         )
         {
             this.millenniumIntegration = millenniumIntegration;
             this.distributedCache = distributedCache;
-            this.ddsOptions = options.Value;
         }
 
         // Move these to config later
@@ -77,6 +71,50 @@ namespace Wellcome.Dds.Server.Controllers
             return await Login(testReturnUrl);
         }
 
+        public ActionResult Info([FromQuery] string token)
+        {
+            var info = new RoleProviderInfoModel();
+            if (token.HasText())
+            {
+                info.SuppliedToken = token;
+                var storedRoles = distributedCache.GetString(GetRolesKey(token));
+                if (storedRoles.HasText())
+                {
+                    info.RolesFromToken = new Roles(storedRoles);
+                }
+            }
+
+            var session = HttpContext.Session;
+            var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
+            info.SessionFlag = sessionFlag;
+
+            // In this info action, we'll attempt to read cached roles regardless of "login state"
+            var storedRoleString = distributedCache.GetString(GetRolesKey(session));
+            if (storedRoleString.HasText())
+            {
+                info.RolesFromSession = new Roles(storedRoleString);
+            }
+
+            return View(info);
+        }
+
+        /// <summary>
+        /// This is what the DLCS calls out of band using its secret knowledge
+        /// </summary>
+        /// <returns></returns>
+        [Authorize(AuthenticationSchemes = BasicAuthenticationDefaults.AuthenticationScheme)]
+        public ActionResult RolesForToken([FromQuery] string token)
+        {
+            var storedRoles = distributedCache.GetString(GetRolesKey(token));
+            if (storedRoles.HasText())
+            {
+                var sierraRoles = new Roles(storedRoles);
+                return Json(sierraRoles.GetDlcsRoles());
+            }
+
+            return NotFound($"Could not find user for token '{token}'");
+        }
+        
         private async Task<ActionResult> Login(string returnUrl)
         {            
             var session = HttpContext.Session;
@@ -120,84 +158,8 @@ namespace Wellcome.Dds.Server.Controllers
             return View("OpenedLoginWindow", model);
         }
 
+        private string GetRolesKey(ISession session) => GetRolesKey(session.Id);
 
-        private string GetRolesKey(ISession session)
-        {
-            return GetRolesKey(session.Id);
-        }
-
-        private string GetRolesKey(string token)
-        {
-            return $"roles_{token}";
-        }
-
-        public async Task<ActionResult> Info()
-        {
-            var info = new RoleProviderInfoModel();
-            string token = Request.Query["token"].FirstOrDefault();
-            if (token.HasText())
-            {
-                info.SuppliedToken = token;
-                var storedRoles = distributedCache.GetString(GetRolesKey(token));
-                if (storedRoles.HasText())
-                {
-                    info.RolesFromToken = new Roles(storedRoles);
-                }
-            }
-                        
-            var session = HttpContext.Session;
-            var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
-            info.SessionFlag = sessionFlag;
-
-            // In this info action, we'll attempt to read cached roles regardless of "login state"
-            var storedRoleString = distributedCache.GetString(GetRolesKey(session));
-            if (storedRoleString.HasText())
-            {
-                info.RolesFromSession = new Roles(storedRoleString);
-            }
-
-            return View(info);
-        }
-
-        /// <summary>
-        /// This is what the DLCS calls out of band using its secret knowledge
-        /// </summary>
-        /// <returns></returns>
-        public ActionResult RolesForToken()
-        {
-            string token = Request.Query["token"].FirstOrDefault();
-            if (AuthorizeDlcs(Request, Response) && token.HasText())
-            {
-                var storedRoles = distributedCache.GetString(GetRolesKey(token));
-                if(storedRoles.HasText())
-                {
-                    var sierraRoles = new Roles(storedRoles);
-                    return Json(sierraRoles.GetDlcsRoles());
-                }
-                return NotFound("Could not find user for token " + token);
-            }
-            return null;
-        }
-
-        private bool AuthorizeDlcs(HttpRequest request, HttpResponse response)
-        {
-            var authz = request.Headers["Authorization"].FirstOrDefault();
-            if (!authz.HasText())
-            {
-                response.StatusCode = 401;
-                response.Headers.Add("WWW-Authenticate", "Basic realm=\"Wellcome\"");
-                return false;
-            }
-            var cred = Encoding.ASCII.GetString(Convert.FromBase64String(authz.Substring(6))).Split(':');
-            var user = new { Name = cred[0], Pass = cred[1] };
-            if (user.Name == ddsOptions.DlcsOriginUsername && user.Pass == ddsOptions.DlcsOriginPassword)
-            {
-                return true;
-            }
-            response.StatusCode = 403;
-            return false;
-        }
+        private string GetRolesKey(string token) => $"roles_{token}";
     }
-
-
 }

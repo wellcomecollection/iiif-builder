@@ -3,7 +3,6 @@ using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,20 +13,17 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
-using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
-using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
-using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Auth.Web;
 using Wellcome.Dds.Auth.Web.Sierra;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
@@ -86,6 +82,8 @@ namespace Wellcome.Dds.Server
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+            
+            services.AddBasicAuth(opts => opts.Realm = "Wellcome");
 
             // This will require an S3 implementation in production
             //services.AddSingleton<IStorage, FileSystemStorage>();
@@ -131,6 +129,7 @@ namespace Wellcome.Dds.Server
             app.SetupSwagger();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseAuthorization();
             // For discussion: we only need session state on one particular controller.
             // app.UseSession();
             app.UseEndpoints(endpoints =>
