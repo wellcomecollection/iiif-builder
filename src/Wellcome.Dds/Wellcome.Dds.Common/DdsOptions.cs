@@ -32,5 +32,7 @@
         public string PatronApiEndpoint { get; set; }
         public string MillenniumUserName { get; set; }
         public string MillenniumPassword { get; set; }
+        
+        public string DlcsReturnUrl { get; set; }
     }
 }

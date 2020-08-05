@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Auth.Web;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Infrastructure;
 using Wellcome.Dds.Server.Models;
@@ -24,20 +26,20 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly MillenniumIntegration millenniumIntegration;
         private readonly IDistributedCache distributedCache;
+        private readonly DdsOptions ddsOptions;
 
         public RoleProviderController(
             MillenniumIntegration millenniumIntegration,
-            IDistributedCache distributedCache
+            IDistributedCache distributedCache,
+            IOptions<DdsOptions> ddsOptions
         )
         {
             this.millenniumIntegration = millenniumIntegration;
             this.distributedCache = distributedCache;
+            this.ddsOptions = ddsOptions.Value;
         }
-
-        // Move these to config later
-        private const string dlcsReturnUrl = "https://dlcs.io/auth/2/fromcas";
-        private const string testReturnUrl = "/roleprovider/info";
-        private const string sessionFlagKey = "roles_acquired";
+        
+        private const string SessionFlagKey = "roles_acquired";
 
         /// <summary>
         /// DLCS delegated login screen redirects to here. 
@@ -63,12 +65,48 @@ namespace Wellcome.Dds.Server.Controllers
         /// <returns></returns>
         public async Task<ActionResult> DlcsLogin()
         {
-            return await Login(dlcsReturnUrl);
-        }
-
-        public async Task<ActionResult> TestLogin()
-        {
-            return await Login(testReturnUrl);
+            var returnUrl = ddsOptions.DlcsReturnUrl;
+            var session = HttpContext.Session;
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            Response.AppendStandardNoCacheHeaders();
+            string username = null;
+            string password = null;
+            
+            if (Request.Method == "POST")
+            {
+                username = Request.Form["directlogin_u"].FirstOrDefault();
+                password = Request.Form["directlogin_p"].FirstOrDefault();
+            }
+            
+            LoginResult loginResult = null;
+            if (username.HasText())
+            {
+                loginResult = await millenniumIntegration.LoginWithMillenniumAsync(username, password);
+                if (loginResult.Success)
+                {
+                    session.SetInt32(SessionFlagKey, 1);
+                    await distributedCache.SetStringAsync(GetRolesKey(session), loginResult.Roles.ToString());
+                    return new RedirectResult(returnUrl + "?token=" + session.Id);
+                }
+            }
+            var sessionFlag = session.GetInt32(SessionFlagKey) ?? 0;
+            if (sessionFlag == 1)
+            {
+                // The user has logged in; did we store their roles?
+                var storedRoleString = await distributedCache.GetStringAsync(GetRolesKey(session));
+                if (storedRoleString.HasText())
+                {
+                    return new RedirectResult($"{returnUrl}?token={session.Id}");
+                }
+                // We recognised the session, but don't have roles stored that the DLCS could retrieve
+                session.SetInt32(SessionFlagKey, 0);
+            }
+            var model = new LoginModel
+            {
+                Username = username,
+                Message = loginResult?.Message
+            };
+            return View("OpenedLoginWindow", model);
         }
 
         public ActionResult Info([FromQuery] string token)
@@ -85,7 +123,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
 
             var session = HttpContext.Session;
-            var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
+            var sessionFlag = session.GetInt32(SessionFlagKey) ?? 0;
             info.SessionFlag = sessionFlag;
 
             // In this info action, we'll attempt to read cached roles regardless of "login state"
@@ -113,49 +151,6 @@ namespace Wellcome.Dds.Server.Controllers
             }
 
             return NotFound($"Could not find user for token '{token}'");
-        }
-        
-        private async Task<ActionResult> Login(string returnUrl)
-        {            
-            var session = HttpContext.Session;
-            Response.Headers["Access-Control-Allow-Origin"] = "*";
-            Response.AppendStandardNoCacheHeaders();
-            string username = null;
-            string password = null;
-            if (Request.Method == "POST")
-            {
-                username = Request.Form["directlogin_u"].FirstOrDefault();
-                password = Request.Form["directlogin_p"].FirstOrDefault();
-            }
-            LoginResult loginResult = null;
-            if (username.HasText())
-            {
-                loginResult = await millenniumIntegration.LoginWithMillenniumAsync(username, password);
-                if (loginResult.Success)
-                {
-                    session.SetInt32(sessionFlagKey, 1);
-                    await distributedCache.SetStringAsync(GetRolesKey(session), loginResult.Roles.ToString());
-                    return new RedirectResult(returnUrl + "?token=" + session.Id);
-                }
-            }
-            var sessionFlag = session.GetInt32(sessionFlagKey) ?? 0;
-            if (sessionFlag == 1)
-            {
-                // The user has logged in; did we store their roles?
-                var storedRoleString = await distributedCache.GetStringAsync(GetRolesKey(session));
-                if (storedRoleString.HasText())
-                {
-                    return new RedirectResult($"{returnUrl}?token={session.Id}");
-                }
-                // We recognised the session, but don't have roles stored that the DLCS could retrieve
-                session.SetInt32(sessionFlagKey, 0);
-            }
-            var model = new LoginModel
-            {
-                Username = username,
-                Message = loginResult?.Message
-            };
-            return View("OpenedLoginWindow", model);
         }
 
         private string GetRolesKey(ISession session) => GetRolesKey(session.Id);
