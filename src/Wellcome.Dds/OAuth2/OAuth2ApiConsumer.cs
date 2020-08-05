@@ -20,6 +20,9 @@ namespace OAuth2
         // A collection of tokens by scope
         private static readonly Dictionary<string, OAuth2Token> Tokens = new Dictionary<string, OAuth2Token>();
 
+        // TODO - I think this class would be better served to only return tokens and not make calls.
+        // could use a DelegatingHandler per httpclient with ClientCredentials set in ctor
+        // allows consumers full access to HttpClient without need to have GetOAuthedJToken/PostBody etc
         public OAuth2ApiConsumer(HttpClient httpClient, ILogger<OAuth2ApiConsumer> logger)
         {
             this.httpClient = httpClient;

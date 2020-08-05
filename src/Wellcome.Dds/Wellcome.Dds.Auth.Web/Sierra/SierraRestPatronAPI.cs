@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.Auth.Web.Sierra.ApiModel;
-using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Auth.Web.Sierra
 {
@@ -54,7 +53,6 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                 if (varFields != null)
                 {
                     var patronRoles = new List<string>();
-                    DateTime expiryDate = DateTime.MinValue;
                     foreach (var field in varFields)
                     {
                         switch (field.Value<string>("fieldTag"))

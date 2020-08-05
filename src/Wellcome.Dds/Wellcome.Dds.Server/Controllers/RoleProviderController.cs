@@ -134,7 +134,7 @@ namespace Wellcome.Dds.Server.Controllers
                 if (loginResult.Success)
                 {
                     session.SetInt32(sessionFlagKey, 1);
-                    distributedCache.SetString(GetRolesKey(session), loginResult.Roles.ToString());
+                    await distributedCache.SetStringAsync(GetRolesKey(session), loginResult.Roles.ToString());
                     return new RedirectResult(returnUrl + "?token=" + session.Id);
                 }
             }
@@ -142,10 +142,10 @@ namespace Wellcome.Dds.Server.Controllers
             if (sessionFlag == 1)
             {
                 // The user has logged in; did we store their roles?
-                var storedRoleString = distributedCache.GetString(GetRolesKey(session));
+                var storedRoleString = await distributedCache.GetStringAsync(GetRolesKey(session));
                 if (storedRoleString.HasText())
                 {
-                    return new RedirectResult(returnUrl + "?token=" + session.Id);
+                    return new RedirectResult($"{returnUrl}?token={session.Id}");
                 }
                 // We recognised the session, but don't have roles stored that the DLCS could retrieve
                 session.SetInt32(sessionFlagKey, 0);

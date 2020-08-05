@@ -28,9 +28,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private readonly IBinaryObjectCache<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         private readonly OAuth2ApiConsumer oAuth2ApiConsumer;
         private readonly ClientCredentials defaultClientCredentials;
-        
-        // A collection of tokens by scope
-        private static readonly Dictionary<string, OAuth2Token> Tokens = new Dictionary<string, OAuth2Token>();
 
         //private readonly BinaryFileCacheManager<WellcomeBagAwareArchiveStorageMap> storageMapCache;
         // if using with a shared cache. But you should really only use this with a request.items cache.
@@ -185,8 +182,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return false;
         }
 
-
-
         public async Task<JObject> GetStorageManifest(string identifier)
         {
             var storageManifestUrl = string.Format(storageOptions.StorageApiTemplate, identifier);
@@ -196,65 +191,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var storageManifestJson = await oAuth2ApiConsumer.GetOAuthedJToken(storageManifestUrl, defaultClientCredentials);
             return (JObject)storageManifestJson;
         }
-
-        //private async Task<JToken> GetOAuthedJToken(string url, string scope = null)
-        //{
-        //    Debug.WriteLine("######### " + url);
-        //    var accessToken = (await GetToken(scope)).AccessToken;
-
-        //    var request = new HttpRequestMessage(HttpMethod.Get, url);
-        //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        //    HttpResponseMessage response = null;
-
-        //    try
-        //    {
-        //        response = await httpClient.SendAsync(request);
-        //        response.EnsureSuccessStatusCode();
-                
-        //        var jsonStr = await response.Content.ReadAsStringAsync();
-                
-        //        // TODO - debugging statements need tidied
-        //        HttpClientDebugHelpers.DebugHeaders(request.Headers);
-        //        Debug.WriteLine("-");
-        //        HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
-        //        return JToken.Parse(jsonStr);
-        //    }
-        //    catch (HttpRequestException webex)
-        //    {
-        //        Debug.Write(webex.Message);
-        //        HttpClientDebugHelpers.DebugHeaders(request.Headers);
-        //        Debug.WriteLine("-");
-        //        if (response != null)
-        //        {
-        //            HttpClientDebugHelpers.DebugHeaders(response.Content.Headers);
-        //        }
-        //        throw;
-        //    }
-        //}
-
-        //public async Task<OAuth2Token> GetToken(string scope = null)
-        //{
-        //    var targetScope = scope ?? storageOptions.Scope;
-        //    var haveToken = Tokens.TryGetValue(targetScope, out var currentToken);
-            
-        //    if (haveToken && !(currentToken.GetTimeToLive().TotalSeconds < 60)) return currentToken;
-            
-        //    var data = new Dictionary<string, string>
-        //    {
-        //        ["grant_type"] = "client_credentials",
-        //        ["client_id"] = storageOptions.ClientId,
-        //        ["client_secret"] = storageOptions.ClientSecret,
-        //        ["scope"] = targetScope,
-        //    };
-
-        //    var response = await httpClient.PostAsync(storageOptions.TokenEndPoint, new FormUrlEncodedContent(data));
-
-        //    response.EnsureSuccessStatusCode();
-
-        //    var token = await response.Content.ReadAsAsync<OAuth2Token>();
-        //    Tokens[targetScope] = token;
-        //    return token;
-        //}
 
         public async Task<JObject> GetIngest(string ingestId)
         {
