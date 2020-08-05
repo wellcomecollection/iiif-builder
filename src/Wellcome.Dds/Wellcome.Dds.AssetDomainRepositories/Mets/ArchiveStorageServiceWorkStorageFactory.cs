@@ -75,8 +75,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string identifier)
         {
             logger.LogInformation("Requires new build of storage map for {identifier}", identifier);
-            var storageManifest = LoadStorageManifest(identifier);
-            return BuildStorageMapFromManifest(await storageManifest, identifier);
+            var storageManifest = await LoadStorageManifest(identifier);
+            return BuildStorageMapFromManifest(storageManifest, identifier);
         }
         
         private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap map)

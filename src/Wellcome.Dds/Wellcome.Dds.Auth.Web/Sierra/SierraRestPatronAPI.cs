@@ -123,6 +123,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
 
         private DateTime GetExpiryDate(string value)
         {
+            // TODO - could we use DateTime.TryParse or DateTime.Parse here?
             // The REST API returns the date in a different format...
             int monthStart = 4;
             int dayStart = 6;

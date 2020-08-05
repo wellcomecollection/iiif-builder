@@ -13,7 +13,7 @@ namespace Wellcome.Dds.Auth.Web
         public const string PatronExpiryFieldTag = "43";
         public const string PseudoWellcomeStaffTag = "w";
 
-        private string[] sierraRoles;
+        private readonly string[] sierraRoles;
 
         public Roles(string[] sierraRoles, DateTime expires)
         {
@@ -28,34 +28,26 @@ namespace Wellcome.Dds.Auth.Web
             Expires = DateTime.Parse(parts.Last());
         }
 
-        public override string ToString()
-        {
-            return "r-" + string.Join('|', sierraRoles) + "|" + Expires.ToString("yyyy-MM-dd");
-        }
+        public override string ToString() 
+            => "r-" + string.Join('|', sierraRoles) + "|" + Expires.ToString("yyyy-MM-dd");
 
-        public bool HasAcceptedTerms
-        {
-            // This will always be true in new DDS 
-            // (ability to use clickthrough) - defer that to wc.org site, no way of getting it here.
-            get { return true; }
-        }
+        // This will always be true in new DDS 
+        // (ability to use clickthrough) - defer that to wc.org site, no way of getting it here.
+        public bool HasAcceptedTerms => true;
 
         public bool IsHealthCareProfessional 
-            => Array.IndexOf(sierraRoles, $"{HealthCareProfessionalFieldTag}:True") != -1;
+            => sierraRoles.Contains($"{HealthCareProfessionalFieldTag}:True");
         
         public bool IsWellcomeStaffMember 
-            => Array.IndexOf(sierraRoles, $"{PseudoWellcomeStaffTag}:True") != -1;
+            => sierraRoles.Contains($"{PseudoWellcomeStaffTag}:True");
 
         // this is currently not used, but could be
         public bool HasCompletedRestrictedAccessForm 
-            => Array.IndexOf(sierraRoles, $"{RestrictedArchiveFieldTag}:True") != -1;
+            => sierraRoles.Contains($"{RestrictedArchiveFieldTag}:True");
 
         public DateTime Expires { get; set; }
 
-        public string[] GetSierraRoles()
-        {
-            return sierraRoles;
-        }
+        public string[] GetSierraRoles() => sierraRoles;
 
         public string[] GetDlcsRoles()
         {
