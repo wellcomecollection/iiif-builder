@@ -25,7 +25,6 @@ using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
-    [Authorize]
     public class DashController : Controller
     {
         private readonly IDashboardRepository dashboardRepository;

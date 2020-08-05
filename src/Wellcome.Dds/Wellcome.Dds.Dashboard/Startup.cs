@@ -143,12 +143,16 @@ namespace Wellcome.Dds.Dashboard
             app.UsePathBase("/dash");
             app.UseStaticFiles();
             app.UseRouting();
-            
+
             app.UseAuthentication();
             app.UseAuthorization();
             
-            app.UseEndpoints(endpoints => {
-                endpoints.MapControllers();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints
+                    .MapControllers()
+                    .RequireAuthorization();
+                
                 endpoints.MapControllerRoute("Default", "{controller}/{action}/{id?}/{*parts}",
                     defaults: new { controller = "Dash", action = "Index" }
                 );
