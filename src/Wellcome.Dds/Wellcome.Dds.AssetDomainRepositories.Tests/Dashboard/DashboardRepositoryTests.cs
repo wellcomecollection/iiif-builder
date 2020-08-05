@@ -74,7 +74,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 BNumber = bNumber,
                 DisplayTitle = label,
                 EncoreRecordUrl = "/b1234567/catalogue",
-                ItemPageUrl = "/test/b123456789/item/x",
+                ItemPageUrl = "/test/b123456789/player/x",
                 ManifestUrl = "/manifest/b123456789",
                 EncoreBiblioRecordUrl = "/biblio/b1234567"
             };

@@ -24,9 +24,6 @@ namespace OAuth2
             Acquired = DateTime.Now;
         }
 
-        public TimeSpan GetTimeToLive()
-        {
-            return (Acquired + new TimeSpan(0, 0, ExpiresIn)) - DateTime.Now;
-        }
+        public TimeSpan GetTimeToLive() => (Acquired + TimeSpan.FromSeconds(ExpiresIn)) - DateTime.Now;
     }
 }
