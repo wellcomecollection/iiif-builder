@@ -36,7 +36,7 @@
                     <li>@Html.ActionLink("Jobs", "Jobs", "Dash")</li>
                     <li>@Html.ActionLink("Queue", "Queue", "Dash")</li>
                     <li>@Html.ActionLink("Status", "Status", "Dash")</li>
-                    <li>@Html.ActionLink("Types", "AssetType", "Dash")</li>
+                    <li>@Html.ActionLink("Types", "AssetType", "Dash", null, new { @class = "wip"})</li>
                     <li class="@ViewBag.StopClass">@Html.ActionLink("Stop", "StopStatus", new { controller = "Dash" }, new { @class = ViewBag.StopClass })</li>
                 </ul>
                 <p class="nav navbar-text @ViewBag.HeartbeatClass" title="@heartBeatDisplay">

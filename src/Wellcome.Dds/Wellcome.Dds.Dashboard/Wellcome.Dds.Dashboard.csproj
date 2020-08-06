@@ -152,7 +152,6 @@
     <None Include="Views\Dash\Queue.cshtml" />
     <None Include="Views\Dash\RecentActions.cshtml" />
     <None Include="Views\Dash\Settings.cshtml" />
-    <None Include="Views\Dash\Stats.cshtml" />
     <None Include="Views\Dash\Status.cshtml" />
     <None Include="Views\Dash\StopStatus.cshtml" />
     <None Include="Views\Dash\StorageIngest.cshtml" />
