@@ -15,9 +15,7 @@
         public bool AvoidCaching { get; set; }
         public string EarliestJobDateTime { get; set; }
         public int MinimumJobAgeMinutes { get; set; }
-        public string JobProcessorLog { get; set; }
-        public string WorkflowProcessorLog { get; set; }
-        public string DashBodyInject { get; set; } = "";
+        
         public string GoobiCall { get; set; }
 
         // New, Catalogue

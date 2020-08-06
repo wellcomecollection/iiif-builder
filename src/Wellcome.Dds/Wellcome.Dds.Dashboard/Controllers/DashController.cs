@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +16,6 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
@@ -35,14 +32,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly CacheBuster cacheBuster;
-        private readonly DdsOptions ddsOptions;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
         private readonly IWebHostEnvironment webHostEnvironment;
+        private readonly Synchroniser synchroniser;
 
-        const string CacheKeyPrefix = "dashcontroller_";
-        const int CacheSeconds = 5;
-        private Synchroniser synchroniser;
+        private const string CacheKeyPrefix = "dashcontroller_";
+        private const int CacheSeconds = 5;
 
         public DashController(
             IDashboardRepository dashboardRepository,
@@ -54,7 +50,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
             IWorkStorageFactory workStorageFactory,
             CacheBuster cacheBuster,
-            IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
             IWebHostEnvironment webHostEnvironment
@@ -69,7 +64,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
             this.workStorageFactory = workStorageFactory;
             this.cacheBuster = cacheBuster;
-            this.ddsOptions = ddsOptions.Value;
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
             this.webHostEnvironment = webHostEnvironment;
@@ -102,8 +96,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ProblemJobs = new JobsModel { Jobs = problemJobs.ToArray() },
                 ErrorsByMetadataPage = errorsByMetadataPage,
-                IngestActions = GetIngestActionDictionary(recentActions),
-                BodyInject = ddsOptions.DashBodyInject
+                IngestActions = GetIngestActionDictionary(recentActions)
             };
             return View(model);
         }
@@ -603,43 +596,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             int removed = await dashboardRepository.DeleteOrphans(id);
             TempData["orphans-deleted"] = removed;
             return RedirectToAction("Manifestation", new { id });
-        }
-
-
-        public ActionResult TailJobProcessor(int id = 60)
-        {
-            var model = GetLogTailModel(ddsOptions.JobProcessorLog, id);
-            return View(model);
-        }
-
-
-        public ActionResult TailWorkflowProcessor(int id = 60)
-        {
-            var model = GetLogTailModel(ddsOptions.WorkflowProcessorLog, id);
-            return View(model);
-        }
-
-        private string[] GetLogTailModel(string path, int lines)
-        {
-            ViewBag.LogFilePath = path;
-            string[] model = { "Unable to read log at " + path };
-            if (path != null && System.IO.File.Exists(path))
-            {
-                // not suitable for huge log files, but simple
-                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (var sr = new StreamReader(fs))
-                {
-                    List<string> file = new List<string>();
-                    while (!sr.EndOfStream)
-                    {
-                        file.Add(sr.ReadLine());
-                    }
-                    var log = file.ToArray();
-                    var start = Math.Max(0, log.Length - lines);
-                    model = log.Skip(start).ToArray();
-                }
-            }
-            return model;
         }
 
         public JsonResult AutoComplete(string id)

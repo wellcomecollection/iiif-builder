@@ -70,6 +70,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<DlcsOptions>(dlcsSection);
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
+            services.Configure<DashOptions>(Configuration.GetSection("Dash"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));

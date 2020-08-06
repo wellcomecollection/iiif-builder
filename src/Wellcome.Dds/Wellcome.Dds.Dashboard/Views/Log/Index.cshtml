@@ -1,0 +1,13 @@
+﻿@model Wellcome.Dds.Dashboard.Models.Log.LogModel
+
+@{
+    ViewBag.Title = "Dash: Logs";
+}
+
+<h1>Processor Logs</h1>
+
+<p>Logs can be viewed using the following links:</p>
+<ul class="list-unstyled">
+    <li><a href="@Model.WorkflowProcessorUri">Workflow Processor</a></li>
+    <li><a href="@Model.JobProcessorUri">Job Processor</a></li>
+</ul>

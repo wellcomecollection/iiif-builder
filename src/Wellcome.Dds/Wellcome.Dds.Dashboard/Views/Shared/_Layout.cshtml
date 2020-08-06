@@ -1,4 +1,5 @@
-﻿@inject IOptions<DdsOptions> DdsOptions
+﻿@using Wellcome.Dds.Dashboard
+@inject IOptions<DashOptions> DashOptions
 @{
     var heartBeat = (DateTime?) ViewBag.Heartbeat;
     var heartBeatDisplay = $"Seen: {heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
@@ -16,7 +17,7 @@
     @*  TODO - do we actually need this?
         <script src="~/js/modernizr-2.6.2.js" />*@
 </head>
-<body class="@RenderSection("BodyClass", false)" style="@DdsOptions.Value.DashBodyInject">
+<body class="@RenderSection("BodyClass", false)" style="@DashOptions.Value.DashBodyInject">
     <div class="navbar navbar-inverse navbar-fixed-top">
         <div class="container success">
             <div class="navbar-header">
@@ -43,7 +44,7 @@
                     DLCS Queue: @String.Format("{0}{1}", ViewBag.QueueLevels["incoming"], ViewBag.QueueLevels["priority"] > 0 ? String.Format(" priority:{0}", ViewBag.QueueLevels["priority"]) : String.Empty)
                     @if (ViewBag.HeartbeatWarning)
                     {
-                        <text> | @heartBeatDisplay | @Html.ActionLink("Log", "TailJobProcessor", "Dash")</text>
+                        <text> | @heartBeatDisplay | @Html.ActionLink("Log", "Index", "Log")</text>
                     }
                 </p>
                 @using (Html.BeginForm("ManifestationSearch", "Dash", FormMethod.Post, new { @class = "navbar-form navbar-right", role = "search" }))
