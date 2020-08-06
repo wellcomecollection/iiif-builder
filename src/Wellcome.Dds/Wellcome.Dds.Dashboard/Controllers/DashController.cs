@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -34,7 +33,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly CacheBuster cacheBuster;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
-        private readonly IWebHostEnvironment webHostEnvironment;
         private readonly Synchroniser synchroniser;
 
         private const string CacheKeyPrefix = "dashcontroller_";
@@ -51,8 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IWorkStorageFactory workStorageFactory,
             CacheBuster cacheBuster,
             IOptions<DlcsOptions> dlcsOptions,
-            IDds dds,
-            IWebHostEnvironment webHostEnvironment
+            IDds dds
         )
         {
             this.dashboardRepository = dashboardRepository;
@@ -66,7 +63,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.cacheBuster = cacheBuster;
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
-            this.webHostEnvironment = webHostEnvironment;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -645,18 +641,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             var ingest = await archivalStorageFactory.GetIngest(id);
             return View(Ingest.FromJObject(ingest));
-        }
-
-        public ActionResult Settings()
-        {
-            var appSettings = "appsettings.json";
-            var appSettingsEnv = $"appsettings.{webHostEnvironment.EnvironmentName}.json";
-            var settings = new SettingsModel
-            {
-                AppSettings = System.IO.File.ReadAllText(appSettings),
-                AppSettingsForEnvironment = System.IO.File.ReadAllText(appSettingsEnv)
-            };
-            return View(settings);
         }
     }
 
