@@ -30,7 +30,7 @@
         <tr>
             @if (!isDetail)
             {
-                <td>@Html.ActionLink(batch.DlcsIngestJobId.ToString(), "Job", "Dash", new {id = batch.DlcsIngestJobId}, new {})</td>
+                <td>@Html.ActionLink(batch.DlcsIngestJobId.ToString(), "Index", "Job", new {id = batch.DlcsIngestJobId}, new {})</td>
             }
             <td>@batch.Id</td>
             <td>@batch.BatchSize</td>

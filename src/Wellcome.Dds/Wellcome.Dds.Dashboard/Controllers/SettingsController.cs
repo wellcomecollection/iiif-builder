@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Wellcome.Dds.Dashboard.Models.Settings;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {

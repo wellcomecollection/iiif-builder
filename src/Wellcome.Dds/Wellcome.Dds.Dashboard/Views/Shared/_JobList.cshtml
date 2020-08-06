@@ -29,7 +29,7 @@
                 @if (!isDetail)
                 {
                     <td><a class="row-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> </a></td>
-                    <td>@Html.ActionLink(job.Id.ToString(), "Job", "Dash", new { id = job.Id }, new { })</td>
+                    <td>@Html.ActionLink(job.Id.ToString(), "Index", "Job", new { id = job.Id }, new { })</td>
                 }
                 <td>@Html.ActionLink(manifestation, "Manifestation", "Dash", new { id = manifestation }, new { })</td>
                 <td>@job.Created</td>

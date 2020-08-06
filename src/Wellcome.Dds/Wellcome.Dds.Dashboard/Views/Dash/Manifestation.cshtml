@@ -128,7 +128,7 @@
                         <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
                         if (latest.Submitted < DateTime.Now.AddMinutes(-10))
                         {
-                            <p><a href="@Url.Action("Resubmit", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
+                            <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
                         }
                     }
                 </div>
@@ -160,7 +160,7 @@
                             }
                         </tbody>
                     </table>
-                    <a href="@Url.Action("Sync", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
                 </div>
             </div>
         }
@@ -288,7 +288,7 @@
         {
             <li class="list-group-item">
                 <span class="badge">@job.ImageCount</span>
-                @Html.ActionLink("" + job.Created, "Job", "Dash", new {id = job.Id}, new {})
+                @Html.ActionLink("" + job.Created, "Index", "Job", new {id = job.Id}, new {})
                 @{
                     if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
                     {
@@ -303,13 +303,13 @@
         @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
         {
             <li class="list-group-item">
-                <a href="@Url.Action("CleanOldJobs", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
+                <a href="@Url.Action("CleanOldJobs", "Job", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
             </li>
         }
         @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
         {
             <li class="list-group-item">
-                <a href="@Url.Action("ForceReingest", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
+                <a href="@Url.Action("ForceReingest", "Job", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
             </li>
         }
     </ul>
@@ -321,10 +321,10 @@
             <h3>Multiples</h3>
             <ul class="list-group">
                 <li class="list-group-item">
-                    <a href="@Url.Action("SyncAllManifestations", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("SyncAllManifestations", "Job", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
                 </li>
                 <li class="list-group-item">
-                    <a href="@Url.Action("ForceReingestAllManifestations", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("ForceReingestAllManifestations", "Job", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
                 </li>
             </ul>
         }

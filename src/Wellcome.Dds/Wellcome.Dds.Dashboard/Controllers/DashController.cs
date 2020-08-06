@@ -25,7 +25,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IDashboardRepository dashboardRepository;
         private readonly IIngestJobRegistry jobRegistry;
-        private readonly IIngestJobProcessor jobProcessor;
         private readonly ISimpleCache cache;
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
@@ -33,7 +32,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly CacheBuster cacheBuster;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
-        private readonly Synchroniser synchroniser;
 
         private const string CacheKeyPrefix = "dashcontroller_";
         private const int CacheSeconds = 5;
@@ -42,9 +40,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IDashboardRepository dashboardRepository,
             ISimpleCache cache,
             IIngestJobRegistry jobRegistry,
-            IIngestJobProcessor jobProcessor,
             IStatusProvider statusProvider,
-            Synchroniser synchroniser,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
             IWorkStorageFactory workStorageFactory,
             CacheBuster cacheBuster,
@@ -55,9 +51,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
             this.jobRegistry = jobRegistry;
-            this.jobProcessor = jobProcessor;
             this.statusProvider = statusProvider;
-            this.synchroniser = synchroniser;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
             this.workStorageFactory = workStorageFactory;
             this.cacheBuster = cacheBuster;
@@ -309,7 +303,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
             // (in order to PUT this in the cache, we need to retrieve it...
             var key = CacheKeyPrefix + collection.Identifier;
             cache.Remove(key);
-            cache.GetCached(CacheSeconds, key, () => collection);
+            
+            // TODO - should this be .Insert() as we've removed cache? 
+            cache.GetCached(CacheSeconds, key, () => collection); 
         }
 
         private ActionResult ShowManifestation(
@@ -403,46 +399,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
         }
 
-
-        // Different actions that all trigger jobs
-        public Task<ActionResult> Sync(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync");
-
-        public Task<ActionResult> Resubmit(string id) => CreateAndProcessJobsAsync(id, true, false, "Resubmit");
-
-        public Task<ActionResult> ForceReingest(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest");
-
-        public Task<ActionResult> SyncAllManifestations(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
-
-        public Task<ActionResult> ForceReingestAllManifestations(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
-
-
-        private async Task<ActionResult> CreateAndProcessJobsAsync(string id, bool includeIngestingImages, bool forceReingest, string action)
-        {
-            var jobs = jobRegistry.RegisterImagesForImmediateStartAsync(id);
-            await foreach (var job in jobs)
-            {
-                dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
-                await jobProcessor.ProcessJobAsync(job, includeIngestingImages, forceReingest, true);
-            }
-            synchroniser.RefreshFlatManifestations(id);
-            return RedirectToAction("Manifestation", new { id });
-        }
-
-        public ActionResult Jobs()
-        {
-            var jobs = jobRegistry.GetJobs(500);
-            var model = new JobsModel { Jobs = jobs.ToArray() };
-            return View(model);
-        }
-
         public ActionResult Queue()
         {
             var queue = jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
             var model = new JobsModel { Jobs = queue.ToArray() };
             return View(model);
         }
-
-
 
         public ActionResult AssetType(string id = "video/mpeg")
         {
@@ -455,7 +417,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             };
             return View(model);
         }
-
 
         public ActionResult RecentActions()
         {
@@ -472,19 +433,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("StopStatus");
         }
 
-        public ActionResult Job(int id)
-        {
-            var job = jobRegistry.GetJob(id);
-            var model = new JobsModel { Jobs = new[] { job } };
-            return View(model);
-        }
-
-
         public ActionResult UV(string id)
         {
             return View(dashboardRepository.GetBNumberModel(id, id));
         }
-
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
         {
@@ -572,15 +524,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("StopStatus");
         }
 
-        public async Task<ActionResult> CleanOldJobs(string id)
-        {
-            int removed = await dashboardRepository.RemoveOldJobs(id);
-            TempData["remove-old-jobs"] = removed;
-            return RedirectToAction("Manifestation", new { id });
-        }
-
-
-
         public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             return dashboardRepository.GetDlcsQueueLevel();
@@ -667,11 +610,5 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public bool Success { get; set; }
         public string Message { get; set; }
         public CacheBustResult CacheBustResult { get; set; }
-    }
-
-    public class SettingsModel
-    {
-        public string AppSettings { get; set; }
-        public string AppSettingsForEnvironment { get; set; }
     }
 }

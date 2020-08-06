@@ -34,7 +34,7 @@
                         <a asp-controller="Account" asp-action="UserPage" title="@User.Identity.Name"><span class="glyphicon glyphicon-user"></span></a>
                     </li>
                     <li>@Html.ActionLink("Activity", "RecentActions", "Dash")</li>
-                    <li>@Html.ActionLink("Jobs", "Jobs", "Dash")</li>
+                    <li>@Html.ActionLink("Jobs", "Jobs", "Job")</li>
                     <li>@Html.ActionLink("Queue", "Queue", "Dash")</li>
                     <li>@Html.ActionLink("Status", "Status", "Dash")</li>
                     <li>@Html.ActionLink("Types", "AssetType", "Dash", null, new { @class = "wip"})</li>
