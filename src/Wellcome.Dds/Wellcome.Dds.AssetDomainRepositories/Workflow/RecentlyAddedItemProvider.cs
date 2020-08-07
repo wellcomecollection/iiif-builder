@@ -27,7 +27,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
             return GetRecentJobsAsDatedIdentifiers(now.AddYears(-1), now, count);
         }
 
-
         // TODO - remove this, just left here to show what was going on before for testing
 //        const string JobSql = @"
 //with cte as (
@@ -66,7 +65,5 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
                 .Take(max)
                 .ToList();
         }
-
     }
-
 }

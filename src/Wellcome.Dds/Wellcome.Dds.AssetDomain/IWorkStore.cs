@@ -12,9 +12,9 @@ namespace Wellcome.Dds.AssetDomain
     {
         string Identifier { get; set; }
         string FileUri(string relativePath);
-        Task<XmlSource> LoadXmlForPathAsync(string relativePath);
-        Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache);
-        Task<XmlSource> LoadXmlForIdentifierAsync(string identifier);
+        Task<XmlSource> LoadXmlForPath(string relativePath);
+        Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache);
+        Task<XmlSource> LoadXmlForIdentifier(string identifier);
         IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier);
         IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath);
         Task<Stream> GetStreamForPathAsync(string relativePath);

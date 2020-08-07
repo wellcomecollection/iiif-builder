@@ -65,7 +65,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
-            var jobs = jobRegistry.RegisterImagesForImmediateStartAsync(id);
+            var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
             await foreach (var job in jobs)
             {
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);

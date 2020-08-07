@@ -24,7 +24,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
-        IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStartAsync(string identifier);
+        IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier);
 
         IEnumerable<DlcsIngestJob> GetJobs(int number);
         IEnumerable<DlcsIngestJob> GetQueue(DateTime? after);

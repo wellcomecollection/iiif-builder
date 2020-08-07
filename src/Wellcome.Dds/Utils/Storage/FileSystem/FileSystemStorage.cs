@@ -18,7 +18,7 @@ namespace Utils.Storage.FileSystem
 
         public string Container { get; set; }
 
-        public ISimpleStoredFileInfo GetCachedFile(string fileName)
+        public ISimpleStoredFileInfo GetCachedFileInfo(string fileName)
         {
             string cachedFilePath = Path.Combine(Container, fileName);
             FileInfo fi = new FileInfo(cachedFilePath);

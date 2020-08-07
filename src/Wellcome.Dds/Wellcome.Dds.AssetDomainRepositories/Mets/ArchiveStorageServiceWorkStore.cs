@@ -25,7 +25,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private readonly IAmazonS3 storageServiceS3;
         private readonly ArchiveStorageServiceWorkStorageFactory factory;
 
-        public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; private set; }
+        public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; }
         
         public ArchiveStorageServiceWorkStore(
             string identifier,
@@ -83,9 +83,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return string.Format(fullUriTemplate, ArchiveStorageMap.BucketName, foundKey);
         }
 
-        public Task<XmlSource> LoadXmlForPathAsync(string relativePath) => LoadXmlForPathAsync(relativePath, true);
+        public Task<XmlSource> LoadXmlForPath(string relativePath) => LoadXmlForPath(relativePath, true);
 
-        public async Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache)
+        public async Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache)
         {
             XElement metsXml;
             if (useCache)
@@ -103,10 +103,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        public async Task<XmlSource> LoadXmlForIdentifierAsync(string identifier)
+        public async Task<XmlSource> LoadXmlForIdentifier(string identifier)
         {
             string relativePath = $"{identifier}.xml";
-            return await LoadXmlForPathAsync(relativePath);
+            return await LoadXmlForPath(relativePath);
         }
 
         public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)

@@ -37,7 +37,7 @@ namespace Utils.Caching
         public ISimpleStoredFileInfo GetCachedFile(string key)
         {
             string fileName = GetFileName(key);
-            return storage.GetCachedFile(fileName);
+            return storage.GetCachedFileInfo(fileName);
         }
 
         public Task DeleteCacheFile(string key)

@@ -19,7 +19,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ContentResult> XmlRaw(string id, string parts)
         {
             var store = await workStorageFactory.GetWorkStore(id);
-            var xmlSource = await store.LoadXmlForPathAsync(parts);
+            var xmlSource = await store.LoadXmlForPath(parts);
             return Content(xmlSource.XElement.ToString(), "text/xml");
         }
         
@@ -30,7 +30,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             string xmlAsString = "";
             try
             {
-                var xmlSource = await store.LoadXmlForPathAsync(parts);
+                var xmlSource = await store.LoadXmlForPath(parts);
                 xmlAsString = xmlSource.XElement.ToString();
             }
             catch (Exception ex)

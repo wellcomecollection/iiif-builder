@@ -50,7 +50,7 @@ namespace Utils.Tests.Caching
             sut.GetCachedFile(key);
             
             // Assert
-            A.CallTo(() => storage.GetCachedFile(expected)).MustHaveHappened();
+            A.CallTo(() => storage.GetCachedFileInfo(expected)).MustHaveHappened();
         }
         
         [Fact]
@@ -60,7 +60,7 @@ namespace Utils.Tests.Caching
             const string key = nameof(GetCachedFile_ReturnsFileFromStorage);
 
             var fileInfo = new FakeStoredFileInfo();
-            A.CallTo(() => storage.GetCachedFile(A<string>._)).Returns(fileInfo);
+            A.CallTo(() => storage.GetCachedFileInfo(A<string>._)).Returns(fileInfo);
             var sut = GetSut();
 
             // Act

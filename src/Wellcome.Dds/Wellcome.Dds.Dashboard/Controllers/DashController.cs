@@ -440,6 +440,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
         {
+            // NOTE - is this leaky if it knows underlying implementation? If it needs to would GetWorkStore<T> work?
             var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
             if (!resolveRelativePath.HasText())
             {
@@ -461,7 +462,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             return View(model);
         }
-
 
         public ActionResult CacheBust(string id)
         {

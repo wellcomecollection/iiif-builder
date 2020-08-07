@@ -2,15 +2,25 @@
 
 namespace Utils.Storage
 {
+    /// <summary>
+    /// Interface for storing serialized representations of cached files.
+    /// </summary>
     public interface IStorage
     {
-        // This might be a bucket, or a filesystem location
+        /// <summary>
+        /// This might be a bucket, or a filesystem location dependent on implementation. 
+        /// </summary>
         public string Container { get; set; }
-
-        // TODO - would this be better named GetCachedFileInfo?
-        ISimpleStoredFileInfo GetCachedFile(string fileName);
+        
+        ISimpleStoredFileInfo GetCachedFileInfo(string fileName);
+        
         Task DeleteCacheFile(string fileName);
+        
         Task Write<T>(T t, ISimpleStoredFileInfo fileInfo, bool writeFailThrowsException) where T : class;
+        
+        /// <summary>
+        /// Read object represented by <see cref="ISimpleStoredFileInfo"/>
+        /// </summary>
         Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class;
     }
 }

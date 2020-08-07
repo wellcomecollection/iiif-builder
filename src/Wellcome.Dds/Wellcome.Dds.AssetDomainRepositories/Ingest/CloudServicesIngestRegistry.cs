@@ -104,9 +104,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         // TODO: Making this async needs a code review (compare CloudServicesIngestRegistry and its interface with dds-ecosystem)
         // The following few mthods all need reviewing
-        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStartAsync(string identifier)
+        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier)
         {
-            await foreach (var job in RegisterImagesInternalAsync(identifier, false, true))
+            await foreach (var job in RegisterImagesInternal(identifier, false, true))
             {
                 yield return job;
             }
@@ -116,19 +116,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             // Can this not return an array? Why does it need to?
             var jobs = new List<DlcsIngestJob>();
-            await foreach (var job in RegisterImagesInternalAsync(identifier, useInitialOrigin, false))
+            await foreach (var job in RegisterImagesInternal(identifier, useInitialOrigin, false))
             {
                 jobs.Add(job);
             }
             return jobs.ToArray();
         }
 
-        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternalAsync(string identifier, bool useInitialOrigin, bool immediateStart)
+        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(string identifier, bool useInitialOrigin, bool immediateStart)
         {
             // TODO - The unstarted old jobs are cleaned out in AddNewJob(..)
             // But wouldn't it be better to clean them all out here? Before creating the set of new
             // jobs for this b number (will be a set of jobs if multi volume)?
-            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContextAsync(identifier))
+            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var job = NewJob(
                     manifestationInContext.BNumber,
