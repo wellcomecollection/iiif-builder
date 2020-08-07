@@ -8,7 +8,7 @@ namespace Wellcome.Dds.Dashboard.Models
     public class JobsModel
     {
         const string Template = " <span class=\"glyphicon glyphicon-{0}\"></span> ";
-        public DlcsIngestJob[] Jobs { get; set; }
+        public IList<DlcsIngestJob> Jobs { get; set; }
 
         public bool HasProblem(DlcsIngestJob job)
         {

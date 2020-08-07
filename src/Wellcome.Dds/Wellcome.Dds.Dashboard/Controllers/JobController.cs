@@ -49,16 +49,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
         
-        public ActionResult Index(int id)
+        public async Task<ActionResult> Index(int id)
         {
-            var job = jobRegistry.GetJob(id);
+            var job = await jobRegistry.GetJob(id);
             var model = new JobsModel { Jobs = new[] { job } };
             return View(model);
         }
         
-        public ActionResult Jobs()
+        public async Task<ActionResult> Recent()
         {
-            var jobs = jobRegistry.GetJobs(500);
+            var jobs = await jobRegistry.GetRecentJobs(500);
             var model = new JobsModel { Jobs = jobs.ToArray() };
             return View(model);
         }

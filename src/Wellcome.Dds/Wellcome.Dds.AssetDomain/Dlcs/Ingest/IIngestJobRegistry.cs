@@ -26,9 +26,18 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// <returns></returns>
         IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier);
 
-        IEnumerable<DlcsIngestJob> GetJobs(int number);
-        IEnumerable<DlcsIngestJob> GetQueue(DateTime? after);
-        IEnumerable<DlcsIngestJob> GetProblems(int maxToFetch);
-        DlcsIngestJob GetJob(int id);
+        Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number);
+        
+        /// <summary>
+        /// Get all jobs that have yet to be started.
+        /// </summary>
+        Task<IEnumerable<DlcsIngestJob>> GetQueue(DateTime? after);
+        
+        /// <summary>
+        /// Get most recent jobs that have not succeeded or have ErrorText
+        /// </summary>
+        Task<IEnumerable<DlcsIngestJob>> GetProblems(int maxToFetch);
+        
+        Task<DlcsIngestJob> GetJob(int id);
     }
 }

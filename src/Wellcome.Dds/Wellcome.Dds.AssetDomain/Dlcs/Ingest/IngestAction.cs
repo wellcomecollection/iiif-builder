@@ -2,6 +2,9 @@
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
+    /// <summary>
+    /// Entity representing a manual action by a user.
+    /// </summary>
     public class IngestAction
     {
         public int Id { get; set; }

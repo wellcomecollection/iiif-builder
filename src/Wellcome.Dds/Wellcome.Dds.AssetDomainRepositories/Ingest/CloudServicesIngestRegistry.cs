@@ -9,7 +9,6 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
-
     public class CloudServicesIngestRegistry : IIngestJobRegistry
     {
         private readonly IMetsRepository metsRepository;
@@ -23,23 +22,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             this.ddsInstrumentationContext = ddsInstrumentationContext;
         }
 
-        public IEnumerable<DlcsIngestJob> GetJobs(int number)
+        public async Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number)
         {
-            return ddsInstrumentationContext.DlcsIngestJobs
+            return await ddsInstrumentationContext.DlcsIngestJobs
                 .OrderByDescending(j => j.Created)
                 .Take(number)
                 .Include(j => j.DlcsBatches)
-                .ToArray(); // The operation cannot be completed because the DbContext has been disposed. Want to defer this
+                .ToArrayAsync(); 
         }
 
-        public DlcsIngestJob GetJob(int id)
+        public Task<DlcsIngestJob> GetJob(int id)
         {
             return ddsInstrumentationContext.DlcsIngestJobs
                 .Include(j => j.DlcsBatches)
-                .SingleOrDefault(j => j.Id == id);
+                .SingleOrDefaultAsync(j => j.Id == id);
         }
 
-        public IEnumerable<DlcsIngestJob> GetQueue(DateTime? after)
+        public async Task<IEnumerable<DlcsIngestJob>> GetQueue(DateTime? after)
         {
             var query = ddsInstrumentationContext.DlcsIngestJobs
                 .OrderByDescending(j => j.Created)
@@ -50,10 +49,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 return query.Where(j => j.Created > after.Value).ToArray();
             }
-            return query.ToArray();
+            return await query.ToArrayAsync();
         }
 
-        public IEnumerable<DlcsIngestJob> GetProblems(int maxToFetch = 100)
+        public async Task<IEnumerable<DlcsIngestJob>> GetProblems(int maxToFetch = 100)
         {
             // .NET Core migration note.
             // I have removed the BatchWithJob class as it was only used internally to materialise 
@@ -71,7 +70,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 .OrderByDescending(j => j.Id)
                 .Take(maxToFetch);
 
-            return problems.ToArray();
+            return await problems.ToArrayAsync();
 
             // Please see 
             // https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds/Ingest/CloudServicesIngestRegistry.cs#L78
