@@ -42,7 +42,7 @@ else
     <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = Model.Identifier, parts = Model.Identifier + ".xml"})">METS file</a></li>
 </ul>
 <ul class="list-group">
-    <li class="list-group-item">@Html.ActionLink("Show Recent Calls", "GoobiCall", "GoobiCall", new {id = ""}, new {})</li>
+    <li class="list-group-item">@Html.ActionLink("Show Recent Calls", "Recent", "GoobiCall")</li>
 </ul>
 
 @if (Model.Created.HasValue)

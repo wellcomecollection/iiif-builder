@@ -21,12 +21,12 @@
     </thead>
     <tbody>
         <tr>
-            <td>@String.Format("{0:n0}", @Model.TotalJobs)</td>
+            <td>@($"{Model.TotalJobs:n0}")</td>
             <td>
-                @String.Format("{0:n0}", @Model.FinishedJobs)
-            (@String.Format("{0:P2}", @Model.FinishedPercent))
+                @($"{Model.FinishedJobs:n0}")
+                (@($"{Model.FinishedPercent:P2}"))
         </td>
-        <td>@String.Format("{0:n0}", @Model.WordCount)</td>
+        <td>@($"{Model.WordCount:n0}")</td>
     </tr>
     <tr>
         <td colspan="3">

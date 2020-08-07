@@ -14,27 +14,30 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             this.workflowCallRepository = workflowCallRepository;
         }
-        
-        public ActionResult GoobiCall(string id = null)
+
+        public async Task<ActionResult> Recent()
         {
-            if (id == null)
-            {
-                ViewBag.IsErrorList = false;
-                var top100 = workflowCallRepository.GetRecent();
-                return View("GoobiCallList", top100);
-            }
-            if (id == "errors")
-            {
-                ViewBag.IsErrorList = true;
-                var top100 = workflowCallRepository.GetRecentErrors();
-                return View("GoobiCallList", top100);
-            }
-            if (id == "stats")
-            {
-                var stats = workflowCallRepository.GetStatsModel();
-                return View("Stats", stats);
-            }
-            var job = workflowCallRepository.GetWorkflowJob(id);
+            ViewBag.IsErrorList = false;
+            var recent = await workflowCallRepository.GetRecent(100);
+            return View("GoobiCallList", recent);
+        }
+        
+        public async Task<ActionResult> Errors()
+        {
+            ViewBag.IsErrorList = true;
+            var errors = await workflowCallRepository.GetRecentErrors(100);
+            return View("GoobiCallList", errors);
+        }
+
+        public async Task<ActionResult> Stats()
+        {
+            var stats = await workflowCallRepository.GetStatsModel();
+            return View(stats);
+        }
+
+        public async Task<ActionResult> GoobiCall(string id)
+        {
+            var job = await workflowCallRepository.GetWorkflowJob(id);
             if (job == null)
             {
                 job = new WorkflowJob
@@ -43,9 +46,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     Created = null
                 };
             }
+
             return View(job);
         }
-        
+
         public async Task<ActionResult> Create(string id)
         {
             try

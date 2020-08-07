@@ -8,7 +8,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public int TotalJobs { get; set; }
         public int FinishedJobs { get; set; }
         public float FinishedPercent { get; set; }
-        public long WordCount { get; set; }
+        public decimal WordCount { get; set; }
         public List<WorkflowJob> RecentlyTaken { get; set; }
         public List<WorkflowJob> TakenAndUnfinished { get; set; }
         public DateTime EstimatedCompletion { get; set; }
