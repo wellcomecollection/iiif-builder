@@ -10,6 +10,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
+using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -23,15 +24,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     public class ArchiveStorageServiceWorkStore : IWorkStore
     {
         private readonly IAmazonS3 storageServiceS3;
-        private readonly ArchiveStorageServiceWorkStorageFactory factory;
+        private readonly ISimpleCache cache;
+        private readonly StorageServiceClient storageServiceClient;
 
         public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; }
         
         public ArchiveStorageServiceWorkStore(
             string identifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
-            ArchiveStorageServiceWorkStorageFactory factory,
-            IAmazonS3 storageServiceS3)
+            StorageServiceClient storageServiceClient,
+            IAmazonS3 storageServiceS3,
+            ISimpleCache cache)
         {
             if (archiveStorageMap == null)
             {
@@ -39,9 +42,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     "Cannot create a WorkStore without an ArchiveStorageMap");
             }
             Identifier = identifier;
-            this.factory = factory;
+            this.storageServiceClient = storageServiceClient;
             ArchiveStorageMap = archiveStorageMap;
             this.storageServiceS3 = storageServiceS3;
+            this.cache = cache;
         }
                
 
@@ -87,10 +91,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public async Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache)
         {
+            const int cacheTimeSeconds = 60;
             XElement metsXml;
             if (useCache)
             {
-                metsXml = await factory.Cache.GetCached(factory.CacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
+                metsXml = await cache.GetCached(cacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
             }
             else
             {
@@ -160,10 +165,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return new PremisMetadata(metsRoot, admId);
         }
 
-        public Task<JObject> GetStorageManifest()
-        {
-            return factory.GetStorageManifest(Identifier);
-        }
+        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(Identifier);
 
         public async Task WriteFileAsync(string relativePath, string destination)
         {

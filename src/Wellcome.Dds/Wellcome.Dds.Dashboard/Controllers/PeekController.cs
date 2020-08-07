@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
@@ -11,9 +12,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
     public class PeekController : Controller
     {
         private readonly IWorkStorageFactory workStorageFactory;
-        public PeekController(IWorkStorageFactory workStorageFactory)
+        private readonly ILogger<PeekController> logger;
+
+        public PeekController(IWorkStorageFactory workStorageFactory, ILogger<PeekController> logger)
         {
             this.workStorageFactory = workStorageFactory;
+            this.logger = logger;
         }
 
         public async Task<ContentResult> XmlRaw(string id, string parts)
@@ -35,6 +39,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Error loading XML for id '{id}' with parts '{parts}'", id, parts);
                 errorMessage = ex.Message;
             }
 
@@ -44,7 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var firstPart = parts.Split('/')[0].Split('.')[0];
                 manifestation = firstPart;
             }
-            catch
+            catch 
             {
             }
 
@@ -81,7 +86,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
 
             string errorMessage = null;
-            string jsonAsString = "";
+            string jsonAsString = null;
             try
             {
                 var storageManifest = await archiveStore.GetStorageManifest();
@@ -89,14 +94,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Error getting StorageManifest id '{id}'", id);
                 errorMessage = ex.Message;
             }
+            
             var model = new CodeModel
             {
                 Title = "Storage Manifest",
                 BNumber = id,
                 Manifestation = id,
-                CodeAsString = jsonAsString,
+                CodeAsString = jsonAsString ?? string.Empty,
                 ErrorMessage = errorMessage,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("StorageManifestRaw", new {id})

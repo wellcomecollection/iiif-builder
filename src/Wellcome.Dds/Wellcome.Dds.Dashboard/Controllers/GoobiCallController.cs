@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Wellcome.Dds.AssetDomain.Workflow;
 
 namespace Wellcome.Dds.Dashboard.Controllers
@@ -8,11 +9,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
     public class GoobiCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
+        private readonly ILogger<GoobiCallController> logger;
 
         public GoobiCallController(
-            IWorkflowCallRepository workflowCallRepository)
+            IWorkflowCallRepository workflowCallRepository,
+            ILogger<GoobiCallController> logger)
         {
             this.workflowCallRepository = workflowCallRepository;
+            this.logger = logger;
         }
 
         public async Task<ActionResult> Recent()
@@ -60,6 +64,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception e)
             {
+                logger.LogError(e, "Error simulating Goobi call for '{id}'", id);
                 TempData["new-workflow-job-error"] = e.Message;
                 return RedirectToAction("GoobiCall", new {id});
             }

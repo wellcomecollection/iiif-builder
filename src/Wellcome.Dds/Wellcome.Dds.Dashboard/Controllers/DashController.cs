@@ -33,6 +33,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly CacheBuster cacheBuster;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
+        private readonly StorageServiceClient storageServiceClient;
         private readonly ILogger<DashController> logger;
 
         private const string CacheKeyPrefix = "dashcontroller_";
@@ -48,6 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             CacheBuster cacheBuster,
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
+            StorageServiceClient storageServiceClient,
             ILogger<DashController> logger
         )
         {
@@ -60,6 +62,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.cacheBuster = cacheBuster;
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
+            this.storageServiceClient = storageServiceClient;
             this.logger = logger;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
@@ -311,6 +314,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             // this works... but we need to revisit
             // TODO: 1) SimpleCache handling of tasks
             // TODO: 2) This should be a request-scoped cache anyway
+            
+            // NOTE - why is this caching in controller? Shouldn't that be in the repo?
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
@@ -424,7 +429,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 return RedirectToAction("ManifestationSearchError", q);
             }
         }
-
+        
         public async Task<ActionResult> Queue()
         {
             var queue = await jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
@@ -604,11 +609,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> StorageIngest(string id)
         {
-            if (!(workStorageFactory is ArchiveStorageServiceWorkStorageFactory archivalStorageFactory))
-            {
-                throw new NotSupportedException("This page only works with the new storage service");
-            }
-            var ingest = await archivalStorageFactory.GetIngest(id);
+            var ingest = await storageServiceClient.GetIngest(id);
             return View(Ingest.FromJObject(ingest));
         }
     }

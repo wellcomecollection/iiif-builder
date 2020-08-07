@@ -111,9 +111,10 @@ namespace Wellcome.Dds.Server
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddHttpClient<OAuth2ApiConsumer>();
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
-            services.AddSingleton<IMetsRepository, MetsRepository>();
-            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<StorageServiceClient>()
+                .AddScoped<IMetsRepository, MetsRepository>()
+                .AddScoped<IDashboardRepository, DashboardRepository>();
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronAPI>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();

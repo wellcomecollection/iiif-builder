@@ -92,8 +92,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddHttpClient<OAuth2ApiConsumer>();
 
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
-            services.AddSingleton<IMetsRepository, MetsRepository>();
+            services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<StorageServiceClient>()
+                .AddScoped<IMetsRepository, MetsRepository>();
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
                 ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
