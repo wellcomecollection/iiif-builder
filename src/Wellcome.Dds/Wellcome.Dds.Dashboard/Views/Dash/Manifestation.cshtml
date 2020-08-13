@@ -334,7 +334,7 @@
 
             <ul class="list-group">
                 <li class="list-group-item">
-                    <a href="@Url.Action("CacheBust", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Refresh cache</a><br />
+                    <a class="wip" href="@Url.Action("CacheBust", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Refresh cache</a><br />
                     @if (Model.CachedPackageFileInfo.Exists)
                     {
                         <small>Disk cache: @Model.CachedPackageFileInfo.LastWriteTime</small>
@@ -347,7 +347,7 @@
                 @if (metsManifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText()))
                 {
                     <li class="list-group-item">
-                        <a href="@Url.Action("CacheBustAlto", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Rebuild search</a><br />
+                        <a class="wip" href="@Url.Action("CacheBustAlto", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Rebuild search</a><br />
                         @if (Model.CachedTextModelFileInfo.Exists)
                         {
                             <small>Disk cache: @Model.CachedTextModelFileInfo.LastWriteTime</small>
