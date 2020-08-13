@@ -454,7 +454,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             if (s1 == null)
             {
-                return s2 == null || s2.Length == 0;
+                return s2.IsNullOrEmpty();
             }
             if (s2 == null)
             {

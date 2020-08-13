@@ -1,0 +1,27 @@
+title Workflow Ingestion
+
+actor Goobi
+participant IIIF-Builder
+participant Database
+participant WFProcessor
+participant StorageSvc
+participant S3
+
+Goobi-IIIF-BuilderGET workflowprocess
+IIIF-Builder-Databasestore workflow_job
+IIIF-Builder--Goobi202 Accepted
+loop Workflow Processor background job
+  Database--WFProcessorget oldest waiting job
+  WFProcessor-StorageSvcGETnstoragev1bagsdigitised{bnum}
+  StorageSvc--WFProcessorStorage Manifest (bagitjson)
+  WFProcessor-S3cache binary serialized StorageMap
+  loop per manifest
+    WFProcessor-S3GET {bnum}.XML
+    note right of WFProcessor 
+      bucketkey from 
+      Storage Manifest location
+     end note
+    S3--WFProcessorMETS file
+    WFProcessor-Databasestore dlcs_job
+  end
+ end

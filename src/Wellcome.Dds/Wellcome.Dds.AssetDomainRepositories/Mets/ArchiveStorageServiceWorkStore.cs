@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Amazon;
-using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
 using Utils.Caching;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
