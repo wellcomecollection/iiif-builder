@@ -73,6 +73,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             actual.Should().BeEquivalentTo(expected, options => options.Excluding(b => b.Built));
             actual.Built.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         }
+        
+        [Fact]
+        public void FromJObject_ReturnsVersionSets_InIncreasingOrderOfSize()
+        {
+            // Arrange
+            var json = GetJson("ordering_test.json");
+            const string identifier = "b12345678";
+
+            // Act
+            var actual = WellcomeBagAwareArchiveStorageMap.FromJObject(json, identifier);
+            
+            // Assert
+            actual.VersionSets[0].Key.Should().Be("v1");
+            actual.VersionSets[1].Key.Should().Be("v2");
+        }
 
         private static JObject GetJson(string fileName)
         {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
@@ -12,12 +13,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     [Serializable]
     public class WellcomeBagAwareArchiveStorageMap
     {
-        // a List of: "v1" => { "alto/#_0001.xml", ... }
-        // in decreasing order of size of set
-        public List<KeyValuePair<string, HashSet<string>>> VersionSets;
-        public string BucketName;
-        public DateTime StorageManifestCreated;
-        public DateTime Built;
+        /// <summary>
+        /// a List of: "v1" => { "alto/#_0001.xml", ... }
+        /// in increasing order of size of set 
+        /// </summary>
+        /// <remarks>This is a List, as opposed to Dict as ordering is important.</remarks>
+        public List<KeyValuePair<string, HashSet<string>>> VersionSets { get; set; }
+        public string BucketName { get; set; }
+        public DateTime StorageManifestCreated { get; set; }
+        public DateTime Built { get; set; }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)
         {
@@ -50,9 +54,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
                 versionToFiles[version].Add(minRelativePath);
             }
-
+            
             // now order the dict by largest member
             archiveStorageMap.VersionSets = versionToFiles.OrderBy(kv => kv.Value.Count).ToList();
+            
             archiveStorageMap.Built = DateTime.UtcNow;
             return archiveStorageMap;
         }
