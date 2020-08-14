@@ -196,6 +196,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                         // and we need to patch it
                         syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
                     }
+                    
                     if (existingDlcsImage.Ingesting == true)
                     {
                         // Add the NEW image, if there's a chance we might need to re submit this.
@@ -365,7 +366,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
                 var imageRegistrations = batch.ToArray();
-                logger.LogInformation("Batch of {0}", imageRegistrations.Length);
+                logger.LogInformation("Batch of {batchLength}", imageRegistrations.Length);
 
                 if (imageRegistrations.Length == 0)
                 {
@@ -430,7 +431,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             if (existingDlcsImage.MediaType != newDlcsImage.MediaType)
                 return newDlcsImage;
 
-
             // Do we care about ordering?
             if (!AreEqual(existingDlcsImage.Tags, newDlcsImage.Tags))
                 return newDlcsImage;
@@ -440,7 +440,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 return newDlcsImage;
 
             // TODO - changes in ALTO, mimetype and other extras
-            
 
             // need to look at all the values of this image...
             // if it doesn't require patching, return null
@@ -645,7 +644,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             foreach (var dlcsImage in imagesOnDlcs)
             {
-
                 var physFile = thisManifestation.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == dlcsImage.StorageIdentifier);
                 if (physFile != null)
                 {
