@@ -19,6 +19,7 @@ using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
+using Utils.Storage.FileSystem;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -70,6 +71,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<DlcsOptions>(dlcsSection);
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
+            services.Configure<DashOptions>(Configuration.GetSection("Dash"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
@@ -90,8 +92,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddHttpClient<OAuth2ApiConsumer>();
 
             // This is the one that needs an IAmazonS3 with the storage profile
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
-            services.AddSingleton<IMetsRepository, MetsRepository>();
+            services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<StorageServiceClient>()
+                .AddScoped<IMetsRepository, MetsRepository>();
 
             services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
                 ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
@@ -143,12 +146,16 @@ namespace Wellcome.Dds.Dashboard
             app.UsePathBase("/dash");
             app.UseStaticFiles();
             app.UseRouting();
-            
+
             app.UseAuthentication();
             app.UseAuthorization();
             
-            app.UseEndpoints(endpoints => {
-                endpoints.MapControllers();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints
+                    .MapControllers()
+                    .RequireAuthorization();
+                
                 endpoints.MapControllerRoute("Default", "{controller}/{action}/{id?}/{*parts}",
                     defaults: new { controller = "Dash", action = "Index" }
                 );

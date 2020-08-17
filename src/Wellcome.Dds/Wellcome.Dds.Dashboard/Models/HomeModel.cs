@@ -10,6 +10,5 @@ namespace Wellcome.Dds.Dashboard.Models
         public JobsModel ProblemJobs { get; set; }
         public Page<ErrorByMetadata> ErrorsByMetadataPage { get; set; }
         public Dictionary<string, IngestAction> IngestActions { get; set; }
-        public string BodyInject { get; set; }
     }
 }

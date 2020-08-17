@@ -45,13 +45,14 @@ namespace WorkflowProcessor
             services.AddMemoryCache();
 
             services.AddHttpClient<OAuth2ApiConsumer>();
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
 
             services
+                .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<StorageServiceClient>()
+                .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
-                .AddSingleton<IMetsRepository, MetsRepository>()
                 .AddHostedService<WorkflowProcessorService>();
             
             services.AddHealthChecks()

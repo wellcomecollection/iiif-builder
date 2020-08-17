@@ -24,7 +24,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Mets\" />
+    <None Remove="single_version.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Samples\ordering_test.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Samples\single_version.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Samples\multi_version.json" />
+    <Content Include="Samples\multi_version.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

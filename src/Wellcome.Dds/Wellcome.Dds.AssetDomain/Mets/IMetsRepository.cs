@@ -7,7 +7,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
     {
         Task<IMetsResource> GetAsync(string identifier);
 
-        IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContextAsync(string identifier);
+        IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier);
          
         Task<int> FindSequenceIndex(string identifier);
     }

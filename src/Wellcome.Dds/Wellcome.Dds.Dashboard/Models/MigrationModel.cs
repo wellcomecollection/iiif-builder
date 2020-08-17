@@ -31,9 +31,6 @@ namespace Wellcome.Dds.Dashboard.Models
         public List<LoggingEvent> Log { get; set; }
 
         public MigrationStatus MigrationStatus { get; set; }
-
-
-
     }
 
 
