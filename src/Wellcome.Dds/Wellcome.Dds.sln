@@ -59,6 +59,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OAuth2", "OAuth2\OAuth2.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OAuth2Client.Tests", "OAuth2Client.Tests\OAuth2Client.Tests.csproj", "{3441C2E4-5D1B-4498-B949-B26A12FCDAFD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Auth.Web.Tests", "Wellcome.Dds.Auth.Web.Tests\Wellcome.Dds.Auth.Web.Tests.csproj", "{880DD6A3-7359-472C-831E-2D6BAAF60A7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -169,6 +171,10 @@ Global
 		{3441C2E4-5D1B-4498-B949-B26A12FCDAFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3441C2E4-5D1B-4498-B949-B26A12FCDAFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3441C2E4-5D1B-4498-B949-B26A12FCDAFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{880DD6A3-7359-472C-831E-2D6BAAF60A7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{880DD6A3-7359-472C-831E-2D6BAAF60A7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{880DD6A3-7359-472C-831E-2D6BAAF60A7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{880DD6A3-7359-472C-831E-2D6BAAF60A7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -184,6 +190,7 @@ Global
 		{07603EFE-6A3F-481B-86A8-1C9362865CB3} = {5D9253C3-38DA-4125-9676-12E43AEBDD1D}
 		{29BA804F-73FA-4AFF-A678-91738D0169F4} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{3441C2E4-5D1B-4498-B949-B26A12FCDAFD} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
+		{880DD6A3-7359-472C-831E-2D6BAAF60A7D} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2745EEFB-05EA-40E0-BECC-7F24548F7DE7}

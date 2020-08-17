@@ -1,0 +1,42 @@
+﻿title Job Processor
+
+participant Database
+participant JobProcessor
+participant StorageSvc
+participant S3
+participant DLCS
+
+loop Job Processor background job
+  Database-->JobProcessor:dlcs_ingest_jobs WHERE\nStartProcessed == null
+  loop per job
+    JobProcessor->*StorageSvc:GET\nstorage/v1/bags/digitised/{bnum}
+    StorageSvc-->JobProcessor: Manifest (bagit/json)
+    destroy StorageSvc
+    JobProcessor->S3:cache binary serialized StorageMap
+    JobProcessor->S3:GET {bnum}.XML
+    note right of JobProcessor 
+      bucketkey from 
+      Storage Manifest location
+    end note
+    JobProcessor->DLCS:GET\ncustomers/x/spaces/y/images/z?q={string3=bnum}
+    DLCS-->JobProcessor:Images for asset
+    opt missing images
+      note right of JobProcessor:
+        fetch any missing images
+        as may have wrong metadata
+      end note
+      JobProcessor->DLCS:POST\ncustomers/x/allImages (body w/ missing)
+      DLCS-->JobProcessor:Images for asset
+    end
+    note over JobProcessor:
+      work out operations for DLCS
+      - images with errors (ingest)
+      - images not in dlcs (ingest)
+      - images with metadata differences (patch)
+    end note
+    JobProcessor->DLCS:POST\ncustomers/x/queue (body w/ ingest images)
+    JobProcessor->DLCS:PATCH\ncustomers/x/spaces/y/images (body w/ images)
+    JobProcessor-->Database:Create dlcs_batches
+    JobProcessor-->Database:Update dlcs_ingest_jobs
+  end
+end

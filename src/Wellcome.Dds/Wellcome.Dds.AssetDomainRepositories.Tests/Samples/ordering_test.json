@@ -1,0 +1,156 @@
+﻿{
+  "@context": "https://api.wellcomecollection.org/context.json",
+  "id": "digitised/b12345678",
+  "space": {
+    "id": "digitised",
+    "type": "Space"
+  },
+  "info": {
+    "externalIdentifier": "b12345678",
+    "payloadOxum": "2655873119.583",
+    "baggingDate": "2020-08-06",
+    "sourceOrganization": "intranda GmbH",
+    "externalDescription": "Storage Manifest with multiple versions",
+    "type": "BagInfo"
+  },
+  "manifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [
+      {
+        "checksum": "12345",
+        "name": "data/b12345678.xml",
+        "path": "v2/data/b12345678.xml",
+        "size": 5173,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/b12345678_0001.xml",
+        "path": "v1/data/b12345678_0001.xml",
+        "size": 732579,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/b12345678_0002.xml",
+        "path": "v2/data/b12345678_0002.xml",
+        "size": 763253,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0002_0001.jp2",
+        "path": "v2/data/objects/b12345678_0002_0001.jp2",
+        "size": 5104681,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0002_0002.jp2",
+        "path": "v2/data/objects/b12345678_0002_0002.jp2",
+        "size": 4916562,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0002_0003.jp2",
+        "path": "v2/data/objects/b12345678_0002_0003.jp2",
+        "size": 4859184,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0002_0004.jp2",
+        "path": "v2/data/objects/b12345678_0002_0004.jp2",
+        "size": 4937668,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/alto/b12345678_0001.xml",
+        "path": "v1/data/alto/b12345678_0001.xml",
+        "size": 4453617,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0001_0001.jp2",
+        "path": "v1/data/objects/b12345678_0001_0001.jp2",
+        "size": 4453617,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0001_0002.jp2",
+        "path": "v1/data/objects/b12345678_0001_0002.jp2",
+        "size": 4328761,
+        "type": "File"
+      }
+    ],
+    "type": "BagManifest"
+  },
+  "tagManifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [
+      {
+        "checksum": "12345",
+        "name": "bag-info.txt",
+        "path": "v2/bag-info.txt",
+        "size": 704,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "bagit.txt",
+        "path": "v2/bagit.txt",
+        "size": 54,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "fetch.txt",
+        "path": "v2/fetch.txt",
+        "size": 37309,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "manifest-sha256.txt",
+        "path": "v2/manifest-sha256.txt",
+        "size": 60005,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "tagmanifest-sha256.txt",
+        "path": "v2/tagmanifest-sha256.txt",
+        "size": 316,
+        "type": "File"
+      }
+    ],
+    "type": "BagManifest"
+  },
+  "location": {
+    "provider": {
+      "id": "amazon-s3",
+      "type": "Provider"
+    },
+    "bucket": "main-storage",
+    "path": "digitised/b12345678",
+    "type": "Location"
+  },
+  "replicaLocations": [
+    {
+      "provider": {
+        "id": "amazon-s3",
+        "type": "Provider"
+      },
+      "bucket": "storage-replica",
+      "path": "digitised/b12345678",
+      "type": "Location"
+    }
+  ],
+  "createdDate": "2019-09-13T10:10:00.000000Z",
+  "version": "v2",
+  "type": "Bag"
+}

@@ -155,8 +155,7 @@ namespace DlcsWebClient.Dlcs
         {
             int space = defaultSpace;
             if (query.Space.HasValue) space = query.Space.Value;
-            var imageQueryUri = string.Format("{0}customers/{1}/spaces/{2}/images",
-                options.ApiEntryPoint, options.CustomerId, space);
+            var imageQueryUri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{space}/images";
             return GetOperation<ImageQuery, HydraImageCollection>(query, new Uri(imageQueryUri));
         }
 
@@ -216,15 +215,13 @@ namespace DlcsWebClient.Dlcs
 
         public Task<Operation<HydraImageCollection, HydraImageCollection>> PatchImages(HydraImageCollection images)
         {
-            const string uriTemplate = "{0}customers/{1}/spaces/{2}/images";
-            string uri = string.Format(uriTemplate, options.ApiEntryPoint, options.CustomerId, options.CustomerDefaultSpace);
-            const string idTemplate = "{0}/{1}/{2}";
+            string uri =
+                $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{options.CustomerDefaultSpace}/images";
             foreach (var image in images.Members)
             {
                 if (image.ModelId.IndexOf("/") == -1)
                 {
-                    image.ModelId = string.Format(idTemplate,
-                        options.CustomerId, options.CustomerDefaultSpace, image.ModelId);
+                    image.ModelId = $"{options.CustomerId}/{options.CustomerDefaultSpace}/{image.ModelId}";
                 }
             }
             return PatchOperation<HydraImageCollection, HydraImageCollection>(images, new Uri(uri));
@@ -308,17 +305,17 @@ namespace DlcsWebClient.Dlcs
 
         public async Task<IEnumerable<Image>> GetImagesByDlcsIdentifiers(List<string> identifiers)
         {
-            const string uriTemplate = "{0}customers/{1}/allImages";
-            string uri = string.Format(uriTemplate, options.ApiEntryPoint, options.CustomerId);
-            const string template = "{0}/{1}/{2}";
-            var fullIds = identifiers.Select(
-                    g => string.Format(template, options.CustomerId, options.CustomerDefaultSpace, g));
+            // POST a list of identifiers to /allImages, which will return images by Id
+            var uri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/allImages";
+            var fullIds = identifiers.Select(g => $"{options.CustomerId}/{options.CustomerDefaultSpace}/{g}");
             var request = new HydraStringIdCollection(fullIds);
             var op = await PostOperation<HydraStringIdCollection, HydraImageCollection>(request, new Uri(uri));
+            
             foreach (var image in op.ResponseObject.Members)
             {
                 image.StorageIdentifier = GetLocalStorageIdentifier(image.Id);
             }
+
             return op.ResponseObject.Members;
         }
 

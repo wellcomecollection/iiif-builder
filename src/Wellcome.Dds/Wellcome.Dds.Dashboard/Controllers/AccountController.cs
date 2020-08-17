@@ -6,7 +6,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class AccountController : Controller
     {
-        private IDashboardRepository dashboardRepository;
+        private readonly IDashboardRepository dashboardRepository;
 
         public AccountController(IDashboardRepository dashboardRepository)
         {

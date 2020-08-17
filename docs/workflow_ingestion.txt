@@ -1,0 +1,27 @@
+title Workflow Ingestion
+
+actor Goobi
+participant IIIF-Builder
+participant Database
+participant WFProcessor
+participant StorageSvc
+participant S3
+
+Goobi->IIIF-Builder:GET workflowprocess
+IIIF-Builder->Database:store workflow_job
+IIIF-Builder-->Goobi:202 Accepted
+loop Workflow Processor background job
+  Database-->WFProcessor:get oldest waiting job
+  WFProcessor->StorageSvc:GET\nstorage/v1/bags/digitised/{bnum}
+  StorageSvc-->WFProcessorStorage: Manifest (bagit/json)
+  WFProcessor->S3:cache binary serialized StorageMap
+  loop per manifest
+    WFProcessor->S3:GET {bnum}.XML
+    note right of WFProcessor 
+      bucketkey from 
+      Storage Manifest location
+     end note
+    S3-->WFProcessor:METS file
+    WFProcessor->Database:store dlcs_job
+  end
+ end

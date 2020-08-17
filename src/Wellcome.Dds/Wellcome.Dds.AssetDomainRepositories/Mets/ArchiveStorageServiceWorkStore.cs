@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Amazon;
-using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
-using Utils.Storage;
+using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
@@ -23,15 +19,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     public class ArchiveStorageServiceWorkStore : IWorkStore
     {
         private readonly IAmazonS3 storageServiceS3;
-        private readonly ArchiveStorageServiceWorkStorageFactory factory;
+        private readonly ISimpleCache cache;
+        private readonly StorageServiceClient storageServiceClient;
 
-        public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; private set; }
+        public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; }
         
         public ArchiveStorageServiceWorkStore(
             string identifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
-            ArchiveStorageServiceWorkStorageFactory factory,
-            IAmazonS3 storageServiceS3)
+            StorageServiceClient storageServiceClient,
+            IAmazonS3 storageServiceS3,
+            ISimpleCache cache)
         {
             if (archiveStorageMap == null)
             {
@@ -39,9 +37,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     "Cannot create a WorkStore without an ArchiveStorageMap");
             }
             Identifier = identifier;
-            this.factory = factory;
+            this.storageServiceClient = storageServiceClient;
             ArchiveStorageMap = archiveStorageMap;
             this.storageServiceS3 = storageServiceS3;
+            this.cache = cache;
         }
                
 
@@ -83,14 +82,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return string.Format(fullUriTemplate, ArchiveStorageMap.BucketName, foundKey);
         }
 
-        public Task<XmlSource> LoadXmlForPathAsync(string relativePath) => LoadXmlForPathAsync(relativePath, true);
+        public Task<XmlSource> LoadXmlForPath(string relativePath) => LoadXmlForPath(relativePath, true);
 
-        public async Task<XmlSource> LoadXmlForPathAsync(string relativePath, bool useCache)
+        public async Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache)
         {
+            const int cacheTimeSeconds = 60;
             XElement metsXml;
             if (useCache)
             {
-                metsXml = await factory.Cache.GetCached(factory.CacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
+                metsXml = await cache.GetCached(cacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
             }
             else
             {
@@ -103,10 +103,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             };
         }
 
-        public async Task<XmlSource> LoadXmlForIdentifierAsync(string identifier)
+        public async Task<XmlSource> LoadXmlForIdentifier(string identifier)
         {
             string relativePath = $"{identifier}.xml";
-            return await LoadXmlForPathAsync(relativePath);
+            return await LoadXmlForPath(relativePath);
         }
 
         public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)
@@ -160,10 +160,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return new PremisMetadata(metsRoot, admId);
         }
 
-        public Task<JObject> GetStorageManifest()
-        {
-            return factory.GetStorageManifest(Identifier);
-        }
+        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(Identifier);
 
         public async Task WriteFileAsync(string relativePath, string destination)
         {

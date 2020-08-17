@@ -1,0 +1,114 @@
+﻿{
+  "@context": "https://api.wellcomecollection.org/context.json",
+  "id": "digitised/b12345678",
+  "space": {
+    "id": "digitised",
+    "type": "Space"
+  },
+  "info": {
+    "externalIdentifier": "b12345678",
+    "payloadOxum": "4134430.3",
+    "baggingDate": "2019-08-15",
+    "sourceOrganization": "Intranda GmbH",
+    "externalDescription": "Simple sample of Storage Manifest",
+    "type": "BagInfo"
+  },
+  "manifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [
+      {
+        "checksum": "12345",
+        "name": "data/b12345678.xml",
+        "path": "v1/data/b12345678.xml",
+        "size": 10364,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/b12345678_0001.jp2",
+        "path": "v1/data/objects/b12345678_0001.jp2",
+        "size": 2569334,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "data/objects/0002.jp2",
+        "path": "v1/data/objects/0002.jp2",
+        "size": 2568932,
+        "type": "File"
+      }
+    ],
+    "type": "BagManifest"
+  },
+  "tagManifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [
+      {
+        "checksum": "12345",
+        "name": "bag-info.txt",
+        "path": "v1/bag-info.txt",
+        "size": 314,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "bagit.txt",
+        "path": "v1/bagit.txt",
+        "size": 55,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "manifest-sha256.txt",
+        "path": "v1/manifest-sha256.txt",
+        "size": 285,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "manifest-sha512.txt",
+        "path": "v1/manifest-sha512.txt",
+        "size": 477,
+        "type": "File"
+      },
+      {
+        "checksum": "12345",
+        "name": "tagmanifest-sha256.txt",
+        "path": "v1/tagmanifest-sha256.txt",
+        "size": 323,
+        "type": "File"
+      },
+      {
+        "checksum": "",
+        "name": "tagmanifest-sha512.txt",
+        "path": "v1/tagmanifest-sha512.txt",
+        "size": 579,
+        "type": "File"
+      }
+    ],
+    "type": "BagManifest"
+  },
+  "location": {
+    "provider": {
+      "id": "amazon-s3",
+      "type": "Provider"
+    },
+    "bucket": "main-storage",
+    "path": "digitised/b12345678",
+    "type": "Location"
+  },
+  "replicaLocations": [
+    {
+      "provider": {
+        "id": "amazon-s3",
+        "type": "Provider"
+      },
+      "bucket": "storage-replica",
+      "path": "digitised/b12345678",
+      "type": "Location"
+    }
+  ],
+  "createdDate": "2019-09-13T10:10:00.000000Z",
+  "version": "v1",
+  "type": "Bag"
+}

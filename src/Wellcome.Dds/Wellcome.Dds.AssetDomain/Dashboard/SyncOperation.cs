@@ -29,6 +29,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         /// The value is a Dlcs API Image.
         /// The value will be null if the image is not on the DLCS
         /// </summary>
+        // TODO - rename this from ImagesAlreadyOnDlcs as it can contain images not on DLCS
         public Dictionary<string, Image> ImagesAlreadyOnDlcs { get; set; }
         public List<Image> DlcsImagesToIngest { get; set; }
         public List<Image> DlcsImagesToPatch { get; set; }

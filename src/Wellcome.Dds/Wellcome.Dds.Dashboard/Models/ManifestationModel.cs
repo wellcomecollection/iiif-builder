@@ -337,14 +337,14 @@ namespace Wellcome.Dds.Dashboard.Models
         }
 
         public Thumbnail GetThumbnail(Image dlcsImage, int boundingSize)
-        {
+        {    
             if (dlcsImage == null || !dlcsImage.Width.HasValue || !dlcsImage.Height.HasValue)
             {
                 return new Thumbnail
                 {
                     Width = boundingSize,
                     Height = boundingSize,
-                    Src = "placeholder.png"
+                    Src = "/dash/img/placeholder.png"
                 };
             }
             var src = GetIIIFImageService(dlcsImage, "thumbs") + "/full/!100,100/0/default.jpg";

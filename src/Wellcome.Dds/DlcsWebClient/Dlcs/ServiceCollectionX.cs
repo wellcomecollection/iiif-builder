@@ -4,6 +4,7 @@ using System.Text;
 using DlcsWebClient.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Utils.Web;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace DlcsWebClient.Dlcs
@@ -25,11 +26,9 @@ namespace DlcsWebClient.Dlcs
 
             return services.AddHttpClient<IDlcs, Dlcs>(client =>
             {
-                var creds = Convert.ToBase64String(
-                    Encoding.ASCII.GetBytes($"{dlcsOptions.ApiKey}:{dlcsOptions.ApiSecret}"));
                 client.DefaultRequestHeaders.Accept
                     .Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+                client.DefaultRequestHeaders.AddBasicAuth(dlcsOptions.ApiKey, dlcsOptions.ApiSecret);
                 client.Timeout = TimeSpan.FromMilliseconds(dlcsOptions.DefaultTimeoutMs);
             });
         }

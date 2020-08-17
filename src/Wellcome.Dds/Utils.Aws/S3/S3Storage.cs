@@ -26,7 +26,7 @@ namespace Utils.Aws.S3
 
         public string Container { get; set; }
 
-        public ISimpleStoredFileInfo GetCachedFile(string fileName)
+        public ISimpleStoredFileInfo GetCachedFileInfo(string fileName)
         {
             // This returns an object that doesn't talk to S3 unless it needs to.
             // That is, calls to LastWriteTime or Exists should be lazy.
@@ -37,7 +37,7 @@ namespace Utils.Aws.S3
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
-            T t = default(T);
+            T t = default;
             try
             {
                 var getResponse = await amazonS3.GetObjectAsync(fileInfo.Container, fileInfo.Path);
@@ -49,7 +49,7 @@ namespace Utils.Aws.S3
                 }
                 if (t == null)
                 {
-                    logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed.");
+                    logger.LogError("Attempt to deserialize '{Uri}' from S3 failed.", fileInfo.Uri);
                 }
             }
             catch (Exception e)
@@ -61,7 +61,7 @@ namespace Utils.Aws.S3
 
         public async Task Write<T>(T t, ISimpleStoredFileInfo fileInfo, bool writeFailThrowsException) where T : class
         {
-            logger.LogInformation("Writing cache file '" + fileInfo.Uri + "' to S3");
+            logger.LogInformation("Writing cache file '{Uri}' to S3", fileInfo.Uri);
             var request = new PutObjectRequest()
             {
                 BucketName = fileInfo.Container, Key = fileInfo.Path
@@ -78,7 +78,7 @@ namespace Utils.Aws.S3
             }
             catch (Exception ex)
             {
-                logger.LogWarning($"Unable to write to file '{fileInfo.Uri}' to S3", ex);
+                logger.LogWarning(ex, "Unable to write to file '{Uri}' to S3", fileInfo.Uri);
                 if (writeFailThrowsException)
                 {
                     throw;

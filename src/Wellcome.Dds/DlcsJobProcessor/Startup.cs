@@ -57,11 +57,12 @@ namespace DlcsJobProcessor
             services.AddMemoryCache();
 
             services.AddHttpClient<OAuth2ApiConsumer>();
-            services.AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>();
 
             services
+                .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<StorageServiceClient>()
+                .AddScoped<IMetsRepository, MetsRepository>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddSingleton<IMetsRepository, MetsRepository>()
                 .AddScoped<IDashboardRepository, DashboardRepository>()
                 .AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>()
                 .AddHostedService<DashboardContinuousRunningStrategy>();

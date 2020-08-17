@@ -44,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             if (!ddsId.BNumber.IsBNumber())
             {
-                throw new ArgumentException(ddsId.BNumber + " is not a b number", nameof(identifier));
+                throw new ArgumentException($"{ddsId.BNumber} is not a b number", nameof(identifier));
             }
 
             IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
@@ -52,13 +52,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = await GetFileStructMapAsync(ddsId.BNumber, workStore);
+                    structMap = await GetFileStructMap(ddsId.BNumber, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndexAsync(ddsId.BNumber, ddsId.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndex(ddsId.BNumber, ddsId.SequenceIndex, workStore);
                 case IdentifierType.Issue:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     // we only want a specific issue
@@ -69,11 +69,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             throw new NotSupportedException("Unknown identifier");
         }
 
-        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContextAsync(string identifier)
+        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
         {
             var rootMets = await GetAsync(identifier);
             int sequenceIndex = 0;
-            if (rootMets is IManifestation)
+            if (rootMets is IManifestation mets)
             {
                 var ddsId = new DdsIdentifier(identifier);
                 string volumeIdentifier = null, issueIdentifier = null;
@@ -91,7 +91,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 }
                 yield return new ManifestationInContext
                 {
-                    Manifestation = rootMets as IManifestation,
+                    Manifestation = mets,
                     BNumber = ddsId.BNumber,
                     SequenceIndex = sequenceIndex,
                     VolumeIdentifier = volumeIdentifier,
@@ -149,10 +149,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// <param name="index"></param>
         /// <param name="workStore"></param>
         /// <returns></returns>
-        private async Task<IMetsResource> GetMetsResourceByIndexAsync(string bNumber, int index, IWorkStore workStore)
+        private async Task<IMetsResource> GetMetsResourceByIndex(string bNumber, int index, IWorkStore workStore)
         {
             // 
-            var structMap = await GetFileStructMapAsync(bNumber, workStore);
+            var structMap = await GetFileStructMap(bNumber, workStore);
             if (structMap.IsManifestation)
             {
                 return GetMetsResource(structMap, workStore);
@@ -215,74 +215,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             throw new NotSupportedException("Unknown identifier");
         }
 
-        //private int GetCachedIssueSequenceIndex(DdsIdentifier ddsIdentifier)
-        //{
-        //    issueCacheLock.EnterUpgradeableReadLock();
-        //    try
-        //    {
-        //        if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
-        //        {
-        //            issueCacheLock.EnterWriteLock();
-        //            try
-        //            {
-        //                if (!IssueCache.ContainsKey(ddsIdentifier.BNumber))
-        //                {
-        //                    BuildIssueCache(ddsIdentifier.BNumber);
-        //                }
-        //            }
-        //            finally
-        //            {
-        //                issueCacheLock.ExitWriteLock();
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        issueCacheLock.ExitUpgradeableReadLock();
-        //    }
-        //    return IssueCache[ddsIdentifier.BNumber][ddsIdentifier];
-        //}
-
-        //private void BuildIssueCache(string bNumber, bool diskCacheStale = false)
-        //{
-        //    // TODO: job that rebuilds on new thread if older than X ? rebuild nightly?
-
-        //    XmlSerializer serializer = new XmlSerializer(typeof (IssueDictItem[]),
-        //        new XmlRootAttribute {ElementName = "items"});
-        //    // Note to self - this file op is local to the DDS, not in the METS storage.
-        //    // TODO - pull out this cache file system ops.
-        //    var serialised = Path.Combine(issueCacheDirectory, bNumber + ".xml");
-        //    if (File.Exists(serialised) && !diskCacheStale)
-        //    {
-        //        using (TextReader reader = File.OpenText(serialised))
-        //        {
-        //            IssueCache[bNumber] = ((IssueDictItem[]) serializer.Deserialize(reader))
-        //                .ToDictionary(i => i.Identifier, i => i.SequenceIndex);
-        //        }
-        //        return;
-        //    }
-        //    int sequenceIndex = 0;
-        //    IssueCache[bNumber] = new Dictionary<string, int>();
-        //    var rootCollection = GetAsync(bNumber) as ICollection;
-        //    foreach (var partialVolume in rootCollection.Collections)
-        //    {
-        //        var volume = GetAsync(partialVolume.Id) as ICollection;
-        //        foreach (var issue in volume.Manifestations)
-        //        {
-        //            IssueCache[bNumber][issue.Id] = sequenceIndex++;
-        //        }
-        //    }
-        //    using (FileStream fs = File.OpenWrite(serialised))
-        //    {
-        //        serializer.Serialize(fs,
-        //            IssueCache[bNumber].Select(kv => new IssueDictItem {Identifier = kv.Key, SequenceIndex = kv.Value})
-        //                .ToArray());
-        //    }
-        //}
-
-        private async Task<ILogicalStructDiv> GetFileStructMapAsync(string identifier, IWorkStore workStore)
+        private async Task<ILogicalStructDiv> GetFileStructMap(string identifier, IWorkStore workStore)
         {
-            var metsXml = await workStore.LoadXmlForIdentifierAsync(identifier);
+            var metsXml = await workStore.LoadXmlForIdentifier(identifier);
             return GetLogicalStructDiv(metsXml, identifier, workStore);
         }
 
@@ -326,15 +261,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return res;
         }
 
-        //private ILogicalStructDiv GetLinkedStructMap(string[] parts, string bNumberHomeDirectory)
-        //{
-        //    var mmIdentifier = parts[0] + DdsIdentifiers.Underscore + parts[1];
-        //    return GetLinkedStructMap(mmIdentifier, bNumberHomeDirectory);
-        //}
-
         private static async Task<ILogicalStructDiv> GetLinkedStructMapAsync(string mmIdentifier, IWorkStore workStore)
         {
-            var metsXml = await workStore.LoadXmlForIdentifierAsync(mmIdentifier);
+            var metsXml = await workStore.LoadXmlForIdentifier(mmIdentifier);
             var structMap = GetLogicalStructDiv(metsXml, mmIdentifier, workStore);
             // Move to first child (the root structMap is the MM container, the anchor)
             return structMap.Children.First();
@@ -347,14 +276,5 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var structMap = new LogicalStructDiv(rootStructuralDiv, metsXml.RelativeXmlFilePath, identifier, workStore);
             return structMap;
         }
-    }
-
-
-    public class IssueDictItem
-    {
-        [XmlAttribute]
-        public string Identifier;
-        [XmlAttribute]
-        public int SequenceIndex;
     }
 }

@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils;
@@ -18,62 +16,54 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
-    [Authorize]
     public class DashController : Controller
     {
         private readonly IDashboardRepository dashboardRepository;
         private readonly IIngestJobRegistry jobRegistry;
-        private readonly IIngestJobProcessor jobProcessor;
         private readonly ISimpleCache cache;
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly CacheBuster cacheBuster;
-        private readonly DdsOptions ddsOptions;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
-        private readonly IWebHostEnvironment webHostEnvironment;
+        private readonly StorageServiceClient storageServiceClient;
+        private readonly ILogger<DashController> logger;
 
-        const string CacheKeyPrefix = "dashcontroller_";
-        const int CacheSeconds = 5;
-        private Synchroniser synchroniser;
+        private const string CacheKeyPrefix = "dashcontroller_";
+        private const int CacheSeconds = 5;
 
         public DashController(
             IDashboardRepository dashboardRepository,
             ISimpleCache cache,
             IIngestJobRegistry jobRegistry,
-            IIngestJobProcessor jobProcessor,
             IStatusProvider statusProvider,
-            Synchroniser synchroniser,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
             IWorkStorageFactory workStorageFactory,
             CacheBuster cacheBuster,
-            IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
-            IWebHostEnvironment webHostEnvironment
+            StorageServiceClient storageServiceClient,
+            ILogger<DashController> logger
         )
         {
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
             this.jobRegistry = jobRegistry;
-            this.jobProcessor = jobProcessor;
             this.statusProvider = statusProvider;
-            this.synchroniser = synchroniser;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
             this.workStorageFactory = workStorageFactory;
             this.cacheBuster = cacheBuster;
-            this.ddsOptions = ddsOptions.Value;
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
-            this.webHostEnvironment = webHostEnvironment;
+            this.storageServiceClient = storageServiceClient;
+            this.logger = logger;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -87,24 +77,25 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> Status(int page = 1)
         {
-            var problemJobs = jobRegistry.GetProblems(100);
+            var problemJobs = await jobRegistry.GetProblems(100);
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
                 errorsByMetadataPage = await dashboardRepository.GetErrorsByMetadata(page);
             }
-            catch
+            catch (Exception ex)
             {
-                // TODO - log this error... introduce logger on refactor
-                errorsByMetadataPage = new Page<ErrorByMetadata> { Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1 };
+                logger.LogError(ex, "Error getting errorsByMetadata for page {page}", page);
+                errorsByMetadataPage = new Page<ErrorByMetadata>
+                    {Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1};
             }
+
             var recentActions = dashboardRepository.GetRecentActions(200);
             var model = new HomeModel
             {
-                ProblemJobs = new JobsModel { Jobs = problemJobs.ToArray() },
+                ProblemJobs = new JobsModel {Jobs = problemJobs.ToArray()},
                 ErrorsByMetadataPage = errorsByMetadataPage,
-                IngestActions = GetIngestActionDictionary(recentActions),
-                BodyInject = ddsOptions.DashBodyInject
+                IngestActions = GetIngestActionDictionary(recentActions)
             };
             return View(model);
         }
@@ -118,6 +109,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     continue;
                 }
+
                 if (dict.ContainsKey(recentAction.ManifestationId))
                 {
                     if (dict[recentAction.ManifestationId].Performed < recentAction.Performed)
@@ -130,6 +122,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     dict[recentAction.ManifestationId] = recentAction;
                 }
             }
+
             return dict;
         }
 
@@ -137,46 +130,47 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             var json = AskedForJson();
-            var logger = new SmallJobLogger(string.Empty, null);
-            logger.Start();
+            var jobLogger = new SmallJobLogger(string.Empty, null);
+            jobLogger.Start();
             IDigitisedResource dgResource;
             DdsIdentifier ddsId = null;
             try
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                logger.Log("Start dashboardRepository.GetDigitisedResource(id)");
+                jobLogger.Log("Start dashboardRepository.GetDigitisedResource(id)");
                 dgResource = await dashboardRepository.GetDigitisedResource(id, true);
-                logger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
+                jobLogger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
             }
             catch (Exception ex)
             {
-                ViewBag.Message = "No digitised resource found for identifier " + id;
-                ViewBag.Message += ". ";
-                ViewBag.Message += ex.Message;
+                logger.LogError(ex, "Error getting manifestation for '{id}'", id);
+                ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
                     ViewBag.TryInstead = ddsId.BNumber;
                 }
+
                 if (json)
                 {
                     return NotFound(ViewBag.Message);
                 }
+
                 return View("ManifestationError");
             }
-            
+
             if (dgResource is IDigitisedManifestation dgManifestation)
             {
                 // ***************************************************
                 // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
                 // IT MUST GO AS SOON AS THE IIIF MANIFEST KNOWS String3
-                logger.Log("Start dashboardRepository.FindSequenceIndex(id)");
+                jobLogger.Log("Start dashboardRepository.FindSequenceIndex(id)");
                 // dgManifestation.SequenceIndex = await dashboardRepository.FindSequenceIndex(id);
-                logger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
+                jobLogger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                 // represents the set of differences between the METS view of the world and the DLCS view
-                logger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
+                jobLogger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
                 var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
-                logger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
+                jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                 IDigitisedCollection parent;
                 IDigitisedCollection grandparent;
@@ -197,14 +191,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
                         grandparent = await GetCachedCollectionAsync(ddsId.BNumber);
                         break;
                     case IdentifierType.BNumberAndSequenceIndex:
-                        throw new ArgumentException("id", "Can't use an index-based ID here: " + id);
+                        throw new ArgumentException("id", $"Can't use an index-based ID here: {id}");
                     default:
-                        throw new ArgumentException("id", "Could not get resource for identifier " + id);
+                        throw new ArgumentException("id", $"Could not get resource for identifier {id}");
                 }
 
                 var skeletonPreview = string.Format(
                     dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, id);
-                
+
                 var model = new ManifestationModel
                 {
                     DefaultSpace = dashboardRepository.DefaultSpace,
@@ -219,9 +213,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 };
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
-                logger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
+                jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                 var jobActivity = await dashboardRepository.GetRationalisedJobActivity(syncOperation);
-                logger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
+                jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                 model.IngestJobs = jobActivity.UpdatedJobs;
                 model.BatchesForImages = jobActivity.BatchesForCurrentImages;
 
@@ -232,7 +226,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     {
                         model.DbJobIdsToActiveBatches[dlcsIngestJob.Id] = new List<Batch>();
                     }
-                    logger.Log("Start enumerating job batches");
+
+                    jobLogger.Log("Start enumerating job batches");
                     foreach (var dbBatch in dlcsIngestJob.DlcsBatches)
                     {
                         // Move this to the repository
@@ -242,33 +237,38 @@ namespace Wellcome.Dds.Dashboard.Controllers
                             var activeBatch = model.BatchesForImages.SingleOrDefault(b => b.Id == reportedBatch.Id);
                             if (activeBatch != null)
                             {
-                                if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Exists(b => b.Id == activeBatch.Id))
+                                if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id]
+                                    .Exists(b => b.Id == activeBatch.Id))
                                 {
                                     model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Add(activeBatch);
                                 }
                             }
                         }
                     }
-                    logger.Log("Finished enumerating job batches");
+
+                    jobLogger.Log("Finished enumerating job batches");
                 }
+
                 model.IsRunning = syncOperation.DlcsImagesCurrentlyIngesting.Count > 0;
 
                 // TODO - make these client side calls to the same services
                 // will speed up dahboard page generation 
-                logger.Log("Start cacheBuster queries");
+                jobLogger.Log("Start cacheBuster queries");
                 model.CachedPackageFileInfo = cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber);
-                logger.Log("Finished cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber)");
+                jobLogger.Log("Finished cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber)");
                 model.CachedTextModelFileInfo = cacheBuster.GetAltoSearchTextCacheFileInfo(ddsId);
-                logger.Log("Finished cacheBuster.GetAltoSearchTextCacheFileInfo(..)");
+                jobLogger.Log("Finished cacheBuster.GetAltoSearchTextCacheFileInfo(..)");
                 model.CachedAltoAnnotationsFileInfo = cacheBuster.GetAllAnnotationsCacheFileInfo(ddsId);
-                logger.Log("Finished cacheBuster.GetAllAnnotationsCacheFileInfo(..)");
-                ViewBag.Log = LoggingEvent.FromTuples(logger.GetEvents());
+                jobLogger.Log("Finished cacheBuster.GetAllAnnotationsCacheFileInfo(..)");
+                ViewBag.Log = LoggingEvent.FromTuples(jobLogger.GetEvents());
                 if (json)
                 {
                     return AsJson(model.GetJsonModel());
                 }
+
                 return View("Manifestation", model);
             }
+
             if (dgResource is IDigitisedCollection dgCollection)
             {
                 // This is the manifestation controller, not the volume or issue controller.
@@ -282,24 +282,29 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     // a normal multiple manifestation, or possibly a periodical volume?
                     if (json)
                     {
-                        return RedirectToAction("Collection", "Dash", new { id = ddsId.BNumber, json = "json" });
+                        return RedirectToAction("Collection", "Dash", new {id = ddsId.BNumber, json = "json"});
                     }
+
                     redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
-                    return RedirectToAction("Manifestation", "Dash", new { id = redirectId });
+                    return RedirectToAction("Manifestation", "Dash", new {id = redirectId});
                 }
+
                 // a periodical, I think - but go to volume controller for this.
                 redirectId = dgCollection.MetsCollection.GetRootId();
                 if (json)
                 {
-                    return RedirectToAction("Collection", "Dash", new { id = redirectId, json = "json" });
+                    return RedirectToAction("Collection", "Dash", new {id = redirectId, json = "json"});
                 }
-                return RedirectToAction("Collection", "Dash", new { id = redirectId });
+
+                return RedirectToAction("Collection", "Dash", new {id = redirectId});
             }
+
             ViewBag.Message = "Unknown type of resource found for identifier " + id;
             if (json)
             {
                 return NotFound(ViewBag.Message);
             }
+
             return View("ManifestationError");
         }
 
@@ -309,6 +314,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             // this works... but we need to revisit
             // TODO: 1) SimpleCache handling of tasks
             // TODO: 2) This should be a request-scoped cache anyway
+            
+            // NOTE - why is this caching in controller? Shouldn't that be in the repo?
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
@@ -321,7 +328,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
             // (in order to PUT this in the cache, we need to retrieve it...
             var key = CacheKeyPrefix + collection.Identifier;
             cache.Remove(key);
-            cache.GetCached(CacheSeconds, key, () => collection);
+            
+            // TODO - should this be .Insert() as we've removed cache? 
+            cache.GetCached(CacheSeconds, key, () => collection); 
         }
 
         private ActionResult ShowManifestation(
@@ -349,6 +358,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 showError = true;
                 ViewBag.MetsError = metsEx;
             }
+
             if (showError || collection == null)
             {
                 ViewBag.Message = "No digitised collection (multiple manifestation) found for identifier " + id;
@@ -356,13 +366,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     ViewBag.TryInstead = ddsId.BNumber;
                 }
+
                 return View("ManifestationError");
             }
+
             if (json)
             {
                 var simpleCollection = MakeSimpleCollectionModel(collection);
                 return AsJson(simpleCollection);
             }
+
             return View("Collection", collection);
         }
 
@@ -377,10 +390,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     simpleCollection.Collections.Add(new SimpleLink
                     {
                         Label = coll.Identifier + ": " + coll.MetsCollection.Label,
-                        Url = Url.Action("Collection", "Dash", new { id = coll.Identifier })
+                        Url = Url.Action("Collection", "Dash", new {id = coll.Identifier})
                     });
                 }
             }
+
             if (collection.Manifestations.HasItems())
             {
                 simpleCollection.Manifestations = new List<SimpleLink>();
@@ -389,10 +403,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     simpleCollection.Manifestations.Add(new SimpleLink
                     {
                         Label = manif.Identifier + ": " + manif.MetsManifestation.Label,
-                        Url = Url.Action("Manifestation", "Dash", new { id = manif.Identifier })
+                        Url = Url.Action("Manifestation", "Dash", new {id = manif.Identifier})
                     });
                 }
             }
+
             return simpleCollection;
         }
 
@@ -414,47 +429,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 return RedirectToAction("ManifestationSearchError", q);
             }
         }
-
-
-        // Different actions that all trigger jobs
-        public Task<ActionResult> Sync(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync");
-
-        public Task<ActionResult> Resubmit(string id) => CreateAndProcessJobsAsync(id, true, false, "Resubmit");
-
-        public Task<ActionResult> ForceReingest(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest");
-
-        public Task<ActionResult> SyncAllManifestations(string id) => CreateAndProcessJobsAsync(id, false, false, "Sync all manifestations");
-
-        public Task<ActionResult> ForceReingestAllManifestations(string id) => CreateAndProcessJobsAsync(id, true, true, "Force reingest of all manifestations");
-
-
-        private async Task<ActionResult> CreateAndProcessJobsAsync(string id, bool includeIngestingImages, bool forceReingest, string action)
+        
+        public async Task<ActionResult> Queue()
         {
-            var jobs = jobRegistry.RegisterImagesForImmediateStartAsync(id);
-            await foreach (var job in jobs)
-            {
-                dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
-                await jobProcessor.ProcessJobAsync(job, includeIngestingImages, forceReingest, true);
-            }
-            synchroniser.RefreshFlatManifestations(id);
-            return RedirectToAction("Manifestation", new { id });
-        }
-
-        public ActionResult Jobs()
-        {
-            var jobs = jobRegistry.GetJobs(500);
-            var model = new JobsModel { Jobs = jobs.ToArray() };
-            return View(model);
-        }
-
-        public ActionResult Queue()
-        {
-            var queue = jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
+            var queue = await jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
             var model = new JobsModel { Jobs = queue.ToArray() };
             return View(model);
         }
-
-
 
         public ActionResult AssetType(string id = "video/mpeg")
         {
@@ -467,7 +448,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             };
             return View(model);
         }
-
 
         public ActionResult RecentActions()
         {
@@ -484,22 +464,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("StopStatus");
         }
 
-        public ActionResult Job(int id)
-        {
-            var job = jobRegistry.GetJob(id);
-            var model = new JobsModel { Jobs = new[] { job } };
-            return View(model);
-        }
-
-
         public ActionResult UV(string id)
         {
             return View(dashboardRepository.GetBNumberModel(id, id));
         }
 
-
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
         {
+            // NOTE - is this leaky if it knows underlying implementation? If it needs to would GetWorkStore<T> work?
             var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
             if (!resolveRelativePath.HasText())
             {
@@ -521,7 +493,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             return View(model);
         }
-
 
         public ActionResult CacheBust(string id)
         {
@@ -584,15 +555,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return RedirectToAction("StopStatus");
         }
 
-        public async Task<ActionResult> CleanOldJobs(string id)
-        {
-            int removed = await dashboardRepository.RemoveOldJobs(id);
-            TempData["remove-old-jobs"] = removed;
-            return RedirectToAction("Manifestation", new { id });
-        }
-
-
-
         public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             return dashboardRepository.GetDlcsQueueLevel();
@@ -604,43 +566,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             int removed = await dashboardRepository.DeleteOrphans(id);
             TempData["orphans-deleted"] = removed;
             return RedirectToAction("Manifestation", new { id });
-        }
-
-
-        public ActionResult TailJobProcessor(int id = 60)
-        {
-            var model = GetLogTailModel(ddsOptions.JobProcessorLog, id);
-            return View(model);
-        }
-
-
-        public ActionResult TailWorkflowProcessor(int id = 60)
-        {
-            var model = GetLogTailModel(ddsOptions.WorkflowProcessorLog, id);
-            return View(model);
-        }
-
-        private string[] GetLogTailModel(string path, int lines)
-        {
-            ViewBag.LogFilePath = path;
-            string[] model = { "Unable to read log at " + path };
-            if (path != null && System.IO.File.Exists(path))
-            {
-                // not suitable for huge log files, but simple
-                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (var sr = new StreamReader(fs))
-                {
-                    List<string> file = new List<string>();
-                    while (!sr.EndOfStream)
-                    {
-                        file.Add(sr.ReadLine());
-                    }
-                    var log = file.ToArray();
-                    var start = Math.Max(0, log.Length - lines);
-                    model = log.Skip(start).ToArray();
-                }
-            }
-            return model;
         }
 
         public JsonResult AutoComplete(string id)
@@ -684,25 +609,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> StorageIngest(string id)
         {
-            var archivalStorageFactory = workStorageFactory as ArchiveStorageServiceWorkStorageFactory;
-            if (archivalStorageFactory == null)
-            {
-                throw new NotSupportedException("This page only works with the new storage service");
-            }
-            var ingest = await archivalStorageFactory.GetIngest(id);
-            return View(Models.Ingest.FromJObject(ingest));
-        }
-
-        public ActionResult Settings()
-        {
-            var appSettings = "appsettings.json";
-            var appSettingsEnv = $"appsettings.{webHostEnvironment.EnvironmentName}.json";
-            var settings = new SettingsModel
-            {
-                AppSettings = System.IO.File.ReadAllText(appSettings),
-                AppSettingsForEnvironment = System.IO.File.ReadAllText(appSettingsEnv)
-            };
-            return View(settings);
+            var ingest = await storageServiceClient.GetIngest(id);
+            return View(Ingest.FromJObject(ingest));
         }
     }
 
@@ -729,11 +637,5 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public bool Success { get; set; }
         public string Message { get; set; }
         public CacheBustResult CacheBustResult { get; set; }
-    }
-
-    public class SettingsModel
-    {
-        public string AppSettings { get; set; }
-        public string AppSettingsForEnvironment { get; set; }
     }
 }

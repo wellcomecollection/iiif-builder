@@ -357,3 +357,17 @@ function getServices(info) {
     };
 
 })(window.jQuery);
+
+// Handle any non-functioning elements.
+function handleIncomplete() {
+    var elements = document.getElementsByClassName('wip');
+    var len = elements.length;    
+    for (var i = 0; i < len; i++){
+        elements[i].addEventListener("click", function(evt){
+            alert("This function is still to be migrated");
+            evt.preventDefault();
+        }, false);
+    }
+}
+
+handleIncomplete();

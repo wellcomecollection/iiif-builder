@@ -13,15 +13,14 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
-
     public class DashboardCloudServicesJobProcessor : IIngestJobProcessor
     {
         private readonly IDashboardRepository dashboardRepository;
         private readonly IStatusProvider statusProvider;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
-        ILogger<DashboardCloudServicesJobProcessor> logger;
+        private readonly ILogger<DashboardCloudServicesJobProcessor> logger;
 
-        private static readonly string[] SupportedFormats = new string[]
+        private static readonly string[] SupportedFormats = new []
         {
             "image/jp2",
             "video/mpeg",
@@ -54,8 +53,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // see body of this method in CloudServicesJobProcessor
         }
 
-
-
         public async Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string filter = null)
         {
             if (!await statusProvider.ShouldRunProcesses())
@@ -64,7 +61,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 return;
             }
 
-            List<DlcsIngestJob> jobsToProcess;
             var jobs = ddsInstrumentationContext.DlcsIngestJobs
                 .Where(j => j.StartProcessed == null);
 
@@ -76,15 +72,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 jobs = jobs.Where(j => j.Created <= statusProvider.LatestJobToTake);
             }
-            jobsToProcess = jobs.OrderBy(j => j.Created).ToList();
+            var jobsToProcess = jobs.OrderBy(j => j.Created).ToList();
 
             if (filter.HasText())
             {
-                logger.LogInformation("Only processing identifiers that end with one of " + filter);
+                logger.LogInformation("Only processing identifiers that end with one of '{filter}'", filter);
                 var endings = filter.ToCharArray();
-                logger.LogInformation("before filter, jobsToProcess has " + jobsToProcess.Count + " jobs.");
+                logger.LogInformation("before filter, jobsToProcess has {jobCount} jobs.", jobsToProcess.Count);
                 jobsToProcess = jobsToProcess.Where(j => endings.Contains(j.Identifier[j.Identifier.Length - 1])).ToList();
-                logger.LogInformation("After filter, jobsToProcess has " + jobsToProcess.Count + " jobs.");
+                logger.LogInformation("After filter, jobsToProcess has {jobCount} jobs.", jobsToProcess.Count);
             }
             if (maxJobs > -1)
             {
@@ -93,7 +89,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
             int sequentialFailures = 0;
 
-            if (jobsToProcess.Any())
+            if (jobsToProcess.Count > 0)
             {
                 var lastHeartbeat = await statusProvider.GetHeartbeat() ?? DateTime.MinValue;
                 foreach (DlcsIngestJob job in jobsToProcess)
@@ -111,7 +107,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     }
                     try
                     {
-                        await ProcessJobAsync(job, false, false, usePriorityQueue);
+                        await ProcessJob(job, false, false, usePriorityQueue);
                         sequentialFailures = 0;
                     }
                     catch (Exception ex)
@@ -129,8 +125,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public Task<ImageIngestResult> ProcessJobAsync(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false) 
-            => ProcessJobAsync(job, image => includeIngestingImages, forceReingest, usePriorityQueue);
+        public Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false) 
+            => ProcessJob(job, image => includeIngestingImages, forceReingest, usePriorityQueue);
 
         /// <summary>
         /// Each job is a sequence from a b number
@@ -143,7 +139,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         /// <param name="forceReingest">Optional flag to force a complete re-ingest of the identifier</param>
         /// <param name="usePriorityQueue"></param>
         /// <returns></returns>
-        public async Task<ImageIngestResult> ProcessJobAsync(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false)
+        public async Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false)
         {
             // TODO
             // var runningJobs... // Look at what is already running
@@ -157,8 +153,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var jobs = ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.Id == jobId).ToList();
             if (jobs.Count == 1)
             {
-                logger.LogInformation("ProcessJob: one found: {0}", jobs[0]);
                 job = jobs[0];
+                logger.LogInformation("ProcessJob: one found: {jobId}", job);
                 job.StartProcessed = DateTime.Now;
                 await ddsInstrumentationContext.SaveChangesAsync();
             }
@@ -188,32 +184,31 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
             try
             {
-                digitisedManifestation = (await dashboardRepository
-                    .GetDigitisedResource(job.GetManifestationIdentifier()))
+                digitisedManifestation = await dashboardRepository
+                        .GetDigitisedResource(job.GetManifestationIdentifier())
                     as IDigitisedManifestation;
             }
             catch (Exception ex)
             {
-                errorDataMessage = string.Format(
-                    "Error received during GetDigitisedResource. Abandoning job for {0}.", job.Identifier);
+                errorDataMessage = $"Error received during GetDigitisedResource. Abandoning job for {job.Identifier}.";
                 error = ex;
             }
 
             if (digitisedManifestation == null)
             {
-                errorDataMessage = "digitisedManifestation is null for " + job.Identifier;
+                errorDataMessage = $"digitisedManifestation is null for {job.Identifier}";
             }
             else
             {
                 manifestation = digitisedManifestation.MetsManifestation;
                 if (manifestation == null)
                 {
-                    errorDataMessage = "digitisedManifestation.MetsManifestation is null for " + job.Identifier;
+                    errorDataMessage = $"digitisedManifestation.MetsManifestation is null for {job.Identifier}";
                 }
                 else if (!digitisedManifestation.JobExactMatchForManifestation(job))
                 {
-                    errorDataMessage = "Job data doesn't match retrieved manifestation. Abandoning job for " +
-                                       job.Identifier;
+                    errorDataMessage =
+                        $"Job data doesn't match retrieved manifestation. Abandoning job for {job.Identifier}";
                 }
             }
 
@@ -235,7 +230,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 job.AssetType = assetType;
             job.ImageCount = manifestation.SignificantSequence.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
-
 
             bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);
             if (!jobCanBeProcessedNow)
@@ -292,7 +286,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     // give them the correct ID
                     batchOperationInfo.DlcsIngestJobId = job.Id;
                 }
-                ddsInstrumentationContext.DlcsBatches.AddRange(batchesForDb);
+                await ddsInstrumentationContext.DlcsBatches.AddRangeAsync(batchesForDb);
             }
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
             job.EndProcessed = DateTime.Now;
