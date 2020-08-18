@@ -25,14 +25,17 @@ namespace Utils.Tests.Caching
         private BinaryObjectCache<FakeStoredFileInfo> GetSut(bool hasMemoryCache = true, int cacheSeconds = 1, bool avoidCaching = false,
             bool avoidSaving = false)
         {
-            var binaryObjectCacheOptions = new BinaryObjectCacheOptions
+            var fakeStoredFileInfoOptions = new BinaryObjectCacheOptions
             {
                 Prefix = "tst-",
                 MemoryCacheSeconds = cacheSeconds,
                 AvoidCaching = avoidCaching,
                 AvoidSaving = avoidSaving
             };
-            var options = Options.Create(binaryObjectCacheOptions);
+            var byType = new BinaryObjectCacheOptionsByType();
+            byType["Utils.Tests.Caching.FakeStoredFileInfo"] = fakeStoredFileInfoOptions;
+
+            var options = Options.Create(byType);
 
             return new BinaryObjectCache<FakeStoredFileInfo>(new NullLogger<BinaryObjectCache<FakeStoredFileInfo>>(),
                 options, storage, hasMemoryCache ? memoryCache : null);

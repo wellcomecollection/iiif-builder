@@ -8,6 +8,11 @@ namespace Utils
 {
     public static class StringUtils
     {
+        public static bool IsNullOrWhiteSpace(this string s)
+        {
+            return string.IsNullOrWhiteSpace(s);
+        }
+
         /// <summary>
         /// Does this string have significant content (is not null, empty, or just whitespace character(s))
         /// </summary>
@@ -55,6 +60,7 @@ namespace Utils
         }
 
 
+
         /// <summary>
         /// Strips out any character that is not a letter or a digit.
         /// </summary>
@@ -72,6 +78,110 @@ namespace Utils
             }
             return sb.ToString();
         }
+
+        /// <summary>
+        /// remove leading and trailing characters that are not alphanumeric
+        /// TODO - imporve this, not very efficient
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string TrimNonAlphaNumeric(this string s)
+        {
+            var sb = new StringBuilder();
+            bool inAlphas = false;
+            foreach (char c in s)
+            {
+                if (inAlphas || Char.IsLetterOrDigit(c))
+                {
+                    sb.Append(c);
+                    inAlphas = true;
+                }
+            }
+            // we now have a string with alphas on the end
+            var sr = sb.ToString().Reverse();
+            var sbr = new StringBuilder();
+            foreach (char c in sr)
+            {
+                if (Char.IsLetterOrDigit(c))
+                {
+                    sbr.Append(c);
+                }
+            }
+            var array = sbr.ToString().ToCharArray();
+            Array.Reverse(array);
+            return new String(array);
+        }
+
+        /// <summary>
+        /// Strips out any character that is not a letter or a digit or an underscore "_".
+        /// This is useful when constructing a simple name for a content item you are creating 
+        /// programmatically (e.g., in migration) as it ensures it will be permitted in a URL
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string ToAlphanumericOrUnderscore(this string s)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in s)
+            {
+                if (Char.IsLetterOrDigit(c) || c == '_')
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
+
+        /// <summary> 
+        /// Strips out any character that is not a letter or a digit or whitespace.
+        /// e.g., removes all punctuation, apostrophes etc.
+        /// Useful when preparing terms for submission to a search engine.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="exceptions"></param>
+        /// <returns></returns>
+        public static string ToAlphanumericOrWhitespace(this string s, char[] exceptions = null)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in s)
+            {
+                if (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c))
+                {
+                    sb.Append(c);
+                }
+                if (exceptions.HasItems() && exceptions.Contains(c))
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// strips out any character that is not part of a parseable number.
+        /// 
+        /// "23a" => "23"
+        /// "23.4" => "23.4"
+        /// "-100" => "-100"
+        /// "3 Blind Mice" => "3"
+        /// "£9.99" => "9.99"
+        /// 
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string ToNumber(this string s)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in s)
+            {
+                if (Char.IsDigit(c) || c == '.' || c == '-')
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
+
 
         /// <summary>
         /// Splits a string into an array of strings using the supplied delimiter.

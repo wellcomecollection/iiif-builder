@@ -24,7 +24,8 @@ namespace WorkflowProcessor.Tests
             var options = Options.Create(runnerOptions);
             
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
-            sut = new WorkflowRunner(ingestJobRegistry, options, new NullLogger<WorkflowRunner>());
+            sut = new WorkflowRunner(ingestJobRegistry, options, new NullLogger<WorkflowRunner>(),
+                null, null, null, null, null);
         }
         
         [Fact]

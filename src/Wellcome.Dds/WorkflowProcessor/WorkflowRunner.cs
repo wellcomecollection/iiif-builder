@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -6,8 +7,11 @@ using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.IIIF;
+using Wellcome.Dds.WordsAndPictures;
+using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace WorkflowProcessor
 {
@@ -21,19 +25,28 @@ namespace WorkflowProcessor
         private readonly RunnerOptions runnerOptions;
         private readonly Synchroniser synchroniser;
         private readonly IIIIFBuilder iiifBuilder;
+        private readonly IMetsRepository metsRepository;
+        private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
+        private readonly CachingAltoSearchTextProvider cachingSearchTextProvider;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
             IOptions<RunnerOptions> runnerOptions,
             ILogger<WorkflowRunner> logger,
             Synchroniser synchroniser,
-            IIIIFBuilder iiifBuilder)
+            IIIIFBuilder iiifBuilder,
+            IMetsRepository metsRepository,
+            CachingAllAnnotationProvider cachingAllAnnotationProvider,
+            CachingAltoSearchTextProvider cachingSearchTextProvider)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
             this.runnerOptions = runnerOptions.Value;
             this.synchroniser = synchroniser;
             this.iiifBuilder = iiifBuilder;
+            this.metsRepository = metsRepository;
+            this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
+            this.cachingSearchTextProvider = cachingSearchTextProvider;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -57,11 +70,11 @@ namespace WorkflowProcessor
                 }
                 if (runnerOptions.RebuildIIIF3)
                 {
-                    RebuildIIIF3Async(job);
+                    await RebuildIIIF3(job);
                 }
                 if (runnerOptions.RebuildTextCaches || runnerOptions.RebuildAllAnnoPageCaches)
                 {
-                    RebuildDiskCaches(job); // this does 
+                    await RebuildAltoDerivedAssets(job); 
                 }
 
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
@@ -73,14 +86,13 @@ namespace WorkflowProcessor
             }
         }
 
-        private async Task RebuildIIIF3Async(WorkflowJob job)
+        private async Task RebuildIIIF3(WorkflowJob job)
         {
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var packageEnd = DateTime.Now;
             var result = await iiifBuilder.Build(job.Identifier);
-            packageEnd = DateTime.Now;
+            var packageEnd = DateTime.Now;
             job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
             if(result.Outcome != BuildOutcome.Success)
             {
@@ -95,41 +107,11 @@ namespace WorkflowProcessor
             }
         }
 
-        private void RebuildDiskCaches(WorkflowJob job)
+        private async Task RebuildAltoDerivedAssets(WorkflowJob job)
         {
-            // (transported comment - from old DDS equivalent)
-            // NEED C&D protection in here
-            // cachebuster here? With delay? Just go for it?
-            // There is no debounce going on here.
-            // This could potentially get called while a previous one is being built.
-            var start = DateTime.Now;
-            WdlPackage package;
-            var packageEnd = DateTime.Now;
-            if (RunnerConfig.RebuildPackageCaches)
+            if (runnerOptions.RebuildTextCaches)
             {
-                package = (WdlPackage)cachingPackageProvider.ForcePackageRebuild(job.Identifier);
-                packageEnd = DateTime.Now;
-                job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
-            }
-            else
-            {
-                package = (WdlPackage)cachingPackageProvider.GetPackage(
-                    job.Identifier, ManifestationReferenceBehaviour.AllButFirstAreReferences);
-            }
-            if (package.Status.HasText())
-            {
-                const string dzError = "MODS Section does not contain a DZ License Code";
-                if (package.Status.Contains(AccessCondition.ClosedSectionError))
-                {
-                    return;
-                }
-                if (package.Status.Contains(dzError))
-                {
-                    throw new NotSupportedException(dzError);
-                }
-            }
-            if (RunnerConfig.RebuildTextCaches)
-            {
+                var start = DateTime.Now;
                 job.ExpectedTexts = 0;
                 job.AnnosAlreadyOnDisk = 0;
                 job.TextsAlreadyOnDisk = 0;
@@ -139,61 +121,51 @@ namespace WorkflowProcessor
                 job.TimeSpentOnTextPages = 0;
                 int wordsCountedOnThisRun = 0;
                 bool wordCountInvalid = false;
-                for (int manifestationIndex = 0;
-                    manifestationIndex < package.AssetSequences.Length;
-                    manifestationIndex++)
+                await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
                 {
-                    var assetSequence = package.AssetSequences[manifestationIndex];
-                    if (assetSequence.IsUri())
+                    var manifestation = manifestationInContext.Manifestation;
+                    if(manifestation.Partial)
                     {
-                        assetSequence = cachingPackageProvider.GetAssetSequence(job.Identifier, manifestationIndex);
+                        manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
                     }
-                    var wdlAssetSequence = assetSequence as WdlAssetSequence;
-                    if (wdlAssetSequence != null && wdlAssetSequence.SupportsSearch)
+                    if (manifestation != null && HasAltoFiles(manifestation))
                     {
                         job.ExpectedTexts++;
-                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(job.Identifier, manifestationIndex);
+                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
                         if (textFileInfo.Exists && !job.ForceTextRebuild)
                         {
-                            Log.Info("Text already on disk for " + job.Identifier + "/" + manifestationIndex);
+                            logger.LogInformation($"Text already on disk for {manifestation.Id}");
                             wordCountInvalid = true;
                             job.TextsAlreadyOnDisk++;
                         }
                         else
                         {
                             var startTextTs = DateTime.Now;
-                            var text = cachingSearchTextProvider.ForceSearchTextRebuild(job.Identifier,
-                                manifestationIndex);
+                            var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
                             var wordCount = text.Words.Count;
-                            Log.InfoFormat("Rebuilt search text for {0}/{1}: {2} words.",
-                                job.Identifier, manifestationIndex, wordCount);
+                            logger.LogInformation($"Rebuilt search text for {manifestation.Id}: {wordCount} words.");
                             job.TextsBuilt++;
                             wordsCountedOnThisRun += wordCount;
                             job.TextPages += text.Images.Length;
                             job.TimeSpentOnTextPages += (int)(DateTime.Now - startTextTs).TotalMilliseconds;
                         }
-                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(job.Identifier,
-                            manifestationIndex);
+                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
                         if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
                         {
-                            Log.Info("All anno file already on disk for " + job.Identifier + "/" + manifestationIndex);
+                            logger.LogInformation($"All anno file already on disk for {manifestation.Id}");
                             job.AnnosAlreadyOnDisk++;
                         }
                         else
                         {
-                            if (RunnerConfig.RebuildAllAnnoPageCaches)
+                            if (runnerOptions.RebuildAllAnnoPageCaches)
                             {
-                                var dziImages = wdlAssetSequence.Assets.OfType<WdlSeadragonDeepZoomImage>();
-                                var annopages = cachingAllAnnotationProvider.ForcePagesRebuild(job.Identifier,
-                                    manifestationIndex,
-                                    dziImages);
-                                Log.InfoFormat("Rebuilt annotation pages for {0}/{1}: {2} pages.",
-                                    job.Identifier, manifestationIndex, annopages.Count);
+                                var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.SignificantSequence);
+                                logger.LogInformation($"Rebuilt annotation pages for {manifestation.Id}: {annopages.Count} pages.");
                                 job.AnnosBuilt++;
                             }
                             else
                             {
-                                Log.Info("Skipping AllAnnoCache rebuild for " + job.Identifier + "/" + manifestationIndex);
+                                logger.LogInformation($"Skipping AllAnnoCache rebuild for {manifestation.Id}");
                             }
                         }
                     }
@@ -203,9 +175,13 @@ namespace WorkflowProcessor
                     job.Words = wordsCountedOnThisRun;
                 }
                 var end = DateTime.Now;
-                job.TextAndAnnoBuildTime = (long)(end - packageEnd).TotalMilliseconds;
+                job.TextAndAnnoBuildTime = (long)(end - start).TotalMilliseconds;
             }
         }
 
+        private bool HasAltoFiles(IManifestation manifestation)
+        {
+            return manifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText());
+        }
     }
 }

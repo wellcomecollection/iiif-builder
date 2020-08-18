@@ -21,15 +21,15 @@ namespace Utils.Caching
 
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
-            IOptions<BinaryObjectCacheOptions> options,
+            IOptions<BinaryObjectCacheOptionsByType> binaryObjectCacheOptionsByType,
             IStorage storage,
             IMemoryCache memoryCache
             )
         {
             this.logger = logger;
-            this.options = options.Value;
+            options = binaryObjectCacheOptionsByType.Value[typeof(T).FullName];
             this.storage = storage;
-            this.storage.Container = this.options.Container; // not sure about setting this here
+            this.storage.Container = options.Container; // not sure about setting this here
             this.memoryCache = memoryCache;
             cacheDuration = TimeSpan.FromSeconds(this.options.MemoryCacheSeconds);
         }
