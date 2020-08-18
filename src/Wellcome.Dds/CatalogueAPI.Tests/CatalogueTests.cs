@@ -35,7 +35,7 @@ namespace CatalogueAPI.Tests
             sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(logger, options, httpClient);
         }
 
-        [Fact(Skip = "Failing as Catalogue API returning unexpected results")]
+        [Fact]
         public async Task Can_Get_Result_Page()
         {
             // Arrange
@@ -45,7 +45,7 @@ namespace CatalogueAPI.Tests
             var resultPage = await sut.GetWorkResultPage(null, identifier);
 
             // Assert
-            resultPage.Results.Length.Should().BeGreaterThan(1);
+            resultPage.Results.Length.Should().Be(1);
         }
 
         [Fact]
