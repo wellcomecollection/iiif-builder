@@ -333,7 +333,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Assert
             A.CallTo(() => dlcs.PatchImages(A<HydraImageCollection>._)).MustHaveHappenedOnceExactly();
         }
-        
 
         public class TestManifestation : IManifestation
         {
