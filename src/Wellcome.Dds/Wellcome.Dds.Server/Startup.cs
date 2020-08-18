@@ -53,15 +53,19 @@ namespace Wellcome.Dds.Server
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
-            services.AddDistributedPostgreSqlCache(setup =>
+
+            if (!WebHostEnvironment.IsEnvironment("Testing"))
             {
-                setup.ConnectionString = ddsConnectionString;
-                setup.SchemaName = "public";
-                setup.TableName = "__dist_cache";
-                setup.CreateInfrastructure = !WebHostEnvironment.IsProduction();
-                setup.DefaultSlidingExpiration = TimeSpan.FromMinutes(20); // TODO - is this right?
-            });
-            
+                services.AddDistributedPostgreSqlCache(setup =>
+                {
+                    setup.ConnectionString = ddsConnectionString;
+                    setup.SchemaName = "public";
+                    setup.TableName = "__dist_cache";
+                    setup.CreateInfrastructure = !WebHostEnvironment.IsProduction();
+                    setup.DefaultSlidingExpiration = TimeSpan.FromMinutes(20); // TODO - is this right?
+                });
+            }
+
             services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromSeconds(3600);
