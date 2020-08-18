@@ -33,7 +33,7 @@ namespace WorkflowProcessor
 
             services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
-            services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+            services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));

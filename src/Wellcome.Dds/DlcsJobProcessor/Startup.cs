@@ -39,7 +39,7 @@ namespace DlcsJobProcessor
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
-            services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+            services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
             services.AddDlcsClient(Configuration);
             
