@@ -8,6 +8,7 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Server.Conneg;
 using Wellcome.Dds.Server.Models;
 
 namespace Wellcome.Dds.Server.Controllers
@@ -31,8 +32,25 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         [HttpGet("{id}")] 
-        public async Task<IIIFPrecursor> Index(string id)
+        public Task<IIIFPrecursor> Index(string id)
         {
+            // Return requested version if headers present, or fallback to known version
+            var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(IIIFPresentationVersion.V3);
+            return CreateIIIFPrecursor(id, iiifVersion);
+        }
+
+        [HttpGet("v2/{id}")]
+        public Task<IIIFPrecursor> V2(string id) => CreateIIIFPrecursor(id, IIIFPresentationVersion.V2);
+
+        [HttpGet("v3/{id}")]
+        public Task<IIIFPrecursor> V3(string id) => CreateIIIFPrecursor(id, IIIFPresentationVersion.V3);
+
+        private async Task<IIIFPrecursor> CreateIIIFPrecursor(string id, IIIFPresentationVersion iiifVersion)
+        {
+            Response.ContentType = iiifVersion == IIIFPresentationVersion.V2
+                ? IIIFPresentation.ContentTypes.V2
+                : IIIFPresentation.ContentTypes.V3;
+            
             // No error handling in here at all for demo
             var ddsId = new DdsIdentifier(id);
             var workTask = catalogue.GetWork(ddsId.BNumber);
@@ -50,29 +68,12 @@ namespace Wellcome.Dds.Server.Controllers
                 Comment = $"This is a {digitisedResource.GetType()}",
                 ManifestSource = digitisedResource as DigitisedManifestation,
                 SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
-                Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, id)
+                Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, id),
+                IIIFVersion = iiifVersion.ToString()
             };
+            
             return model;
         }
-
-        [HttpGet("v2/{id}")]
-        public ActionResult V2(string id)
-        {
-            var acceptHeader = Request.GetTypedHeaders().Accept;
-            return Ok("V2");
-        }
-        
-        [HttpGet("v3/{id}")]
-        public ActionResult V3(string id)
-        {
-            var acceptHeader = Request.GetTypedHeaders().Accept;
-            return Ok("V3");
-        }
-        
-        // /b12345678 returns 3.0, unless conneg header specifies. return header to canonical version
-        // Accept: application/ld+json;profile=http://iiif.io/api/presentation/3/context.json
-        // /v2/b12345678 returns 2.1
-        // /v3/b12345678 returns 3.0
 
         private void CleanManifestation(IDigitisedResource manifestation)
         {
