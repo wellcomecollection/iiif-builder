@@ -48,9 +48,11 @@ namespace Wellcome.Dds.Server.Conneg
         /// Get <see cref="IIIFPresentationVersion"/> for provided mediaTypeHeader, favouring latest version.
         /// </summary>
         /// <param name="mediaTypeHeaders">Collection of <see cref="MediaTypeHeaderValue"/> objects.</param>
+        /// <param name="fallbackVersion">Value to return if no specific version found.</param>
         /// <returns><see cref="IIIFPresentationVersion"/> derived from provided values.</returns>
         public static IIIFPresentationVersion GetIIIFPresentationType(
-            this IEnumerable<MediaTypeHeaderValue> mediaTypeHeaders)
+            this IEnumerable<MediaTypeHeaderValue> mediaTypeHeaders,
+            IIIFPresentationVersion fallbackVersion = IIIFPresentationVersion.Unknown)
         {
             var mediaTypes = mediaTypeHeaders ?? Enumerable.Empty<MediaTypeHeaderValue>();
             
@@ -78,7 +80,7 @@ namespace Wellcome.Dds.Server.Conneg
                 }
             }
 
-            return IIIFPresentationVersion.Unknown;
+            return fallbackVersion;
         }
     }
 

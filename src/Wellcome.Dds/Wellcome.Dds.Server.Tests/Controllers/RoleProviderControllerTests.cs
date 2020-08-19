@@ -9,7 +9,7 @@ using Xunit;
 namespace Wellcome.Dds.Server.Tests.Controllers
 {
     [Trait("Category","Integration")]
-    public class RoleProviderControllerTests: IClassFixture<DdsServerAppFactory>
+    public class RoleProviderControllerTests : IClassFixture<DdsServerAppFactory>
     {
         private readonly HttpClient client;
         private const string BasicAuth = "ZGxjczpkbGNzcHdvcmQ="; //dlcs:dlcspword

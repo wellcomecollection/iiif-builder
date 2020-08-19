@@ -8,43 +8,52 @@ namespace Wellcome.Dds.Server.Tests.Conneg
 {
     public class IIIFPresentationTests
     {
-        [Fact]
-        public void GetIIIFPresentationType_Unknown_IfMediaTypeHeadersNull()
+        [Theory]
+        [InlineData(IIIFPresentationVersion.Unknown)]
+        [InlineData(IIIFPresentationVersion.V2)]
+        [InlineData(IIIFPresentationVersion.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersNull(IIIFPresentationVersion fallback)
         {
             // Arrange
             IEnumerable<MediaTypeHeaderValue> mediaTypeHeaders = null;
             
             // Act
-            var result = mediaTypeHeaders.GetIIIFPresentationType();
+            var result = mediaTypeHeaders.GetIIIFPresentationType(fallback);
 
             // Assert
-            result.Should().Be(IIIFPresentationVersion.Unknown);
+            result.Should().Be(fallback);
         }
         
-        [Fact]
-        public void GetIIIFPresentationType_Unknown_IfMediaTypeHeadersEmpty()
+        [Theory]
+        [InlineData(IIIFPresentationVersion.Unknown)]
+        [InlineData(IIIFPresentationVersion.V2)]
+        [InlineData(IIIFPresentationVersion.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersEmpty(IIIFPresentationVersion fallback)
         {
             // Arrange
             var mediaTypeHeaders = new MediaTypeHeaderValue[0];
             
             // Act
-            var result = mediaTypeHeaders.GetIIIFPresentationType();
+            var result = mediaTypeHeaders.GetIIIFPresentationType(fallback);
 
             // Assert
-            result.Should().Be(IIIFPresentationVersion.Unknown);
+            result.Should().Be(fallback);
         }
         
-        [Fact]
-        public void GetIIIFPresentationType_Unknown_IfNoKnownIIIFPresentationType()
+        [Theory]
+        [InlineData(IIIFPresentationVersion.Unknown)]
+        [InlineData(IIIFPresentationVersion.V2)]
+        [InlineData(IIIFPresentationVersion.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfNoKnownIIIFPresentationType(IIIFPresentationVersion fallback)
         {
             // Arrange
             var mediaTypeHeaders = new[] {MediaTypeHeaderValue.Parse("application/json")};
             
             // Act
-            var result = mediaTypeHeaders.GetIIIFPresentationType();
+            var result = mediaTypeHeaders.GetIIIFPresentationType(fallback);
 
             // Assert
-            result.Should().Be(IIIFPresentationVersion.Unknown);
+            result.Should().Be(fallback);
         }
         
         [Theory]
