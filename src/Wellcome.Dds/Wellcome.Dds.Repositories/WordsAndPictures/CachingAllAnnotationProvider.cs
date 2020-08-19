@@ -5,44 +5,45 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
-namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
+namespace Wellcome.Dds.Repositories.WordsAndPictures
 {
     /// <summary>
     /// Keeps cached lists of annotation per manifest, to avoid having to rebuild them too many times.
     /// </summary>
     public class CachingAllAnnotationProvider
     {
-        private readonly IBinaryObjectCache<List<AnnotationPage>> cache; // needs options allAnnotationCache, "annopages_", 0
+        private readonly IBinaryObjectCache<AnnotationPageList> cache; // needs options allAnnotationCache, "annopages_", 0
         private readonly IWorkStorageFactory workStorageFactory;
 
         public CachingAllAnnotationProvider(
-            IBinaryObjectCache<List<AnnotationPage>> cache,
+            IBinaryObjectCache<AnnotationPageList> cache,
             IWorkStorageFactory workStorageFactory)
         {
             this.workStorageFactory = workStorageFactory;
             this.cache = cache;
         }
 
-        public Task<List<AnnotationPage>> GetPages(
+        public Task<AnnotationPageList> GetPages(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObject(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
-        public Task<List<AnnotationPage>> ForcePagesRebuild(
+        public Task<AnnotationPageList> ForcePagesRebuild(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObject(identifier, () => GetPagesInternal(identifier, physicalFiles), x => true);
         }
 
-        private async Task<List<AnnotationPage>> GetPagesInternal(
+        private async Task<AnnotationPageList> GetPagesInternal(
             string identifier, IEnumerable<IPhysicalFile> physicalFiles)
         {
             var altoProvider = new SimpleAltoProvider();
-            var pages = new List<AnnotationPage>();
+            var pages = new AnnotationPageList();
             var workStore = await workStorageFactory.GetWorkStore(identifier);
             foreach (var physicalFile in physicalFiles)
             {

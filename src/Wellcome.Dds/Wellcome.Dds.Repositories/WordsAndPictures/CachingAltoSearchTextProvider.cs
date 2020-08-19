@@ -2,8 +2,9 @@
 using System.Threading.Tasks;
 using Utils.Caching;
 using Utils.Storage;
+using Wellcome.Dds.WordsAndPictures;
 
-namespace Wellcome.Dds.WordsAndPictures
+namespace Wellcome.Dds.Repositories.WordsAndPictures
 {
     public class CachingAltoSearchTextProvider : ISearchTextProvider
     {

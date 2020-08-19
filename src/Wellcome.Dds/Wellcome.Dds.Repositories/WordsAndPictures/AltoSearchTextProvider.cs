@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using System.Linq;
-using Wellcome.Dds.AssetDomain.Mets;
-using Utils;
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
+using Utils;
+using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.WordsAndPictures;
+using Image = Wellcome.Dds.WordsAndPictures.Image;
 
-namespace Wellcome.Dds.WordsAndPictures
+namespace Wellcome.Dds.Repositories.WordsAndPictures
 {
     public class AltoSearchTextProvider : ISearchTextProvider
     {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
 {
@@ -10,4 +11,6 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         public Illustration[] Illustrations { get; set; }
         public Illustration[] ComposedBlocks { get; set; }
     }
+
+    public class AnnotationPageList : List<AnnotationPage> { }
 }

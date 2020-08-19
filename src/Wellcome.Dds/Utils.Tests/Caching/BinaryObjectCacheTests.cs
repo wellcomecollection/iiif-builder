@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FluentAssertions;
@@ -41,6 +42,8 @@ namespace Utils.Tests.Caching
                 options, storage, hasMemoryCache ? memoryCache : null);
         }
 
+
+
         [Fact]
         public void GetCachedFile_GetsExpectedFileFromStorage()
         {
@@ -55,7 +58,8 @@ namespace Utils.Tests.Caching
             // Assert
             A.CallTo(() => storage.GetCachedFileInfo(expected)).MustHaveHappened();
         }
-        
+
+
         [Fact]
         public void GetCachedFile_ReturnsFileFromStorage()
         {
