@@ -14,6 +14,5 @@ namespace Wellcome.Dds.Server.Auth
             => services.AddAuthentication(BasicAuthenticationDefaults.AuthenticationScheme)
                 .AddScheme<BasicAuthenticationOptions, DlcsBasicAuthenticationHandler>(
                     BasicAuthenticationDefaults.AuthenticationScheme, configureOptions);
-
     }
 }
