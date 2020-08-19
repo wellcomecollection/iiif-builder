@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using FluentAssertions;
+using IIIF.Presentation;
 using Microsoft.Net.Http.Headers;
 using Wellcome.Dds.Server.Conneg;
 using Xunit;
@@ -9,10 +10,10 @@ namespace Wellcome.Dds.Server.Tests.Conneg
     public class IIIFPresentationTests
     {
         [Theory]
-        [InlineData(IIIFPresentationVersion.Unknown)]
-        [InlineData(IIIFPresentationVersion.V2)]
-        [InlineData(IIIFPresentationVersion.V3)]
-        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersNull(IIIFPresentationVersion fallback)
+        [InlineData(Version.Unknown)]
+        [InlineData(Version.V2)]
+        [InlineData(Version.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersNull(Version fallback)
         {
             // Arrange
             IEnumerable<MediaTypeHeaderValue> mediaTypeHeaders = null;
@@ -25,10 +26,10 @@ namespace Wellcome.Dds.Server.Tests.Conneg
         }
         
         [Theory]
-        [InlineData(IIIFPresentationVersion.Unknown)]
-        [InlineData(IIIFPresentationVersion.V2)]
-        [InlineData(IIIFPresentationVersion.V3)]
-        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersEmpty(IIIFPresentationVersion fallback)
+        [InlineData(Version.Unknown)]
+        [InlineData(Version.V2)]
+        [InlineData(Version.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfMediaTypeHeadersEmpty(Version fallback)
         {
             // Arrange
             var mediaTypeHeaders = new MediaTypeHeaderValue[0];
@@ -41,10 +42,10 @@ namespace Wellcome.Dds.Server.Tests.Conneg
         }
         
         [Theory]
-        [InlineData(IIIFPresentationVersion.Unknown)]
-        [InlineData(IIIFPresentationVersion.V2)]
-        [InlineData(IIIFPresentationVersion.V3)]
-        public void GetIIIFPresentationType_FallbackVersion_IfNoKnownIIIFPresentationType(IIIFPresentationVersion fallback)
+        [InlineData(Version.Unknown)]
+        [InlineData(Version.V2)]
+        [InlineData(Version.V3)]
+        public void GetIIIFPresentationType_FallbackVersion_IfNoKnownIIIFPresentationType(Version fallback)
         {
             // Arrange
             var mediaTypeHeaders = new[] {MediaTypeHeaderValue.Parse("application/json")};
@@ -57,9 +58,9 @@ namespace Wellcome.Dds.Server.Tests.Conneg
         }
         
         [Theory]
-        [InlineData("application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\"", IIIFPresentationVersion.V2)]
-        [InlineData("application/json;profile=\"http://iiif.io/api/presentation/3/context.json\"", IIIFPresentationVersion.V3)]
-        public void GetIIIFPresentationType_ReturnsExpectedType(string mediaType, IIIFPresentationVersion expected)
+        [InlineData("application/ld+json;profile=\"http://iiif.io/api/presentation/2/context.json\"", Version.V2)]
+        [InlineData("application/json;profile=\"http://iiif.io/api/presentation/3/context.json\"", Version.V3)]
+        public void GetIIIFPresentationType_ReturnsExpectedType(string mediaType, Version expected)
         {
             // Arrange
             var mediaTypeHeaders = new[] {MediaTypeHeaderValue.Parse(mediaType)};
@@ -84,7 +85,7 @@ namespace Wellcome.Dds.Server.Tests.Conneg
             var result = mediaTypeHeaders.GetIIIFPresentationType();
 
             // Assert
-            result.Should().Be(IIIFPresentationVersion.V3);
+            result.Should().Be(Version.V3);
         }
     }
 }
