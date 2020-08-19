@@ -35,19 +35,19 @@ namespace Wellcome.Dds.Server.Controllers
         public Task<IIIFPrecursor> Index(string id)
         {
             // Return requested version if headers present, or fallback to known version
-            var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(IIIFPresentationVersion.V3);
+            var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(IIIF.Presentation.Version.V3);
             return CreateIIIFPrecursor(id, iiifVersion);
         }
 
         [HttpGet("v2/{id}")]
-        public Task<IIIFPrecursor> V2(string id) => CreateIIIFPrecursor(id, IIIFPresentationVersion.V2);
+        public Task<IIIFPrecursor> V2(string id) => CreateIIIFPrecursor(id, IIIF.Presentation.Version.V2);
 
         [HttpGet("v3/{id}")]
-        public Task<IIIFPrecursor> V3(string id) => CreateIIIFPrecursor(id, IIIFPresentationVersion.V3);
+        public Task<IIIFPrecursor> V3(string id) => CreateIIIFPrecursor(id, IIIF.Presentation.Version.V3);
 
-        private async Task<IIIFPrecursor> CreateIIIFPrecursor(string id, IIIFPresentationVersion iiifVersion)
+        private async Task<IIIFPrecursor> CreateIIIFPrecursor(string id, IIIF.Presentation.Version iiifVersion)
         {
-            Response.ContentType = iiifVersion == IIIFPresentationVersion.V2
+            Response.ContentType = iiifVersion == IIIF.Presentation.Version.V2
                 ? IIIFPresentation.ContentTypes.V2
                 : IIIFPresentation.ContentTypes.V3;
             
