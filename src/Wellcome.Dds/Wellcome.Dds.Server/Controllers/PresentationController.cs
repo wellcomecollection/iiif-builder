@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using DlcsWebClient.Dlcs;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -47,13 +47,32 @@ namespace Wellcome.Dds.Server.Controllers
                 Id = id,
                 CatalogueMetadata = work,
                 Label = digitisedResource.BNumberModel.DisplayTitle,
-                Comment = "This is a " + digitisedResource.GetType(),
+                Comment = $"This is a {digitisedResource.GetType()}",
                 ManifestSource = digitisedResource as DigitisedManifestation,
                 SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
                 Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, id)
             };
             return model;
         }
+
+        [HttpGet("v2/{id}")]
+        public ActionResult V2(string id)
+        {
+            var acceptHeader = Request.GetTypedHeaders().Accept;
+            return Ok("V2");
+        }
+        
+        [HttpGet("v3/{id}")]
+        public ActionResult V3(string id)
+        {
+            var acceptHeader = Request.GetTypedHeaders().Accept;
+            return Ok("V3");
+        }
+        
+        // /b12345678 returns 3.0, unless conneg header specifies. return header to canonical version
+        // Accept: application/ld+json;profile=http://iiif.io/api/presentation/3/context.json
+        // /v2/b12345678 returns 2.1
+        // /v3/b12345678 returns 3.0
 
         private void CleanManifestation(IDigitisedResource manifestation)
         {
