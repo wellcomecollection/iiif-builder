@@ -12,5 +12,6 @@ namespace Wellcome.Dds.Server.Models
         public DigitisedManifestation ManifestSource { get; set; }
         public SimpleCollectionModel SimpleCollectionSource { get; set; }
         public string Pdf { get; set; }
+        public string IIIFVersion { get; set; }
     }
 }

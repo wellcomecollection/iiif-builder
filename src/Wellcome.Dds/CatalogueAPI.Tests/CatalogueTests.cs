@@ -45,10 +45,9 @@ namespace CatalogueAPI.Tests
             var resultPage = await sut.GetWorkResultPage(null, identifier);
 
             // Assert
-            resultPage.Results.Length.Should().BeGreaterThan(1);
+            resultPage.Results.Length.Should().Be(1);
         }
-        
-        
+
         [Fact]
         public async Task Can_Pick_Single_Work_When_Multiple_Matches()
         {

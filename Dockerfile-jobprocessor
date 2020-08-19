@@ -20,7 +20,7 @@ RUN dotnet build "DlcsJobProcessor.csproj" -c Release
 
 FROM build AS testrunner
 WORKDIR "/src"
-RUN dotnet test "Wellcome.Dds.sln" --filter Category\!=Database
+RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"
 
 FROM build AS publish
 WORKDIR "/src/DlcsJobProcessor"

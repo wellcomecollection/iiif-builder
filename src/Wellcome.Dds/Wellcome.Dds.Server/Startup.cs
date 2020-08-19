@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using Community.Microsoft.Extensions.Caching.PostgreSql;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +27,7 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Server.Auth;
+using Wellcome.Dds.Server.Conneg;
 using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
@@ -53,15 +56,19 @@ namespace Wellcome.Dds.Server
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
-            services.AddDistributedPostgreSqlCache(setup =>
+
+            if (!WebHostEnvironment.IsEnvironment("Testing"))
             {
-                setup.ConnectionString = ddsConnectionString;
-                setup.SchemaName = "public";
-                setup.TableName = "__dist_cache";
-                setup.CreateInfrastructure = !WebHostEnvironment.IsProduction();
-                setup.DefaultSlidingExpiration = TimeSpan.FromMinutes(20); // TODO - is this right?
-            });
-            
+                services.AddDistributedPostgreSqlCache(setup =>
+                {
+                    setup.ConnectionString = ddsConnectionString;
+                    setup.SchemaName = "public";
+                    setup.TableName = "__dist_cache";
+                    setup.CreateInfrastructure = !WebHostEnvironment.IsProduction();
+                    setup.DefaultSlidingExpiration = TimeSpan.FromMinutes(20); // TODO - is this right?
+                });
+            }
+
             services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromSeconds(3600);
@@ -71,7 +78,12 @@ namespace Wellcome.Dds.Server
 
             services.AddSwagger();
             services.AddCors();
-            services.AddMvc();
+            services.AddMvc(options =>
+            {
+                var jsonFormatter = options.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
+                jsonFormatter?.SupportedMediaTypes.Add(IIIFPresentation.ContentTypes.V2);
+                jsonFormatter?.SupportedMediaTypes.Add(IIIFPresentation.ContentTypes.V3);
+            });
 
             services.AddHealthChecks()
                 .AddDbContextCheck<DdsContext>("Dds-db");
