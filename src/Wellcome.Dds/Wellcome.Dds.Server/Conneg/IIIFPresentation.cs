@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.Net.Http.Headers;
 
@@ -13,22 +12,6 @@ namespace Wellcome.Dds.Server.Conneg
     public static class IIIFPresentation
     {
         /// <summary>
-        /// Contains JSON-LD Contexts for IIIF Presentation API.
-        /// </summary>
-        public static class Context
-        {
-            /// <summary>
-            /// JSON-LD context for IIIF presentation 2.
-            /// </summary>
-            public const string V2 = "http://iiif.io/api/presentation/2/context.json";
-
-            /// <summary>
-            /// JSON-LD context for IIIF presentation 3. 
-            /// </summary>
-            public const string V3 = "http://iiif.io/api/presentation/3/context.json";
-        }
-
-        /// <summary>
         /// Contains Content-Type/Accepts headers for IIIF Presentation API. 
         /// </summary>
         public static class ContentTypes
@@ -36,12 +19,12 @@ namespace Wellcome.Dds.Server.Conneg
             /// <summary>
             /// Content-Type for IIIF presentation 2.
             /// </summary>
-            public const string V2 = "application/ld+json;profile=\"" + Context.V2 + "\"";
+            public const string V2 = "application/ld+json;profile=\"" + IIIF.Presentation.Context.V2 + "\"";
 
             /// <summary>
             /// Content-Type for IIIF presentation 3. 
             /// </summary>
-            public const string V3 = "application/ld+json;profile=\"" + Context.V3 + "\"";
+            public const string V3 = "application/ld+json;profile=\"" + IIIF.Presentation.Context.V3 + "\"";
         }
 
         /// <summary>
@@ -50,9 +33,9 @@ namespace Wellcome.Dds.Server.Conneg
         /// <param name="mediaTypeHeaders">Collection of <see cref="MediaTypeHeaderValue"/> objects.</param>
         /// <param name="fallbackVersion">Value to return if no specific version found.</param>
         /// <returns><see cref="IIIFPresentationVersion"/> derived from provided values.</returns>
-        public static IIIFPresentationVersion GetIIIFPresentationType(
+        public static IIIF.Presentation.Version GetIIIFPresentationType(
             this IEnumerable<MediaTypeHeaderValue> mediaTypeHeaders,
-            IIIFPresentationVersion fallbackVersion = IIIFPresentationVersion.Unknown)
+            IIIF.Presentation.Version fallbackVersion = IIIF.Presentation.Version.Unknown)
         {
             var mediaTypes = mediaTypeHeaders ?? Enumerable.Empty<MediaTypeHeaderValue>();
             
@@ -63,48 +46,24 @@ namespace Wellcome.Dds.Server.Conneg
                         string.Equals(p.Name.Value, "profile", StringComparison.OrdinalIgnoreCase))?.Value.Value)
                 .OrderByDescending(s => s);
 
-            var v3Profile = $"\"{Context.V3}\"";
-            var v2Profile = $"\"{Context.V2}\"";
+            var v3Profile = $"\"{IIIF.Presentation.Context.V3}\"";
+            var v2Profile = $"\"{IIIF.Presentation.Context.V2}\"";
 
             foreach (var profile in profiles)
             {
                 if (string.IsNullOrEmpty(profile)) continue;
                 if (profile == v3Profile)
                 {
-                    return IIIFPresentationVersion.V3;
+                    return IIIF.Presentation.Version.V3;
                 }
 
                 if (profile == v2Profile)
                 {
-                    return IIIFPresentationVersion.V2;
+                    return IIIF.Presentation.Version.V2;
                 }
             }
 
             return fallbackVersion;
         }
-    }
-
-    /// <summary>
-    /// Available IIIF presentation API Versions.
-    /// </summary>
-    public enum IIIFPresentationVersion
-    {
-        /// <summary>
-        /// Fallback value, unknown version.
-        /// </summary>
-        [Display(Description = "Unknown")]
-        Unknown = 0,
-        
-        /// <summary>
-        /// IIIF Presentation version 2.
-        /// </summary>
-        [Display(Description = IIIFPresentation.Context.V2)]
-        V2,
-        
-        /// <summary>
-        /// IIIF Presentation version 3.
-        /// </summary>
-        [Display(Description = IIIFPresentation.Context.V3)]
-        V3
     }
 }
