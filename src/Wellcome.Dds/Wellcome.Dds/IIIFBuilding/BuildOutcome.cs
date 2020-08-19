@@ -8,6 +8,7 @@ namespace Wellcome.Dds.IIIFBuilding
     {
         Success,
         HasClosedSection,
-        MissingDzLicenseCode
+        MissingDzLicenseCode,
+        Failure
     }
 }

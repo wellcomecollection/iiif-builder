@@ -7,5 +7,6 @@ namespace Wellcome.Dds.IIIFBuilding
     public class BuildResult
     {
         public BuildOutcome Outcome { get; set; }
+        public string Message { get; set; }
     }
 }

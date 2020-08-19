@@ -32,5 +32,9 @@
         public string MillenniumPassword { get; set; }
         
         public string DlcsReturnUrl { get; set; }
+        
+        public string PresentationContainer { get; set; }
+        public string TextContainer { get; set; }
+        public string AnnotationContainer { get; set; }
     }
 }

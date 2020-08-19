@@ -1,8 +1,10 @@
-﻿using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+﻿using System;
+using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
+    [Serializable]
     public class IIIFPrecursor
     {
         public string Id { get; set; }

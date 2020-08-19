@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Amazon.S3;
+using Amazon.S3.Model;
 using DlcsWebClient.Config;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
@@ -15,40 +19,54 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IDashboardRepository dashboardRepository;
         private readonly ICatalogue catalogue;
         private readonly DlcsOptions dlcsOptions;
+        private readonly DdsOptions ddsOptions;
+        private readonly IAmazonS3 amazonS3;
         
         public IIIFBuilder(
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
-            IOptions<DlcsOptions> dlcsOptions)
+            IOptions<DlcsOptions> dlcsOptions,
+            IOptions<DdsOptions> ddsOptions,
+            IAmazonS3 amazonS3)
         {
             this.dashboardRepository = dashboardRepository;
             this.catalogue = catalogue;
             this.dlcsOptions = dlcsOptions.Value;
+            this.ddsOptions = ddsOptions.Value;
+            this.amazonS3 = amazonS3;
         }
         
         public async Task<BuildResult> Build(string identifier)
         {
-            var ddsId = new DdsIdentifier(identifier);
-            var workTask = catalogue.GetWork(ddsId.BNumber);
-            var ddsTask = dashboardRepository.GetDigitisedResource(identifier);
-            await Task.WhenAll(new List<Task> {ddsTask, workTask});
-            
-            
-            var digitisedResource = ddsTask.Result;
-            var work = workTask.Result;
-            CleanManifestation(digitisedResource);
-
-            // build the Presentation 3 version from the source materials
-            var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, work);
-            SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
-            // now build the Presentation 2 version from the Presentation 3 version
-            var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
-            SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
-
-            return new BuildResult
+            var result = new BuildResult();
+            try
             {
-                Outcome = BuildOutcome.Success
-            };
+                var ddsId = new DdsIdentifier(identifier);
+                var workTask = catalogue.GetWork(ddsId.BNumber);
+                var ddsTask = dashboardRepository.GetDigitisedResource(identifier);
+                await Task.WhenAll(new List<Task> {ddsTask, workTask});
+                
+                
+                var digitisedResource = ddsTask.Result;
+                var work = workTask.Result;
+                CleanManifestation(digitisedResource);
+
+                // build the Presentation 3 version from the source materials
+                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, work);
+                await SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
+                // now build the Presentation 2 version from the Presentation 3 version
+                var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
+                await SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
+
+                result.Outcome = BuildOutcome.Success;
+            }
+            catch (Exception e)
+            {
+                result.Message = e.Message;
+                result.Outcome = BuildOutcome.Failure;
+            }
+
+            return result;
         }
 
 
@@ -69,7 +87,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 ManifestSource = digitisedResource as DigitisedManifestation,
                 SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
                 Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, digitisedResource.Identifier),
-                IIIFVersion = "3"
+                IIIFVersion = IIIF.Presentation.Version.V3.ToString()
             };
             return iiif;
         }
@@ -85,14 +103,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             // This just changes the version and returns the same object. OK because we've
             // already written the v3 one to S3. But obviously, don't do it like this for real!
-            iiifPresentation3Resource.IIIFVersion = "2";
+            iiifPresentation3Resource.IIIFVersion = IIIF.Presentation.Version.V2.ToString();
             return iiifPresentation3Resource;
         }
 
         
-        private void SaveToS3(IIIFPrecursor iiifResource, string key)
+        private async Task SaveToS3(IIIFPrecursor iiifResource, string key)
         {
-            throw new System.NotImplementedException();
+            var json = JsonConvert.SerializeObject(iiifResource);
+            var put = new PutObjectRequest
+            {
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key,
+                ContentBody = json,
+                ContentType = "application/json"
+            };
+            var resp = await amazonS3.PutObjectAsync(put);
         }
         
         private void CleanManifestation(IDigitisedResource manifestation)
