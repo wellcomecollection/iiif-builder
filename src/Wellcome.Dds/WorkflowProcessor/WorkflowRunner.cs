@@ -9,7 +9,7 @@ using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
-using Wellcome.Dds.IIIF;
+using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 
 namespace WorkflowProcessor

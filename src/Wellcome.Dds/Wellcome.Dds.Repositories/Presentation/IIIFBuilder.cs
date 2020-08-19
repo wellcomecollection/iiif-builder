@@ -6,7 +6,7 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
-using Wellcome.Dds.IIIF;
+using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

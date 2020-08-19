@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Wellcome.Dds.IIIF
+namespace Wellcome.Dds.IIIFBuilding
 {
     public class BuildResult
     {
