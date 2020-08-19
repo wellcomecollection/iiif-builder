@@ -1,7 +1,7 @@
 ﻿using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 
-namespace Wellcome.Dds.Server.Models
+namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFPrecursor
     {
@@ -10,7 +10,7 @@ namespace Wellcome.Dds.Server.Models
         public string Label { get; set; }
         public Work CatalogueMetadata { get; set; }
         public DigitisedManifestation ManifestSource { get; set; }
-        public Server.Models.SimpleCollectionModel SimpleCollectionSource { get; set; }
+        public SimpleCollectionModel SimpleCollectionSource { get; set; }
         public string Pdf { get; set; }
         public string IIIFVersion { get; set; }
     }
