@@ -7,12 +7,17 @@ using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
+using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation;
+using Wellcome.Dds.Repositories.WordsAndPictures;
+using Wellcome.Dds.WordsAndPictures;
 
 namespace WorkflowProcessor
 {
@@ -35,6 +40,8 @@ namespace WorkflowProcessor
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
+            
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
@@ -50,7 +57,12 @@ namespace WorkflowProcessor
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>()
+                .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<WorkflowRunner>()
+                .AddScoped<Synchroniser>()
+                .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
+                .AddScoped<CachingAllAnnotationProvider>()
+                .AddScoped<CachingAltoSearchTextProvider>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
                 .AddHostedService<WorkflowProcessorService>();
