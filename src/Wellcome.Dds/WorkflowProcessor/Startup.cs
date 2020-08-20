@@ -49,12 +49,16 @@ namespace WorkflowProcessor
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
+            services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
 
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
             services.AddSingleton<IIIIFBuilder, IIIFBuilder>(opts =>
                 ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
+                    factory.Get(NamedClient.Dds)));
+            services.AddSingleton<WorkflowRunner>(opts =>
+                ActivatorUtilities.CreateInstance<WorkflowRunner>(opts,
                     factory.Get(NamedClient.Dds)));
 
             services.AddMemoryCache();
@@ -63,17 +67,16 @@ namespace WorkflowProcessor
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
             services
+                .AddScoped<IMetsRepository, MetsRepository>()
+                .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
                 .AddScoped<IDashboardRepository, DashboardRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
-                .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<WorkflowRunner>()
                 .AddScoped<Synchroniser>()
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
                 .AddScoped<CachingAllAnnotationProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
                 .AddHostedService<WorkflowProcessorService>();
             
             services.AddHealthChecks()

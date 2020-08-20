@@ -6,7 +6,8 @@
   using Microsoft.Extensions.Options;
   using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
   using Wellcome.Dds.AssetDomain.Workflow;
-  using Xunit;
+using Wellcome.Dds.Common;
+using Xunit;
 
 namespace WorkflowProcessor.Tests
 {
@@ -21,11 +22,16 @@ namespace WorkflowProcessor.Tests
             {
                 RegisterImages = true
             };
-            var options = Options.Create(runnerOptions);
+            var ddsOptions = new DdsOptions
+            {
+            };
+            var runnerOptionsInst = Options.Create(runnerOptions);
+            var ddsOptionsInst = Options.Create(ddsOptions);
             
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
-            sut = new WorkflowRunner(ingestJobRegistry, options, new NullLogger<WorkflowRunner>(),
-                null, null, null, null, null);
+            // TODO need to fix this once runnable workflowrunner
+            sut = new WorkflowRunner(ingestJobRegistry, runnerOptionsInst, new NullLogger<WorkflowRunner>(),
+                null, null, null, null, null, ddsOptionsInst, null);
         }
         
         [Fact]

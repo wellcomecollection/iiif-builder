@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -9,8 +11,10 @@ using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
+using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace WorkflowProcessor
 {
@@ -27,6 +31,8 @@ namespace WorkflowProcessor
         private readonly IMetsRepository metsRepository;
         private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
         private readonly CachingAltoSearchTextProvider cachingSearchTextProvider;
+        private readonly DdsOptions ddsOptions;
+        private readonly IAmazonS3 amazonS3;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -36,7 +42,9 @@ namespace WorkflowProcessor
             IIIIFBuilder iiifBuilder,
             IMetsRepository metsRepository,
             CachingAllAnnotationProvider cachingAllAnnotationProvider,
-            CachingAltoSearchTextProvider cachingSearchTextProvider)
+            CachingAltoSearchTextProvider cachingSearchTextProvider,
+            IOptions<DdsOptions> ddsOptions,
+            IAmazonS3 amazonS3)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -46,6 +54,8 @@ namespace WorkflowProcessor
             this.metsRepository = metsRepository;
             this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
             this.cachingSearchTextProvider = cachingSearchTextProvider;
+            this.ddsOptions = ddsOptions.Value;
+            this.amazonS3 = amazonS3;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -120,6 +130,8 @@ namespace WorkflowProcessor
                 job.TimeSpentOnTextPages = 0;
                 int wordsCountedOnThisRun = 0;
                 bool wordCountInvalid = false;
+
+                // TODO - this needs a load of error handling etc
                 await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
                 {
                     var manifestation = manifestationInContext.Manifestation;
@@ -141,6 +153,7 @@ namespace WorkflowProcessor
                         {
                             var startTextTs = DateTime.Now;
                             var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
+                            await SaveTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
                             var wordCount = text.Words.Count;
                             logger.LogInformation($"Rebuilt search text for {manifestation.Id}: {wordCount} words.");
                             job.TextsBuilt++;
@@ -159,6 +172,7 @@ namespace WorkflowProcessor
                             if (runnerOptions.RebuildAllAnnoPageCaches)
                             {
                                 var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.SignificantSequence);
+                                SaveAnnoPagesToS3(manifestation, annopages);
                                 logger.LogInformation($"Rebuilt annotation pages for {manifestation.Id}: {annopages.Count} pages.");
                                 job.AnnosBuilt++;
                             }
@@ -178,9 +192,33 @@ namespace WorkflowProcessor
             }
         }
 
+
         private bool HasAltoFiles(IManifestation manifestation)
         {
             return manifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText());
+        }
+
+
+        private async Task SaveTextToS3(string content, string key)
+        {
+            if(content.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+            var put = new PutObjectRequest
+            {
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key,
+                ContentBody = content,
+                ContentType = "text/plain"
+            };
+            await amazonS3.PutObjectAsync(put);
+        }
+
+        private void SaveAnnoPagesToS3(IManifestation manifestation, AnnotationPageList annopages)
+        {
+            // TODO - this should be implemented once we have a W3C version of annopage => annos
+            // so we can save it as JSON.
         }
     }
 }
