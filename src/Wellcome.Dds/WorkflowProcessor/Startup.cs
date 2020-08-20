@@ -18,6 +18,7 @@ using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Repositories.Presentation;
@@ -41,6 +42,7 @@ namespace WorkflowProcessor
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
 
+            services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
@@ -54,10 +56,10 @@ namespace WorkflowProcessor
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
-            services.AddSingleton<IIIIFBuilder, IIIFBuilder>(opts =>
+            services.AddScoped<IIIIFBuilder, IIIFBuilder>(opts =>
                 ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
                     factory.Get(NamedClient.Dds)));
-            services.AddSingleton<WorkflowRunner>(opts =>
+            services.AddScoped<WorkflowRunner>(opts =>
                 ActivatorUtilities.CreateInstance<WorkflowRunner>(opts,
                     factory.Get(NamedClient.Dds)));
 
