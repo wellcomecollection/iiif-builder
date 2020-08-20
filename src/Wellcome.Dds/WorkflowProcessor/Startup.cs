@@ -1,4 +1,5 @@
 ﻿using Amazon.S3;
+using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -9,12 +10,16 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures;
@@ -40,24 +45,28 @@ namespace WorkflowProcessor
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
-            
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));            
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
+
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
+            services.AddSingleton<IIIIFBuilder, IIIFBuilder>(opts =>
+                ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
+                    factory.Get(NamedClient.Dds)));
 
             services.AddMemoryCache();
 
             services.AddHttpClient<OAuth2ApiConsumer>();
-
+            services.AddDlcsClient(Configuration);
+            services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
             services
+                .AddScoped<IDashboardRepository, DashboardRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<WorkflowRunner>()
                 .AddScoped<Synchroniser>()
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
