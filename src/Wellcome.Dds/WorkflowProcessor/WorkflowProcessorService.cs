@@ -41,6 +41,8 @@ namespace WorkflowProcessor
 
                     var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
 
+                    // TODO - have the job returned as Taken, with the transaction in PostgreSQL,
+                    // so there's no chance of two processes picking the same job.
                     var job = dbContext.WorkflowJobs
                         .Where(j => j.Waiting && j.Created < cutoff)
                         .OrderBy(j => j.Created)
