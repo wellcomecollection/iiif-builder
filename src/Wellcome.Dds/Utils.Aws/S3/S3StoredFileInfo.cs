@@ -29,30 +29,41 @@ namespace Utils.Aws.S3
             Uri = $"s3://{bucket}/{key}";
         }
 
-        private async Task EnsureObjectMetadata()
+        private void EnsureObjectMetadata()
         {
             if (exists.HasValue)
             {
                 return;
             }
+            
+            // The "right" way to do this would be with a S3FileInfo.Exists, but that is not available
+            // in .NET Core. So we need to test by exception catching on GetObjectMetadataAsync.
+            
+            // However, that's what S3FileInfo.Exists does anyway, so we're not any better off.
+            // https://github.com/aws/aws-sdk-net/blob/master/sdk/src/Services/S3/Custom/_bcl/IO/S3FileInfo.cs#L118
 
-            var metadataResult = await amazonS3.GetObjectMetadataAsync(bucket, key);
-            if (metadataResult.HttpStatusCode == HttpStatusCode.OK)
+            try
             {
-                exists = true;
-                lastWriteTime = metadataResult.LastModified;
+                var metadataResult = amazonS3.GetObjectMetadataAsync(bucket, key).Result;
+                if (metadataResult.HttpStatusCode == HttpStatusCode.OK)
+                {
+                    exists = true;
+                    lastWriteTime = metadataResult.LastModified;
+                    return;
+                }
             }
-            else
+            catch
             {
-                exists = false;
+                // ignored
             }
+            exists = false;
         }
 
         public DateTime LastWriteTime
         {
             get
             {
-                EnsureObjectMetadata().RunSynchronously();
+                EnsureObjectMetadata();
                 return lastWriteTime ?? DateTime.MinValue;
             }
         }
@@ -61,7 +72,7 @@ namespace Utils.Aws.S3
         {
             get
             {
-                EnsureObjectMetadata().RunSynchronously();
+                EnsureObjectMetadata();
                 return exists != null && exists.Value;
             }
         }

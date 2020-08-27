@@ -153,7 +153,7 @@ namespace WorkflowProcessor
                         {
                             var startTextTs = DateTime.Now;
                             var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
-                            await SaveTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
+                            await SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
                             var wordCount = text.Words.Count;
                             logger.LogInformation($"Rebuilt search text for {manifestation.Id}: {wordCount} words.");
                             job.TextsBuilt++;
@@ -199,7 +199,7 @@ namespace WorkflowProcessor
         }
 
 
-        private async Task SaveTextToS3(string content, string key)
+        private async Task SaveRawTextToS3(string content, string key)
         {
             if(content.IsNullOrWhiteSpace())
             {
@@ -207,7 +207,7 @@ namespace WorkflowProcessor
             }
             var put = new PutObjectRequest
             {
-                BucketName = ddsOptions.PresentationContainer,
+                BucketName = ddsOptions.TextContainer,
                 Key = key,
                 ContentBody = content,
                 ContentType = "text/plain"

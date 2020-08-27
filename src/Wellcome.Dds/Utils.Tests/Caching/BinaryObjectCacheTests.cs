@@ -17,6 +17,8 @@ namespace Utils.Tests.Caching
         private readonly IStorage storage;
         private readonly IMemoryCache memoryCache;
 
+        private const string ContainerName = "container";
+
         public BinaryObjectCacheTests()
         {
             storage = A.Fake<IStorage>();
@@ -31,7 +33,8 @@ namespace Utils.Tests.Caching
                 Prefix = "tst-",
                 MemoryCacheSeconds = cacheSeconds,
                 AvoidCaching = avoidCaching,
-                AvoidSaving = avoidSaving
+                AvoidSaving = avoidSaving,
+                Container = ContainerName
             };
             var byType = new BinaryObjectCacheOptionsByType();
             byType["Utils.Tests.Caching.FakeStoredFileInfo"] = fakeStoredFileInfoOptions;
@@ -56,7 +59,7 @@ namespace Utils.Tests.Caching
             sut.GetCachedFile(key);
             
             // Assert
-            A.CallTo(() => storage.GetCachedFileInfo(expected)).MustHaveHappened();
+            A.CallTo(() => storage.GetCachedFileInfo(ContainerName, expected)).MustHaveHappened();
         }
 
 
@@ -67,7 +70,7 @@ namespace Utils.Tests.Caching
             const string key = nameof(GetCachedFile_ReturnsFileFromStorage);
 
             var fileInfo = new FakeStoredFileInfo();
-            A.CallTo(() => storage.GetCachedFileInfo(A<string>._)).Returns(fileInfo);
+            A.CallTo(() => storage.GetCachedFileInfo(ContainerName, A<string>._)).Returns(fileInfo);
             var sut = GetSut();
 
             // Act
@@ -89,7 +92,7 @@ namespace Utils.Tests.Caching
             await sut.DeleteCacheFile(key);
             
             // Assert
-            A.CallTo(() => storage.DeleteCacheFile(expected)).MustHaveHappened();
+            A.CallTo(() => storage.DeleteCacheFile(ContainerName, expected)).MustHaveHappened();
         }
         
         [Fact]
@@ -106,7 +109,7 @@ namespace Utils.Tests.Caching
             
             // Assert
             A.CallTo(() => memoryCache.Remove(expectedMemoryCache)).MustHaveHappened();
-            A.CallTo(() => storage.DeleteCacheFile(expectedFileName)).MustHaveHappened();
+            A.CallTo(() => storage.DeleteCacheFile(ContainerName, expectedFileName)).MustHaveHappened();
         }
 
         [Fact]

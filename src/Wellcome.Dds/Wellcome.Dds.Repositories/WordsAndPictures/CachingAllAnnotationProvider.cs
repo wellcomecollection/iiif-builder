@@ -5,6 +5,7 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.Repositories.WordsAndPictures
@@ -44,7 +45,8 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         {
             var altoProvider = new SimpleAltoProvider();
             var pages = new AnnotationPageList();
-            var workStore = await workStorageFactory.GetWorkStore(identifier);
+            var ddsId = new DdsIdentifier(identifier);
+            var workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
             foreach (var physicalFile in physicalFiles)
             {
                 if (physicalFile.RelativeAltoPath.HasText())

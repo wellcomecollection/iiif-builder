@@ -35,7 +35,9 @@ namespace WorkflowProcessor
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
                     await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
 
-                    var cutoff = DateTime.Now.AddMinutes(-1);
+                    // TODO - temp
+                    var cutoff = DateTime.Now; //
+                    // var cutoff = DateTime.Now.AddMinutes(-1);
 
                     using var scope = serviceScopeFactory.CreateScope();
 

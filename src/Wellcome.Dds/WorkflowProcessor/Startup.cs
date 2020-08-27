@@ -1,4 +1,5 @@
 ﻿using Amazon.S3;
+using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,7 @@ namespace WorkflowProcessor
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
 
+            services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));

@@ -24,16 +24,17 @@ namespace Utils.Aws.S3
             this.amazonS3 = amazonS3;
         }
 
-        public string Container { get; set; }
+        //public string Container { get; set; }
 
-        public ISimpleStoredFileInfo GetCachedFileInfo(string fileName)
+        public ISimpleStoredFileInfo GetCachedFileInfo(string container, string fileName)
         {
             // This returns an object that doesn't talk to S3 unless it needs to.
             // That is, calls to LastWriteTime or Exists should be lazy.
-            return new S3StoredFileInfo(Container, fileName, amazonS3);
+            return new S3StoredFileInfo(container, fileName, amazonS3);
         }
 
-        public Task DeleteCacheFile(string fileName) => amazonS3.DeleteObjectAsync(Container, fileName);
+        public Task DeleteCacheFile(string container, string fileName) 
+            => amazonS3.DeleteObjectAsync(container, fileName);
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
@@ -44,12 +45,22 @@ namespace Utils.Aws.S3
                 await using (var stream = getResponse.ResponseStream)
                 {
                     IFormatter formatter = new BinaryFormatter();
-                    t = formatter.Deserialize(stream) as T;
+                    var obj = formatter.Deserialize(stream);
                     stream.Close();
-                }
-                if (t == null)
-                {
-                    logger.LogError("Attempt to deserialize '{Uri}' from S3 failed.", fileInfo.Uri);
+                    switch (obj)
+                    {
+                        case T tObj:
+                            // The object from S3 is a T as expected, so we're good.
+                            t = tObj;
+                            break;
+                        case null:
+                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, object is not {typeof(T)}");
+                            break;
+                        default:
+                            // Something else wrote to the bucket?
+                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
+                            break;
+                    }
                 }
             }
             catch (Exception e)

@@ -58,6 +58,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
                 await SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
 
+                
+                // TODO - identifier comes in as a b number; you have to make ALL of them!
+                // (walk down the collection creating IIIF resources
+                // If this is a collection, atm it will just make the collection and not its parts.
+                
                 result.Outcome = BuildOutcome.Success;
             }
             catch (Exception e)

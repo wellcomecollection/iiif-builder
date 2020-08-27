@@ -12,5 +12,6 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         public Illustration[] ComposedBlocks { get; set; }
     }
 
+    [Serializable]
     public class AnnotationPageList : List<AnnotationPage> { }
 }

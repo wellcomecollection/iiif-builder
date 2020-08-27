@@ -29,7 +29,6 @@ namespace Utils.Caching
             this.logger = logger;
             options = binaryObjectCacheOptionsByType.Value[typeof(T).FullName];
             this.storage = storage;
-            this.storage.Container = options.Container; // not sure about setting this here
             this.memoryCache = memoryCache;
             cacheDuration = TimeSpan.FromSeconds(this.options.MemoryCacheSeconds);
         }
@@ -37,7 +36,7 @@ namespace Utils.Caching
         public ISimpleStoredFileInfo GetCachedFile(string key)
         {
             string fileName = GetFileName(key);
-            return storage.GetCachedFileInfo(fileName);
+            return storage.GetCachedFileInfo(options.Container, fileName);
         }
 
         public Task DeleteCacheFile(string key)
@@ -47,7 +46,7 @@ namespace Utils.Caching
             string fileName = GetFileName(key);
             
             // TODO - handle failure?
-            return storage.DeleteCacheFile(fileName);
+            return storage.DeleteCacheFile(options.Container, fileName);
         }
 
         public Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource) 
