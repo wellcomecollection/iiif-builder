@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
@@ -94,6 +95,31 @@ namespace Utils.Aws.S3
                 {
                     throw;
                 }
+            }
+        }
+
+        public async Task<Stream?> GetStream(string container, string fileName)
+        {
+            var getObjectRequest = new GetObjectRequest
+            {
+                BucketName = container,
+                Key = fileName
+            };
+            try
+            {
+                var getResponse = await amazonS3.GetObjectAsync(getObjectRequest);
+                return getResponse.ResponseStream;
+            }
+            catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
+            {
+                logger.LogInformation(e, "Could not find S3 object {Bucket}/{Key}", container, fileName);
+                return null;
+            }
+            catch (AmazonS3Exception e)
+            {
+                logger.LogWarning(e, "Could not copy S3 Stream for {S3ObjectRequest}; {StatusCode}",
+                    getObjectRequest, e.StatusCode);
+                throw;
             }
         }
     }

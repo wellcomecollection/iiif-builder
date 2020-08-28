@@ -80,6 +80,9 @@ namespace Utils.Storage.FileSystem
             }
         }
 
-        
+        public Task<Stream?> GetStream(string container, string fileName)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
