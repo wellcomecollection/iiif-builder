@@ -103,7 +103,7 @@ namespace Wellcome.Dds.Server
             services.Configure<SierraRestAPIOptions>(Configuration.GetSection("SierraRestAPI"));
 
             // we need more than one of these
-            services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+            services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
             services.AddBasicAuth(opts => opts.Realm = "Wellcome");
 

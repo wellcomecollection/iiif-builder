@@ -1,5 +1,9 @@
-﻿namespace Utils.Caching
+﻿using System.Collections.Generic;
+
+namespace Utils.Caching
 {
+    public class BinaryObjectCacheOptionsByType : Dictionary<string, BinaryObjectCacheOptions> { }
+
     public class BinaryObjectCacheOptions
     {
         public bool AvoidCaching { get; set; }

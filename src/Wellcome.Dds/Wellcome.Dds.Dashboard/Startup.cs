@@ -74,7 +74,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<DashOptions>(Configuration.GetSection("Dash"));
 
             // we need more than one of these
-            services.Configure<BinaryObjectCacheOptions>(Configuration.GetSection("BinaryObjectCache:StorageMaps"));
+            services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
 
             // This will require an S3 implementation in production
             //services.AddSingleton<IStorage, FileSystemStorage>();

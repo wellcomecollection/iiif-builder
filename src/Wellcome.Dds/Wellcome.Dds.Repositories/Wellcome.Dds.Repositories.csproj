@@ -6,11 +6,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.4" />
     <PackageReference Include="System.Net.Http.Json" Version="3.2.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
+    <ProjectReference Include="..\IIIF\IIIF.csproj" />
+    <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
     <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />
   </ItemGroup>

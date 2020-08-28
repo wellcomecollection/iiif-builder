@@ -16,18 +16,18 @@ namespace Utils.Storage.FileSystem
             this.logger = logger;
         }
 
-        public string Container { get; set; }
+        //public string Container { get; set; }
 
-        public ISimpleStoredFileInfo GetCachedFileInfo(string fileName)
+        public ISimpleStoredFileInfo GetCachedFileInfo(string container, string fileName)
         {
-            string cachedFilePath = Path.Combine(Container, fileName);
+            string cachedFilePath = Path.Combine(container, fileName);
             FileInfo fi = new FileInfo(cachedFilePath);
             return new FileSystemStoredFileInfo(fi);
         }
         
-        public Task DeleteCacheFile(string fileName)
+        public Task DeleteCacheFile(string container, string fileName)
         {
-            string cachedFilePath = Path.Combine(Container, fileName);
+            string cachedFilePath = Path.Combine(container, fileName);
             File.Delete(cachedFilePath);
             return Task.CompletedTask;
         }
@@ -80,6 +80,9 @@ namespace Utils.Storage.FileSystem
             }
         }
 
-        
+        public Task<Stream?> GetStream(string container, string fileName)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

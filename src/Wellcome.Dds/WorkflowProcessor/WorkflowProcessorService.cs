@@ -35,12 +35,16 @@ namespace WorkflowProcessor
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
                     await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
 
-                    var cutoff = DateTime.Now.AddMinutes(-1);
+                    // TODO - temp
+                    var cutoff = DateTime.Now; //
+                    // var cutoff = DateTime.Now.AddMinutes(-1);
 
                     using var scope = serviceScopeFactory.CreateScope();
 
                     var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
 
+                    // TODO - have the job returned as Taken, with the transaction in PostgreSQL,
+                    // so there's no chance of two processes picking the same job.
                     var job = dbContext.WorkflowJobs
                         .Where(j => j.Waiting && j.Created < cutoff)
                         .OrderBy(j => j.Created)

@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
+using IIIF.Presentation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
@@ -13,80 +15,70 @@ using Wellcome.Dds.Server.Models;
 
 namespace Wellcome.Dds.Server.Controllers
 {
+    /// <summary>
+    /// Mostly now just a Proxy to S3 resources made by WorkflowProcessor.
+    /// </summary>
     [Route("[controller]")]
     [ApiController]
     public class PresentationController : ControllerBase
     {
-        private readonly IDashboardRepository dashboardRepository;
-        private readonly ICatalogue catalogue;
-        private readonly DlcsOptions dlcsOptions;
+        private readonly IStorage storage;
+        private readonly DdsOptions ddsOptions;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="storage"></param>
+        /// <param name="options"></param>
         public PresentationController(
-            IDashboardRepository dashboardRepository,
-            ICatalogue catalogue,
-            IOptions<DlcsOptions> dlcsOptions)
+            IStorage storage,
+            IOptions<DdsOptions> options
+            )
         {
-            this.dashboardRepository = dashboardRepository;
-            this.catalogue = catalogue;
-            this.dlcsOptions = dlcsOptions.Value;
+            this.storage = storage;
+            ddsOptions = options.Value;
         }
         
+        /// <summary>
+        /// The canonical route for IIIF resources.
+        /// Supports content negotiation.
+        ///
+        /// This is simply a proxy to resources in S3.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")] 
-        public Task<IIIFPrecursor> Index(string id)
+        public Task<IActionResult> Index(string id)
         {
             // Return requested version if headers present, or fallback to known version
-            var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(IIIF.Presentation.Version.V3);
-            return CreateIIIFPrecursor(id, iiifVersion);
+            var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
+            return iiifVersion == Version.V2 ? V2(id) : V3(id);
         }
 
+        /// <summary>
+        /// Non conneg explicit path for IIIF 2.1
+        /// </summary>
+        /// <param name="id">The resource identifier</param>
+        /// <returns></returns>
         [HttpGet("v2/{id}")]
-        public Task<IIIFPrecursor> V2(string id) => CreateIIIFPrecursor(id, IIIF.Presentation.Version.V2);
+        public Task<IActionResult> V2(string id) => GetIIIFResource($"v2/{id}", IIIFPresentation.ContentTypes.V2);
 
+        /// <summary>
+        /// Non conneg explicit path for IIIF 3.0
+        /// </summary>
+        /// <param name="id">The resource identifier</param>
+        /// <returns></returns>
         [HttpGet("v3/{id}")]
-        public Task<IIIFPrecursor> V3(string id) => CreateIIIFPrecursor(id, IIIF.Presentation.Version.V3);
+        public Task<IActionResult> V3(string id) => GetIIIFResource($"v3/{id}", IIIFPresentation.ContentTypes.V3);
 
-        private async Task<IIIFPrecursor> CreateIIIFPrecursor(string id, IIIF.Presentation.Version iiifVersion)
+        private async Task<IActionResult> GetIIIFResource(string path, string contentType)
         {
-            Response.ContentType = iiifVersion == IIIF.Presentation.Version.V2
-                ? IIIFPresentation.ContentTypes.V2
-                : IIIFPresentation.ContentTypes.V3;
-            
-            // No error handling in here at all for demo
-            var ddsId = new DdsIdentifier(id);
-            var workTask = catalogue.GetWork(ddsId.BNumber);
-            var ddsTask = dashboardRepository.GetDigitisedResource(id);
-            await Task.WhenAll(new List<Task> {ddsTask, workTask});
-
-            var digitisedResource = ddsTask.Result;
-            var work = workTask.Result;
-            CleanManifestation(digitisedResource);
-            var model = new IIIFPrecursor
+            var stream = await storage.GetStream(ddsOptions.PresentationContainer, path);
+            if (stream == null)
             {
-                Id = id,
-                CatalogueMetadata = work,
-                Label = digitisedResource.BNumberModel.DisplayTitle,
-                Comment = $"This is a {digitisedResource.GetType()}",
-                ManifestSource = digitisedResource as DigitisedManifestation,
-                SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
-                Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, id),
-                IIIFVersion = iiifVersion.ToString()
-            };
-            
-            return model;
-        }
-
-        private void CleanManifestation(IDigitisedResource manifestation)
-        {
-            if (manifestation is DigitisedManifestation)
-            {
-                var metsManifestation = ((DigitisedManifestation) manifestation).MetsManifestation; 
-                // remove refs that just clutter up the JSON
-                metsManifestation.Sequence = null;
-                foreach (var physicalFile in metsManifestation.SignificantSequence)
-                {
-                    physicalFile.WorkStore = null;
-                }
+                return NotFound($"No IIIF resource found for {path}");
             }
+            return File(stream, contentType);
         }
     }
 }
