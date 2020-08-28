@@ -74,7 +74,11 @@ dotnet ef migrations script -i -o /dds.sql -p Wellcome.Dds.Repositories -s Wellc
 # generate for DDS Instrumentation
 dotnet ef migrations script -i -o /dds_instr.sql -p Wellcome.Dds.AssetDomainRepositories -s Wellcome.Dds.Dashboard -c DdsInstrumentationContext
 ```
-> Note that the above commands will generate scripts for _all_ migrations, rather than selective. See [msdn](https://docs.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying?tabs=dotnet-core-cli#sql-scripts) for more details 
+> Note that the above commands will generate scripts for _all_ migrations, rather than selective. See [msdn](https://docs.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying?tabs=dotnet-core-cli#sql-scripts) for more details.
+
+Connection strings for the production databases can be found in AWS Secrets Manager: `iiif-builder/production/dds-connstr` and `iiif-builder/production/ddsinstrumentation-connstr`.
+
+Use port forwarding via the AWS bastion to access RDS instance, and the above connection-strings for credentials.
 
 ## Running
 
