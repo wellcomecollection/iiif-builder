@@ -25,8 +25,6 @@ namespace Utils.Aws.S3
             this.amazonS3 = amazonS3;
         }
 
-        //public string Container { get; set; }
-
         public ISimpleStoredFileInfo GetCachedFileInfo(string container, string fileName)
         {
             // This returns an object that doesn't talk to S3 unless it needs to.
@@ -42,8 +40,8 @@ namespace Utils.Aws.S3
             T t = default;
             try
             {
-                var getResponse = await amazonS3.GetObjectAsync(fileInfo.Container, fileInfo.Path);
-                await using (var stream = getResponse.ResponseStream)
+                await using var stream = await GetStream(fileInfo.Container, fileInfo.Path);
+                if (stream != null)
                 {
                     IFormatter formatter = new BinaryFormatter();
                     var obj = formatter.Deserialize(stream);
@@ -56,11 +54,13 @@ namespace Utils.Aws.S3
                             break;
                         case null:
                             // not sure if this actually ever happens...
-                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, stream didn't result in object");
+                            logger.LogError(
+                                $"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, stream didn't result in object");
                             break;
                         default:
                             // Something else wrote to the bucket? Not a T
-                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
+                            logger.LogError(
+                                $"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
                             break;
                     }
                 }
