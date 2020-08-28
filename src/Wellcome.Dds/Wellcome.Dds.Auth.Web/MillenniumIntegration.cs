@@ -24,10 +24,10 @@ namespace Wellcome.Dds.Auth.Web
             UserRolesResult userRoles = null;
             if (StringUtils.AllHaveText(username, password))
             {
+                userRoles = await userService.GetUserRoles(username);
                 var authenticationResult = await authenticationService.Authenticate(username, password);
                 if (authenticationResult.Success)
                 {
-                    userRoles = await userService.GetUserRoles(username);
                     if (userRoles.Success)
                     {
                         if (userRoles.Roles.Expires > DateTime.Now.AddDays(-1))

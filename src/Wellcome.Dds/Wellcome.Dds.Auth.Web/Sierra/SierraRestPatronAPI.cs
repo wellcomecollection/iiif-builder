@@ -5,23 +5,25 @@ using Newtonsoft.Json.Serialization;
 using OAuth2;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.Auth.Web.Sierra.ApiModel;
 
 namespace Wellcome.Dds.Auth.Web.Sierra
 {
-    public class SierraRestPatronAPI : IUserService, IAuthenticationService
+    public class SierraRestPatronApi : IUserService, IAuthenticationService
     {
         private OAuth2ApiConsumer oAuth2ApiConsumer;
-        private SierraRestAPIOptions sierraRestAPIOptions;
-        private ILogger<SierraRestPatronAPI> logger;
+        private SierraRestApiOptions sierraRestAPIOptions;
+        private ILogger<SierraRestPatronApi> logger;
         private ClientCredentials clientCredentials;
         private JsonSerializerSettings jsonSerializerSettings;
 
-        public SierraRestPatronAPI(
-            ILogger<SierraRestPatronAPI> logger,
-            IOptions<SierraRestAPIOptions> options,
+        public SierraRestPatronApi(
+            ILogger<SierraRestPatronApi> logger,
+            IOptions<SierraRestApiOptions> options,
             OAuth2ApiConsumer oAuth2ApiConsumer)
         {
             this.oAuth2ApiConsumer = oAuth2ApiConsumer;
@@ -41,11 +43,22 @@ namespace Wellcome.Dds.Auth.Web.Sierra
             jsonSerializerSettings = new JsonSerializerSettings { ContractResolver = contractResolver };
         }
 
-        public async Task<UserRolesResult> GetUserRoles(string username)
+        public async Task<UserRolesResult> GetUserRoles(string nameCredential)
+        {
+            const string requiredFields = "varFields,expirationDate,patronType,barcodes";
+            var userNameSearchUrl = $"{sierraRestAPIOptions.PatronFindUrl}?varFieldTag=s&varFieldContent={nameCredential}&fields={requiredFields}";
+            var result = await GetUserRolesFromApiCall(userNameSearchUrl);
+            if (!result.Success)
+            {
+                var barcodeQueryUrl = $"{sierraRestAPIOptions.PatronGetUrl}{nameCredential}?fields={requiredFields}";
+                result = await GetUserRolesFromApiCall(barcodeQueryUrl);
+            }
+            return result;
+        }
+
+        private async Task<UserRolesResult> GetUserRolesFromApiCall(string url)
         {
             var result = new UserRolesResult();
-            const string requiredFields = "varFields,expirationDate,patronType";
-            var url = $"{sierraRestAPIOptions.PatronFindUrl}?varFieldTag=s&varFieldContent={username}&fields={requiredFields}";
             try
             {
                 var patron = await oAuth2ApiConsumer.GetOAuthedJToken(url, clientCredentials, false);
@@ -59,52 +72,56 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                         {
                             case Roles.ClosedArchiveFieldTag:
                                 // HasPermissionToViewClosedArchive
-                                patronRoles.Add($"{Roles.ClosedArchiveFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
+                                patronRoles.Add(
+                                    $"{Roles.ClosedArchiveFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
                                 break;
 
                             case Roles.HealthCareProfessionalFieldTag:
                                 // IsHealthCareProfessional
-                                patronRoles.Add($"{Roles.HealthCareProfessionalFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
+                                patronRoles.Add(
+                                    $"{Roles.HealthCareProfessionalFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
                                 break;
 
                             case Roles.RestrictedArchiveFieldTag:
                                 // HasCompletedRestrictedAccessForm
-                                patronRoles.Add($"{Roles.RestrictedArchiveFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
+                                patronRoles.Add(
+                                    $"{Roles.RestrictedArchiveFieldTag}:{ReadMillenniumBool(field.Value<string>("content"))}");
                                 break;
 
-                                // The following tags don't come back in the REST API (unlike the SOAP API)
+                            // The following tags don't come back in the REST API (unlike the SOAP API)
 
                             //case Roles.PatronTypeFieldTag:
                             //    // IsWellcomeStaffMember
                             //    patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(field.Value<string>("content"))}");
                             //    break;
 
-                                // This tag doesn't come back in varFields.
+                            // This tag doesn't come back in varFields.
                             //case Roles.PatronExpiryFieldTag:
                             //    expiryDate = GetExpiryDate(field.Value<string>("content"));
                             //    break;
-
                         }
                     }
 
                     var expires = GetExpiryDate(patron.Value<string>("expirationDate"));
+                    var barcodes = patron.Value<JArray>("barcodes").Values<string>().ToArray();
                     var patronType = patron.Value<string>("patronType");
                     patronRoles.Add($"{Roles.PseudoWellcomeStaffTag}:{PatronIsWellcomeStaff(patronType)}");
-                    var roles = new Roles(patronRoles.ToArray(), expires);
+                    var roles = new Roles(patronRoles.ToArray(), expires, barcodes);
 
                     result.Roles = roles;
                     result.Success = true;
                 }
-                else if(patron["name"] != null)
+                else if (patron["name"] != null)
                 {
                     result.Message = patron.Value<string>("name");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, $"Sierra REST API error: {ex.Message}");
                 result.Message = ex.Message;
-            }            
+            }
+
             return result;
         }
 

@@ -11,24 +11,24 @@ using Wellcome.Dds.MillenniumClient;
 
 namespace Wellcome.Dds.Auth.Web.Sierra
 {
-    public class SierraSoapPatronAPI : IUserService
+    public class SierraSoapPatronApi : IUserService
     {
         private DdsOptions ddsOptions;
-        private ILogger<SierraSoapPatronAPI> logger;
+        private ILogger<SierraSoapPatronApi> logger;
 
 
 
-        public SierraSoapPatronAPI(
-            ILogger<SierraSoapPatronAPI> logger,
+        public SierraSoapPatronApi(
+            ILogger<SierraSoapPatronApi> logger,
             IOptions<DdsOptions> options)
         {
             this.logger = logger;
             ddsOptions = options.Value;
         }
 
-        public async Task<UserRolesResult> GetUserRoles(string username)
+        public async Task<UserRolesResult> GetUserRoles(string nameCredential)
         {
-            string millenniumVersion = "b" + username;
+            string millenniumVersion = "b" + nameCredential;
             return await GetUserInternal(millenniumVersion);
         }
 
@@ -74,7 +74,7 @@ namespace Wellcome.Dds.Auth.Web.Sierra
                     }
 
                     var expires = GetExpiryDate(patron.patronFields.Single(f => f.fieldTag == "43").value);
-                    var roles = new Roles(patronRoles.ToArray(), expires);
+                    var roles = new Roles(patronRoles.ToArray(), expires, new string[0]);
 
                     result.Roles = roles;
                     result.Success = true;
