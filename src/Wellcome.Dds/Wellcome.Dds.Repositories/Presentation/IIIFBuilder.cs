@@ -7,6 +7,7 @@ using DlcsWebClient.Config;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -16,6 +17,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFBuilder : IIIIFBuilder
     {
+        private IMetsRepository metsRepository;
         private readonly IDashboardRepository dashboardRepository;
         private readonly ICatalogue catalogue;
         private readonly DlcsOptions dlcsOptions;
@@ -23,17 +25,75 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IAmazonS3 amazonS3;
         
         public IIIFBuilder(
+            IMetsRepository metsRepository,
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
             IOptions<DlcsOptions> dlcsOptions,
             IOptions<DdsOptions> ddsOptions,
             IAmazonS3 amazonS3)
         {
+            this.metsRepository = metsRepository;
             this.dashboardRepository = dashboardRepository;
             this.catalogue = catalogue;
             this.dlcsOptions = dlcsOptions.Value;
             this.ddsOptions = ddsOptions.Value;
             this.amazonS3 = amazonS3;
+        }
+
+        public async Task<BuildResult> BuildAllManifestations(string bNumber)
+        {
+            var result = new BuildResult();
+            var ddsId = new DdsIdentifier(bNumber);
+            if (ddsId.IdentifierType != IdentifierType.BNumber)
+            {
+                // we could throw an exception - do we actually care?
+                // just process it. 
+            }
+            bNumber = ddsId.BNumber;
+            var manifestationId = "start";
+            try
+            {
+                // This will need some special tweaking to build Chemist and Druggist in the
+                // Collection structure required for date-based navigation.
+                var work = await catalogue.GetWork(ddsId.BNumber);
+                await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
+                {
+                    var manifestation = manifestationInContext.Manifestation;
+                    manifestationId = manifestation.Id;
+                    var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
+                    result = await BuildInternal(work, digitisedManifestation);
+                }
+            }
+            catch (Exception e)
+            {
+                result.Message = $"Failed at {manifestationId}, {e.Message}";
+                result.Outcome = BuildOutcome.Failure;
+            }
+
+            return result;
+        }
+
+
+        private async Task<BuildResult> BuildInternal(Work work, IDigitisedResource digitisedResource)
+        {
+            var result = new BuildResult();
+            try
+            {
+                CleanManifestation(digitisedResource);
+                // build the Presentation 3 version from the source materials
+                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, work);
+                await SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
+                // now build the Presentation 2 version from the Presentation 3 version
+                var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
+                await SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
+                result.Outcome = BuildOutcome.Success;
+            }
+            catch (Exception e)
+            {
+                result.Message = e.Message;
+                result.Outcome = BuildOutcome.Failure;
+            }
+            return result;
         }
         
         public async Task<BuildResult> Build(string identifier)
@@ -45,25 +105,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var workTask = catalogue.GetWork(ddsId.BNumber);
                 var ddsTask = dashboardRepository.GetDigitisedResource(identifier);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
-                
-                
                 var digitisedResource = ddsTask.Result;
                 var work = workTask.Result;
-                CleanManifestation(digitisedResource);
-
-                // build the Presentation 3 version from the source materials
-                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, work);
-                await SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
-                // now build the Presentation 2 version from the Presentation 3 version
-                var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
-                await SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
-
-                
-                // TODO - identifier comes in as a b number; you have to make ALL of them!
-                // (walk down the collection creating IIIF resources
-                // If this is a collection, atm it will just make the collection and not its parts.
-                
-                result.Outcome = BuildOutcome.Success;
+                result = await BuildInternal(work, digitisedResource);
             }
             catch (Exception e)
             {

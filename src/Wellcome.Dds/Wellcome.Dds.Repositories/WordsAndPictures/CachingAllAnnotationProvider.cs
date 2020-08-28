@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Utils;
 using Utils.Caching;
 using Utils.Storage;
@@ -17,13 +18,17 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
     {
         private readonly IBinaryObjectCache<AnnotationPageList> cache; // needs options allAnnotationCache, "annopages_", 0
         private readonly IWorkStorageFactory workStorageFactory;
+        private readonly ILogger<CachingAllAnnotationProvider> logger;
 
         public CachingAllAnnotationProvider(
+            
             IBinaryObjectCache<AnnotationPageList> cache,
-            IWorkStorageFactory workStorageFactory)
+            IWorkStorageFactory workStorageFactory,
+            ILogger<CachingAllAnnotationProvider> logger)
         {
             this.workStorageFactory = workStorageFactory;
             this.cache = cache;
+            this.logger = logger;
         }
 
         public Task<AnnotationPageList> GetPages(
@@ -43,6 +48,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         private async Task<AnnotationPageList> GetPagesInternal(
             string identifier, IEnumerable<IPhysicalFile> physicalFiles)
         {
+            logger.LogInformation($"Building Annotation Pages for {identifier}");
             var altoProvider = new SimpleAltoProvider();
             var pages = new AnnotationPageList();
             var ddsId = new DdsIdentifier(identifier);
@@ -51,12 +57,14 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             {
                 if (physicalFile.RelativeAltoPath.HasText())
                 {
-                    var altoXml = await workStore.LoadXmlForPath(physicalFile.RelativeAltoPath);
+                    var altoXml = await workStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
                     var altoRoot = altoXml.XElement;
-                    pages.Add(altoProvider.GetAnnotationPage(altoRoot, 
-                        physicalFile.AssetMetadata.GetImageWidth(), 
-                        physicalFile.AssetMetadata.GetImageHeight(), 
-                        (physicalFile.Order ?? 1) - 1));
+                    var page = altoProvider.GetAnnotationPage(altoRoot,
+                        physicalFile.AssetMetadata.GetImageWidth(),
+                        physicalFile.AssetMetadata.GetImageHeight(),
+                        (physicalFile.Order ?? 1) - 1);
+                    logger.LogInformation($"Adding page - {page}");
+                    pages.Add(page);
                 }
             }
             return pages;

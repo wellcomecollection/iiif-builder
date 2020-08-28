@@ -68,7 +68,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     logger.LogInformation($"Attempting to load ALTO: {physicalFile.RelativeAltoPath}");
                     try
                     {
-                        var pathXml = await physicalFile.WorkStore.LoadXmlForPath(physicalFile.RelativeAltoPath);
+                        var pathXml = await physicalFile.WorkStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
                         var altoRoot = pathXml.XElement;
                         var pageElement = altoRoot.Element(ns + "Layout").Element(ns + "Page");
                         int srcW = Convert.ToInt32(pageElement.GetRequiredAttributeValue("WIDTH"));

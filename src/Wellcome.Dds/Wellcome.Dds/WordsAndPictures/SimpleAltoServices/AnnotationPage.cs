@@ -10,6 +10,11 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         public TextLine[] TextLines { get; set; }
         public Illustration[] Illustrations { get; set; }
         public Illustration[] ComposedBlocks { get; set; }
+
+        public override string ToString()
+        {
+            return $"Index {Index}; {TextLines?.Length ?? 0} lines";
+        }
     }
 
     [Serializable]
