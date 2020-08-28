@@ -55,10 +55,11 @@ namespace Utils.Aws.S3
                             t = tObj;
                             break;
                         case null:
-                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, object is not {typeof(T)}");
+                            // not sure if this actually ever happens...
+                            logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, stream didn't result in object");
                             break;
                         default:
-                            // Something else wrote to the bucket?
+                            // Something else wrote to the bucket? Not a T
                             logger.LogError($"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
                             break;
                     }
