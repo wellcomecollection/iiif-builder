@@ -52,7 +52,7 @@ namespace Wellcome.Dds.Auth.Web.Tests
         {
             // Arrange
             var sierraRoles = new[] {"k:True", "r:True", "w:True"};
-            var roles = new Roles(sierraRoles, DateTime.Today);
+            var roles = new Roles(sierraRoles, DateTime.Today, new string[0]);
 
             // Act
             var fromString = new Roles(roles.ToString());

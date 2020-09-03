@@ -15,10 +15,11 @@ namespace Wellcome.Dds.Auth.Web
 
         private readonly string[] sierraRoles;
 
-        public Roles(string[] sierraRoles, DateTime expires)
+        public Roles(string[] sierraRoles, DateTime expires, string[] barcodes)
         {
             this.sierraRoles = sierraRoles;
-            this.Expires = expires;
+            Expires = expires;
+            BarCodes = barcodes;
         }
 
         public Roles(string serialisedRoles)
@@ -46,6 +47,8 @@ namespace Wellcome.Dds.Auth.Web
             => sierraRoles.Contains($"{RestrictedArchiveFieldTag}:True");
 
         public DateTime Expires { get; set; }
+        
+        public string[] BarCodes { get; set; }
 
         public string[] GetSierraRoles() => sierraRoles;
 

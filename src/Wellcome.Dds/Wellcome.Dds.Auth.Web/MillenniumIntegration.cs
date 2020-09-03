@@ -24,10 +24,15 @@ namespace Wellcome.Dds.Auth.Web
             UserRolesResult userRoles = null;
             if (StringUtils.AllHaveText(username, password))
             {
+                // TODO - come back to the following code once we have Sierra 5.2 running.
+                // - Get userRoles by the supplied username, where this might be either a username or a barcode
+                // - then validate the password using the barcode or username, whichever 5.2 expects here
+                // (we have options to do both via config)
+                // If you _need_ to user barcode(s), they will be in userRoles.Roles.BarCodes
+                userRoles = await userService.GetUserRoles(username);
                 var authenticationResult = await authenticationService.Authenticate(username, password);
                 if (authenticationResult.Success)
                 {
-                    userRoles = await userService.GetUserRoles(username);
                     if (userRoles.Success)
                     {
                         if (userRoles.Roles.Expires > DateTime.Now.AddDays(-1))
