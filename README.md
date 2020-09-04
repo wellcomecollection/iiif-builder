@@ -121,3 +121,11 @@ dotnet test --filter Category\!=Database
 # Run test for specific project
 dotnet test ./Utils.Tests/Utils.Tests.csproj
 ```
+
+The following categories are used for tests:
+
+* `Integration` - this doesn't signify much but marks tests as being integration tests (generally e-e tests using [WebApplicationFactory](https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.testing.webapplicationfactory-1?view=aspnetcore-3.0))
+* `Database` - these tests require an external database, currently handled by `Wellcome.Dds.Server.Tests.Integration.DatabaseFixture`
+* `Manual` - for manual verification with multiple external dependencies (e.g. AWS creds, s3 objects) and not expected to be routinely ran.
+
+Unit tests are ran as part of building the Docker image. `Database` and `Manual` categories are ignored when running in the Dockerfile (`RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"`). _Depending on requirements it may make sense to ignore these in IDE for standard test runs_.
