@@ -13,6 +13,7 @@ namespace Wellcome.Dds
         
         public string Id { get; set; } // this is string3, the same as the manifest in S3; bnnn_0003
         public string PackageIdentifier { get; set; } // the b number, aka String1
+        public string CalmRef { get; set; } // Only for archive items
         public string ManifestationIdentifier { get; set; } // do we need this? Same as Id (String3)
         public string VolumeIdentifier { get; set; } // legacy of Old model - aka String2
         public DateTime Processed { get; set; }
@@ -26,11 +27,14 @@ namespace Wellcome.Dds
         
         public bool SupportsSearch { get; set; }
         public bool IsAllOpen { get; set; }
+        
+        // Consider adding
+        //public bool ContainsRestrictedFiles { get; set; }
+        
         public string PosterImage { get; set; }
         public string PermittedOperations { get; set; }
         public string RootSectionAccessCondition { get; set; }
         public string RootSectionType { get; set; }
-        public string FirstFileName { get; set; }
         public string FirstFileStorageIdentifier { get; set; }
         public string FirstFileExtension { get; set; }
         public string DipStatus { get; set; }

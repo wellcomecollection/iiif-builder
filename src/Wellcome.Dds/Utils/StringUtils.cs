@@ -164,7 +164,7 @@ namespace Utils
         /// "23.4" => "23.4"
         /// "-100" => "-100"
         /// "3 Blind Mice" => "3"
-        /// "£9.99" => "9.99"
+        /// "Â£9.99" => "9.99"
         /// 
         /// </summary>
         /// <param name="s"></param>
@@ -329,6 +329,24 @@ namespace Utils
             }
             return s + ")";
         }
+        
+        public static string GetFileName(this string s)
+        {
+            var parts = s.Split(new [] {'/', '\\'});
+            return parts.LastOrDefault();
+        }
+        
+        public static string GetFileExtension(this string s)
+        {
+            var fn = GetFileName(s);
+            var idx = fn.LastIndexOf('.');
+            if (idx != -1 && fn.Length > idx)
+            {
+                return fn.Substring(idx + 1);
+            }
+            return String.Empty;
+        }
+
 
         public static string ToHumanReadableString(this TimeSpan t)
         {
