@@ -134,7 +134,7 @@ namespace Utils.Caching
 
         private string GetMemoryCacheKey(string key) => string.Concat(options.Prefix, key);
 
-        private void PutInMemoryCache<T>(T t, string cacheKey)
+        private void PutInMemoryCache(T t, string cacheKey)
         {
             if (options.MemoryCacheSeconds <= 0)
             {
