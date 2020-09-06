@@ -31,8 +31,7 @@ namespace CatalogueAPI.Tests
 
             var httpClient = new HttpClient();
             var options = Options.Create(ddsOptions);
-            var logger = new NullLogger<Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue>();
-            sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(logger, options, httpClient);
+            sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(options, httpClient);
         }
 
         [Fact]
@@ -55,7 +54,7 @@ namespace CatalogueAPI.Tests
             var identifier = "b14658197";
 
             // Act
-            var work = await sut.GetWork(identifier);
+            var work = await sut.GetWorkByOtherIdentifier(identifier);
 
             // Assert
             work.Id.Should().Be("nydjbrr7");
@@ -68,7 +67,7 @@ namespace CatalogueAPI.Tests
             var identifier = "b30125285";
 
             // Act
-            var work = await sut.GetWork(identifier);
+            var work = await sut.GetWorkByOtherIdentifier(identifier);
 
             // Assert
             work.Title.Should().Be("[Report 1954]");
@@ -82,7 +81,7 @@ namespace CatalogueAPI.Tests
             var identifier = "b14658197";
 
             // Act
-            var work = await sut.GetWork(identifier);
+            var work = await sut.GetWorkByOtherIdentifier(identifier);
 
             // Assert
             work.Identifiers.Should().ContainSingle(i => i.Value == identifier);
@@ -98,7 +97,7 @@ namespace CatalogueAPI.Tests
             var identifier = "b14658197";
 
             // Act
-            var work = await sut.GetWork(identifier);
+            var work = await sut.GetWorkByOtherIdentifier(identifier);
 
             // Assert
             work.Subjects.Should().NotBeEmpty();

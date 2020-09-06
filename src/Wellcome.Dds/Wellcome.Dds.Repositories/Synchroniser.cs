@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DlcsWebClient.Config;
+using IIIF;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -19,17 +25,28 @@ namespace Wellcome.Dds.Repositories
         private readonly ILogger<Synchroniser> logger;
         private readonly DdsContext ddsContext;
         private readonly ICatalogue catalogue;
+        private readonly DlcsOptions dlcsOptions;
+
+        private int[] thumbSizes;
+        // TODO: This needs to change to iiif.wellcomecollection.org/... once DLCS routes to it
+        private const string ThumbTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{id}";
+        // Similarly, this is looking to match thumbnails in the Catalogue API, 
+        // which at some point will change to iiif.wc.org
+        private readonly Regex thumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
 
         public Synchroniser(
             IMetsRepository metsRepository,
             ILogger<Synchroniser> logger,
             DdsContext ddsContext,
-            ICatalogue catalogue)
+            ICatalogue catalogue,
+            IOptions<DlcsOptions> dlcsOptions)
         {
             this.metsRepository = metsRepository;
             this.logger = logger;
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
+            this.dlcsOptions = dlcsOptions.Value;
+            thumbSizes = new[] { 1024, 400, 200, 100 };
         }
         
 
@@ -40,12 +57,12 @@ namespace Wellcome.Dds.Repositories
                 
             List<Manifestation> flatManifestationsForBNumber = null;
             // bool isNew = false;
-            int shortB = -1;
+            var shortB = -1;
             List<int> foundManifestationIndexes = null;
-            bool containsRestrictedFiles = false;
+            var containsRestrictedFiles = false;
             IMetsResource packageMetsResource = null;
             IFileBasedResource packageFileResource = null;
-            var work = await catalogue.GetWork(identifier);
+            var work = await catalogue.GetWorkByOtherIdentifier(identifier);
             if (isBNumber)
             {
                 // operations we can only do when the identifier being processed is a b number
@@ -107,12 +124,8 @@ namespace Wellcome.Dds.Repositories
                 }
 
                 var assets = manifestation.SignificantSequence;
-
-                bool supportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
-                var fileSystemResource = manifestation as IFileBasedResource;
                 
                 // (some Change code removed here) - we're not going to implement this for now
-
 
                 if (flatManifestation == null)
                 {
@@ -132,7 +145,23 @@ namespace Wellcome.Dds.Repositories
                     await ddsContext.Manifestations.AddAsync(flatManifestation);
                 }
 
-                flatManifestation.CalmRef = work.GetCalmRef();
+                flatManifestation.WorkId = work.Id;
+                flatManifestation.WorkType = work.WorkType.Id;
+                flatManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
+                flatManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
+                if (flatManifestation.CalmRef.HasText())
+                {
+                    var parentWorkId = work.GetParentId();
+                    if (parentWorkId.HasText())
+                    {
+                        var parent = await catalogue.GetWorkByWorkId(parentWorkId);
+                        if (parent != null)
+                        {
+                            flatManifestation.CalmRefParent = parent.GetIdentifierByType("calm-ref-no");
+                            flatManifestation.CalmAltRefParent = parent.GetIdentifierByType("calm-altref-no");
+                        }
+                    }
+                }
                 flatManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
                 flatManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
                 flatManifestation.PermittedOperations = string.Join(",", manifestation.PermittedOperations);
@@ -144,13 +173,34 @@ namespace Wellcome.Dds.Repositories
                     { 
                         var asset = assets[0];
                         flatManifestation.AssetType = manifestation.FirstSignificantInternetType;
-                        if (flatManifestation.AssetType == "image/jp2")
-                            flatManifestation.AssetType = "seadragon/dzi";
+                        // Drop use of pseudo seadragon/dzi type - this will need attention elsewhere
+                        // if (flatManifestation.AssetType == "image/jp2")
+                        //     flatManifestation.AssetType = "seadragon/dzi";
                         flatManifestation.FirstFileStorageIdentifier = asset.StorageIdentifier;
-
                         flatManifestation.FirstFileExtension =
                             asset.AssetMetadata.GetFileName().GetFileExtension().ToLowerInvariant();
                         flatManifestation.DipStatus = null;
+                        switch (flatManifestation.AssetType.GetAssetFamily())
+                        {
+                            case AssetFamily.Image:
+                                flatManifestation.FirstFileThumbnailDimensions = GetAvailableSizes(asset);
+                                flatManifestation.FirstFileThumbnail = GetDlcsServiceForAsset(asset);
+                                if (flatManifestation.Index == 0)
+                                {
+                                    // the first manifestation; add in the thumb from the catalogue, too
+                                    IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
+                                    if (catThumbAsset != null)
+                                    {
+                                        flatManifestation.CatalogueThumbnailDimensions = GetAvailableSizes(catThumbAsset);
+                                        flatManifestation.CatalogueThumbnail = GetDlcsServiceForAsset(catThumbAsset);
+                                    }
+                                }
+                                break;
+                            case AssetFamily.TimeBased:
+                                flatManifestation.FirstFileThumbnailDimensions =
+                                    asset.AssetMetadata.GetLengthInSeconds();
+                                break;
+                        }
                     }
                 }
                 if (packageFileResource != null)
@@ -213,8 +263,40 @@ namespace Wellcome.Dds.Repositories
             await ddsContext.SaveChangesAsync();
         }
 
-        
-        
+        private IPhysicalFile GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
+        {
+            if (work.Thumbnail == null) return null;
+            var match = thumbRegex.Match(work.Thumbnail.Url);
+            if (!match.Success) return null;
+            var storageIdentifier = match.Groups[1].Value;
+            return assets.FirstOrDefault(a => a.StorageIdentifier == storageIdentifier);
+        }
+
+        private string GetDlcsServiceForAsset(IPhysicalFile asset)
+        {
+            return ThumbTemplate
+                .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
+                .Replace("{id}", asset.StorageIdentifier);
+        }
+
+        private string GetAvailableSizes(IPhysicalFile asset)
+        {
+            var sizes = new List<int[]>();
+            var actualSize = new Size(
+                asset.AssetMetadata.GetImageWidth(),
+                asset.AssetMetadata.GetImageHeight());
+            sizes.Add(new[] {actualSize.Width, actualSize.Height});
+            foreach (int thumbSize in thumbSizes)
+            {
+                var confinedSize = Size.Confine(thumbSize, actualSize);
+                sizes.Add(new[] {confinedSize.Width, confinedSize.Height});
+            }
+
+            string sizesString = JsonConvert.SerializeObject(sizes);
+            return sizesString;
+        }
+
+
         private void CreateErrorManifestation(int shortB, string message, 
             string bNumber, string dipStatus)
         {
@@ -236,7 +318,7 @@ namespace Wellcome.Dds.Repositories
         public async Task RefreshMetadata(string identifier, Work work)
         {
             DeleteMetadata(identifier);
-            await ddsContext.Metadata.AddRangeAsync(work.GetMetadata());
+            await ddsContext.Metadata.AddRangeAsync(work.GetMetadata(identifier));
         }
 
         private void DeleteMetadata(string identifier)

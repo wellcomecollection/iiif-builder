@@ -55,7 +55,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // This will need some special tweaking to build Chemist and Druggist in the
                 // Collection structure required for date-based navigation.
-                var work = await catalogue.GetWork(ddsId.BNumber);
+                var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                 {
                     var manifestation = manifestationInContext.Manifestation;
@@ -102,7 +102,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             try
             {
                 var ddsId = new DdsIdentifier(identifier);
-                var workTask = catalogue.GetWork(ddsId.BNumber);
+                var workTask = catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var ddsTask = dashboardRepository.GetDigitisedResource(identifier);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 var digitisedResource = ddsTask.Result;

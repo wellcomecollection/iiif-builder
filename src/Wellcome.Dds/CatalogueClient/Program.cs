@@ -19,7 +19,7 @@ namespace CatalogueClient
             {
                 var catalogue = GetCatalogue();
                 var options = GetSerialiserOptions();
-                var work = catalogue.GetWork(id).Result;
+                var work = catalogue.GetWorkByOtherIdentifier(id).Result;
                 Console.Write(JsonSerializer.Serialize(work, options));
                 Console.WriteLine();
             }
@@ -37,7 +37,7 @@ namespace CatalogueClient
                     {
                         continue;
                     }
-                    var work = catalogue.GetWork(identifier).Result;
+                    var work = catalogue.GetWorkByOtherIdentifier(identifier).Result;
                     Console.WriteLine();
                     Console.WriteLine($"~~~~ start {counter} ~~~~~~~~~~~~~~~~~~~~~~~~~");
                     Console.Write(JsonSerializer.Serialize(work, options));
@@ -50,14 +50,13 @@ namespace CatalogueClient
 
         private static ICatalogue GetCatalogue()
         {
-            var logger = new NullLogger<WellcomeCollectionCatalogue>();
             var httpClient = new HttpClient();
             var ddsOptions = new DdsOptions
             {
                 ApiWorkTemplate = "https://api.wellcomecollection.org/catalogue/v2/works"
             };
             var options = Options.Create(ddsOptions);
-            var catalogue = new WellcomeCollectionCatalogue(logger, options, httpClient);
+            var catalogue = new WellcomeCollectionCatalogue(options, httpClient);
             return catalogue;
         }
 

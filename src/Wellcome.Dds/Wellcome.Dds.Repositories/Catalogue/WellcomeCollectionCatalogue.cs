@@ -1,11 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text;
 using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.Catalogue;
@@ -15,39 +13,46 @@ namespace Wellcome.Dds.Repositories.Catalogue
 {
     public class WellcomeCollectionCatalogue : ICatalogue
     {
-        private ILogger<WellcomeCollectionCatalogue> logger;
-        private DdsOptions options;
+        private readonly DdsOptions options;
         private readonly HttpClient httpClient;
 
-        private readonly string[] allIncludes = new[] { 
+        /// <summary>
+        /// include=identifiers,items,subjects,genres,contributors,production,notes,parts,partOf,precededBy,succeededBy
+        /// </summary>
+        private readonly string[] allIncludes = { 
             "identifiers",
             "items",
             "subjects",
             "genres",
             "contributors",
             "production",
-            "notes"
+            "notes",
+            "parts",
+            "partOf",
+            "precededBy",
+            "succeededBy"
         };
 
         public WellcomeCollectionCatalogue(
-            ILogger<WellcomeCollectionCatalogue> logger,
             IOptions<DdsOptions> ddsOptions,
             HttpClient httpClient)
         {
-            this.logger = logger;
             options = ddsOptions.Value;
             this.httpClient = httpClient;
         }
 
-        public async Task<Work> GetWork(string identifier)
+        public async Task<Work> GetWorkByOtherIdentifier(string identifier)
         {
-            var resultPage = await GetWorkResultPage(null, identifier);
+            var resultPage = await GetWorkResultPage(null, identifier, null, 0);
             if(resultPage.Results.HasItems())
             {
                 if(resultPage.Results.Length == 1)
                 {
                     // easy, nothing to decide between
-                    return resultPage.Results[0];
+                    // see https://digirati.slack.com/archives/CBT40CMKQ/p1597936607018500
+                    // We need to obtain the work by its WorkID to make sure we're not missing anything
+                    // return resultPage.Results[0];
+                    return await GetWorkByWorkId(resultPage.Results[0].Id);
                 }
 
                 // TODO - handle paging, if there is a nextPage in this result set
@@ -77,10 +82,11 @@ namespace Wellcome.Dds.Repositories.Catalogue
                 {
                     matchedWork.RelatedByIdentifier = relatedWorks.ToArray();
                 }
-                return matchedWork;
+                return await GetWorkByWorkId(matchedWork.Id);
             }
             return null;
         }
+
 
         /// <summary>
         /// This is NOT the real implementation yet! Need to try it on all the bnumbers and build these rules out.
@@ -103,10 +109,18 @@ namespace Wellcome.Dds.Repositories.Catalogue
 
         public async Task<WorkResultPage> GetWorkResultPage(string query, string identifiers, IEnumerable<string> include, int pageSize)
         {
-            string queryString = BuildQueryString(query, identifiers, include, pageSize);
+            var queryString = BuildQueryString(query, identifiers, include, pageSize);
             var url = options.ApiWorkTemplate + queryString;
             var response = await httpClient.GetAsync(url);
             return await response.Content.ReadFromJsonAsync<WorkResultPage>();
+        }
+        
+        public async Task<Work> GetWorkByWorkId(string workId)
+        {
+            var queryString = BuildQueryString(null, null, allIncludes, -1);
+            var url = $"{options.ApiWorkTemplate}/{workId}{queryString}";
+            var response = await httpClient.GetAsync(url);
+            return await response.Content.ReadFromJsonAsync<Work>();
         }
 
         private string BuildQueryString(string query, string identifiers, IEnumerable<string> include, int pageSize)
@@ -129,12 +143,15 @@ namespace Wellcome.Dds.Repositories.Catalogue
             {
                 args.Add($"include={string.Join(',', includes)}");
             }
-            if (pageSize <= 0)
+            if (pageSize == 0)
             {
                 // default to 100, rather than the API default of 10
                 pageSize = 100;
             }
-            args.Add($"pageSize={pageSize}");
+            if (pageSize > 0)
+            {
+                args.Add($"pageSize={pageSize}");
+            }
             var queryString = "?" + string.Join('&', args);
             return queryString;
         }

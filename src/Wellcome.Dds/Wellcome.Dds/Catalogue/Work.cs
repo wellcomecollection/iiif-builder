@@ -19,6 +19,11 @@
         public LabelledEntity Language { get; set; }
         public string Edition { get; set; }
         public Note[] Notes { get; set; }
+        
+        public Work[] PartOf { get; set; }
+        public Work[] Parts { get; set; }
+        public Work[] PrecededBy { get; set; }
+        public Work[] SucceededBy { get; set; }
 
         /// <summary>
         /// Optional extra: works that are matches on the same identifier (b number)

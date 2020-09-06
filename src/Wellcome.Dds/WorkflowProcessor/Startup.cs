@@ -8,6 +8,7 @@ using OAuth2;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
+using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -40,6 +41,10 @@ namespace WorkflowProcessor
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+            
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
@@ -76,6 +81,7 @@ namespace WorkflowProcessor
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<Synchroniser>()
+                .AddScoped<IDds, Dds>()
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
                 .AddScoped<CachingAllAnnotationProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
