@@ -10,6 +10,7 @@ namespace Wellcome.Dds.Repositories
         { }
 
         public DbSet<Manifestation> Manifestations { get; set; }
+        public DbSet<Metadata> Metadata { get; set; }
 
         public List<Manifestation> GetByAssetType(string type)
         {

@@ -1,5 +1,4 @@
-﻿using Amazon.S3;
-using DlcsWebClient.Config;
+﻿using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +20,7 @@ using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
@@ -41,6 +41,10 @@ namespace WorkflowProcessor
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseSnakeCaseNamingConvention());
+            
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
@@ -77,6 +81,7 @@ namespace WorkflowProcessor
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<Synchroniser>()
+                .AddScoped<IDds, Dds>()
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
                 .AddScoped<CachingAllAnnotationProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()

@@ -13,6 +13,15 @@ namespace Wellcome.Dds
         
         public string Id { get; set; } // this is string3, the same as the manifest in S3; bnnn_0003
         public string PackageIdentifier { get; set; } // the b number, aka String1
+        
+        public string WorkId { get; set; }
+        
+        // Going to store both these forms for now, until we know which one is best to use (or if we can avoid storing it at all!
+        public string CalmRef { get; set; } // Only for archive items
+        public string CalmRefParent { get; set; } // Only for archive items
+        public string CalmAltRef { get; set; } // Only for archive items
+        public string CalmAltRefParent { get; set; } // Only for archive items
+        
         public string ManifestationIdentifier { get; set; } // do we need this? Same as Id (String3)
         public string VolumeIdentifier { get; set; } // legacy of Old model - aka String2
         public DateTime Processed { get; set; }
@@ -26,15 +35,40 @@ namespace Wellcome.Dds
         
         public bool SupportsSearch { get; set; }
         public bool IsAllOpen { get; set; }
-        public string PosterImage { get; set; }
+        
+        // Consider adding
+        //public bool ContainsRestrictedFiles { get; set; }
+        
+        /// <summary>
+        /// Image service for thumbnail obtained from Catalogue Record, which might
+        /// differ from the first image (e.g., Title page)
+        /// </summary>
+        public string CatalogueThumbnail { get; set; }
+        
+        /// <summary>
+        /// Serialised array of [w,h] pairs, starting with the actual size, then
+        /// available thumbs, descending
+        /// </summary>
+        public string CatalogueThumbnailDimensions { get; set; }
+        
+        /// <summary>
+        /// Image Service for first file thumbnail
+        /// </summary>
+        public string FirstFileThumbnail { get; set; }
+        
+        /// <summary>
+        /// Serialised array of [w,h] pairs, starting with the actual size, then
+        /// available thumbs, descending
+        /// </summary>
+        public string FirstFileThumbnailDimensions { get; set; }
+        
+        public string WorkType { get; set; }
         public string PermittedOperations { get; set; }
         public string RootSectionAccessCondition { get; set; }
         public string RootSectionType { get; set; }
-        public string FirstFileName { get; set; }
         public string FirstFileStorageIdentifier { get; set; }
         public string FirstFileExtension { get; set; }
         public string DipStatus { get; set; }
-        public string ErrorMessage { get; set; }
         public string PackageFile { get; set; }
         public DateTime? PackageFileModified { get; set; }
         public string ManifestationFile { get; set; }

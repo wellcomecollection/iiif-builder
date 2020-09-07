@@ -26,7 +26,7 @@ namespace WorkflowProcessor
         private readonly IIngestJobRegistry ingestJobRegistry;
         private readonly ILogger<WorkflowRunner> logger;
         private readonly RunnerOptions runnerOptions;
-        private readonly Synchroniser synchroniser;
+        private readonly IDds dds;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly IMetsRepository metsRepository;
         private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
@@ -38,7 +38,7 @@ namespace WorkflowProcessor
             IIngestJobRegistry ingestJobRegistry, 
             IOptions<RunnerOptions> runnerOptions,
             ILogger<WorkflowRunner> logger,
-            Synchroniser synchroniser,
+            IDds dds,
             IIIIFBuilder iiifBuilder,
             IMetsRepository metsRepository,
             CachingAllAnnotationProvider cachingAllAnnotationProvider,
@@ -49,7 +49,7 @@ namespace WorkflowProcessor
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
             this.runnerOptions = runnerOptions.Value;
-            this.synchroniser = synchroniser;
+            this.dds = dds;
             this.iiifBuilder = iiifBuilder;
             this.metsRepository = metsRepository;
             this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -75,7 +75,7 @@ namespace WorkflowProcessor
                 }
                 if (runnerOptions.RefreshFlatManifestations)
                 {
-                    synchroniser.RefreshFlatManifestations(job.Identifier);
+                    await dds.RefreshManifestations(job.Identifier);
                 }
                 if (runnerOptions.RebuildIIIF3)
                 {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.Dashboard.Models;
+using Wellcome.Dds.Repositories;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -71,7 +72,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
                 await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
             }
-            synchroniser.RefreshFlatManifestations(id);
+            await synchroniser.RefreshFlatManifestations(id);
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
     }

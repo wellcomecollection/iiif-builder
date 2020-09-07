@@ -31,9 +31,11 @@ using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Catalogue;
 
 namespace Wellcome.Dds.Dashboard
 {
@@ -90,6 +92,10 @@ namespace Wellcome.Dds.Dashboard
             services.AddDlcsClient(Configuration);
 
             services.AddHttpClient<OAuth2ApiConsumer>();
+            
+            // We need this even though dashboard doesn't use it, because this is the startup for Database Migrations
+            // DdsContext is in Wellcome.Dds.Repositories
+            services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
@@ -108,7 +114,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
 
             // These are non-working impls atm
-            services.AddSingleton<Synchroniser>(); // make this a service provided by IDds
+            services.AddScoped<Synchroniser>(); // make this a service provided by IDds
             services.AddSingleton<CacheBuster>(); // Have a think about what this does in the new world - what is it busting?
 
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
