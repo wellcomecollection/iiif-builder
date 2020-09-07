@@ -24,13 +24,21 @@ namespace Wellcome.Dds.Auth.Web
 
         public Roles(string serialisedRoles)
         {
-            var parts = serialisedRoles.Substring(2).Split('|', StringSplitOptions.RemoveEmptyEntries);
-            sierraRoles = parts.SkipLast(1).ToArray();
-            Expires = DateTime.Parse(parts.Last());
+            var parts = serialisedRoles.Substring(2)
+                .Split('|', StringSplitOptions.RemoveEmptyEntries).ToArray();
+            sierraRoles = parts.SkipLast(2).ToArray();
+            Expires = DateTime.Parse(parts[^2].Substring(2));
+            BarCodes = parts[^1].Substring(2)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries).ToArray();
         }
 
-        public override string ToString() 
-            => "r-" + string.Join('|', sierraRoles) + "|" + Expires.ToString("yyyy-MM-dd");
+        public override string ToString()
+        {
+            var roles = string.Join('|', sierraRoles);
+            var expires = Expires.ToString("yyyy-MM-dd");
+            var barcodes = string.Join(',', BarCodes);
+            return $"r-{roles}|e-{expires}|b-{barcodes}";
+        }
 
         // This will always be true in new DDS 
         // (ability to use clickthrough) - defer that to wc.org site, no way of getting it here.
