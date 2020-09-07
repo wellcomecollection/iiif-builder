@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
 using DlcsWebClient.Config;
+using IIIF.Presentation;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -53,15 +54,22 @@ namespace Wellcome.Dds.Repositories.Presentation
             var manifestationId = "start";
             try
             {
-                // This will need some special tweaking to build Chemist and Druggist in the
-                // Collection structure required for date-based navigation.
                 var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-                await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
+                var resource = await dashboardRepository.GetDigitisedResource(bNumber);
+                // This is a bnumber, so can't be part of anything.
+                result = await BuildInternal(work, resource, null);
+                if (resource is IDigitisedCollection parentCollection)
                 {
-                    var manifestation = manifestationInContext.Manifestation;
-                    manifestationId = manifestation.Id;
-                    var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                    result = await BuildInternal(work, digitisedManifestation);
+                    // This will need some special treatment to build Chemist and Druggist in the
+                    // Collection structure required for date-based navigation, and handle the two levels.
+                    // Come back to that once we have the basics working.
+                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
+                    {
+                        var manifestation = manifestationInContext.Manifestation;
+                        manifestationId = manifestation.Id;
+                        var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
+                        result = await BuildInternal(work, digitisedManifestation, parentCollection);
+                    }
                 }
             }
             catch (Exception e)
@@ -74,14 +82,13 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private async Task<BuildResult> BuildInternal(Work work, IDigitisedResource digitisedResource)
+        private async Task<BuildResult> BuildInternal(Work work, IDigitisedResource digitisedResource, IDigitisedCollection partOf)
         {
             var result = new BuildResult();
             try
             {
-                CleanManifestation(digitisedResource);
                 // build the Presentation 3 version from the source materials
-                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, work);
+                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, partOf, work);
                 await SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
                 // now build the Presentation 2 version from the Presentation 3 version
                 var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
@@ -120,25 +127,22 @@ namespace Wellcome.Dds.Repositories.Presentation
 
 
         /// <summary>
-        /// This obviously WILL NOT be a IIIFPrecursor
         /// </summary>
         /// <param name="digitisedResource"></param>
         /// <param name="work"></param>
         /// <returns></returns>
-        private IIIFPrecursor MakePresentation3Resource(IDigitisedResource digitisedResource, Work work)
-        {            
-            var iiif = new IIIFPrecursor
+        private StructureBase MakePresentation3Resource(IDigitisedResource digitisedResource, IDigitisedCollection partOf, Work work)
+        {
+            StructureBase iiifResource;
+            if (digitisedResource is IDigitisedCollection digitisedCollection)
             {
-                Id = digitisedResource.Identifier,
-                CatalogueMetadata = work,
-                Label = digitisedResource.BNumberModel.DisplayTitle,
-                Comment = $"This is a {digitisedResource.GetType()}",
-                ManifestSource = digitisedResource as DigitisedManifestation,
-                SimpleCollectionSource = SimpleCollectionModel.MakeSimpleCollectionModel(digitisedResource as IDigitisedCollection),
-                Pdf = string.Format(dlcsOptions.SkeletonNamedPdfTemplate, dlcsOptions.CustomerDefaultSpace, digitisedResource.Identifier),
-                IIIFVersion = IIIF.Presentation.Version.V3.ToString()
-            };
-            return iiif;
+                iiifResource = new Collection();
+            }
+            else if(digitisedResource is IDigitisedManifestation digitisedManifestation)
+            {
+                iiifResource = new Manifest();
+                iiifResource.PartOf = new List<ResourceBase>();
+            }
         }
         
         
@@ -148,7 +152,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="digitisedResource"></param>
         /// <param name="work"></param>
         /// <returns></returns>
-        private IIIFPrecursor MakePresentation2Resource(IIIFPrecursor iiifPresentation3Resource)
+        private StructureBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
         {
             // This just changes the version and returns the same object. OK because we've
             // already written the v3 one to S3. But obviously, don't do it like this for real!
@@ -157,7 +161,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
         
-        private async Task SaveToS3(IIIFPrecursor iiifResource, string key)
+        private async Task SaveToS3(StructureBase iiifResource, string key)
         {
             var json = JsonConvert.SerializeObject(iiifResource);
             var put = new PutObjectRequest
@@ -168,20 +172,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 ContentType = "application/json"
             };
             var resp = await amazonS3.PutObjectAsync(put);
-        }
-        
-        private void CleanManifestation(IDigitisedResource manifestation)
-        {
-            if (manifestation is DigitisedManifestation)
-            {
-                var metsManifestation = ((DigitisedManifestation) manifestation).MetsManifestation; 
-                // remove refs that just clutter up the JSON
-                metsManifestation.Sequence = null;
-                foreach (var physicalFile in metsManifestation.SignificantSequence)
-                {
-                    physicalFile.WorkStore = null;
-                }
-            }
         }
     }
 }

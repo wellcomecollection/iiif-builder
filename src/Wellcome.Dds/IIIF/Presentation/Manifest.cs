@@ -15,7 +15,9 @@ namespace IIIF.Presentation
         /// </summary>
         public string? ViewingDirection { get; set; }
         
-        // TODO - Interface may cause issues for deserialization
+        /// <summary>
+        /// Note that this is not the same as ResourceBase::Service
+        /// </summary>
         public List<IService>? Services { get; set; }
         
         // TODO - Interface may cause issues for deserialization
