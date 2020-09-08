@@ -13,6 +13,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard.Models
@@ -387,7 +388,12 @@ namespace Wellcome.Dds.Dashboard.Models
 
 
         public AVDerivative[] AVDerivatives { get; set; }
-
+        public Work Work { get; set; }
+        public string WorkPage { get; set; }
+        public string CatalogueApi { get; set; }
+        public string EncoreRecordUrl { get; set; }
+        public string EncoreBiblioRecordUrl { get; set; }
+        public string ManifestUrl { get; set; }
     }
 
 

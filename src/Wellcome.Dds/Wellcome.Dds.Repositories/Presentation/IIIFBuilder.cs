@@ -157,12 +157,18 @@ namespace Wellcome.Dds.Repositories.Presentation
             switch (digitisedResource)
             {
                 case IDigitisedCollection digitisedCollection:
-                    var collection = new Collection();
+                    var collection = new Collection
+                    {
+                        Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
+                    };
                     AddCommonMetadata(collection, work);
                     BuildCollection(collection, digitisedCollection);
                     return collection;
                 case IDigitisedManifestation digitisedManifestation:
-                    var manifest = new Manifest();
+                    var manifest = new Manifest
+                    {
+                        Id = uriPatterns.Manifest(digitisedManifestation.Identifier)
+                    };
                     manifest.PartOf = new List<ResourceBase>
                     {
                         new Collection
@@ -187,7 +193,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <exception cref="NotImplementedException"></exception>
         private void AddCommonMetadata(StructureBase iiifResource, Work work)
         {
-            throw new NotImplementedException();
+            iiifResource.Label = LangMap(work.Title);
         }
 
         
@@ -211,7 +217,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // TODO - this is obviously a placeholder!
             var p2Version = new Manifest
             {
-                Label = new LanguageMap("en", "[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
+                Label = LangMap("[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
             };
             return p2Version;
         }
@@ -249,6 +255,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Formatting = Formatting.Indented
             };
             return settings;
+        }
+
+        private LanguageMap LangMap(string value)
+        {
+            return new LanguageMap("en", value);
+        }
+        
+        private LanguageMap LangMap(string lang, string value)
+        {
+            return new LanguageMap(lang, value);
         }
     }
 }

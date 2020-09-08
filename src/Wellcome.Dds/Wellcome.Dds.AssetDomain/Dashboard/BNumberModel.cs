@@ -11,9 +11,7 @@
         public string DisplayTitle { get; set; }
 
         public string EncoreRecordUrl { get; set; }
-        public string ItemPageUrl { get; set; }
         public string ManifestUrl { get; set; }
         public string EncoreBiblioRecordUrl { get; set; }
-        
     }
 }

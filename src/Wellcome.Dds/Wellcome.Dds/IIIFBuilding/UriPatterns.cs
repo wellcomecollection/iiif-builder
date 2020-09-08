@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.Options;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -13,8 +14,8 @@ namespace Wellcome.Dds.IIIFBuilding
     /// </summary>
     public class UriPatterns
     {
+        private readonly ICatalogue catalogue;
         private readonly string schemeAndHostValue;
-        private readonly string apiWorkTemplate;
         private const string SchemeAndHostToken = "{schemeAndHost}";
         private const string IdentifierToken = "{identifier}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
@@ -66,10 +67,12 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
         private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
-        public UriPatterns(IOptions<DdsOptions> ddsOptions)
+        public UriPatterns(
+            IOptions<DdsOptions> ddsOptions,
+            ICatalogue catalogue)
         {
             schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            apiWorkTemplate = ddsOptions.Value.ApiWorkTemplate;
+            this.catalogue = catalogue;
         }
 
         public string Manifest(string identifier)
@@ -122,12 +125,17 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string PersistentCatalogueRecord(string identifier)
         {
-            return PersistentCatalogueRecordFormat.Replace(IdentifierToken, identifier);
+            return PersistentCatalogueRecordFormat.Replace(IdentifierToken, identifier.Remove(8));
         }
 
         public string EncoreBibliographicData(string identifier)
         {
-            return EncoreBibliographicDataFormat.Replace(IdentifierToken, identifier);
+            return EncoreBibliographicDataFormat.Replace(IdentifierToken, identifier.Remove(8));
+        }
+
+        public string CatalogueApi(string workIdentifier)
+        {
+            return catalogue.GetCatalogueApiUrl(workIdentifier);
         }
         
         

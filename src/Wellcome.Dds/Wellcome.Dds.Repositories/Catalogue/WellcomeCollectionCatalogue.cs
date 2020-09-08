@@ -114,11 +114,16 @@ namespace Wellcome.Dds.Repositories.Catalogue
             var response = await httpClient.GetAsync(url);
             return await response.Content.ReadFromJsonAsync<WorkResultPage>();
         }
-        
-        public async Task<Work> GetWorkByWorkId(string workId)
+
+        public string GetCatalogueApiUrl(string workId)
         {
             var queryString = BuildQueryString(null, null, allIncludes, -1);
-            var url = $"{options.ApiWorkTemplate}/{workId}{queryString}";
+            return $"{options.ApiWorkTemplate}/{workId}{queryString}";
+        }
+
+        public async Task<Work> GetWorkByWorkId(string workId)
+        {
+            var url = GetCatalogueApiUrl(workId);
             var response = await httpClient.GetAsync(url);
             return await response.Content.ReadFromJsonAsync<Work>();
         }

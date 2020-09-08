@@ -172,23 +172,24 @@
             <ul class="list-group">
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li>@Html.ActionLink("Preview in UV", "UV", "Dash", new { id = @Model.DdsIdentifier.BNumber }, new { }) </li>
-                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ItemPageUrl">Live item page</a></li>
-                        <li><a href="@(Model.DigitisedManifestation.BNumberModel.ItemPageUrl + "?ts=" + DateTime.Now.Ticks)">Live item page (no cache)</a></li>
+                        <li><a href="@Model.WorkPage">Work page</a></li>
+                        <li>@Html.ActionLink("View in UV", "UV", "Dash", new {id = @Model.DdsIdentifier}, new {}) </li>
+                        <li>@Html.ActionLink("View in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier}, new {}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Model.DigitisedManifestation.BNumberModel.EncoreRecordUrl">Encore record</a></li>
-                        <li><a href="@Model.DigitisedManifestation.BNumberModel.EncoreBiblioRecordUrl">Encore bibliographic record</a></li>
+                        <li><a href="@Model.CatalogueApi">Catalogue API</a></li>
+                        <li><a href="@Model.EncoreRecordUrl">Encore record</a></li>
+                        <li><a href="@Model.EncoreBiblioRecordUrl">Encore bibliographic record</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF-Builder Manifest (live)</a></li>
-                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier})">IIIF-Builder Manifest (preview)</a></li>
+                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier})">IIIF Manifest (preview)</a></li>
+                        <li><a href="@Model.ManifestUrl">IIIF Manifest (live)</a></li>
                     </ul>
                 </li>
                 @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")

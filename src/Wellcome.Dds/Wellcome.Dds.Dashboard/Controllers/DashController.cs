@@ -17,8 +17,10 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
+using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -35,6 +37,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IDds dds;
         private readonly StorageServiceClient storageServiceClient;
         private readonly ILogger<DashController> logger;
+        private readonly UriPatterns uriPatterns;
+        private readonly ICatalogue catalogue;
 
         private const string CacheKeyPrefix = "dashcontroller_";
         private const int CacheSeconds = 5;
@@ -50,9 +54,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
             StorageServiceClient storageServiceClient,
-            ILogger<DashController> logger
+            ILogger<DashController> logger,
+            UriPatterns uriPatterns,
+            ICatalogue catalogue
         )
         {
+            // TODO - we need a review of all these dependencies!
+            // too many things going on in this controller
             this.dashboardRepository = dashboardRepository;
             this.cache = cache;
             this.jobRegistry = jobRegistry;
@@ -64,6 +72,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.dds = dds;
             this.storageServiceClient = storageServiceClient;
             this.logger = logger;
+            this.uriPatterns = uriPatterns;
+            this.catalogue = catalogue;
             //this.cachingPackageProvider = cachingPackageProvider;
             //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
             //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
@@ -133,14 +143,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var jobLogger = new SmallJobLogger(string.Empty, null);
             jobLogger.Start();
             IDigitisedResource dgResource;
+            Work work;
             DdsIdentifier ddsId = null;
             try
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                jobLogger.Log("Start dashboardRepository.GetDigitisedResource(id)");
-                dgResource = await dashboardRepository.GetDigitisedResource(id, true);
-                jobLogger.Log("Finished dashboardRepository.GetDigitisedResource(id)");
+                jobLogger.Log("Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
+                var workTask = catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+                var ddsTask = dashboardRepository.GetDigitisedResource(id, true);
+                await Task.WhenAll(new List<Task> {ddsTask, workTask});
+                dgResource = ddsTask.Result;
+                work = workTask.Result;
+                jobLogger.Log("Finished dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
             }
             catch (Exception ex)
             {
@@ -209,7 +224,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     GrandParent = grandparent,
                     SyncOperation = syncOperation,
                     DlcsOptions = dlcsOptions,
-                    DlcsSkeletonManifest = skeletonPreview
+                    DlcsSkeletonManifest = skeletonPreview,
+                    Work = work,
+                    CatalogueApi = uriPatterns.CatalogueApi(work.Id),
+                    WorkPage = uriPatterns.PersistentPlayerUri(work.Id),
+                    EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(ddsId.BNumber),
+                    EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(ddsId.BNumber),
+                    ManifestUrl = uriPatterns.Manifest(ddsId)
                 };
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
@@ -466,7 +487,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id)
         {
-            return View(dashboardRepository.GetBNumberModel(id, id, id));
+            return View(id);
+        }
+        
+        public IActionResult Mirador(string id)
+        {
+            return View(id);
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
@@ -612,6 +638,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var ingest = await storageServiceClient.GetIngest(id);
             return View(Ingest.FromJObject(ingest));
         }
+
     }
 
     public class AutoCompleteSuggestion
