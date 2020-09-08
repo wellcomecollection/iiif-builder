@@ -187,7 +187,8 @@
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF-Builder Manifest</a></li>
+                        <li><a href="@Model.DigitisedManifestation.BNumberModel.ManifestUrl">IIIF-Builder Manifest (live)</a></li>
+                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier})">IIIF-Builder Manifest (preview)</a></li>
                     </ul>
                 </li>
                 @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")

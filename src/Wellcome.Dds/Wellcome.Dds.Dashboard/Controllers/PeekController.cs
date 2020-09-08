@@ -5,21 +5,54 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
+using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class PeekController : Controller
     {
         private readonly IWorkStorageFactory workStorageFactory;
+        private readonly IIIIFBuilder iiifBuilder;
         private readonly ILogger<PeekController> logger;
 
-        public PeekController(IWorkStorageFactory workStorageFactory, ILogger<PeekController> logger)
+        public PeekController(
+            IWorkStorageFactory workStorageFactory,
+            ILogger<PeekController> logger,
+            IIIIFBuilder iiifBuilder)
         {
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
+            this.iiifBuilder = iiifBuilder;
         }
 
+        
+        public async Task<ContentResult> IIIFRaw(string id)
+        {
+            var result = await iiifBuilder.Build(id);
+            return Content(iiifBuilder.Serialise(result.IIIF3Resource), "application/json");
+        }
+        
+        public async Task<ActionResult> IIIF(string id)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var result = await iiifBuilder.Build(ddsId);
+            var model = new CodeModel
+            {
+                Title = "IIIF Resource Preview",
+                Description = "This has been built live - it won't have been written to S3",
+                BNumber = ddsId.BNumber,
+                RelativePath = ddsId,
+                Manifestation = ddsId,
+                CodeAsString = iiifBuilder.Serialise(result.IIIF3Resource),
+                ErrorMessage = result.Message,
+                Mode = "ace/mode/json",
+                Raw = Url.Action("IIIFRaw", new {id})
+            };
+            return View("Code", model);
+        }
+        
         public async Task<ContentResult> XmlRaw(string id, string parts)
         {
             var store = await workStorageFactory.GetWorkStore(id);

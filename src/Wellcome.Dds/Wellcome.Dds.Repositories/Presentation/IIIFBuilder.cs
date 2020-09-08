@@ -8,6 +8,7 @@ using IIIF.Presentation;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
@@ -42,7 +43,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.amazonS3 = amazonS3;
         }
 
-        public async Task<BuildResult> BuildAllManifestations(string bNumber)
+        public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber)
         {
             var result = new BuildResult();
             var ddsId = new DdsIdentifier(bNumber);
@@ -58,18 +59,21 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 // This is a bnumber, so can't be part of anything.
-                result = await BuildInternal(work, resource, null);
+                result = BuildInternal(work, resource, null);
+                await Save(result);
                 if (resource is IDigitisedCollection parentCollection)
                 {
                     // This will need some special treatment to build Chemist and Druggist in the
                     // Collection structure required for date-based navigation, and handle the two levels.
                     // Come back to that once we have the basics working.
+                    // C&D needs a special build process.
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        result = await BuildInternal(work, digitisedManifestation, parentCollection);
+                        result = BuildInternal(work, digitisedManifestation, parentCollection);
+                        await Save(result);
                     }
                 }
             }
@@ -83,17 +87,21 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private async Task<BuildResult> BuildInternal(Work work, IDigitisedResource digitisedResource, IDigitisedCollection partOf)
+        private BuildResult BuildInternal(Work work, IDigitisedResource digitisedResource, IDigitisedCollection partOf)
         {
             var result = new BuildResult();
             try
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, partOf, work);
-                await SaveToS3(iiifPresentation3Resource, $"v3/{digitisedResource.Identifier}");
+                result.IIIF3Resource = iiifPresentation3Resource;
+                result.IIIF3Key = $"v3/{digitisedResource.Identifier}";
+                
                 // now build the Presentation 2 version from the Presentation 3 version
                 var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
-                await SaveToS3(iiifPresentation2Resource, $"v2/{digitisedResource.Identifier}");
+                result.IIIF2Resource = iiifPresentation2Resource;
+                result.IIIF2Key = $"v2/{digitisedResource.Identifier}";
+                
                 result.Outcome = BuildOutcome.Success;
             }
             catch (Exception e)
@@ -120,16 +128,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                 if (ddsId.IdentifierType != IdentifierType.BNumber)
                 {
                     // this identifier has a parent, which we will need to build the resource properly
+                    // this parent property smells... need to do some work to make sure this is always an identical
+                    // result to BuildAndSaveAllManifestations
                     partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
                 }
-                result = await BuildInternal(work, digitisedResource, partOf);
+                result = BuildInternal(work, digitisedResource, partOf);
             }
             catch (Exception e)
             {
                 result.Message = e.Message;
                 result.Outcome = BuildOutcome.Failure;
             }
-
             return result;
         }
 
@@ -149,7 +158,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                     break;
                 case IDigitisedManifestation digitisedManifestation:
                     iiifResource = new Manifest();
+                    // empty list
                     iiifResource.PartOf = new List<ResourceBase>();
+                    // not empty list
+                    iiifResource.Rendering = new List<IIIF.Presentation.Content.ExternalResource>();
+                    iiifResource.Rendering.Add(new IIIF.Presentation.Content.ExternalResource("TestType")
+                    {
+                        Id = "test-item",
+                        Language = new List<string> { "en" }
+                    });
                     break;
             }
             return iiifResource;
@@ -163,23 +180,46 @@ namespace Wellcome.Dds.Repositories.Presentation
         private StructureBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
         {
             // TODO - this is obviously a placeholder!
-            var tempValue = "[IIIF 2.1 version of] " + iiifPresentation3Resource.Label;
-            iiifPresentation3Resource.Label = new LanguageMap("en", tempValue);
-            return iiifPresentation3Resource;
+            var p2Version = new Manifest
+            {
+                Label = new LanguageMap("en", "[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
+            };
+            return p2Version;
         }
 
+        private async Task Save(BuildResult buildResult)
+        {
+            await SaveToS3(buildResult.IIIF3Resource, buildResult.IIIF3Key);
+            await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
+        }
         
         private async Task SaveToS3(StructureBase iiifResource, string key)
         {
-            var json = JsonConvert.SerializeObject(iiifResource);
             var put = new PutObjectRequest
             {
                 BucketName = ddsOptions.PresentationContainer,
                 Key = key,
-                ContentBody = json,
+                ContentBody = Serialise(iiifResource),
                 ContentType = "application/json"
             };
             var resp = await amazonS3.PutObjectAsync(put);
+        }
+
+        public string Serialise(StructureBase iiifResource)
+        {
+            return JsonConvert.SerializeObject(iiifResource, GetJsFriendlySettings());
+        }
+        // we'll need another Serialise for IIIFv2
+
+        private static JsonSerializerSettings GetJsFriendlySettings()
+        {
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                ContractResolver = new IgnoreEmptyListResolver(),
+                Formatting = Formatting.Indented
+            };
+            return settings;
         }
     }
 }
