@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 using Wellcome.Dds.Common;
+using MetsManifestation = Wellcome.Dds.AssetDomainRepositories.Mets.Model.Manifestation;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
@@ -63,7 +63,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     // we only want a specific issue
                     var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
-                    return new Manifestation(issueStruct, structMap);
+                    return new MetsManifestation(issueStruct, structMap);
             }
 
             throw new NotSupportedException("Unknown identifier");
@@ -177,7 +177,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     if (counter++ == index)
                     {
-                        return new Manifestation(pdIssue);
+                        return new MetsManifestation(pdIssue);
                     }
                 }
             }
@@ -226,7 +226,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             IMetsResource res = null;
             if (structMap.IsManifestation)
             {
-                res = new Manifestation(structMap);
+                res = new MetsManifestation(structMap);
             }
             else if (structMap.IsCollection)
             {
@@ -253,7 +253,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 }
                 else
                 {
-                    var children = structMap.Children.Select(c => new Manifestation(c));
+                    var children = structMap.Children.Select(c => new MetsManifestation(c));
                     coll.Manifestations = new List<IManifestation>(children);
                 }
                 res = coll;

@@ -466,7 +466,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id)
         {
-            return View(dashboardRepository.GetBNumberModel(id, id));
+            return View(dashboardRepository.GetBNumberModel(id, id, id));
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)

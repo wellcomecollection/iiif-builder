@@ -12,13 +12,14 @@ using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
     public class DashboardRepository : IDashboardRepository
     {
         private readonly ILogger<DashboardRepository> logger;
-        private readonly DdsOptions ddsOptions;
+        private readonly UriPatterns uriPatterns;
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
@@ -27,13 +28,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public DashboardRepository(
             ILogger<DashboardRepository> logger,
-            IOptions<DdsOptions> ddsOptions,
+            UriPatterns uriPatterns,
             IDlcs dlcs, 
             IMetsRepository metsRepository,
             DdsInstrumentationContext ddsInstrumentationContext)
         {
             this.logger = logger;
-            this.ddsOptions = ddsOptions.Value;
+            this.uriPatterns = uriPatterns;
             this.dlcs = dlcs;
             DefaultSpace = dlcs.DefaultSpace;
             this.metsRepository = metsRepository;
@@ -69,7 +70,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             }
             digResource.Identifier = metsResource.Id;
             digResource.Partial = metsResource.Partial;
-            digResource.BNumberModel = GetBNumberModel(metsResource.GetRootId(), metsResource.Label);
+            var rootId = metsResource.GetRootId();
+            digResource.BNumberModel = GetBNumberModel(rootId, metsResource.Label, rootId);
 
             //// DEBUG step - force evaluation of DLCS query
             //var list = (digResource as IDigitisedManifestation).DlcsImages.ToList();
@@ -80,17 +82,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             return digResource;
         }
 
-        public BNumberModel GetBNumberModel(string bNumber, string label)
+        public BNumberModel GetBNumberModel(string bNumber, string label, string workId)
         {
             var shortB = bNumber.Remove(8);
             return new BNumberModel
             {
                 BNumber = bNumber,
                 DisplayTitle = label,
-                EncoreRecordUrl = string.Format(ddsOptions.PersistentCatalogueRecord, shortB),
-                ItemPageUrl = string.Format(ddsOptions.PersistentPlayerUri, bNumber),
-                ManifestUrl = string.Format(ddsOptions.ManifestTemplate, bNumber),
-                EncoreBiblioRecordUrl = string.Format(ddsOptions.EncoreBibliographicData, shortB)
+                EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(shortB),
+                ItemPageUrl = uriPatterns.PersistentPlayerUri(workId),
+                ManifestUrl = uriPatterns.Manifest(bNumber),
+                EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(shortB)
             };
         }
 

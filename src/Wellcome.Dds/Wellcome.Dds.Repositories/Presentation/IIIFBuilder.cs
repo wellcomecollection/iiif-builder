@@ -5,6 +5,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using DlcsWebClient.Config;
 using IIIF.Presentation;
+using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -105,6 +106,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public async Task<BuildResult> Build(string identifier)
         {
+            // only this identifier, not all for the b number.
             var result = new BuildResult();
             try
             {
@@ -114,7 +116,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 var digitisedResource = ddsTask.Result;
                 var work = workTask.Result;
-                result = await BuildInternal(work, digitisedResource);
+                IDigitisedCollection partOf = null;
+                if (ddsId.IdentifierType != IdentifierType.BNumber)
+                {
+                    // this identifier has a parent, which we will need to build the resource properly
+                    partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
+                }
+                result = await BuildInternal(work, digitisedResource, partOf);
             }
             catch (Exception e)
             {
@@ -133,16 +141,19 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <returns></returns>
         private StructureBase MakePresentation3Resource(IDigitisedResource digitisedResource, IDigitisedCollection partOf, Work work)
         {
-            StructureBase iiifResource;
-            if (digitisedResource is IDigitisedCollection digitisedCollection)
+            StructureBase iiifResource = null;
+            switch (digitisedResource)
             {
-                iiifResource = new Collection();
+                case IDigitisedCollection digitisedCollection:
+                    iiifResource = new Collection();
+                    break;
+                case IDigitisedManifestation digitisedManifestation:
+                    iiifResource = new Manifest();
+                    iiifResource.PartOf = new List<ResourceBase>();
+                    break;
             }
-            else if(digitisedResource is IDigitisedManifestation digitisedManifestation)
-            {
-                iiifResource = new Manifest();
-                iiifResource.PartOf = new List<ResourceBase>();
-            }
+
+            return iiifResource;
         }
         
         
@@ -156,7 +167,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             // This just changes the version and returns the same object. OK because we've
             // already written the v3 one to S3. But obviously, don't do it like this for real!
-            iiifPresentation3Resource.IIIFVersion = IIIF.Presentation.Version.V2.ToString();
+            var tempValue = "[IIIF 2.1 version of] " + iiifPresentation3Resource.Label;
+            iiifPresentation3Resource.Label = new LanguageMap("en", tempValue);
             return iiifPresentation3Resource;
         }
 

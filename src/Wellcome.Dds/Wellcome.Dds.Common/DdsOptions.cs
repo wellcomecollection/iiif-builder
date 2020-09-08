@@ -7,11 +7,11 @@
         public string GoFile { get; set; }
         public string StatusProviderHeartbeat { get; set; }
         public string StatusProviderLogSpecialFile { get; set; }
-        public string PersistentPlayerUri { get; set; }
-        public string PersistentCatalogueRecord { get; set; }
-        public string EncoreBibliographicData { get; set; }
+        
+        // TODO - leave this with the name "LinkedDataDomain" for now, for ease of migration,
+        // but later, refactor to "SchemeAndHost"
         public string LinkedDataDomain { get; set; }
-        public string ManifestTemplate { get; set; }
+        
         public bool AvoidCaching { get; set; }
         public string EarliestJobDateTime { get; set; }
         public int MinimumJobAgeMinutes { get; set; }

@@ -32,7 +32,7 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         IEnumerable<IngestAction> GetRecentActions(int count, string user = null);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
 
-        BNumberModel GetBNumberModel(string bNumber, string label);
+        BNumberModel GetBNumberModel(string bNumber, string label, string workId);
 
         AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation);
     }

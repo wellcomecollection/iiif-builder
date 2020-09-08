@@ -15,6 +15,7 @@ using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
@@ -40,14 +41,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
             var ddsOptions = new DdsOptions
             {
-                PersistentCatalogueRecord = "/{0}/catalogue",
-                PersistentPlayerUri = "/test/{0}/player/x",
-                ManifestTemplate = "/manifest/{0}",
-                EncoreBibliographicData = "/biblio/{0}"
+                LinkedDataDomain = "https://test.com",
+                ApiWorkTemplate = "https://test.com/works"
             };
             var options = Options.Create(ddsOptions);
+            var uriPatterns = new UriPatterns(options);
 
-            sut = new DashboardRepository(new NullLogger<DashboardRepository>(), options, dlcs, metsRepository,
+            sut = new DashboardRepository(new NullLogger<DashboardRepository>(), uriPatterns, dlcs, metsRepository,
                 ddsInstrumentationContext);
         }
 
@@ -80,7 +80,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
             
             // Act
-            var bNumberModel = sut.GetBNumberModel(bNumber, label);
+            var bNumberModel = sut.GetBNumberModel(bNumber, label, "todo");
             
             // Assert
             bNumberModel.Should().BeEquivalentTo(expected);
@@ -93,7 +93,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public void GetBNumberModel_Throws_IfBNumberNullOrWhitespace(string bNumber)
         {
             // Arrange
-            Action action = () => sut.GetBNumberModel(bNumber, "foo");
+            Action action = () => sut.GetBNumberModel(bNumber, "foo", "bar");
             
             // Assert    
             action.Should().Throw<ArgumentNullException>();
