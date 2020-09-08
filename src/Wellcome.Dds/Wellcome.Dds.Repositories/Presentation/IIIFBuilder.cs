@@ -20,26 +20,26 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFBuilder : IIIIFBuilder
     {
-        private IMetsRepository metsRepository;
+        private readonly IMetsRepository metsRepository;
         private readonly IDashboardRepository dashboardRepository;
         private readonly ICatalogue catalogue;
-        private readonly DlcsOptions dlcsOptions;
         private readonly DdsOptions ddsOptions;
+        private readonly UriPatterns uriPatterns;
         private readonly IAmazonS3 amazonS3;
         
         public IIIFBuilder(
             IMetsRepository metsRepository,
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
-            IOptions<DlcsOptions> dlcsOptions,
             IOptions<DdsOptions> ddsOptions,
+            UriPatterns uriPatterns,
             IAmazonS3 amazonS3)
         {
             this.metsRepository = metsRepository;
             this.dashboardRepository = dashboardRepository;
             this.catalogue = catalogue;
-            this.dlcsOptions = dlcsOptions.Value;
             this.ddsOptions = ddsOptions.Value;
+            this.uriPatterns = uriPatterns;
             this.amazonS3 = amazonS3;
         }
 
@@ -146,30 +146,59 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <summary>
         /// </summary>
         /// <param name="digitisedResource"></param>
+        /// <param name="partOf"></param>
         /// <param name="work"></param>
         /// <returns></returns>
-        public StructureBase MakePresentation3Resource(IDigitisedResource digitisedResource, IDigitisedCollection partOf, Work work)
+        public StructureBase MakePresentation3Resource(
+            IDigitisedResource digitisedResource,
+            IDigitisedCollection partOf,
+            Work work)
         {
-            StructureBase iiifResource = null;
             switch (digitisedResource)
             {
                 case IDigitisedCollection digitisedCollection:
-                    iiifResource = new Collection();
-                    break;
+                    var collection = new Collection();
+                    AddCommonMetadata(collection, work);
+                    BuildCollection(collection, digitisedCollection);
+                    return collection;
                 case IDigitisedManifestation digitisedManifestation:
-                    iiifResource = new Manifest();
-                    // empty list
-                    iiifResource.PartOf = new List<ResourceBase>();
-                    // not empty list
-                    iiifResource.Rendering = new List<IIIF.Presentation.Content.ExternalResource>();
-                    iiifResource.Rendering.Add(new IIIF.Presentation.Content.ExternalResource("TestType")
+                    var manifest = new Manifest();
+                    manifest.PartOf = new List<ResourceBase>
                     {
-                        Id = "test-item",
-                        Language = new List<string> { "en" }
-                    });
-                    break;
+                        new Collection
+                        {
+                            Id = uriPatterns.CollectionForWork(partOf.Identifier),
+                            Label = new LanguageMap("en", work.Title)
+                        }
+                    };
+                    AddCommonMetadata(manifest, work);
+                    BuildManifest(manifest, digitisedManifestation);
+                    return manifest;
             }
-            return iiifResource;
+            throw new NotSupportedException("Unhandled type of Digitised Resource");
+        }
+
+        /// <summary>
+        /// Metadata, providers etc that are found on Work-level collections as
+        /// well as manifests
+        /// </summary>
+        /// <param name="iiifResource"></param>
+        /// <param name="work"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void AddCommonMetadata(StructureBase iiifResource, Work work)
+        {
+            throw new NotImplementedException();
+        }
+
+        
+        private void BuildManifest(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection)
+        {
+            throw new NotImplementedException();    
         }
 
 
