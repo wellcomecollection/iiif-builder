@@ -70,7 +70,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             }
             digResource.Identifier = metsResource.Id;
             digResource.Partial = metsResource.Partial;
-            //digResource.BNumberModel = GetBNumberModel(rootId, metsResource.Label);
 
             //// DEBUG step - force evaluation of DLCS query
             //var list = (digResource as IDigitisedManifestation).DlcsImages.ToList();
@@ -80,20 +79,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             //}
             return digResource;
         }
-
-        // public BNumberModel GetBNumberModel(string bNumber, string label)
-        // {
-        //     var shortB = bNumber.Remove(8);
-        //     return new BNumberModel
-        //     {
-        //         BNumber = bNumber,
-        //         DisplayTitle = label,
-        //         EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(shortB),
-        //         ManifestUrl = uriPatterns.Manifest(bNumber),
-        //         EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(shortB)
-        //     };
-        // }
-
+        
         public async Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue)
         {
             if (dlcs.PreventSynchronisation)
