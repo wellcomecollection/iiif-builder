@@ -17,54 +17,54 @@ namespace Wellcome.Dds.IIIFBuilding
         private readonly string apiWorkTemplate;
         private const string SchemeAndHostToken = "{schemeAndHost}";
         private const string IdentifierToken = "{identifier}";
+        private const string AssetIdentifierToken = "{assetIdentifier}";
         
         // TODO - these constants should be in the IIIF model
-        public const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
-        public const string IIIF2ImageContext = "http://iiif.io/api/image/2/context.json";
-        public const string IIIFAuthContext = "http://iiif.io/api/auth/0/context.json";
-        public const string IIIFSearchContext = "http://iiif.io/api/search/0/context.json";
+        private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
+        private const string IIIF2ImageContext = "http://iiif.io/api/image/2/context.json";
+        private const string IIIFAuthContext = "http://iiif.io/api/auth/0/context.json";
+        private const string IIIFSearchContext = "http://iiif.io/api/search/0/context.json";
 
-        public const string ImageServiceProfile = "http://iiif.io/api/image/2/level1.json";
-        public const string ImageServiceLevel0Profile = "http://iiif.io/api/image/2/level0.json";
-        public const string LoginServiceProfile = "http://iiif.io/api/auth/0/login";
-        public const string LoginClickthroughServiceProfile090 = "http://iiif.io/api/auth/0/login/clickthrough";
-        public const string LoginClickthroughServiceProfile093 = "http://iiif.io/api/auth/0/clickthrough";
-        public const string LoginExternalServiceProfile090 = "http://iiif.io/api/auth/0/login/restricted";
-        public const string LoginExternalServiceProfile093 = "http://iiif.io/api/auth/0/external";
-        public const string LogoutServiceProfile = "http://iiif.io/api/auth/0/logout";
-        public const string AuthTokenServiceProfile = "http://iiif.io/api/auth/0/token";
+        private const string ImageServiceProfile = "http://iiif.io/api/image/2/level1.json";
+        private const string ImageServiceLevel0Profile = "http://iiif.io/api/image/2/level0.json";
+        private const string LoginServiceProfile = "http://iiif.io/api/auth/0/login";
+        private const string LoginClickthroughServiceProfile090 = "http://iiif.io/api/auth/0/login/clickthrough";
+        private const string LoginClickthroughServiceProfile093 = "http://iiif.io/api/auth/0/clickthrough";
+        private const string LoginExternalServiceProfile090 = "http://iiif.io/api/auth/0/login/restricted";
+        private const string LoginExternalServiceProfile093 = "http://iiif.io/api/auth/0/external";
+        private const string LogoutServiceProfile = "http://iiif.io/api/auth/0/logout";
+        private const string AuthTokenServiceProfile = "http://iiif.io/api/auth/0/token";
 
         // These patterns belong with the DDS, here
         // but they need to change to the suggested forms in
         // https://github.com/wellcomecollection/platform/issues/4659#issuecomment-686448554
         
-        // yes, these two are the same. Do we want to reserve separate usage?
-        public const string CollectionFormat = "{schemeAndHost}/presentation/{identifier}";
-        public const string ManifestFormat = "{schemeAndHost}/presentation/{identifier}";
+        private const string ManifestFormat = "{schemeAndHost}/presentation/{identifier}";
+        private const string CanvasFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
+        private const string AggregationFormat = "{schemeAndHost}/presentation/collections";
         
-        public const string SequenceFormat = "{schemeAndHost}/{prefix}/{identifier}/sequence/{name}";
-        public const string CanvasFormat = "{schemeAndHost}/{prefix}/{identifier}/canvas/{name}";
-        public const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
-        public const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
-        public const string RangeFormat = "{schemeAndHost}/{prefix}/{identifier}/range/{name}";
-        public const string LayerFormat = "{schemeAndHost}/{prefix}/{identifier}/layer/{name}";
-        public const string ContentFormat = "{schemeAndHost}/{prefix}/{identifier}/res/{name}.{format}";
+        // not done
+        private const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
+        private const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
+        private const string RangeFormat = "{schemeAndHost}/{prefix}/{identifier}/range/{name}";
+        private const string LayerFormat = "{schemeAndHost}/{prefix}/{identifier}/layer/{name}";
+        private const string ContentFormat = "{schemeAndHost}/{prefix}/{identifier}/res/{name}.{format}";
 
         // Image service URI
-        public const string ImageResourceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/res/{name}";
+        private const string ImageResourceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/res/{name}";
 
-        public const string ImageServiceFormat = "{schemeAndHost}/{prefix}-img/{identifier}-{seqIndex}/{name}";
-        public const string ImageAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/imageanno/{name}";
-        public const string OcrAltoAllAnnosFormat = "{schemeAndHost}/{prefix}/{identifier}/{name}";
-        public const string OcrAltoContentFormat = "{schemeAndHost}/{prefix}/{identifier}/contentAsText/{name}";
-        public const string TextLineAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/contentAsText/{name}";
-        public const string SearchResultAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/searchResults/{name}";
-        public const string ManifestLevelServiceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/{name}-service";
+        private const string ImageServiceFormat = "{schemeAndHost}/{prefix}-img/{identifier}-{seqIndex}/{name}";
+        private const string ImageAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/imageanno/{name}";
+        private const string OcrAltoAllAnnosFormat = "{schemeAndHost}/{prefix}/{identifier}/{name}";
+        private const string OcrAltoContentFormat = "{schemeAndHost}/{prefix}/{identifier}/contentAsText/{name}";
+        private const string TextLineAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/contentAsText/{name}";
+        private const string SearchResultAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/searchResults/{name}";
+        private const string ManifestLevelServiceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/{name}-service";
         
         // TODO - rename to work page
-        public const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
-        public const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
-        public const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
+        private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
+        private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
+        private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
@@ -79,6 +79,36 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(IdentifierToken, identifier);
         }
 
+        public string CollectionForWork(string identifier)
+        {
+            // yes, these two are the same. Do we want to reserve separate usage?
+            return Manifest(identifier);
+        }
+        
+        
+        public string Canvas(string manifestIdentifier, string assetIdentifier)
+        {
+            return CanvasFormat
+                .Replace(SchemeAndHostToken, schemeAndHostValue)
+                .Replace(IdentifierToken, manifestIdentifier)
+                .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+
+        public string CollectionForAggregation()
+        {
+            return AggregationFormat.Replace(SchemeAndHostToken, schemeAndHostValue);
+        }
+
+        public string CollectionForAggregation(string aggregator)
+        {
+            return $"{CollectionForAggregation()}/{aggregator}";
+        }
+        
+        public string CollectionForAggregation(string aggregator, string value)
+        {
+            return $"{CollectionForAggregation()}/{aggregator}/{value}";
+        }
+        
         // TODO - rename to Work page
         /// <summary>
         /// Must be a works identifier, not a b number

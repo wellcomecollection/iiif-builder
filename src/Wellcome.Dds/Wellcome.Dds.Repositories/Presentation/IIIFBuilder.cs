@@ -155,18 +155,15 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             return iiifResource;
         }
-        
-        
+
+
         /// <summary>
-        /// This obviously WILL NOT be a IIIFPrecursor
+        /// Convert the IIIF v3 Manifest into its equivalent v2 manifest
         /// </summary>
-        /// <param name="digitisedResource"></param>
-        /// <param name="work"></param>
         /// <returns></returns>
         private StructureBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
         {
-            // This just changes the version and returns the same object. OK because we've
-            // already written the v3 one to S3. But obviously, don't do it like this for real!
+            // TODO - this is obviously a placeholder!
             var tempValue = "[IIIF 2.1 version of] " + iiifPresentation3Resource.Label;
             iiifPresentation3Resource.Label = new LanguageMap("en", tempValue);
             return iiifPresentation3Resource;
