@@ -139,7 +139,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="digitisedResource"></param>
         /// <param name="work"></param>
         /// <returns></returns>
-        private StructureBase MakePresentation3Resource(IDigitisedResource digitisedResource, IDigitisedCollection partOf, Work work)
+        public StructureBase MakePresentation3Resource(IDigitisedResource digitisedResource, IDigitisedCollection partOf, Work work)
         {
             StructureBase iiifResource = null;
             switch (digitisedResource)
@@ -152,7 +152,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                     iiifResource.PartOf = new List<ResourceBase>();
                     break;
             }
-
             return iiifResource;
         }
 

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using IIIF.Presentation;
+using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.Catalogue;
 
 namespace Wellcome.Dds.IIIFBuilding
 {
@@ -23,5 +26,17 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="bNumber"></param>
         /// <returns></returns>
         public Task<BuildResult> BuildAllManifestations(string bNumber);
+
+        /// <summary>
+        /// This is public, so that the dashboard can use it to demonstrate IIIF construction
+        /// </summary>
+        /// <param name="digitisedResource"></param>
+        /// <param name="partOf"></param>
+        /// <param name="work"></param>
+        /// <returns></returns>
+        StructureBase MakePresentation3Resource(
+            IDigitisedResource digitisedResource, 
+            IDigitisedCollection partOf,
+            Work work);
     }
 }
