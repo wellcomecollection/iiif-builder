@@ -58,7 +58,7 @@ namespace Wellcome.Dds.Repositories
                     .OrderBy(fm => fm.Index)
                     .ToList(),
                 Metadata = ddsContext.Metadata
-                    .Where(m => m.Identifier == resultDdsId.BNumber)
+                    .Where(m => m.ManifestationId == resultDdsId.BNumber)
                     .ToList()
             };
             return result;

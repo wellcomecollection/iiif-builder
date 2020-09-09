@@ -227,7 +227,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     iiifResource.PartOf.Add(
                         new Collection
                         {
-                            Id = uriPatterns.CollectionForAggregation(md.Label, md.StringValue),
+                            Id = uriPatterns.CollectionForAggregation(md.Label, md.Identifier),
                             Label = new LanguageMap("en", $"{md.Label}: {md.StringValue}")
                         });
                 }
