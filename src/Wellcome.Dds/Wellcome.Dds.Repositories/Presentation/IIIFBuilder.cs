@@ -164,7 +164,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
                     };
                     AddCommonMetadata(collection, work);
-                    BuildCollection(collection, digitisedCollection);
+                    BuildCollection(collection, digitisedCollection, work);
                     return collection;
                 case IDigitisedManifestation digitisedManifestation:
                     var manifest = new Manifest
@@ -208,7 +208,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // throw new NotImplementedException();
         }
 
-        private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection)
+        private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection, Work work)
         {
             // TODO - use of Labels.
             // The work label should be preferred over the METS label,
@@ -239,7 +239,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                     collection.Items.Add(new Manifest
                     {
                         Id = uriPatterns.Manifest(mf.Identifier),
-                        Label = LangMap($"{mf.MetsManifestation.Label} - {order}")
+                        Label = new LanguageMap
+                        {
+                            ["en"] = new List<string>
+                            {
+                                $"Volume {order}",
+                                work.Title
+                            }
+                        }
+                        // LangMap($"{mf.MetsManifestation.Label} - {order}")
                     });
                     counter++;
                 }
