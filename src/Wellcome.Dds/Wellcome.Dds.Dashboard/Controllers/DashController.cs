@@ -487,12 +487,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id)
         {
-            return View(id);
+            return View("UV", id);
         }
         
         public IActionResult Mirador(string id)
         {
-            return View(id);
+            return View("Mirador", id);
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)

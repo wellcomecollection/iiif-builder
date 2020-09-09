@@ -5,10 +5,12 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using DlcsWebClient.Config;
 using IIIF.Presentation;
+using IIIF.Presentation.Constants;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
@@ -169,14 +171,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         Id = uriPatterns.Manifest(digitisedManifestation.Identifier)
                     };
-                    manifest.PartOf = new List<ResourceBase>
+                    if (partOf != null)
                     {
-                        new Collection
+                        manifest.PartOf = new List<ResourceBase>
                         {
-                            Id = uriPatterns.CollectionForWork(partOf.Identifier),
-                            Label = new LanguageMap("en", work.Title)
-                        }
-                    };
+                            new Collection
+                            {
+                                Id = uriPatterns.CollectionForWork(partOf.Identifier),
+                                Label = new LanguageMap("en", work.Title)
+                            }
+                        };
+                    }
                     AddCommonMetadata(manifest, work);
                     BuildManifest(manifest, digitisedManifestation);
                     return manifest;
@@ -193,18 +198,52 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <exception cref="NotImplementedException"></exception>
         private void AddCommonMetadata(StructureBase iiifResource, Work work)
         {
+            iiifResource.AddPresentation3Context();
             iiifResource.Label = LangMap(work.Title);
         }
 
         
         private void BuildManifest(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection)
         {
-            throw new NotImplementedException();    
+            // TODO - use of Labels.
+            // The work label should be preferred over the METS label,
+            // but sometimes there is structural (volume) labelling that the catalogue API won't know about.
+            collection.Items = new List<ICollectionItem>();
+            if (digitisedCollection.Collections.HasItems())
+            {
+                foreach (var coll in digitisedCollection.Collections)
+                {
+                    collection.Items.Add(new Collection
+                    {
+                        Id = uriPatterns.CollectionForWork(coll.Identifier),
+                        Label = LangMap(coll.MetsCollection.Label)
+                    });
+                }
+            }
+
+            if (digitisedCollection.Manifestations.HasItems())
+            {
+                int counter = 1;
+                foreach (var mf in digitisedCollection.Manifestations)
+                {
+                    var order = mf.MetsManifestation.Order;
+                    if (!order.HasValue || order < 1)
+                    {
+                        order = counter;
+                    }
+                    collection.Items.Add(new Manifest
+                    {
+                        Id = uriPatterns.Manifest(mf.Identifier),
+                        Label = LangMap($"{mf.MetsManifestation.Label} - {order}")
+                    });
+                    counter++;
+                }
+            }
         }
 
 

@@ -41,7 +41,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",
-                Description = "This has been built live - it won't have been written to S3",
+                Description = "This has been built on the fly - it won't have been written to S3 yet.",
                 BNumber = ddsId.BNumber,
                 RelativePath = ddsId,
                 Manifestation = ddsId,
