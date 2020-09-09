@@ -49,4 +49,8 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="wwwroot\partners" />
+    </ItemGroup>
+
 </Project>

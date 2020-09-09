@@ -124,5 +124,14 @@ namespace IIIF.Presentation
         /// </summary>
         [JsonProperty(Order = 31)]
         public List<string>? Behavior { get; set; }
+        
+        /// <summary>
+        /// A schema or named set of functionality available from the resource.
+        /// The profile can further clarify the type and/or format of an external resource or service,
+        /// allowing clients to customize their handling of the resource that has the profile property.
+        /// See <a href="https://iiif.io/api/presentation/3.0/#profile">profile</a>
+        /// </summary>
+        [JsonProperty(Order = 33)]
+        public string? Profile { get; set; }
     }
 }

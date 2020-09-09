@@ -24,6 +24,6 @@ namespace Wellcome.Dds.Catalogue
         
         Task<WorkResultPage> GetWorkResultPage(string query, string identifiers, IEnumerable<string> include, int pageSize);
 
-        string GetCatalogueApiUrl(string workId);
+        string GetCatalogueApiUrl(string workId, string[] include = null);
     }
 }
