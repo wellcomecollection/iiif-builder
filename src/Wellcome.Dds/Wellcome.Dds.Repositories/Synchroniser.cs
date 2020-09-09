@@ -50,7 +50,7 @@ namespace Wellcome.Dds.Repositories
         }
         
 
-        public async Task RefreshFlatManifestations(string identifier)
+        public async Task RefreshFlatManifestations(string identifier, Work work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
@@ -62,7 +62,7 @@ namespace Wellcome.Dds.Repositories
             var containsRestrictedFiles = false;
             IMetsResource packageMetsResource = null;
             IFileBasedResource packageFileResource = null;
-            var work = await catalogue.GetWorkByOtherIdentifier(identifier);
+            work ??= await catalogue.GetWorkByOtherIdentifier(identifier);
             if (isBNumber)
             {
                 // operations we can only do when the identifier being processed is a b number
@@ -261,6 +261,7 @@ namespace Wellcome.Dds.Repositories
                 }
             }
             await ddsContext.SaveChangesAsync();
+            
         }
 
         private IPhysicalFile GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)

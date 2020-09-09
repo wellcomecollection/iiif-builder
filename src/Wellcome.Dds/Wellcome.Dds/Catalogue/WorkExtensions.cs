@@ -38,6 +38,12 @@ namespace Wellcome.Dds.Catalogue
             {
                 metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
             }
+            var locationOfOriginal = work.Notes.FirstOrDefault(note => note.NoteType.Id == "location-of-original");
+            if (locationOfOriginal != null && locationOfOriginal.Contents.HasItems())
+            {
+                var location = locationOfOriginal.Contents[0];
+                metadataList.Add(new Metadata(identifier, "Location", location, location));
+            }
             return metadataList;
         }
     }

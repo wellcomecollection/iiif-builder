@@ -226,7 +226,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     DlcsOptions = dlcsOptions,
                     DlcsSkeletonManifest = skeletonPreview,
                     Work = work,
-                    CatalogueApi = uriPatterns.CatalogueApi(work.Id),
+                    CatalogueApi = uriPatterns.CatalogueApi(work.Id, null),
                     WorkPage = uriPatterns.PersistentPlayerUri(work.Id),
                     EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(ddsId.BNumber),
                     EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(ddsId.BNumber),

@@ -115,9 +115,9 @@ namespace Wellcome.Dds.Repositories.Catalogue
             return await response.Content.ReadFromJsonAsync<WorkResultPage>();
         }
 
-        public string GetCatalogueApiUrl(string workId)
+        public string GetCatalogueApiUrl(string workId, string[] include = null)
         {
-            var queryString = BuildQueryString(null, null, allIncludes, -1);
+            var queryString = BuildQueryString(null, null, include, -1);
             return $"{options.ApiWorkTemplate}/{workId}{queryString}";
         }
 
@@ -157,8 +157,11 @@ namespace Wellcome.Dds.Repositories.Catalogue
             {
                 args.Add($"pageSize={pageSize}");
             }
-            var queryString = "?" + string.Join('&', args);
-            return queryString;
+            if (args.Any())
+            {
+                return "?" + string.Join('&', args);
+            }
+            return string.Empty;
         }
     }
 }

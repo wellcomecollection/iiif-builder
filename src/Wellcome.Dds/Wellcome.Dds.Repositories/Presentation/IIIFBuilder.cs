@@ -1,19 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
-using DlcsWebClient.Config;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
+using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -22,6 +21,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFBuilder : IIIIFBuilder
     {
+        private readonly IDds dds;
         private readonly IMetsRepository metsRepository;
         private readonly IDashboardRepository dashboardRepository;
         private readonly ICatalogue catalogue;
@@ -30,6 +30,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IAmazonS3 amazonS3;
         
         public IIIFBuilder(
+            IDds dds,
             IMetsRepository metsRepository,
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
@@ -37,6 +38,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             UriPatterns uriPatterns,
             IAmazonS3 amazonS3)
         {
+            this.dds = dds;
             this.metsRepository = metsRepository;
             this.dashboardRepository = dashboardRepository;
             this.catalogue = catalogue;
@@ -45,7 +47,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.amazonS3 = amazonS3;
         }
 
-        public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber)
+        public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)
         {
             var result = new BuildResult();
             var ddsId = new DdsIdentifier(bNumber);
@@ -58,10 +60,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             var manifestationId = "start";
             try
             {
-                var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 // This is a bnumber, so can't be part of anything.
-                result = BuildInternal(work, resource, null);
+                result = BuildInternal(work, resource, null, manifestationMetadata);
                 await Save(result);
                 if (resource is IDigitisedCollection parentCollection)
                 {
@@ -74,7 +77,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        result = BuildInternal(work, digitisedManifestation, parentCollection);
+                        result = BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata);
                         await Save(result);
                     }
                 }
@@ -89,13 +92,17 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private BuildResult BuildInternal(Work work, IDigitisedResource digitisedResource, IDigitisedCollection partOf)
+
+        private BuildResult BuildInternal(
+            Work work, 
+            IDigitisedResource digitisedResource, IDigitisedCollection partOf,
+            ManifestationMetadata manifestationMetadata)
         {
             var result = new BuildResult();
             try
             {
                 // build the Presentation 3 version from the source materials
-                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, partOf, work);
+                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, partOf, work, manifestationMetadata);
                 result.IIIF3Resource = iiifPresentation3Resource;
                 result.IIIF3Key = $"v3/{digitisedResource.Identifier}";
                 
@@ -114,18 +121,16 @@ namespace Wellcome.Dds.Repositories.Presentation
             return result;
         }
         
-        public async Task<BuildResult> Build(string identifier)
+        public async Task<BuildResult> Build(string identifier, Work work = null)
         {
             // only this identifier, not all for the b number.
             var result = new BuildResult();
             try
             {
                 var ddsId = new DdsIdentifier(identifier);
-                var workTask = catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-                var ddsTask = dashboardRepository.GetDigitisedResource(identifier);
-                await Task.WhenAll(new List<Task> {ddsTask, workTask});
-                var digitisedResource = ddsTask.Result;
-                var work = workTask.Result;
+                var digitisedResource = await dashboardRepository.GetDigitisedResource(identifier);
+                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 IDigitisedCollection partOf = null;
                 if (ddsId.IdentifierType != IdentifierType.BNumber)
                 {
@@ -134,7 +139,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // result to BuildAndSaveAllManifestations
                     partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
                 }
-                result = BuildInternal(work, digitisedResource, partOf);
+                result = BuildInternal(work, digitisedResource, partOf, manifestationMetadata);
             }
             catch (Exception e)
             {
@@ -150,11 +155,13 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="digitisedResource"></param>
         /// <param name="partOf"></param>
         /// <param name="work"></param>
+        /// <param name="manifestationMetadata"></param>
         /// <returns></returns>
         public StructureBase MakePresentation3Resource(
             IDigitisedResource digitisedResource,
             IDigitisedCollection partOf,
-            Work work)
+            Work work,
+            ManifestationMetadata manifestationMetadata)
         {
             switch (digitisedResource)
             {
@@ -163,8 +170,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
                     };
-                    AddCommonMetadata(collection, work);
-                    BuildCollection(collection, digitisedCollection);
+                    AddCommonMetadata(collection, work, manifestationMetadata);
+                    BuildCollection(collection, digitisedCollection, work);
                     return collection;
                 case IDigitisedManifestation digitisedManifestation:
                     var manifest = new Manifest
@@ -182,7 +189,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             }
                         };
                     }
-                    AddCommonMetadata(manifest, work);
+                    AddCommonMetadata(manifest, work, manifestationMetadata);
                     BuildManifest(manifest, digitisedManifestation);
                     return manifest;
             }
@@ -195,20 +202,102 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// </summary>
         /// <param name="iiifResource"></param>
         /// <param name="work"></param>
+        /// <param name="manifestationMetadata"></param>
         /// <exception cref="NotImplementedException"></exception>
-        private void AddCommonMetadata(StructureBase iiifResource, Work work)
+        private void AddCommonMetadata(
+            StructureBase iiifResource, Work work,
+            ManifestationMetadata manifestationMetadata)
         {
             iiifResource.AddPresentation3Context();
-            iiifResource.Label = LangMap(work.Title);
+            iiifResource.Label = Lang.Map(work.Title);
+            AddSeeAlso(iiifResource, work);
+            AddWellcomeProvider(iiifResource);
+            AddOtherProvider(iiifResource, manifestationMetadata);
+            AddAggregations(iiifResource, manifestationMetadata);
         }
 
-        
+        private void AddAggregations(ResourceBase iiifResource, ManifestationMetadata manifestationMetadata)
+        {
+            var groups = manifestationMetadata.Metadata.GroupBy(m => m.Label);
+            foreach (var @group in groups)
+            {
+                foreach (var md in @group)
+                {
+                    iiifResource.PartOf ??= new List<ResourceBase>();
+                    iiifResource.PartOf.Add(
+                        new Collection
+                        {
+                            Id = uriPatterns.CollectionForAggregation(md.Label, md.Identifier),
+                            Label = new LanguageMap("en", $"{md.Label}: {md.StringValue}")
+                        });
+                }
+            }
+        }
+
+        private void AddOtherProvider(ResourceBase iiifResource, ManifestationMetadata manifestationMetadata)
+        {
+            var locationOfOriginal = manifestationMetadata.Metadata
+                .FirstOrDefault(m => m.Label == "Location");
+            if (locationOfOriginal == null) return;
+            var agent = PartnerAgents.GetAgent(locationOfOriginal.StringValue, ddsOptions.LinkedDataDomain);
+            if (agent == null) return;
+            iiifResource.Provider ??= new List<Agent>();
+            iiifResource.Provider.Add(agent);
+        }
+
+        private void AddWellcomeProvider(ResourceBase iiifResource)
+        {
+            var agent = new Agent
+            {
+                Id = "https://wellcomecollection.org",
+                Label = Lang.Map("en",
+                    "Wellcome Collection",
+                    "183 Euston Road",
+                    "London NW1 2BE",
+                    "UK"),
+                HomePage = new List<ExternalResource>
+                {
+                    new ExternalResource("Text")
+                    {
+                        Id = "https://wellcomecollection.org/works",
+                        Label = Lang.Map("Explore our collections"),
+                        Format = "text/html"
+                    }
+                },
+                Logo = new List<Image>
+                {
+                    // TODO - Wellcome Collection logo
+                    new Image
+                    {
+                        Id = "https://wellcomelibrary.org/assets/img/squarelogo64.png",
+                        Format = "image/png"
+                    }
+                }
+            };
+            iiifResource.Provider = new List<Agent>{agent};
+        }
+
+        private void AddSeeAlso(ResourceBase iiifResource, Work work)
+        {
+            iiifResource.SeeAlso = new List<ExternalResource>
+            {
+                new ExternalResource("Dataset")
+                {
+                    Id = uriPatterns.CatalogueApi(work.Id, new string[]{}),
+                    Label = Lang.Map("Wellcome Collection Catalogue API"),
+                    Format = "application/json",
+                    Profile = "https://api.wellcomecollection.org/catalogue/v2/context.json"
+                }
+            };
+        }
+
+
         private void BuildManifest(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             // throw new NotImplementedException();
         }
 
-        private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection)
+        private void BuildCollection(Collection collection, IDigitisedCollection digitisedCollection, Work work)
         {
             // TODO - use of Labels.
             // The work label should be preferred over the METS label,
@@ -221,7 +310,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     collection.Items.Add(new Collection
                     {
                         Id = uriPatterns.CollectionForWork(coll.Identifier),
-                        Label = LangMap(coll.MetsCollection.Label)
+                        Label = Lang.Map(coll.MetsCollection.Label)
                     });
                 }
             }
@@ -239,7 +328,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                     collection.Items.Add(new Manifest
                     {
                         Id = uriPatterns.Manifest(mf.Identifier),
-                        Label = LangMap($"{mf.MetsManifestation.Label} - {order}")
+                        Label = new LanguageMap
+                        {
+                            ["en"] = new List<string>
+                            {
+                                $"Volume {order}",
+                                work.Title
+                            }
+                        }
+                        // LangMap($"{mf.MetsManifestation.Label} - {order}")
                     });
                     counter++;
                 }
@@ -256,7 +353,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // TODO - this is obviously a placeholder!
             var p2Version = new Manifest
             {
-                Label = LangMap("[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
+                Label = Lang.Map("[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
             };
             return p2Version;
         }
@@ -276,7 +373,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 ContentBody = Serialise(iiifResource),
                 ContentType = "application/json"
             };
-            var resp = await amazonS3.PutObjectAsync(put);
+            await amazonS3.PutObjectAsync(put);
         }
 
         public string Serialise(StructureBase iiifResource)
@@ -296,14 +393,5 @@ namespace Wellcome.Dds.Repositories.Presentation
             return settings;
         }
 
-        private LanguageMap LangMap(string value)
-        {
-            return new LanguageMap("en", value);
-        }
-        
-        private LanguageMap LangMap(string lang, string value)
-        {
-            return new LanguageMap(lang, value);
-        }
     }
 }

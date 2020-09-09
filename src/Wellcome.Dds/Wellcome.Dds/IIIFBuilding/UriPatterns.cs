@@ -133,9 +133,9 @@ namespace Wellcome.Dds.IIIFBuilding
             return EncoreBibliographicDataFormat.Replace(IdentifierToken, identifier.Remove(8));
         }
 
-        public string CatalogueApi(string workIdentifier)
+        public string CatalogueApi(string workIdentifier, string[] includes)
         {
-            return catalogue.GetCatalogueApiUrl(workIdentifier);
+            return catalogue.GetCatalogueApiUrl(workIdentifier, includes);
         }
         
         

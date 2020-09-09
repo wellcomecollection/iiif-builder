@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories
@@ -40,9 +42,26 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetTotalsByAssetType();
         }
 
-        public async Task RefreshManifestations(string id)
+        public async Task RefreshManifestations(string id, Work work = null)
         {
-            await synchroniser.RefreshFlatManifestations(id);
+            await synchroniser.RefreshFlatManifestations(id, work);
+        }
+
+        public ManifestationMetadata GetManifestationMetadata(string identifier)
+        {
+            var resultDdsId = new DdsIdentifier(identifier);
+            var result = new ManifestationMetadata
+            {
+                Identifier = resultDdsId,
+                Manifestations = ddsContext.Manifestations
+                    .Where(fm => fm.PackageIdentifier == resultDdsId.BNumber && fm.Index >= 0)
+                    .OrderBy(fm => fm.Index)
+                    .ToList(),
+                Metadata = ddsContext.Metadata
+                    .Where(m => m.ManifestationId == resultDdsId.BNumber)
+                    .ToList()
+            };
+            return result;
         }
     }
 }

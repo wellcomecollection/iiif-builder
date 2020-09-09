@@ -11,6 +11,7 @@ using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
@@ -32,6 +33,7 @@ namespace WorkflowProcessor
         private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
         private readonly CachingAltoSearchTextProvider cachingSearchTextProvider;
         private readonly DdsOptions ddsOptions;
+        private readonly ICatalogue catalogue;
         private readonly IAmazonS3 amazonS3;
 
         public WorkflowRunner(
@@ -44,6 +46,7 @@ namespace WorkflowProcessor
             CachingAllAnnotationProvider cachingAllAnnotationProvider,
             CachingAltoSearchTextProvider cachingSearchTextProvider,
             IOptions<DdsOptions> ddsOptions,
+            ICatalogue catalogue,
             IAmazonS3 amazonS3)
         {
             this.ingestJobRegistry = ingestJobRegistry;
@@ -55,13 +58,14 @@ namespace WorkflowProcessor
             this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
             this.cachingSearchTextProvider = cachingSearchTextProvider;
             this.ddsOptions = ddsOptions.Value;
+            this.catalogue = catalogue;
             this.amazonS3 = amazonS3;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
             job.Taken = DateTime.Now;
-
+            Work work = null;
             try
             {
                 if (runnerOptions.RegisterImages)
@@ -75,11 +79,13 @@ namespace WorkflowProcessor
                 }
                 if (runnerOptions.RefreshFlatManifestations)
                 {
-                    await dds.RefreshManifestations(job.Identifier);
+                    work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    await dds.RefreshManifestations(job.Identifier, work);
                 }
                 if (runnerOptions.RebuildIIIF3)
                 {
-                    await RebuildIIIF3(job);
+                    work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    await RebuildIIIF3(job, work);
                 }
                 if (runnerOptions.RebuildTextCaches || runnerOptions.RebuildAllAnnoPageCaches)
                 {
@@ -95,12 +101,12 @@ namespace WorkflowProcessor
             }
         }
 
-        private async Task RebuildIIIF3(WorkflowJob job)
+        private async Task RebuildIIIF3(WorkflowJob job, Work work)
         {
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var result = await iiifBuilder.BuildAndSaveAllManifestations(job.Identifier);
+            var result = await iiifBuilder.BuildAndSaveAllManifestations(job.Identifier, work);
             var packageEnd = DateTime.Now;
             job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
             if(result.Outcome != BuildOutcome.Success)

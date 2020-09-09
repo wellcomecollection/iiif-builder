@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
@@ -13,31 +14,47 @@ namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class PeekController : Controller
     {
+        private readonly IDds dds;
+        private readonly ICatalogue catalogue;
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ILogger<PeekController> logger;
 
         public PeekController(
+            IDds dds,
+            ICatalogue catalogue,
             IWorkStorageFactory workStorageFactory,
             ILogger<PeekController> logger,
             IIIIFBuilder iiifBuilder)
         {
+            this.dds = dds;
+            this.catalogue = catalogue;
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
             this.iiifBuilder = iiifBuilder;
         }
 
         
-        public async Task<ContentResult> IIIFRaw(string id)
+        private async Task<BuildResult> BuildIIIF(string id)
         {
-            var result = await iiifBuilder.Build(id);
-            return Content(iiifBuilder.Serialise(result.IIIF3Resource), "application/json");
+            var ddsId = new DdsIdentifier(id);
+            var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+            await dds.RefreshManifestations(ddsId.BNumber, work);
+            var result = await iiifBuilder.Build(id, work);
+            return result;
         }
         
+        public async Task<ContentResult> IIIFRaw(string id)
+        {
+            var result = await BuildIIIF(id);
+            return Content(iiifBuilder.Serialise(result.IIIF3Resource), "application/json");
+        }
+
+
         public async Task<ActionResult> IIIF(string id)
         {
             var ddsId = new DdsIdentifier(id);
-            var result = await iiifBuilder.Build(ddsId);
+            var result = await BuildIIIF(ddsId);
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",

@@ -8,7 +8,5 @@ namespace IIIF.Presentation.Services
     {
         string Id { get; set; }
         string Type { get; set; }
-        
-        // TODO string profile { get; set; } - on ResourceBase?
     }
 }
