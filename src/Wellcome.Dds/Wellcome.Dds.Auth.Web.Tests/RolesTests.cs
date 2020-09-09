@@ -10,7 +10,7 @@ namespace Wellcome.Dds.Auth.Web.Tests
         public void GetDlcsRoles_HasAllRoles_IfWellcomeStaffMember()
         {
             // Arrange
-            const string rolesString = "r-w:True|2022-01-01";
+            const string rolesString = "r-w:True|2022-01-01|bbbb";
 
             var expected = new[]
             {
