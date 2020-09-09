@@ -58,6 +58,7 @@ namespace WorkflowProcessor
 
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
+            services.AddSingleton<UriPatterns>();
 
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 

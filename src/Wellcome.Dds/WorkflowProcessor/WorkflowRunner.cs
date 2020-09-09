@@ -100,7 +100,7 @@ namespace WorkflowProcessor
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var result = await iiifBuilder.BuildAllManifestations(job.Identifier);
+            var result = await iiifBuilder.BuildAndSaveAllManifestations(job.Identifier);
             var packageEnd = DateTime.Now;
             job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
             if(result.Outcome != BuildOutcome.Success)

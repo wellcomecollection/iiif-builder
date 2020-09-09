@@ -14,7 +14,9 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
@@ -22,6 +24,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
     public class DashboardRepositoryTests
     {
         private readonly IDlcs dlcs;
+        private readonly ICatalogue catalogue;
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly DashboardRepository sut;
@@ -29,6 +32,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public DashboardRepositoryTests()
         {
             dlcs = A.Fake<IDlcs>();
+            catalogue = A.Fake<ICatalogue>();
             A.CallTo(() => dlcs.DefaultSpace).Returns(999);
             metsRepository = A.Fake<IMetsRepository>();
             
@@ -40,14 +44,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
             var ddsOptions = new DdsOptions
             {
-                PersistentCatalogueRecord = "/{0}/catalogue",
-                PersistentPlayerUri = "/test/{0}/player/x",
-                ManifestTemplate = "/manifest/{0}",
-                EncoreBibliographicData = "/biblio/{0}"
+                LinkedDataDomain = "https://test.com"
             };
             var options = Options.Create(ddsOptions);
+            var uriPatterns = new UriPatterns(options, catalogue);
 
-            sut = new DashboardRepository(new NullLogger<DashboardRepository>(), options, dlcs, metsRepository,
+            sut = new DashboardRepository(new NullLogger<DashboardRepository>(), uriPatterns, dlcs, metsRepository,
                 ddsInstrumentationContext);
         }
 
@@ -60,43 +62,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             
             // Assert
             defaultSpace.Should().Be(999);
-        }
-
-        [Fact]
-        public void GetBNumberModel_ReturnsExpected()
-        {
-            // Arrange
-            const string bNumber = "b123456789";
-            const string label = "foo";
-
-            var expected = new BNumberModel
-            {
-                BNumber = bNumber,
-                DisplayTitle = label,
-                EncoreRecordUrl = "/b1234567/catalogue",
-                ItemPageUrl = "/test/b123456789/player/x",
-                ManifestUrl = "/manifest/b123456789",
-                EncoreBiblioRecordUrl = "/biblio/b1234567"
-            };
-            
-            // Act
-            var bNumberModel = sut.GetBNumberModel(bNumber, label);
-            
-            // Assert
-            bNumberModel.Should().BeEquivalentTo(expected);
-        }
-
-        [Theory(Skip = "Verify this is expected behaviour")]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData(" ")]
-        public void GetBNumberModel_Throws_IfBNumberNullOrWhitespace(string bNumber)
-        {
-            // Arrange
-            Action action = () => sut.GetBNumberModel(bNumber, "foo");
-            
-            // Assert    
-            action.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]

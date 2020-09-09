@@ -34,8 +34,10 @@ using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
+using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Dashboard
 {
@@ -85,6 +87,7 @@ namespace Wellcome.Dds.Dashboard
                     factory.Get(NamedClient.Dds)));
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
+            services.AddSingleton<UriPatterns>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -112,6 +115,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
+            services.AddScoped<IIIIFBuilder, IIIFBuilder>(opts =>
+                ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
+                    factory.Get(NamedClient.Dds)));
 
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds

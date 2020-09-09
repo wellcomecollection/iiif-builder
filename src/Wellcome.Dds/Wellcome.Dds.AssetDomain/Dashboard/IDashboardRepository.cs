@@ -31,9 +31,6 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null);
         IEnumerable<IngestAction> GetRecentActions(int count, string user = null);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
-
-        BNumberModel GetBNumberModel(string bNumber, string label);
-
         AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation);
     }
 }

@@ -9,7 +9,7 @@ namespace IIIF.Presentation.Constants
 
         public static void AddPresentation3Context(this ResourceBase resource, params string[] additionalContexts)
         {
-            if (additionalContexts != null && additionalContexts.Length > 0)
+            if (additionalContexts.Length > 0)
             {
                 resource.Context = new List<string>(additionalContexts) {Presentation3Context};
             }
