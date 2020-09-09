@@ -18,6 +18,17 @@ namespace Wellcome.Dds.Dashboard
         public string WorkflowProcessorName { get; set; }
         
         /// <summary>
+        /// The name of the workflow-processor service
+        /// </summary>
+        
+        public string DashboardName { get; set; }
+        /// <summary>
+        /// The name of the workflow-processor service
+        /// </summary>
+        
+        public string IIIFServerName { get; set; }
+        
+        /// <summary>
         /// Optional css to inject to dashboard body
         /// </summary>
         public string DashBodyInject { get; set; } = "";
@@ -32,5 +43,11 @@ namespace Wellcome.Dds.Dashboard
         
         public Uri GetWorkflowProcessorLog()
             => new Uri(string.Format(LoggingFormat, WorkflowProcessorName));
+        
+        public Uri GetDashboardLog()
+            => new Uri(string.Format(LoggingFormat, DashboardName));
+        
+        public Uri GetIIIFServerLog()
+            => new Uri(string.Format(LoggingFormat, IIIFServerName));
     }
 }
