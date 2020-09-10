@@ -137,8 +137,7 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return catalogue.GetCatalogueApiUrl(workIdentifier, includes);
         }
-        
-        
-        
+
+
     }
 }

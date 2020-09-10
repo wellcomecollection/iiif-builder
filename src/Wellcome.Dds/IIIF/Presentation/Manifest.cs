@@ -1,5 +1,4 @@
-﻿using IIIF.Presentation.Services;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace IIIF.Presentation
 {

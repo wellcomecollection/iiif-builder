@@ -14,6 +14,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories.Presentation;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 
 namespace Wellcome.Dds.Repositories
@@ -27,9 +28,11 @@ namespace Wellcome.Dds.Repositories
         private readonly ICatalogue catalogue;
         private readonly DlcsOptions dlcsOptions;
 
-        private int[] thumbSizes;
         // TODO: This needs to change to iiif.wellcomecollection.org/... once DLCS routes to it
         private const string ThumbTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{id}";
+        private const string ImageServiceTemplate = "https://dlcs.io/iiif-img/wellcome/{space}/{id}";
+
+        
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
         private readonly Regex thumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
@@ -46,7 +49,6 @@ namespace Wellcome.Dds.Repositories
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
             this.dlcsOptions = dlcsOptions.Value;
-            thumbSizes = new[] { 1024, 400, 200, 100 };
         }
         
 
@@ -195,16 +197,16 @@ namespace Wellcome.Dds.Repositories
                         switch (ddsManifestation.AssetType.GetAssetFamily())
                         {
                             case AssetFamily.Image:
-                                ddsManifestation.FirstFileThumbnailDimensions = GetAvailableSizes(asset);
-                                ddsManifestation.FirstFileThumbnail = GetDlcsServiceForAsset(asset);
+                                ddsManifestation.FirstFileThumbnailDimensions = asset.GetAvailableSizeAsString();
+                                ddsManifestation.FirstFileThumbnail = GetDlcsThumbnailServiceForAsset(asset);
                                 if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
                                     IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
-                                        ddsManifestation.CatalogueThumbnailDimensions = GetAvailableSizes(catThumbAsset);
-                                        ddsManifestation.CatalogueThumbnail = GetDlcsServiceForAsset(catThumbAsset);
+                                        ddsManifestation.CatalogueThumbnailDimensions = catThumbAsset.GetAvailableSizeAsString();
+                                        ddsManifestation.CatalogueThumbnail = GetDlcsThumbnailServiceForAsset(catThumbAsset);
                                     }
                                 }
                                 break;
@@ -285,30 +287,20 @@ namespace Wellcome.Dds.Repositories
             return assets.FirstOrDefault(a => a.StorageIdentifier == storageIdentifier);
         }
 
-        private string GetDlcsServiceForAsset(IPhysicalFile asset)
+        private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
             return ThumbTemplate
                 .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
                 .Replace("{id}", asset.StorageIdentifier);
         }
-
-        private string GetAvailableSizes(IPhysicalFile asset)
-        {
-            var sizes = new List<int[]>();
-            var actualSize = new Size(
-                asset.AssetMetadata.GetImageWidth(),
-                asset.AssetMetadata.GetImageHeight());
-            sizes.Add(new[] {actualSize.Width, actualSize.Height});
-            foreach (int thumbSize in thumbSizes)
-            {
-                var confinedSize = Size.Confine(thumbSize, actualSize);
-                sizes.Add(new[] {confinedSize.Width, confinedSize.Height});
-            }
-
-            string sizesString = JsonConvert.SerializeObject(sizes);
-            return sizesString;
-        }
-
+        
+        // private string GetDlcsImageServiceForAsset(IPhysicalFile asset)
+        // {
+        //     return ImageServiceTemplate
+        //         .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
+        //         .Replace("{id}", asset.StorageIdentifier);
+        // }
+    
 
         private void CreateErrorManifestation(int shortB, string message, 
             string bNumber, string dipStatus)
