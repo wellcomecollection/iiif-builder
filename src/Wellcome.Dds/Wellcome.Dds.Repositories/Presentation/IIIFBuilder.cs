@@ -48,7 +48,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.amazonS3 = amazonS3;
-            build = new IIIFBuilderParts(this.ddsOptions, uriPatterns);
+            build = new IIIFBuilderParts(uriPatterns);
         }
 
         public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)
