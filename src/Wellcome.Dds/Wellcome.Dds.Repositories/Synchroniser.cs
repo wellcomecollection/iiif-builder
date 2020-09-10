@@ -50,12 +50,12 @@ namespace Wellcome.Dds.Repositories
         }
         
 
-        public async Task RefreshFlatManifestations(string identifier, Work work = null)
+        public async Task RefreshDdsManifestations(string identifier, Work work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
                 
-            List<Manifestation> flatManifestationsForBNumber = null;
+            List<Manifestation> ddsManifestationsForBNumber = null;
             // bool isNew = false;
             var shortB = -1;
             List<int> foundManifestationIndexes = null;
@@ -66,7 +66,7 @@ namespace Wellcome.Dds.Repositories
             if (isBNumber)
             {
                 // operations we can only do when the identifier being processed is a b number
-                flatManifestationsForBNumber = ddsContext.Manifestations.Where(
+                ddsManifestationsForBNumber = ddsContext.Manifestations.Where(
                     fm => fm.PackageIdentifier == identifier && fm.Index >= 0)
                     .ToList();
                 // remove any error manifestations, we can recreate them
@@ -76,7 +76,7 @@ namespace Wellcome.Dds.Repositories
                 {
                     ddsContext.Manifestations.Remove(error);
                 }
-                // isNew = !flatManifestationsForBNumber.Any();
+                // isNew = !ddsManifestationsForBNumber.Any();
                 shortB = identifier.ToShortBNumber();
                 foundManifestationIndexes = new List<int>();
                 packageMetsResource = await metsRepository.GetAsync(identifier);
@@ -85,14 +85,14 @@ namespace Wellcome.Dds.Repositories
 
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
-                var manifestation = mic.Manifestation;
-                if (manifestation.Partial)
+                var metsManifestation = mic.Manifestation;
+                if (metsManifestation.Partial)
                 {
-                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestation.Id);
+                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
                 }
                 if (isBNumber)
                 {
-                    if (manifestation.ModsData.AccessCondition == "Restricted files")
+                    if (metsManifestation.ModsData.AccessCondition == "Restricted files")
                     {
                         // TODO: do we want to omit it like this?
                         // Why not just add a "contains restricted files" field to Manifestation?
@@ -102,102 +102,114 @@ namespace Wellcome.Dds.Repositories
                     }
                     foundManifestationIndexes.Add(mic.SequenceIndex);
                 }
-                var ddsId = new DdsIdentifier(manifestation.Id);
+                var ddsId = new DdsIdentifier(metsManifestation.Id);
 
-                var flatManifestationsForIdentifier = ddsContext.Manifestations
+                var ddsManifestationsForIdentifier = ddsContext.Manifestations
                     .Where(fm => fm.PackageIdentifier == ddsId.BNumber && fm.Index == mic.SequenceIndex)
                     .ToArray();
 
-                var flatManifestation = flatManifestationsForIdentifier.FirstOrDefault();
-                if (flatManifestationsForIdentifier.Length > 1)
+                var ddsManifestation = ddsManifestationsForIdentifier.FirstOrDefault();
+                if (ddsManifestationsForIdentifier.Length > 1)
                 {
-                    foreach (var fm in flatManifestationsForIdentifier.Skip(1))
+                    foreach (var fm in ddsManifestationsForIdentifier.Skip(1))
                     {
                         // more than one manif with same bnumber and seq index
                         ddsContext.Manifestations.Remove(fm);
                         if (isBNumber)
                         {
-                            var duplicateFm = flatManifestationsForBNumber.Single(fmd => fmd.Id == fm.Id);
-                            flatManifestationsForBNumber.Remove(duplicateFm);
+                            var duplicateFm = ddsManifestationsForBNumber.Single(fmd => fmd.Id == fm.Id);
+                            ddsManifestationsForBNumber.Remove(duplicateFm);
                         }
                     }
                 }
 
-                var assets = manifestation.SignificantSequence;
+                var assets = metsManifestation.SignificantSequence;
                 
                 // (some Change code removed here) - we're not going to implement this for now
 
-                if (flatManifestation == null)
+                if (ddsManifestation == null)
                 {
-                    flatManifestation = new Manifestation
+                    ddsManifestation = new Manifestation
                     {
                         Id = ddsId,
                         PackageIdentifier = ddsId.BNumber,
                         PackageShortBNumber = ddsId.BNumber.ToShortBNumber(),
                         Index = mic.SequenceIndex,
-                        Label = manifestation.Label.HasText() ? manifestation.Label : "(no label in METS)"
+                        Label = metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)"
                     };
                     if (packageMetsResource != null)
                     {
-                        flatManifestation.PackageLabel = packageMetsResource.Label;
+                        ddsManifestation.PackageLabel = packageMetsResource.Label;
                     }
-                    flatManifestation.RootSectionType = manifestation.Type;
-                    await ddsContext.Manifestations.AddAsync(flatManifestation);
+                    ddsManifestation.RootSectionType = metsManifestation.Type;
+                    await ddsContext.Manifestations.AddAsync(ddsManifestation);
                 }
 
-                flatManifestation.WorkId = work.Id;
-                flatManifestation.WorkType = work.WorkType.Id;
-                flatManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
-                flatManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
-                if (flatManifestation.CalmRef.HasText())
+                ddsManifestation.WorkId = work.Id;
+                ddsManifestation.WorkType = work.WorkType.Id;
+                ddsManifestation.ReferenceNumber = work.ReferenceNumber;
+                ddsManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
+                ddsManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
+                if (ddsManifestation.CalmRef.HasText())
                 {
+                    ddsManifestation.CollectionReferenceNumber = ddsManifestation.CalmRef;
                     var parentWorkId = work.GetParentId();
                     if (parentWorkId.HasText())
                     {
-                        var parent = await catalogue.GetWorkByWorkId(parentWorkId);
-                        if (parent != null)
+                        var immediateParent = await catalogue.GetWorkByWorkId(parentWorkId);
+                        if (immediateParent != null)
                         {
-                            flatManifestation.CalmRefParent = parent.GetIdentifierByType("calm-ref-no");
-                            flatManifestation.CalmAltRefParent = parent.GetIdentifierByType("calm-altref-no");
+                            ddsManifestation.CalmRefParent = immediateParent.GetIdentifierByType("calm-ref-no");
+                            ddsManifestation.CalmAltRefParent = immediateParent.GetIdentifierByType("calm-altref-no");
                         }
                     }
                 }
-                flatManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
-                flatManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
-                flatManifestation.PermittedOperations = string.Join(",", manifestation.PermittedOperations);
-                flatManifestation.RootSectionAccessCondition = manifestation.ModsData.AccessCondition;
+                // The following walk up the tree is currently only possible for archives, but we won't put it
+                // in the above condition because it could become available for other types of work later
+
+                var parent = work;
+                while (parent.PartOf.HasItems())
+                {
+                    parent = parent.PartOf.Last();
+                }
+                ddsManifestation.CollectionReferenceNumber = parent.ReferenceNumber;
+                
+                ddsManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
+                ddsManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
+                ddsManifestation.PermittedOperations = string.Join(",", metsManifestation.PermittedOperations);
+                ddsManifestation.RootSectionAccessCondition = metsManifestation.ModsData.AccessCondition;
                 if (assets.HasItems())
                 {
-                    flatManifestation.FileCount = assets.Count;
+                    ddsManifestation.FileCount = assets.Count;
                     if (assets.Count > 0)
                     { 
                         var asset = assets[0];
-                        flatManifestation.AssetType = manifestation.FirstSignificantInternetType;
+                        ddsManifestation.AssetType = metsManifestation.FirstSignificantInternetType;
                         // Drop use of pseudo seadragon/dzi type - this will need attention elsewhere
-                        // if (flatManifestation.AssetType == "image/jp2")
-                        //     flatManifestation.AssetType = "seadragon/dzi";
-                        flatManifestation.FirstFileStorageIdentifier = asset.StorageIdentifier;
-                        flatManifestation.FirstFileExtension =
+                        // if (ddsManifestation.AssetType == "image/jp2")
+                        //     ddsManifestation.AssetType = "seadragon/dzi";
+                        ddsManifestation.FirstFileStorageIdentifier = asset.StorageIdentifier;
+                        ddsManifestation.FirstFileExtension =
                             asset.AssetMetadata.GetFileName().GetFileExtension().ToLowerInvariant();
-                        flatManifestation.DipStatus = null;
-                        switch (flatManifestation.AssetType.GetAssetFamily())
+                        ddsManifestation.DipStatus = null;
+                        switch (ddsManifestation.AssetType.GetAssetFamily())
                         {
                             case AssetFamily.Image:
-                                flatManifestation.FirstFileThumbnailDimensions = GetAvailableSizes(asset);
-                                flatManifestation.FirstFileThumbnail = GetDlcsServiceForAsset(asset);
-                                if (flatManifestation.Index == 0)
+                                ddsManifestation.FirstFileThumbnailDimensions = GetAvailableSizes(asset);
+                                ddsManifestation.FirstFileThumbnail = GetDlcsServiceForAsset(asset);
+                                if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
                                     IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
-                                        flatManifestation.CatalogueThumbnailDimensions = GetAvailableSizes(catThumbAsset);
-                                        flatManifestation.CatalogueThumbnail = GetDlcsServiceForAsset(catThumbAsset);
+                                        ddsManifestation.CatalogueThumbnailDimensions = GetAvailableSizes(catThumbAsset);
+                                        ddsManifestation.CatalogueThumbnail = GetDlcsServiceForAsset(catThumbAsset);
                                     }
                                 }
                                 break;
                             case AssetFamily.TimeBased:
-                                flatManifestation.FirstFileThumbnailDimensions =
+                                ddsManifestation.FirstFileThumbnailDimensions =
                                     asset.AssetMetadata.GetLengthInSeconds();
                                 break;
                         }
@@ -205,18 +217,18 @@ namespace Wellcome.Dds.Repositories
                 }
                 if (packageFileResource != null)
                 {
-                    flatManifestation.PackageFile = packageFileResource.SourceFile.Uri;
-                    flatManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
+                    ddsManifestation.PackageFile = packageFileResource.SourceFile.Uri;
+                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
                 }
-                var fsr = (IFileBasedResource) manifestation;
-                flatManifestation.ManifestationFile = fsr.SourceFile.Uri;
-                flatManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
-                flatManifestation.Processed = DateTime.Now;
+                var fsr = (IFileBasedResource) metsManifestation;
+                ddsManifestation.ManifestationFile = fsr.SourceFile.Uri;
+                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
+                ddsManifestation.Processed = DateTime.Now;
 
                 // extra fields that only the new dash knows about
-                flatManifestation.DlcsAssetType = manifestation.FirstSignificantInternetType;
-                flatManifestation.ManifestationIdentifier = ddsId;
-                flatManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
+                ddsManifestation.DlcsAssetType = metsManifestation.FirstSignificantInternetType;
+                ddsManifestation.ManifestationIdentifier = ddsId;
+                ddsManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
                     ? ddsId.VolumePart
                     : null;
 
@@ -243,19 +255,19 @@ namespace Wellcome.Dds.Repositories
                     betterTitle = work.Title;
                     await RefreshMetadata(identifier, work);
                 }
-                foreach (var flatManifestation in flatManifestationsForBNumber)
+                foreach (var ddsManifestation in ddsManifestationsForBNumber)
                 {
-                    if (!foundManifestationIndexes.Contains(flatManifestation.Index))
+                    if (!foundManifestationIndexes.Contains(ddsManifestation.Index))
                     {
-                        logger.LogInformation("Removing flatManifestation {bnumber}/{index}",
-                            flatManifestation.PackageIdentifier, flatManifestation.Index);
-                        ddsContext.Manifestations.Remove(flatManifestation);
+                        logger.LogInformation("Removing ddsManifestation {bnumber}/{index}",
+                            ddsManifestation.PackageIdentifier, ddsManifestation.Index);
+                        ddsContext.Manifestations.Remove(ddsManifestation);
                     }
                     else
                     {
                         if (betterTitle.HasText())
                         {
-                            flatManifestation.PackageLabel = betterTitle;
+                            ddsManifestation.PackageLabel = betterTitle;
                         }
                     }
                 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
@@ -185,7 +186,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             new Collection
                             {
                                 Id = uriPatterns.CollectionForWork(partOf.Identifier),
-                                Label = new LanguageMap("en", work.Title)
+                                Label = Lang.Map(work.Title)
                             }
                         };
                     }
@@ -387,7 +388,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var settings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
-                ContractResolver = new IgnoreEmptyListResolver(),
+                ContractResolver = new PrettyIIIFContractResolver(),
                 Formatting = Formatting.Indented
             };
             return settings;

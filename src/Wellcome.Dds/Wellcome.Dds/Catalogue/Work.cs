@@ -5,6 +5,7 @@
         public string Id { get; set; }
         public string Title { get; set; }
         public string[] AlternativeTitles { get; set; }
+        public string ReferenceNumber { get; set; }
         public string Description { get; set; }
         public string PhysicalDescription { get; set; }
         public LabelledEntity WorkType { get; set; }
@@ -29,6 +30,7 @@
         /// Optional extra: works that are matches on the same identifier (b number)
         /// </summary>
         public Work[] RelatedByIdentifier { get; set; }
+
 
         public override string ToString()
         {
