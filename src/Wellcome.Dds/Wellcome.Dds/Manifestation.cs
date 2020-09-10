@@ -19,9 +19,23 @@ namespace Wellcome.Dds
         // Going to store both these forms for now, until we know which one is best to use (or if we can avoid storing it at all!
         public string CalmRef { get; set; } // Only for archive items
         public string CalmRefParent { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// // This is the same as ReferenceNumber for archives
+        /// </summary>
         public string CalmAltRef { get; set; } // Only for archive items
+        
         public string CalmAltRefParent { get; set; } // Only for archive items
         
+        /// <summary>
+        /// The top level of this item's archive tree
+        /// </summary>
+        public string CollectionReferenceNumber { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// Eventually, all works will have one of these, but for now it's just archives
+        /// </summary>
+        public string ReferenceNumber { get; set; } // The same as CalmAltRef for archives, may be
         public string ManifestationIdentifier { get; set; } // do we need this? Same as Id (String3)
         public string VolumeIdentifier { get; set; } // legacy of Old model - aka String2
         public DateTime Processed { get; set; }

@@ -166,7 +166,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 Id = $"{partner.HomePage}#",
                 Label = Lang.Map(partner.Label),
-                HomePage = new List<ExternalResource>
+                Homepage = new List<ExternalResource>
                 {
                     new ExternalResource("Text")
                     {

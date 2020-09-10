@@ -1,7 +1,6 @@
-﻿using IIIF.Presentation.Content;
-using IIIF.Presentation.Services;
-using IIIF.Presentation.Strings;
+﻿using IIIF.Presentation.Strings;
 using System.Collections.Generic;
+using IIIF.Presentation.Content;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation
@@ -57,7 +56,7 @@ namespace IIIF.Presentation
         /// See <a href="https://iiif.io/api/presentation/3.0/#homepage">homepage</a>
         /// </summary>
         [JsonProperty(Order = 7)]
-        public List<ExternalResource>? HomePage { get; set; }
+        public List<ExternalResource>? Homepage { get; set; }
         
         /// <summary>
         /// An ordered list of descriptions to be displayed to the user when they interact with the resource.

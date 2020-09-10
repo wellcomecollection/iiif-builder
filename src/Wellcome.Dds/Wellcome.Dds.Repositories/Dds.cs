@@ -44,7 +44,7 @@ namespace Wellcome.Dds.Repositories
 
         public async Task RefreshManifestations(string id, Work work = null)
         {
-            await synchroniser.RefreshFlatManifestations(id, work);
+            await synchroniser.RefreshDdsManifestations(id, work);
         }
 
         public ManifestationMetadata GetManifestationMetadata(string identifier)

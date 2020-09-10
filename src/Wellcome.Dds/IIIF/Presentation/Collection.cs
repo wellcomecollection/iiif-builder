@@ -1,5 +1,4 @@
-﻿using IIIF.Presentation.Services;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 

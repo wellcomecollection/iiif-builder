@@ -72,7 +72,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
                 await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
             }
-            await synchroniser.RefreshFlatManifestations(id);
+            await synchroniser.RefreshDdsManifestations(id);
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
     }
