@@ -30,7 +30,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
         private readonly IAmazonS3 amazonS3;
-        private readonly IIIFBuilderAddins build;
+        private readonly IIIFBuilderParts build;
         
         public IIIFBuilder(
             IDds dds,
@@ -48,7 +48,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.amazonS3 = amazonS3;
-            build = new IIIFBuilderAddins(this.ddsOptions, uriPatterns);
+            build = new IIIFBuilderParts(this.ddsOptions, uriPatterns);
         }
 
         public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)
