@@ -108,12 +108,6 @@ namespace IIIF.Presentation
         [JsonProperty(Order = 23)]
         public List<ExternalResource>? SeeAlso { get; set; }
         
-        /// <summary>
-        /// A containing resource that includes this resource.
-        /// See <a href="https://iiif.io/api/presentation/3.0/#partof">partof</a>
-        /// </summary>
-        [JsonProperty(Order = 24)]
-        public List<ResourceBase>? PartOf { get; set; }
         
         
         /// <summary>
@@ -132,5 +126,13 @@ namespace IIIF.Presentation
         /// </summary>
         [JsonProperty(Order = 33)]
         public string? Profile { get; set; }
+        
+        
+        /// <summary>
+        /// A containing resource that includes this resource.
+        /// See <a href="https://iiif.io/api/presentation/3.0/#partof">partof</a>
+        /// </summary>
+        [JsonProperty(Order = 1000)]
+        public List<ResourceBase>? PartOf { get; set; }
     }
 }

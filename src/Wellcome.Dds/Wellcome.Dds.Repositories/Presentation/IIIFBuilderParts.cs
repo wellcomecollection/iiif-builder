@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
-using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
-using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -13,17 +11,14 @@ using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
-    public class IIIFBuilderAddins
+    public class IIIFBuilderParts
     {
-        private DdsOptions ddsOptions;
-        private UriPatterns uriPatterns;
+        private readonly UriPatterns uriPatterns;
 
-        public IIIFBuilderAddins(DdsOptions ddsOptions, UriPatterns uriPatterns)
+        public IIIFBuilderParts(UriPatterns uriPatterns)
         {
-            this.ddsOptions = ddsOptions;
             this.uriPatterns = uriPatterns;
         }
-        
 
 
         public void HomePage(ResourceBase iiifResource, Work work)
@@ -76,57 +71,62 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Summary(StructureBase iiifResource, Work work)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void RequiredStatement(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Rights(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ViewingDirection(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
+        }
+
+        public void Metadata(ResourceBase iiifResource, Work work)
+        {
+            // throw new NotImplementedException();
         }
     }
 }
