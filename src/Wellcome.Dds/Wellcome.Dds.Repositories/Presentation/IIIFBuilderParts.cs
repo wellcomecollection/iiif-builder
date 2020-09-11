@@ -10,6 +10,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
+using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -80,39 +81,59 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public void RequiredStatement(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void RequiredStatement(
+            Manifest manifest, 
+            IDigitisedManifestation digitisedManifestation,
+            ManifestationMetadata manifestationMetadata)
         {
             var usage = LicenceHelpers.GetUsageWithHtmlLinks(digitisedManifestation.MetsManifestation.ModsData.Usage);
-            var permittedOps = digitisedManifestation.MetsManifestation.PermittedOperations;
-            var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
-            string attribution = "Wellcome Collection";
-            
-            
-            // BROKEN - convert this!
-            
-            if (licenseInfo == null)
+            if (!usage.HasText())
             {
-                return null;
+                var code = GetMappedLicenceCode(digitisedManifestation);
+                if (code.HasText())
+                {
+                    var dict = PlayerConfigProvider.BaseConfig.Modules.ConditionsDialogue.Content;
+                    usage = dict.ContainsKey(code) ? dict[code] : null;
+                    if (usage != null && !usage.StartsWith("<"))
+                    {
+                        // Make HTML
+                        usage = usage.WrapSpan();
+                    }
+                }
             }
-            if (licenseInfo.Usage.HasText())
+
+            var attribution = "Wellcome Collection";
+            var locationOfOriginal = manifestationMetadata.Metadata.GetLocationOfOriginal();
+            if (locationOfOriginal.HasText())
             {
-                return licenseInfo.Usage; // this override the licence lookup
+                attribution =
+                    $"This material has been provided by {locationOfOriginal} where the originals may be consulted.";
             }
-            if (licenseInfo.LicenseCode.IsNullOrWhiteSpace())
+
+            if (StringUtils.AnyHaveText(usage, attribution))
             {
-                return null;
+                const string label = "Attribution and usage";
+                manifest.RequiredStatement = new LabelValuePair("en", label, attribution, usage);
             }
-            // reuse this from Player for now:
-            var dict = PlayerConfigProvider.BaseConfig.Modules.ConditionsDialogue.Content;
-            return dict.ContainsKey(licenseInfo.LicenseCode) ? dict[licenseInfo.LicenseCode] : null;
+            // TODO - what do we want to do with this?
+            // var permittedOps = digitisedManifestation.MetsManifestation.PermittedOperations;
+            // var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
         }
 
         public void Rights(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            var dzl = digitisedManifestation.MetsManifestation.ModsData.DzLicenseCode;
-            var code = LicenceCodes.MapLicenseCode(dzl);
+            var code = GetMappedLicenceCode(digitisedManifestation);
             var uri = LicenseMap.GetLicenseUri(code);
+            if (uri.HasText())
+            {
+                manifest.Rights = uri;
+            }
+        }
 
+        private static string GetMappedLicenceCode(IDigitisedManifestation digitisedManifestation)
+        {
+            var dzl = digitisedManifestation.MetsManifestation.ModsData.DzLicenseCode;
+            return LicenceCodes.MapLicenseCode(dzl);
         }
 
         public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)

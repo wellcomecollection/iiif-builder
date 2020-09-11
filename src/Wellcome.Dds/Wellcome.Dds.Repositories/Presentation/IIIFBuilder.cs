@@ -262,7 +262,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(digitisedManifestation.Identifier);
-            build.RequiredStatement(manifest, digitisedManifestation);
+            build.RequiredStatement(manifest, digitisedManifestation, manifestationMetadata);
             build.Rights(manifest, digitisedManifestation);
             build.PagedBehavior(manifest, digitisedManifestation);
             build.ViewingDirection(manifest, digitisedManifestation); // do we do this?

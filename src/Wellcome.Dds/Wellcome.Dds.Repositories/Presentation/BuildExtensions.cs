@@ -121,6 +121,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
             return new List<ExternalResource>{ thumb };
         }
+
+        public static string GetLocationOfOriginal(this List<Metadata> metadata)
+        {
+            var locationOfOriginal = metadata
+                .FirstOrDefault(m => m.Label == "Location");
+            return locationOfOriginal?.StringValue;
+        }
+
+        public static string WrapSpan(this string s)
+        {
+            return $"<span>{s}</span>";
+        }
+        
         
     }
 }
