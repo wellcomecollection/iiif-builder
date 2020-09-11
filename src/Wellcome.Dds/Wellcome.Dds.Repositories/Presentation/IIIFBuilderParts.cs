@@ -4,6 +4,7 @@ using System.Linq;
 using IIIF.Presentation;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -71,7 +72,11 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Summary(StructureBase iiifResource, Work work)
         {
-            // throw new NotImplementedException();
+            if (work.Description.HasText())
+            {
+                // Would this ever not be in English?
+                iiifResource.Summary = Lang.Map(work.Description);
+            }
         }
 
         public void RequiredStatement(Manifest manifest, IDigitisedManifestation digitisedManifestation)
