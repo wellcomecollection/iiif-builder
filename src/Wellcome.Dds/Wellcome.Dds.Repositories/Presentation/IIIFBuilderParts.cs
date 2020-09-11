@@ -9,6 +9,7 @@ using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -81,12 +82,37 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void RequiredStatement(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            var usage = LicenceHelpers.GetUsageWithHtmlLinks(digitisedManifestation.MetsManifestation.ModsData.Usage);
+            var permittedOps = digitisedManifestation.MetsManifestation.PermittedOperations;
+            var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
+            string attribution = "Wellcome Collection";
+            
+            
+            // BROKEN - convert this!
+            
+            if (licenseInfo == null)
+            {
+                return null;
+            }
+            if (licenseInfo.Usage.HasText())
+            {
+                return licenseInfo.Usage; // this override the licence lookup
+            }
+            if (licenseInfo.LicenseCode.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+            // reuse this from Player for now:
+            var dict = PlayerConfigProvider.BaseConfig.Modules.ConditionsDialogue.Content;
+            return dict.ContainsKey(licenseInfo.LicenseCode) ? dict[licenseInfo.LicenseCode] : null;
         }
 
         public void Rights(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            var dzl = digitisedManifestation.MetsManifestation.ModsData.DzLicenseCode;
+            var code = LicenceCodes.MapLicenseCode(dzl);
+            var uri = LicenseMap.GetLicenseUri(code);
+
         }
 
         public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)

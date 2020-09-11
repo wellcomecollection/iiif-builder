@@ -497,5 +497,20 @@ namespace Utils
             }
             return false;
         }
+        
+        
+        
+        public static string ReplaceFromDictionary(this string s, Dictionary<string, string> dict)
+        {
+            // https://stackoverflow.com/a/14033595
+            return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value));
+        }
+        public static string ReplaceFromDictionary(this string s, Dictionary<string, string> dict, string template)
+        {
+            // https://stackoverflow.com/a/14033595
+            return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
+        }
+
+        
     }
 }

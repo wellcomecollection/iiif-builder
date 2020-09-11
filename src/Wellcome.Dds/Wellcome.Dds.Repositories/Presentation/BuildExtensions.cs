@@ -6,6 +6,7 @@ using IIIF.Presentation.Content;
 using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -49,7 +50,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                 asset.AssetMetadata.GetImageWidth(),
                 asset.AssetMetadata.GetImageHeight());
             sizes.Add(new Size(actualSize.Width, actualSize.Height));
-            foreach (int thumbSize in ThumbSizes)
+            var usableThumbs = new List<int>();
+            switch (asset.AccessCondition)
+            {
+                case AccessCondition.Open:
+                    usableThumbs = ThumbSizes.ToList();
+                    break;
+                case AccessCondition.RequiresRegistration:
+                    usableThumbs = ThumbSizes.Skip(2).ToList();
+                    break;
+            }
+            foreach (int thumbSize in usableThumbs)
             {
                 var confinedSize = Size.Confine(thumbSize, actualSize);
                 sizes.Add(new Size(confinedSize.Width, confinedSize.Height));
@@ -58,6 +69,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
         // TODO - this can be used for canvas thumbs, too, as an extension for IPhysicalFile.. although different enough...
+        // TODO - needs take into account access conditions - but have we already done that in Synchroniser? YES!
+        
+        // still need posters:
+        // still need PDF thumbs
+        // https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds/LinkedData/LodProviders/PackageTripleProvider.cs#L131
         public static List<ExternalResource> GetThumbnail(
             this List<Manifestation> manifestations, 
             string digitisedManifestationIdentifier)
