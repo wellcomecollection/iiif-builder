@@ -290,11 +290,12 @@ namespace Wellcome.Dds.Repositories.Presentation
             iiifResource.AddPresentation3Context();
             iiifResource.Label = Lang.Map(work.Title);
             build.SeeAlso(iiifResource, work);
-            iiifResource.AddWellcomeProvider();
+            iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);
             iiifResource.AddOtherProvider(manifestationMetadata, ddsOptions.LinkedDataDomain);
             build.Aggregations(iiifResource, manifestationMetadata);
             build.Summary(iiifResource, work);
             build.HomePage(iiifResource, work);
+            build.Metadata(iiifResource, work);
         }
      
         /// <summary>

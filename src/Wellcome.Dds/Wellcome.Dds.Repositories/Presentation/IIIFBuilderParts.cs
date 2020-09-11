@@ -71,57 +71,62 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Summary(StructureBase iiifResource, Work work)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void RequiredStatement(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Rights(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ViewingDirection(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
+        }
+
+        public void Metadata(ResourceBase iiifResource, Work work)
+        {
+            // throw new NotImplementedException();
         }
     }
 }

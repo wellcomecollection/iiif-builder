@@ -7,7 +7,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public static class ProviderExtensions
     {
-        public static void AddWellcomeProvider(this ResourceBase iiifResource)
+        public static void AddWellcomeProvider(this ResourceBase iiifResource, string host)
         {
             var agent = new Agent
             {
@@ -31,7 +31,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // TODO - Wellcome Collection logo
                     new Image
                     {
-                        Id = "https://wellcomelibrary.org/assets/img/squarelogo64.png",
+                        Id = $"{host}/logos/wellcome-collection-black.png",
                         Format = "image/png"
                     }
                 }
