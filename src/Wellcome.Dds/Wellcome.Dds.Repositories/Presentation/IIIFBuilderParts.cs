@@ -128,5 +128,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             // throw new NotImplementedException();
         }
+
+        public void ArchiveCollectionStructure(ResourceBase iiifResource, Work work)
+        {
+            // throw new NotImplementedException();
+        }
     }
 }

@@ -296,6 +296,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Summary(iiifResource, work);
             build.HomePage(iiifResource, work);
             build.Metadata(iiifResource, work);
+            build.ArchiveCollectionStructure(iiifResource, work);
         }
      
         /// <summary>
