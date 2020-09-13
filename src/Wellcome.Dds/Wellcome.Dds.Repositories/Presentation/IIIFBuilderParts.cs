@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
+using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Utils;
@@ -138,7 +139,12 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            var structType = digitisedManifestation.MetsManifestation.RootStructRange.Type;
+            if (structType == "Monograph" || structType == "Manuscript")
+            {
+                manifest.Behavior ??= new List<string>();
+                manifest.Behavior.Add(Behavior.Paged);
+            }
         }
 
         public void ViewingDirection(Manifest manifest, IDigitisedManifestation digitisedManifestation)
@@ -173,6 +179,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
+            // TODO: rearrange Canvas sequence if necessary, using logic from MetsPackageProvider
+            // Look at WdlPackageUtils, WellcomeStructureProvider
             // throw new NotImplementedException();
         }
 
