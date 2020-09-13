@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using DlcsWebClient.Config;
 using IIIF;
-using IIIF.ImageApi.Service;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -38,6 +36,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
             IOptions<DdsOptions> ddsOptions,
+            IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
             IAmazonS3 amazonS3)
         {
@@ -48,7 +47,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.amazonS3 = amazonS3;
-            build = new IIIFBuilderParts(uriPatterns);
+            build = new IIIFBuilderParts(uriPatterns, dlcsOptions.Value.CustomerDefaultSpace);
         }
 
         public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)

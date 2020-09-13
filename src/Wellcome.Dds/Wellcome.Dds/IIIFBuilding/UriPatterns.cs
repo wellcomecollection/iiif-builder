@@ -18,6 +18,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private readonly string schemeAndHostValue;
         private const string SchemeAndHostToken = "{schemeAndHost}";
         private const string IdentifierToken = "{identifier}";
+        private const string SpaceToken = "{space}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
         
         // TODO - these constants should be in the IIIF model
@@ -45,6 +46,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AggregationFormat = "{schemeAndHost}/presentation/collections";
         
         // not done
+        private const string RawTextFormat = "{schemeAndHost}/text/v1/{identifier}";
         private const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
         private const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
         private const string RangeFormat = "{schemeAndHost}/{prefix}/{identifier}/range/{name}";
@@ -66,6 +68,12 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
         private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
         private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
+        
+        // TODO: these need to change to iiif.wellcomecollection.org/... once DLCS routes to it
+        private const string DlcsPdfTemplate = "https://dlcs.io/pdf/wellcome/pdf/{space}/{identifier}";
+        private const string DlcsThumbServiceTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{assetIdentifier}";
+        private const string DlcsImageServiceTemplate = "https://dlcs.io/iiif-img/wellcome/{space}/{assetIdentifier}";
+        
         
         public UriPatterns(
             IOptions<DdsOptions> ddsOptions,
@@ -139,5 +147,32 @@ namespace Wellcome.Dds.IIIFBuilding
         }
 
 
+        public string DlcsPdf(int space, string identifier)
+        {
+            return DlcsPdfTemplate
+                .Replace(SpaceToken, space.ToString())
+                .Replace(IdentifierToken, identifier);
+        }
+
+        public string DlcsThumb(int space, string assetIdentifier)
+        {
+            return DlcsThumbServiceTemplate
+                .Replace(SpaceToken, space.ToString())
+                .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+        
+        public string DlcsImageService(int space, string assetIdentifier)
+        {
+            return DlcsImageServiceTemplate
+                .Replace(SpaceToken, space.ToString())
+                .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+
+        public string RawText(string identifier)
+        {
+            return RawTextFormat
+                .Replace(SchemeAndHostToken, schemeAndHostValue)
+                .Replace(IdentifierToken, identifier);
+        }
     }
 }

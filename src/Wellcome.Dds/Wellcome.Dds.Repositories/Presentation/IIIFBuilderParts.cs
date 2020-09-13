@@ -18,10 +18,14 @@ namespace Wellcome.Dds.Repositories.Presentation
     public class IIIFBuilderParts
     {
         private readonly UriPatterns uriPatterns;
+        private readonly int dlcsDefaultSpace;
 
-        public IIIFBuilderParts(UriPatterns uriPatterns)
+        public IIIFBuilderParts(
+            UriPatterns uriPatterns,
+            int dlcsDefaultSpace)
         {
             this.uriPatterns = uriPatterns;
+            this.dlcsDefaultSpace = dlcsDefaultSpace;
         }
 
 
@@ -155,7 +159,31 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            var permitted = digitisedManifestation.MetsManifestation.PermittedOperations;
+            if (permitted.HasItems() && permitted.Contains("entireDocumentAsPdf"))
+            {
+                manifest.Rendering ??= new List<ExternalResource>();
+                // At the moment, "Text" is not really a good Type for the PDF - but what else?
+                manifest.Rendering.Add(new ExternalResource("Text")
+                {
+                    // TODO - are space and identifier the right way round, in the new query?
+                    Id = uriPatterns.DlcsPdf(dlcsDefaultSpace, digitisedManifestation.Identifier),
+                    Label = Lang.Map("View as PDF"),
+                    Format = "application/pdf"
+                });
+            }
+
+            if (digitisedManifestation.MetsManifestation
+                .SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText()))
+            {
+                manifest.Rendering ??= new List<ExternalResource>();
+                manifest.Rendering.Add(new ExternalResource("Text")
+                {
+                    Id = uriPatterns.RawText(digitisedManifestation.Identifier),
+                    Label = Lang.Map("View raw text"),
+                    Format = "text/plain"
+                });
+            }
         }
 
         public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
