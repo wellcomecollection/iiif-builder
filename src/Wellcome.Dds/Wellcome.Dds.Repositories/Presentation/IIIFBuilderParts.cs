@@ -149,7 +149,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void ViewingDirection(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            // Old DDS does not ever set this!
+            // Not sure we ever have enough data to set it, but is something we can come back to later.
         }
 
         public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
