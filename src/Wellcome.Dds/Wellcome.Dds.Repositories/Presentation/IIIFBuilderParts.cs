@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
+using IIIF.Search;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.Catalogue;
@@ -173,8 +175,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
             }
 
-            if (digitisedManifestation.MetsManifestation
-                .SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText()))
+            if (digitisedManifestation.MetsManifestation.SignificantSequence.SupportsSearch())
             {
                 manifest.Rendering ??= new List<ExternalResource>();
                 manifest.Rendering.Add(new ExternalResource("Text")
@@ -188,7 +189,23 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            if (digitisedManifestation.MetsManifestation.SignificantSequence.SupportsSearch())
+            {
+                manifest.Service ??= new List<IService>();
+                manifest.Service.Add(new SearchService2
+                {
+                    Id = uriPatterns.IIIFContentSearchService2(digitisedManifestation.Identifier),
+                    Label = Lang.Map("Search within this manifest"),
+                    Service = new List<IService>
+                    {
+                        new AutoCompleteService2
+                        {
+                            Id = uriPatterns.IIIFAutoCompleteService2(digitisedManifestation.Identifier),
+                            Label = Lang.Map("Autocomplete words in this manifest")
+                        }
+                    }
+                });
+            }
         }
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)

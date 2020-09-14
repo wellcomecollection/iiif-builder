@@ -41,17 +41,26 @@ namespace Wellcome.Dds.IIIFBuilding
         // but they need to change to the suggested forms in
         // https://github.com/wellcomecollection/platform/issues/4659#issuecomment-686448554
         
+        // IIIF Presentation
         private const string ManifestFormat = "{schemeAndHost}/presentation/{identifier}";
         private const string CanvasFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
         private const string AggregationFormat = "{schemeAndHost}/presentation/collections";
         
+        // IIIF Content Search
+        
+        private const string IIIFContentSearch2Format = "{schemeAndHost}/search/v2/{identifier}";
+        private const string IIIFAutoComplete2Format = "{schemeAndHost}/autocomplete/v2/{identifier}";
+        
+        // Other resources
+        private const string RawTextFormat = "{schemeAndHost}/text/v1/{identifier}"; // v1 refers to Wellcome API
+        
         // not done
-        private const string RawTextFormat = "{schemeAndHost}/text/v1/{identifier}";
         private const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
         private const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
         private const string RangeFormat = "{schemeAndHost}/{prefix}/{identifier}/range/{name}";
         private const string LayerFormat = "{schemeAndHost}/{prefix}/{identifier}/layer/{name}";
         private const string ContentFormat = "{schemeAndHost}/{prefix}/{identifier}/res/{name}.{format}";
+        
 
         // Image service URI
         private const string ImageResourceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/res/{name}";
@@ -171,6 +180,21 @@ namespace Wellcome.Dds.IIIFBuilding
         public string RawText(string identifier)
         {
             return RawTextFormat
+                .Replace(SchemeAndHostToken, schemeAndHostValue)
+                .Replace(IdentifierToken, identifier);
+        }
+
+        public string IIIFContentSearchService2(string identifier)
+        {
+            return IIIFContentSearch2Format
+                .Replace(SchemeAndHostToken, schemeAndHostValue)
+                .Replace(IdentifierToken, identifier);
+        }
+        
+        
+        public string IIIFAutoCompleteService2(string identifier)
+        {
+            return IIIFAutoComplete2Format
                 .Replace(SchemeAndHostToken, schemeAndHostValue)
                 .Replace(IdentifierToken, identifier);
         }
