@@ -9,6 +9,8 @@ using IIIF.Presentation.Strings;
 using IIIF.Search;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Dlcs;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -21,6 +23,7 @@ namespace Wellcome.Dds.Repositories.Presentation
     {
         private readonly UriPatterns uriPatterns;
         private readonly int dlcsDefaultSpace;
+        private readonly ManifestStructureHelper manifestStructureHelper;
 
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
@@ -28,6 +31,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
+            manifestStructureHelper = new ManifestStructureHelper();
         }
 
 
@@ -207,10 +211,52 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
             }
         }
+        
+        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        {
+            var manifestIdentifier = digitisedManifestation.MetsManifestation.Id;
+            manifest.Items = new List<Canvas>();
+            foreach (var physicalFile in digitisedManifestation.MetsManifestation.SignificantSequence)
+            {
+                var canvas = new Canvas
+                {
+                    Id = uriPatterns.Canvas(manifestIdentifier, physicalFile.StorageIdentifier),
+                    Label = Lang.Map("none", physicalFile.OrderLabel)
+                };
+                manifest.Items.Add(canvas);
+                switch (physicalFile.Family)
+                {
+                    case AssetFamily.Image:
+                        var size = new Size(
+                            physicalFile.AssetMetadata.GetImageWidth(),
+                            physicalFile.AssetMetadata.GetImageHeight());
+                        canvas.Width = size.Width;
+                        canvas.Height = size.Height;
+                        
+                        break;
+                    case AssetFamily.TimeBased:
+                        // TODO - we need to sort this out properly
+                        // We need an accurate time measure back from the DLCS, and not use catalogue metadata
+                        // canvas.Duration = physicalFile.AssetMetadata.GetLengthInSeconds().ParseDuration();
+                        break;
+                    case AssetFamily.File:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+            manifestStructureHelper.ImprovePagingSequence(manifest);
+        }
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            if (!manifest.Items.HasItems())
+            {
+                throw new NotSupportedException("Please build the canvases first, then call this!");
+            }
+            // find all the distinct auth services in the images on the canvases,
+            // and then add them to the manifest-level services property,
+            // leaving just a reference at the canvas level
         }
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
@@ -223,12 +269,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             // throw new NotImplementedException();
         }
 
-        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
-        {
-            // TODO: rearrange Canvas sequence if necessary, using logic from MetsPackageProvider
-            // Look at WdlPackageUtils, WellcomeStructureProvider
-            // throw new NotImplementedException();
-        }
 
         public void Metadata(ResourceBase iiifResource, Work work)
         {
