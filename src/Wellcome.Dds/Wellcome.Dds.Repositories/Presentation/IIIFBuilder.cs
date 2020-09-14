@@ -268,10 +268,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Rendering(manifest, digitisedManifestation);
             build.SearchServices(manifest, digitisedManifestation);
             build.Canvases(manifest, digitisedManifestation);
+            // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, digitisedManifestation); // ranges
             build.ImprovePagingSequence(manifest);
             build.ServicesForAuth(manifest, digitisedManifestation); // (new services property, is depdendent on canvases being built first!)
+            // ^^ this needs to then remove the verbose versions of the services on all the images.
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
+            
+            // Then sort out the serialisation order - it's disgusting!
         }
         
         
