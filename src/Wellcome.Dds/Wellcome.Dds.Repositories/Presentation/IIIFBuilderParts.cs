@@ -331,17 +331,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                     mainImage.Service = clickthroughServices;
                     break;
                 case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
+                case AccessCondition.Degraded:
                     mainImage.Service = loginServices;
                     break;
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     mainImage.Service = externalAuthServices;
                     break;
-                    
-                
-            }
-            if (physicalFile.AccessCondition == AccessCondition.Open)
-            {
-                
+                default:
+                    throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
             }
             
         }
@@ -359,6 +356,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
+            // aka Ranges
             // throw new NotImplementedException();
         }
 
