@@ -268,8 +268,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Rendering(manifest, digitisedManifestation);
             build.SearchServices(manifest, digitisedManifestation);
             build.Canvases(manifest, digitisedManifestation);
-            build.ServicesForAuth(manifest, digitisedManifestation); // (new services property, is depdendent on canvases being built first!)
             build.Structures(manifest, digitisedManifestation); // ranges
+            build.ImprovePagingSequence(manifest);
+            build.ServicesForAuth(manifest, digitisedManifestation); // (new services property, is depdendent on canvases being built first!)
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
         }
         

@@ -100,9 +100,17 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 return null;
             }
+            return new List<ExternalResource>
+            {
+                thumbSource.AsThumbnailWithService(thumbSizes)
+            };
+        }
+
+        public static Image AsThumbnailWithService(this string thumbSource, List<Size> thumbSizes)
+        {
             var largest = thumbSizes.First();
             var smallest = thumbSizes.Last();
-            var thumb = new Image
+            return new Image
             {
                 Id = $"{thumbSource}/full/{smallest.Width},{smallest.Height}/0/default.jpg",
                 Width = smallest.Width,
@@ -119,7 +127,27 @@ namespace Wellcome.Dds.Repositories.Presentation
                     }
                 }
             };
-            return new List<ExternalResource>{ thumb };
+        }
+
+        public static Image AsImageWithService(this string imageSource, Size actualSize, Size staticSize)
+        {
+            return new Image
+            {
+                Id = $"{imageSource}/full/{staticSize.Width},{staticSize.Height}/0/default.jpg",
+                Width = staticSize.Width,
+                Height = staticSize.Height,
+                Format = "image/jpeg",
+                Service = new List<IService>
+                {
+                    new ImageService2
+                    {
+                        Id = imageSource,
+                        Width = actualSize.Width,
+                        Height = actualSize.Height,
+                        Profile = ImageService2.Level1Profile
+                    }
+                }
+            };
         }
 
         public static string GetLocationOfOriginal(this List<Metadata> metadata)
@@ -138,6 +166,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         public static bool SupportsSearch(this IEnumerable<IPhysicalFile> assets)
         {
             return assets.Any(pf => pf.RelativeAltoPath.HasText());
+        }
+
+        public static bool ExcludeDlcsAssetFromManifest(this IPhysicalFile physicalFile)
+        {
+            switch (physicalFile.AccessCondition)
+            {
+                case AccessCondition.Open:
+                case AccessCondition.RequiresRegistration:
+                case AccessCondition.Degraded:
+                case AccessCondition.ClinicalImages:
+                case AccessCondition.RestrictedFiles:
+                    return false;
+                default:
+                    return true;
+            }
+            
         }
         
     }

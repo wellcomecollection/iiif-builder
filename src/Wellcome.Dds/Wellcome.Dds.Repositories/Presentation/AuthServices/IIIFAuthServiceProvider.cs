@@ -53,10 +53,10 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         protected abstract string GetRestrictedLoginServiceId093();
         protected abstract string GetCASTokenServiceId();
 
-        public AuthCookieService1[] GetAcceptTermsAuthServices()
+        public List<IService> GetAcceptTermsAuthServices()
         {
             var tokenServiceId = GetAcceptTermsAccessTokenServiceId();
-            var services = new List<AuthCookieService1>();
+            var services = new List<IService>();
 
             // for compatibility with current UV
             var clickthrough090Service = AuthCookieService1.NewClickthroughInstance();
@@ -78,9 +78,9 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             clickthrough093Service.Service = GetCommonChildAuthServices(tokenServiceId);
             services.Add(clickthrough093Service);
 
-            return services.ToArray();
+            return services;
         }
-        public AuthCookieService1[] GetClinicalLoginServices()
+        public List<IService> GetClinicalLoginServices()
         {
             var clinicalLogin = AuthCookieService1.NewLoginInstance();
             clinicalLogin.Id = GetClinicalLoginServiceId();
@@ -91,13 +91,13 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             clinicalLogin.FailureHeader = new MetaDataValue(ClinicalFailureHeader);
             clinicalLogin.FailureDescription = new MetaDataValue(ClinicalFailureDescription);
             clinicalLogin.Service = GetCommonChildAuthServices(GetCASTokenServiceId());
-            return new[] { clinicalLogin };
+            return new List<IService>() {clinicalLogin};
         }
 
-        public AuthCookieService1[] GetRestrictedLoginServices()
+        public List<IService> GetRestrictedLoginServices()
         {
             var tokenServiceId = GetCASTokenServiceId();
-            var services = new List<AuthCookieService1>();
+            var services = new List<IService>();
 
             var external090Service = AuthCookieService1.NewExternalInstance();
             external090Service.Id = GetRestrictedLoginServiceId090();
@@ -115,7 +115,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             // confirmLabel? Not really appropriate; the client needs to provide the text for "cancel"...
             services.Add(external093Service);
 
-            return services.ToArray();
+            return services;
         }
 
         private List<IService> GetCommonChildAuthServices(string tokenServiceId)

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using IIIF.Presentation;
+using IIIF.Presentation.Constants;
+using Utils;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -47,106 +49,105 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="manifest"></param>
         public void ImprovePagingSequence(Manifest manifest)
         {
-            // Can we do anything with this manifest?
-            if (manifest.Sequences == null) return;
-            if (manifest.Sequences.Length != 1) return;
-            var sequence = manifest.Sequences[0];
-            if (sequence.ViewingHint != "paged") return;
-
-            // We're looking at a paged sequence.
-
-            string knownRectoCanvasId = null;
-            // Allow for more than one back cover range, and more than one back cover canvas in each range!
-            // Assume that within the sections the back covers are in reading order in the METS.
-            if (manifest.Structures != null && manifest.Structures.Length > 0)
-            {
-                var backCoverRanges =
-                    manifest.Structures.Where(r => r.Label.LanguageValues[0].Value == BackCover).ToList();
-                backCoverRanges.Reverse();
-                int requiredRangePos = manifest.Structures.Length - 1;
-                int requiredCanvasPos = sequence.Canvases.Length - 1;
-                foreach (var range in backCoverRanges)
-                {
-                    int currentRangePos = FindIndexById(manifest.Structures, range.Id);
-                    if (currentRangePos != requiredRangePos)
-                    {
-                        manifest.Structures.ShiftElement(currentRangePos, requiredRangePos);
-                    }
-                    foreach (var canvasId in range.Canvases.Reverse())
-                    {
-                        int currentCanvasPos = FindIndexById(sequence.Canvases, canvasId);
-                        if (currentCanvasPos != requiredCanvasPos)
-                        {
-                            sequence.Canvases.ShiftElement(currentCanvasPos, requiredCanvasPos);
-                        }
-                        requiredCanvasPos--;
-                    }
-                    requiredRangePos--;
-                }
-                var titlePageRange = manifest.Structures.FirstOrDefault(r => r.Label.LanguageValues[0].Value == TitlePage);
-                if (titlePageRange != null && titlePageRange.Canvases.HasItems())
-                {
-                    knownRectoCanvasId = titlePageRange.Canvases[0];
-                }
-            }
-
-
-            if (string.IsNullOrWhiteSpace(knownRectoCanvasId))
-            {
-                // couldn't find a title page canvas, try to find one by label "1r"
-                var recto1 = sequence.Canvases.FirstOrDefault(c => c.Label.LanguageValues[0].Value.Trim() == "1r");
-                if (recto1 != null)
-                {
-                    knownRectoCanvasId = recto1.Id;
-                }
-            }
-            if (string.IsNullOrWhiteSpace(knownRectoCanvasId))
-            {
-                // can't do anything else
-                return;
-            }
-
-            // danger - this doesn't take into account canvases that are already non-paged!
-            // Wellcome don't have any yet, but this will break when they do. 
-            // Also this utility should produce the same output if you feed a manifest through it
-            // multiple times.
-            //var recto1Pos = FindIndexById(sequence.Canvases, knownRectoCanvasId);
-
-            // you can't use recto1Pos % 2 == 0, you have to use the position within paged "pages" only
-
-            var pagedSeq = sequence.Canvases.Where(c => c.ViewingHint != "non-paged").ToArray();
-            int recto1PosWithinPaging = FindIndexById(pagedSeq, knownRectoCanvasId);
-
-
-            if (recto1PosWithinPaging == -1 || recto1PosWithinPaging % 2 == 0)
-            {
-                // first recto is either not found or already at the correct offset (even numbered)
-                return;
-            }
-
-            // Right, our first recto is in the wrong place. What do we do now?
-            // We've already shifted the back cover, if that was in the wrong place.
-            // We can't safely MOVE a page between the cover and the title page, because we don't know what they are.
-
-            // The safest bet is to mark one of them as non-paged, so that a viewer will offset the paging sequence.
-            // In the absence of other info this will be the one preceding the first recto.
-            if (recto1PosWithinPaging > 0)
-            {
-                // Later this data could be improved, if we have paging information in METS.
-                pagedSeq[recto1PosWithinPaging - 1].ViewingHint = "non-paged";
-            }
+            // // Can we do anything with this manifest?
+            // if (!manifest.Items.HasItems()) return;
+            // if (!manifest.Behavior.HasItems()) return;
+            // if (!manifest.Behavior.Contains(Behavior.Paged)) return;
+            //
+            // // We're looking at a paged sequence. This must have been set before we start with the re-arranging.
+            //
+            // string knownRectoCanvasId = null;
+            // // Allow for more than one back cover range, and more than one back cover canvas in each range!
+            // // Assume that within the sections the back covers are in reading order in the METS.
+            // if (manifest.Structures != null && manifest.Structures.Length > 0)
+            // {
+            //     var backCoverRanges =
+            //         manifest.Structures.Where(r => r.Label.LanguageValues[0].Value == BackCover).ToList();
+            //     backCoverRanges.Reverse();
+            //     int requiredRangePos = manifest.Structures.Length - 1;
+            //     int requiredCanvasPos = sequence.Canvases.Length - 1;
+            //     foreach (var range in backCoverRanges)
+            //     {
+            //         int currentRangePos = FindIndexById(manifest.Structures, range.Id);
+            //         if (currentRangePos != requiredRangePos)
+            //         {
+            //             manifest.Structures.ShiftElement(currentRangePos, requiredRangePos);
+            //         }
+            //         foreach (var canvasId in range.Canvases.Reverse())
+            //         {
+            //             int currentCanvasPos = FindIndexById(sequence.Canvases, canvasId);
+            //             if (currentCanvasPos != requiredCanvasPos)
+            //             {
+            //                 sequence.Canvases.ShiftElement(currentCanvasPos, requiredCanvasPos);
+            //             }
+            //             requiredCanvasPos--;
+            //         }
+            //         requiredRangePos--;
+            //     }
+            //     var titlePageRange = manifest.Structures.FirstOrDefault(r => r.Label.LanguageValues[0].Value == TitlePage);
+            //     if (titlePageRange != null && titlePageRange.Canvases.HasItems())
+            //     {
+            //         knownRectoCanvasId = titlePageRange.Canvases[0];
+            //     }
+            // }
+            //
+            //
+            // if (string.IsNullOrWhiteSpace(knownRectoCanvasId))
+            // {
+            //     // couldn't find a title page canvas, try to find one by label "1r"
+            //     var recto1 = sequence.Canvases.FirstOrDefault(c => c.Label.LanguageValues[0].Value.Trim() == "1r");
+            //     if (recto1 != null)
+            //     {
+            //         knownRectoCanvasId = recto1.Id;
+            //     }
+            // }
+            // if (string.IsNullOrWhiteSpace(knownRectoCanvasId))
+            // {
+            //     // can't do anything else
+            //     return;
+            // }
+            //
+            // // danger - this doesn't take into account canvases that are already non-paged!
+            // // Wellcome don't have any yet, but this will break when they do. 
+            // // Also this utility should produce the same output if you feed a manifest through it
+            // // multiple times.
+            // //var recto1Pos = FindIndexById(sequence.Canvases, knownRectoCanvasId);
+            //
+            // // you can't use recto1Pos % 2 == 0, you have to use the position within paged "pages" only
+            //
+            // var pagedSeq = sequence.Canvases.Where(c => c.ViewingHint != "non-paged").ToArray();
+            // int recto1PosWithinPaging = FindIndexById(pagedSeq, knownRectoCanvasId);
+            //
+            //
+            // if (recto1PosWithinPaging == -1 || recto1PosWithinPaging % 2 == 0)
+            // {
+            //     // first recto is either not found or already at the correct offset (even numbered)
+            //     return;
+            // }
+            //
+            // // Right, our first recto is in the wrong place. What do we do now?
+            // // We've already shifted the back cover, if that was in the wrong place.
+            // // We can't safely MOVE a page between the cover and the title page, because we don't know what they are.
+            //
+            // // The safest bet is to mark one of them as non-paged, so that a viewer will offset the paging sequence.
+            // // In the absence of other info this will be the one preceding the first recto.
+            // if (recto1PosWithinPaging > 0)
+            // {
+            //     // Later this data could be improved, if we have paging information in METS.
+            //     pagedSeq[recto1PosWithinPaging - 1].ViewingHint = "non-paged";
+            // }
         }
 
-        private int FindIndexById(IIIFPresentationBase[] array, string id)
-        {
-            for (int index = 0; index < array.Length; index++)
-            {
-                if (array[index].Id == id)
-                {
-                    return index;
-                }
-            }
-            return -1;
-        }
+        // private int FindIndexById(IIIFPresentationBase[] array, string id)
+        // {
+        //     for (int index = 0; index < array.Length; index++)
+        //     {
+        //         if (array[index].Id == id)
+        //         {
+        //             return index;
+        //         }
+        //     }
+        //     return -1;
+        // }
     }
 }

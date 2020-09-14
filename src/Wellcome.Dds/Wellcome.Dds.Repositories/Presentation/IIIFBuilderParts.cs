@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
+using IIIF.Auth;
 using IIIF.Presentation;
+using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
@@ -14,8 +16,11 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
+using AccessCondition = Wellcome.Dds.Common.AccessCondition;
+
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -24,7 +29,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly UriPatterns uriPatterns;
         private readonly int dlcsDefaultSpace;
         private readonly ManifestStructureHelper manifestStructureHelper;
+        private readonly IAuthServiceProvider authServiceProvider;
 
+        private readonly List<IService> clickthroughServices;
+        private readonly List<IService> loginServices;
+        private readonly List<IService> externalAuthServices;
+        
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
             int dlcsDefaultSpace)
@@ -32,6 +42,12 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
             manifestStructureHelper = new ManifestStructureHelper();
+            authServiceProvider = new DlcsIIIFAuthServiceProvider();
+            
+            // These still bear lots of traces of previous incarnations
+            clickthroughServices = authServiceProvider.GetAcceptTermsAuthServices();
+            loginServices = authServiceProvider.GetClinicalLoginServices();
+            externalAuthServices = authServiceProvider.GetRestrictedLoginServices();
         }
 
 
@@ -224,6 +240,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = Lang.Map("none", physicalFile.OrderLabel)
                 };
                 manifest.Items.Add(canvas);
+                var assetIdentifier = physicalFile.StorageIdentifier;
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
@@ -232,7 +249,37 @@ namespace Wellcome.Dds.Repositories.Presentation
                             physicalFile.AssetMetadata.GetImageHeight());
                         canvas.Width = size.Width;
                         canvas.Height = size.Height;
-                        
+                        if (physicalFile.ExcludeDlcsAssetFromManifest())
+                        {
+                            // has an unknown or forbidden access condition
+                            break;
+                        }
+                        var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
+                        canvas.Items = new List<AnnotationPage>
+                        {
+                            new AnnotationPage
+                            {
+                                Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
+                                Items = new List<IAnnotation>
+                                {
+                                    new PaintingAnnotation
+                                    {
+                                        Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier, assetIdentifier),
+                                        Body = mainImage
+                                    }
+                                }
+                            }
+                        };
+                        if (thumbImage != null)
+                        {
+                            canvas.Thumbnail = new List<ExternalResource> { thumbImage };
+                        }
+                        if (physicalFile.RelativeAltoPath.HasText())
+                        {
+                            // add ALTO seeAlso
+                            // add granular anno list
+                        }
+                        AddAuthServices(mainImage, physicalFile);
                         break;
                     case AssetFamily.TimeBased:
                         // TODO - we need to sort this out properly
@@ -245,7 +292,58 @@ namespace Wellcome.Dds.Repositories.Presentation
                         throw new ArgumentOutOfRangeException();
                 }
             }
+        }
+
+        public void ImprovePagingSequence(Manifest manifest)
+        {
             manifestStructureHelper.ImprovePagingSequence(manifest);
+        }
+
+
+        private (Image MainImage, Image ThumbImage) GetCanvasImages(IPhysicalFile physicalFile)
+        {
+            var assetIdentifier = physicalFile.StorageIdentifier;
+            var imageService = uriPatterns.DlcsImageService(dlcsDefaultSpace, assetIdentifier);
+            var thumbService = uriPatterns.DlcsThumb(dlcsDefaultSpace, assetIdentifier);
+            var sizes = physicalFile.GetAvailableSizes();
+            var actualSize = sizes.First();
+            var thumbSizes = sizes.Skip(1).ToList();
+            var staticSize = actualSize;
+            Image thumbImage = null;
+            if (thumbSizes.Any())
+            {
+                staticSize = thumbSizes.First();
+                thumbImage = thumbService.AsThumbnailWithService(thumbSizes);
+            }
+            var mainImage = imageService.AsImageWithService(actualSize, staticSize);
+            return (mainImage, thumbImage);
+        }
+        
+        
+        private void AddAuthServices(Image mainImage, IPhysicalFile physicalFile)
+        {
+            switch (physicalFile.AccessCondition)
+            {
+                case AccessCondition.Open:
+                    // no auth services needed, we're open and happy.
+                    return;
+                case AccessCondition.RequiresRegistration: // i.e., Clickthrough
+                    mainImage.Service = clickthroughServices;
+                    break;
+                case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
+                    mainImage.Service = loginServices;
+                    break;
+                case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
+                    mainImage.Service = externalAuthServices;
+                    break;
+                    
+                
+            }
+            if (physicalFile.AccessCondition == AccessCondition.Open)
+            {
+                
+            }
+            
         }
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)

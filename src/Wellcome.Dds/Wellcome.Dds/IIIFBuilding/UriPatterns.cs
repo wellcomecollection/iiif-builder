@@ -42,12 +42,15 @@ namespace Wellcome.Dds.IIIFBuilding
         // https://github.com/wellcomecollection/platform/issues/4659#issuecomment-686448554
         
         // IIIF Presentation
-        private const string ManifestFormat = "{schemeAndHost}/presentation/{identifier}";
-        private const string CanvasFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
-        private const string AggregationFormat = "{schemeAndHost}/presentation/collections";
+        private const string ManifestFormat =                     "{schemeAndHost}/presentation/{identifier}";
+        private const string CanvasFormat =                       "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
+        private const string CanvasPaintingAnnotationPageFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting";
+        private const string CanvasPaintingAnnotationFormat =     "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
+        private const string CanvasOtherAnnotationPageFormat =    "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations";
+        private const string CanvasOtherAnnotationFormat =        "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations/{annoIdentifer}";
+        private const string AggregationFormat =                  "{schemeAndHost}/presentation/collections";
         
         // IIIF Content Search
-        
         private const string IIIFContentSearch2Format = "{schemeAndHost}/search/v2/{identifier}";
         private const string IIIFAutoComplete2Format = "{schemeAndHost}/autocomplete/v2/{identifier}";
         
@@ -94,9 +97,7 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string Manifest(string identifier)
         {
-            return ManifestFormat
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, identifier);
+            return ManifestIdentifier(ManifestFormat, identifier);
         }
 
         public string CollectionForWork(string identifier)
@@ -108,10 +109,25 @@ namespace Wellcome.Dds.IIIFBuilding
         
         public string Canvas(string manifestIdentifier, string assetIdentifier)
         {
-            return CanvasFormat
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, manifestIdentifier)
-                .Replace(AssetIdentifierToken, assetIdentifier);
+            return ManifestAndAssetIdentifiers(
+                CanvasFormat, manifestIdentifier, assetIdentifier);
+        }        
+        
+        public string CanvasPaintingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                CanvasPaintingAnnotationPageFormat, manifestIdentifier, assetIdentifier);
+        }    
+        public string CanvasPaintingAnnotation(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                CanvasPaintingAnnotationFormat, manifestIdentifier, assetIdentifier);
+        }        
+        
+        public string CanvasOtherAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }
 
         public string CollectionForAggregation()
@@ -179,24 +195,32 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string RawText(string identifier)
         {
-            return RawTextFormat
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, identifier);
+            return ManifestIdentifier(RawTextFormat, identifier);
         }
 
         public string IIIFContentSearchService2(string identifier)
         {
-            return IIIFContentSearch2Format
+            return ManifestIdentifier(IIIFContentSearch2Format, identifier);
+        }
+
+        public string IIIFAutoCompleteService2(string identifier)
+        {
+            return ManifestIdentifier(IIIFAutoComplete2Format, identifier);
+        }
+
+        private string ManifestIdentifier(string template, string identifier)
+        {
+            return template
                 .Replace(SchemeAndHostToken, schemeAndHostValue)
                 .Replace(IdentifierToken, identifier);
         }
         
-        
-        public string IIIFAutoCompleteService2(string identifier)
+        private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
         {
-            return IIIFAutoComplete2Format
+            return template
                 .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, identifier);
+                .Replace(IdentifierToken, manifestIdentifier)
+                .Replace(AssetIdentifierToken, assetIdentifier);
         }
     }
 }
