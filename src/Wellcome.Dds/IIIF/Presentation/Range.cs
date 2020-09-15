@@ -1,20 +1,23 @@
 ﻿ using IIIF.Presentation.Annotation;
 using System.Collections.Generic;
+ using Newtonsoft.Json;
 
-namespace IIIF.Presentation
+ namespace IIIF.Presentation
 {
     public class Range : StructureBase, IStructuralLocation
     {
         public override string Type => nameof(Range);
         
-        // TODO - Interface may cause issues for deserialization
-        public List<IStructuralLocation>? Items { get; set; }
-        
+        [JsonProperty(Order = 32)]
         public string? ViewingDirection { get; set; }
         
-        public AnnotationCollection? Supplementary { get; set; }
-        
-        // TODO - Interface may cause issues for deserialization
+        [JsonProperty(Order = 35)]
         public IStructuralLocation? Start { get; set; }
+        
+        [JsonProperty(Order = 300)]
+        public List<IStructuralLocation>? Items { get; set; }
+        
+        [JsonProperty(Order = 400)]
+        public AnnotationCollection? Supplementary { get; set; }
     }
 }

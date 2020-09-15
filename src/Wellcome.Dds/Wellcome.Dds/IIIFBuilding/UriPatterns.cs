@@ -20,6 +20,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string IdentifierToken = "{identifier}";
         private const string SpaceToken = "{space}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
+        private const string RangeIdentifierToken = "{rangeIdentifier}";
         
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
@@ -49,6 +50,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string CanvasOtherAnnotationPageFormat =    "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations";
         private const string CanvasOtherAnnotationFormat =        "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations/{annoIdentifer}";
         private const string AggregationFormat =                  "{schemeAndHost}/presentation/collections";
+        private const string RangeFormat =                        "{schemeAndHost}/presentation/{identifier}/ranges/{rangeIdentifier}";
         
         // IIIF Content Search
         private const string IIIFContentSearch2Format = "{schemeAndHost}/search/v2/{identifier}";
@@ -60,7 +62,6 @@ namespace Wellcome.Dds.IIIFBuilding
         // not done
         private const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
         private const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
-        private const string RangeFormat = "{schemeAndHost}/{prefix}/{identifier}/range/{name}";
         private const string LayerFormat = "{schemeAndHost}/{prefix}/{identifier}/layer/{name}";
         private const string ContentFormat = "{schemeAndHost}/{prefix}/{identifier}/res/{name}.{format}";
         
@@ -221,6 +222,14 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(SchemeAndHostToken, schemeAndHostValue)
                 .Replace(IdentifierToken, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+
+        public string Range(string manifestIdentifier, string rangeIdentifier)
+        {
+            return RangeFormat
+                .Replace(SchemeAndHostToken, schemeAndHostValue)
+                .Replace(IdentifierToken, manifestIdentifier)
+                .Replace(RangeIdentifierToken, rangeIdentifier);
         }
     }
 }

@@ -9,6 +9,7 @@ using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using IIIF.Search;
+using Microsoft.EntityFrameworkCore.Storage;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -19,7 +20,9 @@ using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
+using Wellcome.Dds.Repositories.WordsAndPictures;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
+using Range = IIIF.Presentation.Range;
 
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -356,10 +359,168 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // aka Ranges
-            // throw new NotImplementedException();
+            var metsManifestation = digitisedManifestation.MetsManifestation;
+            
+            var physIdDict = metsManifestation.SignificantSequence.ToDictionary(
+                pf => pf.Id, pf => pf.StorageIdentifier);
+            
+            // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
+            var wdlRoot = GetSectionFromStructDiv(
+                metsManifestation.Id,
+                physIdDict,
+                metsManifestation.RootStructRange, 
+                metsManifestation.ParentModsData);
+            if (IsManuscriptStructure(metsManifestation.RootStructRange))
+            {
+                wdlRoot = ConvertFirstChildToRoot(wdlRoot);
+            }
+            // we now have the equivalent of old DDS Section - but the rootsection IS the equivalent
+            // of the manifest, which we already have. We don't need a top level Range for everything,
+            // we're only interested in Child structure.
+            if (wdlRoot != null && wdlRoot.Items.HasItems())
+            {
+                var topRanges = wdlRoot.Items.Where(r => r is Range).ToList();
+                if (topRanges.HasItems())
+                {
+                    // These should all be ranges. I think. It's an error if they aren't?
+                    // TEST TEST TEST...
+                    manifest.Structures = topRanges.Cast<Range>().ToList();
+                }
+            }
         }
 
+        private Range ConvertFirstChildToRoot(Range wdlRoot)
+        {
+            var newRoot = (Range) wdlRoot.Items?.FirstOrDefault(r => r is Range);
+            if (newRoot == null) return wdlRoot;
+            newRoot.Label = wdlRoot.Label;
+            return newRoot;
+        }
+
+        private bool IsManuscriptStructure(IStructRange rootStructRange)
+        {
+            // return (
+            //     rootSection != null
+            //     && rootSection.SectionType == "Archive"
+            //     && rootSection.Sections != null
+            //     && rootSection.Sections.Length == 1
+            //     && rootSection.Sections[0].SectionType == "Manuscript"
+            //     && rootSection.Sections[0].Assets.Length == rootSection.Assets.Length
+            // );
+            return (
+                rootStructRange != null
+                && rootStructRange.Type == "Archive"
+                && rootStructRange.Children.HasItems()
+                && rootStructRange.Children.Count == 1
+                && rootStructRange.Children[0].Type == "Manuscript"
+                && rootStructRange.Children[0].PhysicalFileIds.Count == rootStructRange.PhysicalFileIds.Count
+            );
+            
+        }
+
+        private Range GetSectionFromStructDiv(
+            string manifestationId,
+            Dictionary<string, string> physIdDict,
+            IStructRange structRange,
+            IModsData parentMods)
+        {
+            var range = new Range
+            {
+                Id = uriPatterns.Range(manifestationId, structRange.Id)
+            };
+            if (structRange.Type == "PeriodicalIssue" && parentMods != null)
+            {
+                // for periodicals, some MODS data is held at the VOLUME level, 
+                // which is the dmdSec referenced by the parent structural div
+                MergeExtraPeriodicalVolumeData(structRange.Mods, parentMods);
+            }
+
+            var modsForAccessCondition = structRange.Mods ?? parentMods;
+            if (!range.Label.HasItems()) // && structRange.Mods != null)
+            {
+                range.Label = GetMappedRangeLabel(structRange);
+            }
+            
+            
+            // physIdDict contains the "significant" assets; we should only add these, not all the assets
+            var canvases = new List<Canvas>(); // this was called sectionAssets, int list
+            foreach (string physicalFileId in structRange.PhysicalFileIds)
+            {
+                string storageIdentifier = null;
+                if (physIdDict.TryGetValue(physicalFileId, out storageIdentifier))
+                {
+                    canvases.Add(new Canvas
+                    {
+                        Id = uriPatterns.Canvas(manifestationId, storageIdentifier)
+                    });
+                }
+            }
+
+            if (canvases.HasItems())
+            {
+                range.Items ??= new List<IStructuralLocation>();
+                range.Items.AddRange(canvases);
+            }
+            
+            if (structRange.Children.HasItems())
+            {
+                var childRanges = structRange.Children
+                    .Select(child => GetSectionFromStructDiv(manifestationId, physIdDict, child, modsForAccessCondition))
+                    .ToList();
+                if (childRanges.HasItems())
+                {
+                    range.Items ??= new List<IStructuralLocation>();
+                    range.Items.AddRange(childRanges);
+                }
+            }
+            
+            return range;
+        }
+
+        private LanguageMap GetMappedRangeLabel(IStructRange structRange)
+        {
+            var s = structRange.Mods?.Title ?? structRange.Type;
+            var humanFriendly = manifestStructureHelper.GetHumanFriendlySectionLabel(s);
+            return Lang.Map("none", humanFriendly); // TODO - "en" is often wrong.
+        }
+        
+        /// <summary>
+        /// For Periodicals, additional MODS data (typically security info) is carried in a different
+        /// MODS section, so we need to incorporate it into the current section's MODS
+        /// </summary>
+        /// <param name="sectionMods">The MODS for the current structural section - the periodical issue</param>
+        /// <param name="volumeMods">The MODS for the volume (one per METS file)</param>
+        private void MergeExtraPeriodicalVolumeData(IModsData sectionMods, IModsData volumeMods)
+        {
+            if (sectionMods.AccessCondition.IsNullOrWhiteSpace() || sectionMods.AccessCondition == "Open")
+            {
+                sectionMods.AccessCondition = volumeMods.AccessCondition;
+            }
+            if (sectionMods.DzLicenseCode.IsNullOrWhiteSpace())
+            {
+                sectionMods.DzLicenseCode = volumeMods.DzLicenseCode;
+                if (sectionMods.DzLicenseCode.IsNullOrWhiteSpace())
+                {
+                    sectionMods.DzLicenseCode = "CC-BY-NC";
+                }
+            }
+            if (sectionMods.PlayerOptions <= 0)
+            {
+                sectionMods.PlayerOptions = volumeMods.PlayerOptions;
+            }
+            if (sectionMods.RecordIdentifier.IsNullOrWhiteSpace())
+            {
+                sectionMods.RecordIdentifier = volumeMods.RecordIdentifier;
+            }
+        }
+
+
+        // ^^ move to structurehelper?
+        
+        
+        
+        
+        
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             // throw new NotImplementedException();

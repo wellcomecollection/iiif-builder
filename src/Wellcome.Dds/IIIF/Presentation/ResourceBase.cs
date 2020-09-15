@@ -45,19 +45,19 @@ namespace IIIF.Presentation
         public LanguageMap? Label { get; set; }
         
         /// <summary>
-        /// A content resource that represents the resource.
-        /// See <a href="https://iiif.io/api/presentation/3.0/#thumbnail">thumbnail</a>
-        /// </summary>
-        [JsonProperty(Order = 15)]
-        public List<ExternalResource>? Thumbnail { get; set; }
-        
-        /// <summary>
         /// A short textual summary intended to be conveyed to the user when the metadata entries for the resource are
         /// not being displayed.
         /// See <a href="https://iiif.io/api/presentation/3.0/#summary">summary</a>
         /// </summary>
-        [JsonProperty(Order = 16)]
+        [JsonProperty(Order = 15)]
         public LanguageMap? Summary { get; set; }
+        
+        /// <summary>
+        /// A content resource that represents the resource.
+        /// See <a href="https://iiif.io/api/presentation/3.0/#thumbnail">thumbnail</a>
+        /// </summary>
+        [JsonProperty(Order = 16)]
+        public List<ExternalResource>? Thumbnail { get; set; }
         
         /// <summary>
         /// A web page that is about the object represented by this resource.
@@ -105,10 +105,6 @@ namespace IIIF.Presentation
         [JsonProperty(Order = 22)]
         public List<ExternalResource>? Rendering { get; set; }
         
-        // TODO - Interface may cause issues for deserialization
-        [JsonProperty(Order = 23)]
-        public List<IService>? Service { get; set; }
-        
         /// <summary>
         /// A machine-readable resource such as an XML or RDF description that is related to the current resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#seealso">seealso</a>
@@ -117,6 +113,8 @@ namespace IIIF.Presentation
         public List<ExternalResource>? SeeAlso { get; set; }
         
         
+        [JsonProperty(Order = 28)]
+        public List<IService>? Service { get; set; }
         
         /// <summary>
         /// A set of user experience features that the publisher of the content would prefer the client to use when

@@ -6,6 +6,17 @@ using Newtonsoft.Json.Serialization;
 
 namespace IIIF
 {
+    /// <summary>
+    /// TODO:
+    ///
+    /// (some of these need additional serialisers)
+    ///
+    ///  - format string arrays on a single line IF they have only one string and it is less than n chars
+    ///  - format Size on one line: { "width": 100, "height": 200 }
+    ///  - format label and value on one line, if they have a single string array that also formats to one line
+    ///          "label": { "en": [ "Explore our collections" ] },
+    /// 
+    /// </summary>
     public class PrettyIIIFContractResolver : CamelCasePropertyNamesContractResolver
     {
         // adapted from https://stackoverflow.com/a/34903827

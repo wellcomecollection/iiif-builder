@@ -13,12 +13,11 @@ namespace IIIF.Presentation
     {
         public override string Type => nameof(Collection);
         
-        
         /// <summary>
         /// The direction in which a set of Canvases should be displayed to the user
         /// See <a href="https://iiif.io/api/presentation/3.0/#viewingdirection">viewingdirection</a>
         /// </summary>
-        [JsonProperty(Order = 101)]
+        [JsonProperty(Order = 32)]
         public string? ViewingDirection { get; set; }
         
         /// <summary>
@@ -30,8 +29,7 @@ namespace IIIF.Presentation
         /// <summary>
         /// Embedded Collections or Referenced Manifests/Collections.
         /// </summary>
-        // TODO - Interface may cause issues for deserialization
-        [JsonProperty(Order = 103)]
+        [JsonProperty(Order = 300)]
         public List<ICollectionItem>? Items { get; set; }
     }
 }

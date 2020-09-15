@@ -1,6 +1,7 @@
 ﻿using IIIF.Presentation.Annotation;
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace IIIF.Presentation
 {
@@ -33,20 +34,24 @@ namespace IIIF.Presentation
         /// See <a href="https://iiif.io/api/presentation/3.0/#navdate">navDate</a>
         /// </summary>
         /// <remarks>This can still be set manually</remarks>
+        [JsonProperty(Order = 41)]
         public string? NavDate { get; set; }
 
         /// <summary>
         /// A single Canvas that provides additional content for use before the main content.
         /// See <a href="https://iiif.io/api/presentation/3.0/#placeholdercanvas">placeholdercanvas</a>
         /// </summary>
+        [JsonProperty(Order = 51)]
         public Canvas? PlaceholderCanvas { get; set; }
         
         /// <summary>
         /// A single Canvas that provides additional content for use while rendering the resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#accompanyingcanvas">accompanyingcanvas</a>
         /// </summary>
+        [JsonProperty(Order = 52)]
         public Canvas? AccompanyingCanvas { get; set; }
-
+    
+        [JsonProperty(Order = 900)]
         public List<AnnotationPage>? Annotations { get; set; }
     }
 }
