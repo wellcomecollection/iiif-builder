@@ -25,20 +25,16 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         public const string ClickthroughFailureDescription = "You must accept the terms to view the content.";
 
         public const string ClinicalHeader = "Clinical material";
+
         public const string ClinicalLoginDescription =
-            "Online access to clinical content is restricted to healthcare professionals. " +
-            "Please contact Wellcome Images for further information: " +
-            "<a href=\"mailto:images@wellcome.ac.uk\">images@wellcome.ac.uk</a>.<br><br>" +
-            "If you are a healthcare professional and already have a Wellcome Trust account, " +
-            "please log in.";
+            "<p>Online access to clinical content is restricted to healthcare professionals. Please contact the Collections team for further information: <a href='mailto:collections@wellcome.ac.uk'>collections@wellcome.ac.uk</a>.</p> <p>If you are a healthcare professional and already have a Wellcome Library account, please log in.</p>";
         public const string ClinicalFailureHeader = "Login failed";
         public const string ClinicalFailureDescription = "Your login attempt did not appear to be successful. Please try again.";
 
         public const string RestrictedHeader = "Restricted material";
+
         public const string RestrictedFailureDescription =
-            "This image cannot be viewed online.<br><br>Wellcome Library members can request access " +
-            "to restricted materials for viewing in the Library.<br><br>" +
-            "";
+            "<p>This image cannot be viewed online.</p><p>Wellcome Library members can request access to restricted materials for viewing in the Library.</p>";
 
         public const string LogoutLabel = "Log out of Wellcome Library";
 
@@ -57,14 +53,15 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             var tokenServiceId = GetAcceptTermsAccessTokenServiceId();
             var services = new List<IService>();
-
+            
+            // Lets skip this for now...
             // for compatibility with current UV
-            var clickthrough090Service = AuthCookieService1.NewClickthroughInstance();
-            clickthrough090Service.Id = GetClickthroughLoginServiceId090();
-            clickthrough090Service.Label = new MetaDataValue(ClickthroughHeader);
-            clickthrough090Service.Description = new MetaDataValue(ClickthroughLoginDescription);
-            clickthrough090Service.Service = GetCommonChildAuthServices(tokenServiceId);
-            services.Add(clickthrough090Service);
+            // var clickthrough090Service = AuthCookieService1.NewClickthroughInstance();
+            // clickthrough090Service.Id = GetClickthroughLoginServiceId090();
+            // clickthrough090Service.Label = new MetaDataValue(ClickthroughHeader);
+            // clickthrough090Service.Description = new MetaDataValue(ClickthroughLoginDescription);
+            // clickthrough090Service.Service = GetCommonChildAuthServices(tokenServiceId);
+            // services.Add(clickthrough090Service);
 
             // for UV compliant with 0.9.3
             var clickthrough093Service = AuthCookieService1.NewClickthroughInstance();
@@ -99,12 +96,12 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             var tokenServiceId = GetCASTokenServiceId();
             var services = new List<IService>();
 
-            var external090Service = AuthCookieService1.NewExternalInstance();
-            external090Service.Id = GetRestrictedLoginServiceId090();
-            external090Service.Label = new MetaDataValue(RestrictedHeader);
-            external090Service.Description = new MetaDataValue(RestrictedFailureDescription);
-            external090Service.Service = GetCommonChildAuthServices(tokenServiceId);
-            services.Add(external090Service);
+            // var external090Service = AuthCookieService1.NewExternalInstance();
+            // external090Service.Id = GetRestrictedLoginServiceId090();
+            // external090Service.Label = new MetaDataValue(RestrictedHeader);
+            // external090Service.Description = new MetaDataValue(RestrictedFailureDescription);
+            // external090Service.Service = GetCommonChildAuthServices(tokenServiceId);
+            // services.Add(external090Service);
 
             var external093Service = AuthCookieService1.NewExternalInstance();
             external093Service.Id = GetRestrictedLoginServiceId093();

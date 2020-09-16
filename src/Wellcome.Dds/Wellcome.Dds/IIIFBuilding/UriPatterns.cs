@@ -43,14 +43,20 @@ namespace Wellcome.Dds.IIIFBuilding
         // https://github.com/wellcomecollection/platform/issues/4659#issuecomment-686448554
         
         // IIIF Presentation
+        
+        // Canonical - negotiable
         private const string ManifestFormat =                     "{schemeAndHost}/presentation/{identifier}";
         private const string CanvasFormat =                       "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
+        private const string AggregationFormat =                  "{schemeAndHost}/presentation/collections";
+        
+        // Canonical - conceptual (not dereffed...)
         private const string CanvasPaintingAnnotationPageFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting";
         private const string CanvasPaintingAnnotationFormat =     "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
-        private const string CanvasOtherAnnotationPageFormat =    "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations";
-        private const string CanvasOtherAnnotationFormat =        "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/annotations/{annoIdentifer}";
-        private const string AggregationFormat =                  "{schemeAndHost}/presentation/collections";
         private const string RangeFormat =                        "{schemeAndHost}/presentation/{identifier}/ranges/{rangeIdentifier}";
+        
+        // Always versioned - todo... bring version out as parameter? 
+        private const string CanvasOtherAnnotationPageFormat =    "{schemeAndHost}/annotations/v3/{identifier}/{assetIdentifier}/line";
+        private const string CanvasOtherAnnotationFormat =        "{schemeAndHost}/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifer}";
         
         // IIIF Content Search
         private const string IIIFContentSearch2Format = "{schemeAndHost}/search/v2/{identifier}";
@@ -58,24 +64,7 @@ namespace Wellcome.Dds.IIIFBuilding
         
         // Other resources
         private const string RawTextFormat = "{schemeAndHost}/text/v1/{identifier}"; // v1 refers to Wellcome API
-        
-        // not done
-        private const string AnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annotation/{name}";
-        private const string AnnotationListFormat = "{schemeAndHost}/{prefix}/{identifier}/list/{name}";
-        private const string LayerFormat = "{schemeAndHost}/{prefix}/{identifier}/layer/{name}";
-        private const string ContentFormat = "{schemeAndHost}/{prefix}/{identifier}/res/{name}.{format}";
-        
-
-        // Image service URI
-        private const string ImageResourceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/res/{name}";
-
-        private const string ImageServiceFormat = "{schemeAndHost}/{prefix}-img/{identifier}-{seqIndex}/{name}";
-        private const string ImageAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/imageanno/{name}";
-        private const string OcrAltoAllAnnosFormat = "{schemeAndHost}/{prefix}/{identifier}/{name}";
-        private const string OcrAltoContentFormat = "{schemeAndHost}/{prefix}/{identifier}/contentAsText/{name}";
-        private const string TextLineAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/contentAsText/{name}";
-        private const string SearchResultAnnotationFormat = "{schemeAndHost}/{prefix}/{identifier}/annos/searchResults/{name}";
-        private const string ManifestLevelServiceFormat = "{schemeAndHost}/{prefix}/{identifier}-{seqIndex}/{name}-service";
+        private const string MetsAltoFormat = "{schemeAndHost}/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
@@ -197,6 +186,11 @@ namespace Wellcome.Dds.IIIFBuilding
         public string RawText(string identifier)
         {
             return ManifestIdentifier(RawTextFormat, identifier);
+        }
+        
+        public string MetsAlto(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
         }
 
         public string IIIFContentSearchService2(string identifier)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.Auth;
+using IIIF.ImageApi.Service;
 using IIIF.Presentation;
 using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
@@ -34,9 +35,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ManifestStructureHelper manifestStructureHelper;
         private readonly IAuthServiceProvider authServiceProvider;
 
-        private readonly List<IService> clickthroughServices;
-        private readonly List<IService> loginServices;
-        private readonly List<IService> externalAuthServices;
+        private readonly IService clickthroughService;
+        private readonly IService clickthroughServiceReference;
+        private readonly IService loginService;
+        private readonly IService loginServiceReference;
+        private readonly IService externalAuthService;
+        private readonly IService externalAuthServiceReference;
         
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
@@ -48,9 +52,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             authServiceProvider = new DlcsIIIFAuthServiceProvider();
             
             // These still bear lots of traces of previous incarnations
-            clickthroughServices = authServiceProvider.GetAcceptTermsAuthServices();
-            loginServices = authServiceProvider.GetClinicalLoginServices();
-            externalAuthServices = authServiceProvider.GetRestrictedLoginServices();
+            // We only want one of these but I'm not quite sure which one...
+            clickthroughService = authServiceProvider.GetAcceptTermsAuthServices().First();
+            clickthroughServiceReference = new ServiceReference(clickthroughService);
+            loginService = authServiceProvider.GetClinicalLoginServices().First();
+            loginServiceReference = new ServiceReference(loginService);
+            externalAuthService = authServiceProvider.GetRestrictedLoginServices().First();
+            externalAuthServiceReference = new ServiceReference(externalAuthService);
         }
 
 
@@ -233,14 +241,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
+            var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = digitisedManifestation.MetsManifestation.Id;
             manifest.Items = new List<Canvas>();
             foreach (var physicalFile in digitisedManifestation.MetsManifestation.SignificantSequence)
             {
+                string orderLabel = null;
+                LanguageMap canvasLabel = null;
+                if (physicalFile.OrderLabel.HasText())
+                {
+                    orderLabel = physicalFile.OrderLabel;
+                    canvasLabel = Lang.Map("none", orderLabel);
+                }
                 var canvas = new Canvas
                 {
                     Id = uriPatterns.Canvas(manifestIdentifier, physicalFile.StorageIdentifier),
-                    Label = Lang.Map("none", physicalFile.OrderLabel)
+                    Label = canvasLabel
                 };
                 manifest.Items.Add(canvas);
                 var assetIdentifier = physicalFile.StorageIdentifier;
@@ -255,6 +271,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                         if (physicalFile.ExcludeDlcsAssetFromManifest())
                         {
                             // has an unknown or forbidden access condition
+                            canvas.Label = Lang.Map("Closed");
+                            canvas.Summary = Lang.Map("This image is not currently available online");
                             break;
                         }
                         var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
@@ -279,10 +297,26 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                         if (physicalFile.RelativeAltoPath.HasText())
                         {
-                            // add ALTO seeAlso
-                            // add granular anno list
+                            canvas.SeeAlso = new List<ExternalResource>
+                            {
+                                new ExternalResource("Dataset")
+                                {
+                                    Id = uriPatterns.MetsAlto(manifestIdentifier, assetIdentifier),
+                                    Format = "text/html",
+                                    Profile = "http://www.loc.gov/standards/alto/v3/alto.xsd",
+                                    Label = Lang.Map("none", "METS-ALTO XML")
+                                }
+                            };
+                            canvas.Annotations = new List<AnnotationPage>
+                            {
+                                new AnnotationPage
+                                {
+                                    Id = uriPatterns.CanvasOtherAnnotationPage(manifestIdentifier, assetIdentifier),
+                                    Label = Lang.Map(orderLabel.HasText() ? $"Text of page {orderLabel}" : "Text of this page")
+                                }
+                            };
                         }
-                        AddAuthServices(mainImage, physicalFile);
+                        AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
                     case AssetFamily.TimeBased:
                         // TODO - we need to sort this out properly
@@ -294,6 +328,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+            }
+
+            if (foundAuthServices.HasItems())
+            {
+                manifest.Services = foundAuthServices.Values.ToList();
             }
         }
 
@@ -323,7 +362,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
         
-        private void AddAuthServices(Image mainImage, IPhysicalFile physicalFile)
+        private void AddAuthServices(
+            Image mainImage, 
+            IPhysicalFile physicalFile,
+            Dictionary<string, IService> foundAuthServices)
         {
             switch (physicalFile.AccessCondition)
             {
@@ -331,20 +373,51 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // no auth services needed, we're open and happy.
                     return;
                 case AccessCondition.RequiresRegistration: // i.e., Clickthrough
-                    mainImage.Service = clickthroughServices;
+                    AddAuthServiceToDictionary(foundAuthServices, clickthroughService);
+                    AddAuthServiceToImage(mainImage, clickthroughServiceReference);
                     break;
                 case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
                 case AccessCondition.Degraded:
-                    mainImage.Service = loginServices;
+                    AddAuthServiceToDictionary(foundAuthServices, loginService);
+                    AddAuthServiceToImage(mainImage, loginServiceReference);
                     break;
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
-                    mainImage.Service = externalAuthServices;
+                    AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
+                    AddAuthServiceToImage(mainImage, externalAuthServiceReference);
                     break;
                 default:
                     throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
             }
+        }
+
+        private void AddAuthServiceToDictionary(Dictionary<string, IService> foundAuthServices, IService service)
+        {
+            if (!foundAuthServices.ContainsKey(service.Id))
+            {
+                foundAuthServices[service.Id] = service;
+            }
+        }
+        
+        private void AddAuthServiceToImage(Image image, IService service)
+        {
+            if (image == null || service == null)
+            {
+                return;
+            }
+
+            if (image.Service.HasItems())
+            {
+                var iiifImageApi2 = (ImageService2) image.Service.First();
+                iiifImageApi2.Service = new List<IService>{service};
+                image.Service.Add(service);
+            }
+            else
+            {
+                image.Service = new List<IService>{service};
+            }
             
         }
+
 
         public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
@@ -352,9 +425,25 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 throw new NotSupportedException("Please build the canvases first, then call this!");
             }
+    
+            // TODO - this is a bit wasteful... we put full auth services on all the images and services, then we took them off again.
             // find all the distinct auth services in the images on the canvases,
             // and then add them to the manifest-level services property,
             // leaving just a reference at the canvas level
+            Dictionary<string, IService> distinctAuthServices;
+            foreach (var canvas in manifest.Items)
+            {
+                var paintingAnno = canvas.Items?.FirstOrDefault()?.Items?.FirstOrDefault();
+                if (paintingAnno != null)
+                {
+                    var resource = ((PaintingAnnotation) paintingAnno).Body;
+                    if (resource != null && resource.Service.HasItems())
+                    {
+                        
+                    }
+                }
+
+            }
         }
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)

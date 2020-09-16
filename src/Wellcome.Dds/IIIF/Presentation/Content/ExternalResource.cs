@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.Content
 {
-    public class ExternalResource : ResourceBase, IPaintable
+    public class ExternalResource : ResourceBase
     {
         public ExternalResource(string type)
         {
