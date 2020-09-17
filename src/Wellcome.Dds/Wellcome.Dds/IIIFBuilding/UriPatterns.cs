@@ -16,11 +16,12 @@ namespace Wellcome.Dds.IIIFBuilding
     {
         private readonly ICatalogue catalogue;
         private readonly string schemeAndHostValue;
-        private const string SchemeAndHostToken = "{schemeAndHost}";
+        //private const string SchemeAndHostToken = "{schemeAndHost}";
         private const string IdentifierToken = "{identifier}";
         private const string SpaceToken = "{space}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
         private const string RangeIdentifierToken = "{rangeIdentifier}";
+        private const string AnnoIdentifierToken = "{annoIdentifier}";
         
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
@@ -45,26 +46,29 @@ namespace Wellcome.Dds.IIIFBuilding
         // IIIF Presentation
         
         // Canonical - negotiable
-        private const string ManifestFormat =                     "{schemeAndHost}/presentation/{identifier}";
-        private const string CanvasFormat =                       "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}";
-        private const string AggregationFormat =                  "{schemeAndHost}/presentation/collections";
+        private const string ManifestFormat =                     "/presentation/{identifier}";
+        private const string CanvasFormat =                       "/presentation/{identifier}/canvases/{assetIdentifier}";
+        private const string AggregationFormat =                  "/presentation/collections";
         
         // Canonical - conceptual (not dereffed...)
-        private const string CanvasPaintingAnnotationPageFormat = "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting";
-        private const string CanvasPaintingAnnotationFormat =     "{schemeAndHost}/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
-        private const string RangeFormat =                        "{schemeAndHost}/presentation/{identifier}/ranges/{rangeIdentifier}";
+        private const string CanvasPaintingAnnotationPageFormat = "/presentation/{identifier}/canvases/{assetIdentifier}/painting";
+        private const string CanvasPaintingAnnotationFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
+        private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
-        private const string CanvasOtherAnnotationPageFormat =    "{schemeAndHost}/annotations/v3/{identifier}/{assetIdentifier}/line";
-        private const string CanvasOtherAnnotationFormat =        "{schemeAndHost}/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifer}";
+        // NB /line/ is reserved for text granularity - can be other granularities later.
+        private const string CanvasOtherAnnotationPageFormat =    "/annotations/v3/{identifier}/{assetIdentifier}/line";
+        private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifer}";
+        private const string ManifestAnnotationPageAllFormat =    "/annotations/v3/{identifier}/all/line";
+        private const string ManifestAnnotationPageImagesFormat = "/annotations/v3/{identifier}/images"; // not line, obvs.
         
         // IIIF Content Search
-        private const string IIIFContentSearch2Format = "{schemeAndHost}/search/v2/{identifier}";
-        private const string IIIFAutoComplete2Format = "{schemeAndHost}/autocomplete/v2/{identifier}";
+        private const string IIIFContentSearch2Format =           "/search/v2/{identifier}";
+        private const string IIIFAutoComplete2Format =            "/autocomplete/v2/{identifier}";
         
         // Other resources
-        private const string RawTextFormat = "{schemeAndHost}/text/v1/{identifier}"; // v1 refers to Wellcome API
-        private const string MetsAltoFormat = "{schemeAndHost}/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
+        private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
+        private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
@@ -120,19 +124,36 @@ namespace Wellcome.Dds.IIIFBuilding
                 CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }
 
-        public string CollectionForAggregation()
+        public string CanvasOtherAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
         {
-            return AggregationFormat.Replace(SchemeAndHostToken, schemeAndHostValue);
+            return ManifestAndAssetIdentifiers(
+                CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
         }
 
+        public string ManifestAnnotationPageAll(string identifier)
+        {
+            return ManifestIdentifier(ManifestAnnotationPageAllFormat, identifier);
+        }
+        
+        public string ManifestAnnotationPageImages(string identifier)
+        {
+            return ManifestIdentifier(ManifestAnnotationPageImagesFormat, identifier);
+        }
+
+        public string CollectionForAggregation()
+        {
+            return AggregationFormat;
+        }
+        
         public string CollectionForAggregation(string aggregator)
         {
-            return $"{CollectionForAggregation()}/{aggregator}";
+            return $"{AggregationFormat}/{aggregator}";
         }
         
         public string CollectionForAggregation(string aggregator, string value)
         {
-            return $"{CollectionForAggregation()}/{aggregator}/{value}";
+            return $"{AggregationFormat}/{aggregator}/{value}";
         }
         
         // TODO - rename to Work page
@@ -205,25 +226,21 @@ namespace Wellcome.Dds.IIIFBuilding
 
         private string ManifestIdentifier(string template, string identifier)
         {
-            return template
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, identifier);
+            var path = template.Replace(IdentifierToken, identifier);
+            return $"{schemeAndHostValue}{path}";
         }
         
         private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
         {
-            return template
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, manifestIdentifier)
+            return ManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
 
         public string Range(string manifestIdentifier, string rangeIdentifier)
         {
-            return RangeFormat
-                .Replace(SchemeAndHostToken, schemeAndHostValue)
-                .Replace(IdentifierToken, manifestIdentifier)
+            return ManifestIdentifier(RangeFormat, manifestIdentifier)
                 .Replace(RangeIdentifierToken, rangeIdentifier);
         }
+        
     }
 }

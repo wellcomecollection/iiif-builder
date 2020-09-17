@@ -612,7 +612,23 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            // throw new NotImplementedException();
+            var metsManifestation = digitisedManifestation.MetsManifestation;
+            if (metsManifestation.SignificantSequence.SupportsSearch())
+            {
+                manifest.Annotations = new List<AnnotationPage>
+                {
+                    new AnnotationPage
+                    {
+                        Id = uriPatterns.ManifestAnnotationPageAll(metsManifestation.Id),
+                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
+                    },
+                    new AnnotationPage
+                    {
+                        Id = uriPatterns.ManifestAnnotationPageImages(metsManifestation.Id),
+                        Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
+                    },
+                };
+            }
         }
 
 
