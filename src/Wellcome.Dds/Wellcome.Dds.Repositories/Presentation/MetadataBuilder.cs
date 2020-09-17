@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using IIIF.Presentation.Strings;
 using Utils;
 using Wellcome.Dds.Catalogue;
@@ -33,9 +32,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddEnglish("Description", work.Description);
                     AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
                     AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Copyright note", Notes(work, "copyright-note"));
-                    AddEnglish("Notes", Notes(work, "general-note"));
-                    AddEnglish("Creator/production credits", Notes(work, "credits"));
+                    AddEnglish("Copyright note", work.GetNotes("copyright-note"));
+                    AddEnglish("Notes", work.GetNotes("general-note"));
+                    AddEnglish("Creator/production credits", work.GetNotes("credits"));
                     AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
                     AddEnglish("Language", work.Language?.Label);
                     AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
@@ -46,8 +45,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddEnglish("Physical description", work.PhysicalDescription);
                     AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
                     AddNonlang("Lettering", work.Lettering);
-                    AddEnglish("Publications note", Notes(work, "publication-note"));
-                    AddEnglish("Reference", Notes(work, "reference"));
+                    AddEnglish("Publications note", work.GetNotes("publication-note"));
+                    AddEnglish("Reference", work.GetNotes("reference"));
                     AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
                     break;
                 case "h": // archive
@@ -55,24 +54,18 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddNonlang("Reference", work.ReferenceNumber);
                     AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
                     AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Acquisition note", Notes(work, "acquisition-note"));
+                    AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
                     break;
                 default: // same as archive, for now
                     AddEnglish("Description", work.Description);
                     AddNonlang("Reference", work.ReferenceNumber);
                     AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
                     AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Acquisition note", Notes(work, "acquisition-note"));
+                    AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
                     break;
             }
         }
 
-        private IEnumerable<string> Notes(Work work, string noteType)
-        {
-            return work.Notes?
-                .Where(n => n.NoteType.Id == noteType)
-                .SelectMany(n => n.Contents);
-        }
         private void AddNonlang(string label, IEnumerable<string> values)
         {
             Add(label, values.ToList(), "none");
