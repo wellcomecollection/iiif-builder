@@ -24,6 +24,7 @@ using Wellcome.Dds.Auth.Web;
 using Wellcome.Dds.Auth.Web.Sierra;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Server.Auth;
@@ -115,6 +116,8 @@ namespace Wellcome.Dds.Server
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+            
+            services.AddSingleton<UriPatterns>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
