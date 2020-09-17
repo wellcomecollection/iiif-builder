@@ -8,7 +8,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class MetadataBuilder
     {
-        private List<LabelValuePair> md = new List<LabelValuePair>();
+        private readonly List<LabelValuePair> md = new List<LabelValuePair>();
+        
         public MetadataBuilder(Work work)
         {
             // Use AddNoLang where the value of the metadata is:

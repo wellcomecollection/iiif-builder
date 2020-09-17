@@ -638,9 +638,63 @@ namespace Wellcome.Dds.Repositories.Presentation
             iiifResource.Metadata = builder.Metadata;
         }
 
+        /// <summary>
+        /// Where am I in the tree?
+        /// </summary>
+        /// <param name="iiifResource"></param>
+        /// <param name="work"></param>
         public void ArchiveCollectionStructure(ResourceBase iiifResource, Work work)
         {
-            // throw new NotImplementedException();
+            if (work.Parts.Any())
+            {
+                if (!(iiifResource is Collection collection))
+                {
+                    // what to do here? I have parts, but I'm not a collection.
+                    // Maybe this is OK, but for now I'll throw an exception, so we can see it.
+                    throw new NotSupportedException("Only collections can have parts");
+                }
+                collection.Items = work.Parts.Select(MakePart).ToList();
+            }
+
+            var currentWork = work;
+            var currentIiifResource = iiifResource;
+            while (currentWork != null)
+            {
+                var parentWork = currentWork.PartOf?.LastOrDefault();
+                if (parentWork != null)
+                {
+                    var parentCollection = (Collection) MakePart(parentWork);
+                    currentIiifResource.PartOf ??= new List<ResourceBase>();
+                    currentIiifResource.PartOf.Insert(0, parentCollection);
+                    currentIiifResource = parentCollection;
+                }
+                currentWork = parentWork;
+            }
+        }
+
+        private ICollectionItem MakePart(Work work)
+        {
+            // TODO - this is incomplete, because we currently don't know whether
+            // this is a manifest or collection. we don't know whether it's digitised, either.
+            // https://github.com/wellcomecollection/platform/issues/4782
+            // We could follow the work ID and get the full thing, but that's going to hammer
+            // the API. We could cache the results. 
+            // If we already had a fully populated DdsContext.Manifestations, we could ask that 
+            // whether it has a row (and therefore know whether something is digitised). But
+            // we'd have to do multiple passes, revisit stuff...
+            if (work.WorkType?.Id == "archive-item")
+            {
+                return new Manifest
+                {
+                    Id = uriPatterns.Manifest($"GB/120/{work.ReferenceNumber}"),
+                    Label = Lang.Map(work.Title)
+                };
+            }
+            return new Collection
+            {
+                Id = uriPatterns.CollectionForWork($"GB/120/{work.ReferenceNumber}"),
+                Label = Lang.Map(work.Title)
+            };
         }
     }
 }

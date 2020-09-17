@@ -274,8 +274,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ServicesForAuth(manifest, digitisedManifestation); // (new services property, is depdendent on canvases being built first!)
             // ^^ this needs to then remove the verbose versions of the services on all the images.
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
-            
-            // Then sort out the serialisation order - it's disgusting!
         }
         
         
