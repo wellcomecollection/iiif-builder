@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace IIIF.Presentation.Strings
@@ -11,6 +12,11 @@ namespace IIIF.Presentation.Strings
         public LanguageMap(string language, string singleValue)
         {
             this[language] = new List<string> { singleValue };
+        }
+        
+        public LanguageMap(string language, IEnumerable<string> values)
+        {
+            this[language] = values.ToList();
         }
 
         public override string ToString()

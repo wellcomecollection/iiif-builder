@@ -634,7 +634,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Metadata(ResourceBase iiifResource, Work work)
         {
-            // throw new NotImplementedException();
+            var builder = new MetadataBuilder(work);
+            iiifResource.Metadata = builder.Metadata;
         }
 
         public void ArchiveCollectionStructure(ResourceBase iiifResource, Work work)
