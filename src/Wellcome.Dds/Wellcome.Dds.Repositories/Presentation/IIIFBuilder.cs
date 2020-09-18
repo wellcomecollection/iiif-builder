@@ -16,6 +16,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.SpecialState;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -52,6 +53,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)
         {
+            var state = new State();
             var result = new BuildResult();
             var ddsId = new DdsIdentifier(bNumber);
             if (ddsId.IdentifierType != IdentifierType.BNumber)
@@ -67,7 +69,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 // This is a bnumber, so can't be part of anything.
-                result = BuildInternal(work, resource, null, manifestationMetadata);
+                result = BuildInternal(work, resource, null, manifestationMetadata, state);
                 await Save(result);
                 if (resource is IDigitisedCollection parentCollection)
                 {
@@ -80,7 +82,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        result = BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata);
+                        result = BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state);
                         await Save(result);
                     }
                 }
@@ -113,7 +115,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // result to BuildAndSaveAllManifestations
                     partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
                 }
-                result = BuildInternal(work, digitisedResource, partOf, manifestationMetadata);
+                // We can't supply state for a single build.
+                // We should throw an exception. 
+                // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
+                // (dash preview can go back and rebuild all, then pick out the one asked for, 
+                // or redirect to a single AV manifest).
+                result = BuildInternal(work, digitisedResource, partOf, manifestationMetadata, null);
             }
             catch (Exception e)
             {
@@ -124,10 +131,9 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
 
-        private BuildResult BuildInternal(
-            Work work, 
+        private BuildResult BuildInternal(Work work,
             IDigitisedResource digitisedResource, IDigitisedCollection partOf,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata, State state)
         {
             var result = new BuildResult();
             try
@@ -252,6 +258,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 }
             }
         }
+        
 
 
 

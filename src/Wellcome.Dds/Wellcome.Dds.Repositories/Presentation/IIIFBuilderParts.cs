@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
-using IIIF.Auth;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation;
 using IIIF.Presentation.Annotation;
@@ -10,18 +9,15 @@ using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using IIIF.Search;
-using Microsoft.EntityFrameworkCore.Storage;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
-using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
-using Wellcome.Dds.Repositories.WordsAndPictures;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.Range;
 
@@ -696,5 +692,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Label = Lang.Map(work.Title)
             };
         }
+
     }
 }
