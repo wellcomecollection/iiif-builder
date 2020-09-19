@@ -1,4 +1,6 @@
-﻿namespace Wellcome.Dds.Repositories.Presentation.SpecialState
+﻿using Wellcome.Dds.IIIFBuilding;
+
+namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 {
     /// <summary>
     /// Wherever possible, we build things independently of their position in a tree.
@@ -18,7 +20,7 @@
     /// diving into the tree for more info, because the root b19974760 collection
     /// has data that only lives at the Volume and Issue level METS.
     /// </summary>
-    public class State
+    public class State : IState
     {
         public MultiCopyState MultiCopyState { get; set; }
         public AVState AVState { get; set; }
@@ -26,7 +28,6 @@
 
         // which one of these to use...
         public bool NeedsInfoFromChildren { get; set; }
-        
         public bool HasState => MultiCopyState != null || AVState != null || ChemistAndDruggistState != null;
     }
 }

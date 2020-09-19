@@ -35,7 +35,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
         
-        private async Task<BuildResult> BuildIIIF(string id)
+        private async Task<MultipleBuildResult> BuildIIIF(string id)
         {
             var ddsId = new DdsIdentifier(id);
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
@@ -46,15 +46,30 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ContentResult> IIIFRaw(string id)
         {
-            var result = await BuildIIIF(id);
-            return Content(iiifBuilder.Serialise(result.IIIF3Resource), "application/json");
+            var results = await BuildIIIF(id);
+            var build = results[id];
+            if (build.RequiresMultipleBuild)
+            {
+                // TODO - this does the same but needs to do something sensible for the type of thing
+                return Content(iiifBuilder.Serialise(build.IIIF3Resource), "application/json");
+            }
+            else
+            {
+                return Content(iiifBuilder.Serialise(build.IIIF3Resource), "application/json");
+            }
         }
 
 
         public async Task<ActionResult> IIIF(string id)
         {
             var ddsId = new DdsIdentifier(id);
-            var result = await BuildIIIF(ddsId);
+            var results = await BuildIIIF(ddsId);
+            var build = results[id];
+            if (build.RequiresMultipleBuild)
+            {
+                // TODO
+            }
+
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",
@@ -62,8 +77,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 BNumber = ddsId.BNumber,
                 RelativePath = ddsId,
                 Manifestation = ddsId,
-                CodeAsString = iiifBuilder.Serialise(result.IIIF3Resource),
-                ErrorMessage = result.Message,
+                CodeAsString = iiifBuilder.Serialise(build.IIIF3Resource),
+                ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("IIIFRaw", new {id})
             };

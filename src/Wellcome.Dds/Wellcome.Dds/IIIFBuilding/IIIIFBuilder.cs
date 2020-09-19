@@ -21,7 +21,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="identifier">e.g., b12345678, b87654321_0001</param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<BuildResult> Build(string identifier, Work work = null);
+        public Task<MultipleBuildResult> Build(string identifier, Work work = null);
         
         /// <summary>
         /// Builds ALL Manifests and Collections for the given bNumber.
@@ -36,7 +36,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="bNumber"></param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null);
+        public Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null);
 
         /// <summary>
         /// This is public, so that the dashboard can use it to demonstrate IIIF construction
@@ -50,7 +50,8 @@ namespace Wellcome.Dds.IIIFBuilding
             IDigitisedResource digitisedResource, 
             IDigitisedCollection partOf,
             Work work,
-            ManifestationMetadata manifestationMetadata);
+            ManifestationMetadata manifestationMetadata,
+            IState state);
 
         string Serialise(StructureBase iiifResource);
     }

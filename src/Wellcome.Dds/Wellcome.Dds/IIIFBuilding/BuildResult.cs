@@ -1,12 +1,18 @@
-﻿using System;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using IIIF.Presentation;
 
 namespace Wellcome.Dds.IIIFBuilding
 {
     public class BuildResult
     {
+        public BuildResult(string id)
+        {
+            Id = id;
+        }
+        
+        public string Id { get; }
+        public bool RequiresMultipleBuild { get; set; }
         public BuildOutcome Outcome { get; set; }
         public string Message { get; set; }
         public string IIIF3Key { get; set; }
@@ -17,5 +23,41 @@ namespace Wellcome.Dds.IIIFBuilding
         public string IIIF2Key { get; set; }
         public StructureBase IIIF2Resource { get; set; }
         
+    }
+
+    public class MultipleBuildResult : IEnumerable<BuildResult>
+    {
+        private readonly Dictionary<string, BuildResult> resultDict = new Dictionary<string, BuildResult>();
+        private readonly List<string> buildOrder = new List<string>();
+
+        public void Add(BuildResult buildResult)
+        {
+            buildOrder.Add(buildResult.Id);
+            resultDict[buildResult.Id] = buildResult;
+        }
+
+        public void Remove(string id)
+        {
+            buildOrder.Remove(id);
+            resultDict.Remove(id);
+        }
+
+        public BuildResult this[string id] => resultDict[id];
+
+        public BuildOutcome Outcome { get; set; }
+        public string Message { get; set; }
+
+        public IEnumerator<BuildResult> GetEnumerator()
+        {
+            foreach (var id in buildOrder)
+            {
+                yield return resultDict[id];
+            }
+        }
+        
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }
