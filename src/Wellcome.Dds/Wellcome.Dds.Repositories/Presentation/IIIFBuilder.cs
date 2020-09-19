@@ -117,15 +117,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // Each Manifest will have a copy number.
                 // There might be more than one volume per copy, in which case we have
                 // a nested collection.
-                var bNumberCollection = buildResults.First().IIIF3Resource as Collection;
-                if (bNumberCollection == null)
+                if (!(buildResults.First().IIIF3Resource is Collection bNumberCollection))
                 {
                     throw new IIIFBuildStateException("State is missing the parent collection");
                 }
 
-                var oldItems = bNumberCollection.Items;
                 var newItems = bNumberCollection.Items = new List<ICollectionItem>();
-                
                 var copies = state.MultiCopyState.CopyAndVolumes.Values
                     .Select(cv => cv.CopyNumber)
                     .Distinct().ToList(); // leave in the order we find them
