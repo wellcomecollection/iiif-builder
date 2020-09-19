@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Amazon.S3;
-using Amazon.S3.Model;
 using DlcsWebClient.Config;
 using IIIF;
 using IIIF.Presentation;
@@ -28,7 +26,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ICatalogue catalogue;
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
-        private readonly IAmazonS3 amazonS3;
         private readonly IIIFBuilderParts build;
         
         public IIIFBuilder(
@@ -38,8 +35,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ICatalogue catalogue,
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
-            UriPatterns uriPatterns,
-            IAmazonS3 amazonS3)
+            UriPatterns uriPatterns)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -47,7 +43,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.catalogue = catalogue;
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
-            this.amazonS3 = amazonS3;
             build = new IIIFBuilderParts(uriPatterns, dlcsOptions.Value.CustomerDefaultSpace);
         }
 
@@ -175,12 +170,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="work"></param>
         /// <param name="manifestationMetadata"></param>
         /// <returns></returns>
-        public StructureBase MakePresentation3Resource(
+        private StructureBase MakePresentation3Resource(
             IDigitisedResource digitisedResource,
             IDigitisedCollection partOf,
             Work work,
             ManifestationMetadata manifestationMetadata,
-            IState state)
+            State state)
         {
             switch (digitisedResource)
             {
