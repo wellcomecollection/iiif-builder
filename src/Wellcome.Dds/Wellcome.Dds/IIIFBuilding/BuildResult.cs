@@ -42,7 +42,7 @@ namespace Wellcome.Dds.IIIFBuilding
             resultDict.Remove(id);
         }
 
-        public BuildResult this[string id] => resultDict[id];
+        public BuildResult this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
 
         public BuildOutcome Outcome { get; set; }
         public string Message { get; set; }

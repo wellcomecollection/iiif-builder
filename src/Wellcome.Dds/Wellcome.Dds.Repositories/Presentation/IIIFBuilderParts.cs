@@ -18,6 +18,7 @@ using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
+using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.Range;
 
@@ -415,33 +416,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        public void ServicesForAuth(Manifest manifest, IDigitisedManifestation digitisedManifestation)
-        {
-            if (!manifest.Items.HasItems())
-            {
-                throw new NotSupportedException("Please build the canvases first, then call this!");
-            }
-    
-            // TODO - this is a bit wasteful... we put full auth services on all the images and services, then we took them off again.
-            // find all the distinct auth services in the images on the canvases,
-            // and then add them to the manifest-level services property,
-            // leaving just a reference at the canvas level
-            Dictionary<string, IService> distinctAuthServices;
-            foreach (var canvas in manifest.Items)
-            {
-                var paintingAnno = canvas.Items?.FirstOrDefault()?.Items?.FirstOrDefault();
-                if (paintingAnno != null)
-                {
-                    var resource = ((PaintingAnnotation) paintingAnno).Body;
-                    if (resource != null && resource.Service.HasItems())
-                    {
-                        
-                    }
-                }
-
-            }
-        }
-
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -693,5 +667,27 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
+        public void CheckForCopyAndVolumeStructure(
+            IDigitisedManifestation digitisedManifestation,
+            State state)
+        {
+            var metsManifestation = digitisedManifestation.MetsManifestation;
+            if (metsManifestation.ModsData.CopyNumber > 0)
+            {
+                if (state == null)
+                {
+                    // TODO - don't control application flow through exceptions, come back to this
+                    throw new IIIFBuildStateException(
+                        $"State is required to build {digitisedManifestation.Identifier}");
+                }
+                state.MultiCopyState ??= new MultiCopyState();
+                state.MultiCopyState.CopyAndVolumes[digitisedManifestation.Identifier] = new CopyAndVolume
+                {
+                    Id = digitisedManifestation.Identifier,
+                    CopyNumber = metsManifestation.ModsData.CopyNumber,
+                    VolumeNumber = metsManifestation.ModsData.VolumeNumber
+                };
+            }
+        }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
+using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -87,10 +89,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return buildResults;
             }
 
-            if (state.HasState)
-            {
-                // do whatever is needed with buildResults...
-            }
+            CheckAndProcessState(buildResults, state);
             
             // Now the buildResults should have what actually needs to be persisted.
             // Only now do we convert them to IIIF2
@@ -105,7 +104,104 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-      
+        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        {
+            if (!state.HasState)
+            {
+                return;
+            }
+
+            if (state.MultiCopyState != null)
+            {
+                // We should have ended up with a Collection, comprising more than one Manifest.
+                // Each Manifest will have a copy number.
+                // There might be more than one volume per copy, in which case we have
+                // a nested collection.
+                var bNumberCollection = buildResults.First().IIIF3Resource as Collection;
+                if (bNumberCollection == null)
+                {
+                    throw new IIIFBuildStateException("State is missing the parent collection");
+                }
+
+                var oldItems = bNumberCollection.Items;
+                var newItems = bNumberCollection.Items = new List<ICollectionItem>();
+                
+                var copies = state.MultiCopyState.CopyAndVolumes.Values
+                    .Select(cv => cv.CopyNumber)
+                    .Distinct().ToList(); // leave in the order we find them
+                foreach (int copy in copies)
+                {
+                    var volumesForCopy = state.MultiCopyState.CopyAndVolumes.Values
+                        .Where(cv => cv.CopyNumber == copy)
+                        .Select(cv => cv.VolumeNumber)
+                        .ToList();
+                    if (volumesForCopy.Count > 1)
+                    {
+                        // This volume is a collection child of the root;
+                        // create the copy collection then add its volumes
+                        var copyCollection = new Collection
+                        {
+                            Id = $"{bNumberCollection.Id}-copy-{copy}",
+                            Label = Lang.Map($"Copy {copy}"),
+                            Items = new List<ICollectionItem>()
+                        };
+                        newItems.Add(copyCollection);
+                        foreach (int volume in volumesForCopy)
+                        {
+                            var identifiersForVolume =
+                                state.MultiCopyState.CopyAndVolumes.Values
+                                    .Where(cv => cv.CopyNumber == copy && cv.VolumeNumber == volume);
+                            foreach (var copyAndVolume in identifiersForVolume)
+                            {
+                                var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
+                                var manifest = (Manifest) manifestResult.IIIF3Resource;
+                                manifest.Label?.Values.First().Add($"Copy {copy}, Volume {volume}");
+                                copyCollection.Items.Add(new Manifest
+                                {
+                                    Id = manifest.Id,
+                                    Label = manifest.Label,
+                                    Thumbnail = manifest.Thumbnail
+                                });
+                                if (manifest.Thumbnail.HasItems())
+                                {
+                                    copyCollection.Thumbnail ??= new List<ExternalResource>();
+                                    copyCollection.Thumbnail.AddRange(manifest.Thumbnail);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // This copy is attached to the b-number collection directly
+                        // accept multiple copies with the same number, just in case
+                        var identifiersForCopy =
+                            state.MultiCopyState.CopyAndVolumes.Values.Where(cv => cv.CopyNumber == copy);
+                        foreach (var copyAndVolume in identifiersForCopy)
+                        {
+                            var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
+                            var manifest = (Manifest) manifestResult.IIIF3Resource;
+                            manifest.Label?.Values.First().Add($"Copy {copy}");
+                            newItems.Add(new Manifest
+                            {
+                                Id = manifest.Id,
+                                Label = manifest.Label,
+                                Thumbnail = manifest.Thumbnail
+                            });
+                        }
+                    }
+                }
+            } 
+            else if (state.AVState != null)
+            {
+                
+            }
+            else if (state.ChemistAndDruggistState != null)
+            {
+                // Fear me...
+            }
+        }
+
+
         public async Task<MultipleBuildResult> Build(string identifier, Work work = null)
         {
             // only this identifier, not all for the b number.
@@ -153,6 +249,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 result.IIIF3Resource = iiifPresentation3Resource;
                 result.IIIF3Key = $"v3/{digitisedResource.Identifier}";
                 result.Outcome = BuildOutcome.Success;
+            }
+            catch (IIIFBuildStateException bex)
+            {
+                result.RequiresMultipleBuild = true;
+                result.Message = bex.Message;
+                result.Outcome = BuildOutcome.Failure;
             }
             catch (Exception e)
             {
@@ -205,7 +307,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata);
+                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata, state);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
@@ -270,7 +372,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         private void BuildManifest(
             Manifest manifest, 
             IDigitisedManifestation digitisedManifestation,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            State state)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(digitisedManifestation.Identifier);
             build.RequiredStatement(manifest, digitisedManifestation, manifestationMetadata);
@@ -283,8 +386,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, digitisedManifestation); // ranges
             build.ImprovePagingSequence(manifest);
-            build.ServicesForAuth(manifest, digitisedManifestation); // (new services property, is depdendent on canvases being built first!)
-            // ^^ this needs to then remove the verbose versions of the services on all the images.
+            build.CheckForCopyAndVolumeStructure(digitisedManifestation, state);
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
         }
         
