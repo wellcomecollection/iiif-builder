@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -93,6 +91,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             // Now the buildResults should have what actually needs to be persisted.
             // Only now do we convert them to IIIF2
+            // TODO - make this optional - dashboard PeekController shouldn't trigger this
             foreach (var buildResult in buildResults)
             {
                 // now build the Presentation 2 version from the Presentation 3 version
@@ -104,7 +103,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        private static void CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
             if (!state.HasState)
             {
@@ -187,7 +186,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return result;
         }
-  
+
 
         /// <summary>
         /// </summary>
@@ -195,6 +194,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="partOf"></param>
         /// <param name="work"></param>
         /// <param name="manifestationMetadata"></param>
+        /// <param name="state"></param>
         /// <returns></returns>
         private StructureBase MakePresentation3Resource(
             IDigitisedResource digitisedResource,

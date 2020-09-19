@@ -69,7 +69,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 CodeAsString = iiifBuilder.Serialise(build.IIIF3Resource),
                 ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
-                Raw = Url.Action("IIIFRaw", new {id})
+                Raw = Url.Action("IIIFRaw", new {id}),
+                IncludeLinksToFullBuild = true
             };
             return View("Code", model);
         }
