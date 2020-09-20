@@ -211,7 +211,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
                     };
                     AddCommonMetadata(collection, work, manifestationMetadata);
-                    BuildCollection(collection, digitisedCollection, work, manifestationMetadata);
+                    BuildCollection(collection, digitisedCollection, work, manifestationMetadata, state);
                     return collection;
                 case IDigitisedManifestation digitisedManifestation:
                     var manifest = new Manifest
@@ -237,11 +237,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             throw new NotSupportedException("Unhandled type of Digitised Resource");
         }
 
-        private void BuildCollection(
-            Collection collection,
+        private void BuildCollection(Collection collection,
             IDigitisedCollection digitisedCollection,
             Work work,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            State state)
         {
             // TODO - use of Labels.
             // The work label should be preferred over the METS label,
@@ -266,6 +266,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                 int counter = 1;
                 foreach (var mf in digitisedCollection.Manifestations)
                 {
+                    var type = mf.MetsManifestation.Type;
+                    if (type == "Video" || type == "Audio" || type == "Transcript") // anything else?
+                    {
+                        state.AVState ??= new AVState();
+                        state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
+                        {
+                            Id = mf.MetsManifestation.Id,
+                            Type = type
+                        });
+                    }
                     var order = mf.MetsManifestation.Order;
                     if (!order.HasValue || order < 1)
                     {
@@ -306,7 +316,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ViewingDirection(manifest, digitisedManifestation); // do we do this?
             build.Rendering(manifest, digitisedManifestation);
             build.SearchServices(manifest, digitisedManifestation);
-            build.Canvases(manifest, digitisedManifestation);
+            build.Canvases(manifest, digitisedManifestation, state);
             // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, digitisedManifestation); // ranges
             build.ImprovePagingSequence(manifest);

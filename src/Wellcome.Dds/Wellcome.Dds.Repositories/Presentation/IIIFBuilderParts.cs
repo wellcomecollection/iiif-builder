@@ -236,7 +236,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = digitisedManifestation.MetsManifestation.Id;
@@ -256,7 +256,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = canvasLabel
                 };
                 manifest.Items.Add(canvas);
+                if (physicalFile.ExcludeDlcsAssetFromManifest())
+                {
+                    // has an unknown or forbidden access condition
+                    canvas.Label = Lang.Map("Closed");
+                    canvas.Summary = Lang.Map("This image is not currently available online");
+                    continue;
+                }
+                
                 var assetIdentifier = physicalFile.StorageIdentifier;
+                
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
@@ -265,13 +274,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                             physicalFile.AssetMetadata.GetImageHeight());
                         canvas.Width = size.Width;
                         canvas.Height = size.Height;
-                        if (physicalFile.ExcludeDlcsAssetFromManifest())
-                        {
-                            // has an unknown or forbidden access condition
-                            canvas.Label = Lang.Map("Closed");
-                            canvas.Summary = Lang.Map("This image is not currently available online");
-                            break;
-                        }
                         var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
                         canvas.Items = new List<AnnotationPage>
                         {
@@ -319,8 +321,31 @@ namespace Wellcome.Dds.Repositories.Presentation
                         // TODO - we need to sort this out properly
                         // We need an accurate time measure back from the DLCS, and not use catalogue metadata
                         // canvas.Duration = physicalFile.AssetMetadata.GetLengthInSeconds().ParseDuration();
+                            
+                            // reference AV state - see comments in AVState
+                            // physicalFile.Type
+                            // ^^ This is going to just be "page"; need to look at the manifestation type too
+                            
+                            // get some dimensions - mock the w,h, duration acquisition
+                            // make the canvas
+                            // annotate the AV onto it
+                            // store in AVState map
+                            
+        
+
+
+                        // Add a poster image to the manifest, while we're here
                         break;
                     case AssetFamily.File:
+                        // This might be an AV transcript, in which case we note it down and add it to the AVState
+                        // Or it might just be a PDF, Born Digital - in which case... what? We can't make IIIF3 for it.
+                        // Make an issue for this.
+                        // 
+                        // see b17502792
+                        // If this is a transcript, store in AV state map
+                        // what do we need to tie it to the right vid? Just one of each? Never more complex than that, yet.
+                        
+                        // If it's n
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
