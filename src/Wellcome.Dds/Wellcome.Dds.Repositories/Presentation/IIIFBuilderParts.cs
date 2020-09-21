@@ -239,9 +239,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
-            var manifestIdentifier = digitisedManifestation.MetsManifestation.Id;
+            var metsManifestation = digitisedManifestation.MetsManifestation;
+            var manifestIdentifier = metsManifestation.Id;
             manifest.Items = new List<Canvas>();
-            foreach (var physicalFile in digitisedManifestation.MetsManifestation.SignificantSequence)
+            foreach (var physicalFile in metsManifestation.SignificantSequence)
             {
                 string orderLabel = null;
                 LanguageMap canvasLabel = null;
@@ -285,7 +286,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     new PaintingAnnotation
                                     {
                                         Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier, assetIdentifier),
-                                        Body = mainImage
+                                        Body = mainImage,
+                                        Target = new Canvas{ Id = canvas.Id }
                                     }
                                 }
                             }
@@ -318,24 +320,59 @@ namespace Wellcome.Dds.Repositories.Presentation
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
                     case AssetFamily.TimeBased:
-                        // TODO - we need to sort this out properly
-                        // We need an accurate time measure back from the DLCS, and not use catalogue metadata
-                        // canvas.Duration = physicalFile.AssetMetadata.GetLengthInSeconds().ParseDuration();
-                            
-                            // reference AV state - see comments in AVState
-                            // physicalFile.Type
-                            // ^^ This is going to just be "page"; need to look at the manifestation type too
-                            
-                            // get some dimensions - mock the w,h, duration acquisition
-                            // make the canvas
-                            // annotate the AV onto it
-                            // store in AVState map
-                            
-        
+                        Size videoSize = null;
+                        if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+                        {
+                            videoSize = new Size(
+                                physicalFile.AssetMetadata.GetImageWidth(),
+                                physicalFile.AssetMetadata.GetImageHeight());
+                        }
+                        double duration = physicalFile.AssetMetadata.GetDuration();
+                        // Without more support in Goobi we might have ended up with 0,0,0 here.
+                        // So we'll fake some obvious sizes
+                        if (videoSize != null)
+                        {
+                            if (videoSize.Width <= 0 || videoSize.Height <= 0)
+                            {
+                                videoSize = new Size(999, 999);
+                            }
 
-
-                        // Add a poster image to the manifest, while we're here
+                            canvas.Width = videoSize.Width;
+                            canvas.Height = videoSize.Height;
+                        }
+                        if (duration <= 0)
+                        {
+                            duration = 999.99;
+                        }
+                        canvas.Duration = duration;
+                        var avChoice = GetAVChoice(physicalFile);
+                        if (avChoice.Items?.Count > 0)
+                        {
+                            canvas.Items = new List<AnnotationPage>
+                            {
+                                new AnnotationPage
+                                {
+                                    Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
+                                    Items = new List<IAnnotation>
+                                    {
+                                        new PaintingAnnotation
+                                        {
+                                            Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier,
+                                                assetIdentifier),
+                                            Body = avChoice.Items.Count == 1 ? avChoice.Items[0] : avChoice,
+                                            Target = new Canvas {Id = canvas.Id}
+                                        }
+                                    }
+                                }
+                            };
+                            AddAuthServices(avChoice, physicalFile, foundAuthServices);
+                            AddPosterImage(manifest, assetIdentifier, manifestIdentifier);
+                        }
+                       
+                        state.AVState ??= new AVState();
+                        state.AVState.Canvases.Add(canvas); // is this enough? Map them, somehow?
                         break;
+                        
                     case AssetFamily.File:
                         // This might be an AV transcript, in which case we note it down and add it to the AVState
                         // Or it might just be a PDF, Born Digital - in which case... what? We can't make IIIF3 for it.
@@ -356,6 +393,42 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Services = foundAuthServices.Values.ToList();
             }
+        }
+
+        private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)
+        {
+            var posterAssetIdentifier = $"poster-{assetIdentifier}";
+            var posterCanvasId = uriPatterns
+                .CanvasPaintingAnnotationPage(manifestIdentifier, posterAssetIdentifier);
+            manifest.PlaceholderCanvas = new Canvas
+            {
+                Id = uriPatterns.Canvas(manifestIdentifier, posterAssetIdentifier),
+                Label = Lang.Map("Poster Image Canvas"),
+                Width = 600, // we know this...
+                Height = 400, // but not this. TODO: better poster images once in Goobi
+                Items = new List<AnnotationPage>
+                {
+                    new AnnotationPage
+                    {
+                        Id = posterCanvasId,
+                        Items = new List<IAnnotation>
+                        {
+                            new PaintingAnnotation
+                            {
+                                Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier,
+                                    posterAssetIdentifier),
+                                Body = new Image
+                                {
+                                    Id = uriPatterns.PosterImage(manifestIdentifier),
+                                    Label = Lang.Map("Poster Image"),
+                                    Format = "image/jpeg"
+                                },
+                                Target = new Canvas { Id = posterCanvasId }
+                            }
+                        }
+                    }
+                }
+            };
         }
 
         public void ImprovePagingSequence(Manifest manifest)
@@ -381,6 +454,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             var mainImage = imageService.AsImageWithService(actualSize, staticSize);
             return (mainImage, thumbImage);
+        }
+
+        private PaintingChoice GetAVChoice(IPhysicalFile physicalFile)
+        {
+            
         }
         
         

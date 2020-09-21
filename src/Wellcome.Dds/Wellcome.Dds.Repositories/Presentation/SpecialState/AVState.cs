@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using IIIF.Presentation;
 using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Repositories.Presentation.SpecialState
@@ -48,9 +49,11 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public AVState()
         {
             MultipleManifestationMembers = new List<MultipleManifestationMember>();
+            Canvases = new List<Canvas>();
         }
         
         public List<MultipleManifestationMember> MultipleManifestationMembers { get; set; }
+        public List<Canvas> Canvases { get; set; }
     }
 
 

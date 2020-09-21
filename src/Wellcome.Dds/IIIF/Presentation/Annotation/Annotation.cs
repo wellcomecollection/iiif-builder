@@ -16,5 +16,10 @@ namespace IIIF.Presentation.Annotation
         [JsonProperty(Order = 21)]
         public string? TimeMode { get; set; }
         
+        /// <summary>
+        /// Note that this is a IIIF-specific use of target; can be anything in W3C
+        /// </summary>
+        [JsonProperty(Order = 50)]
+        public IStructuralLocation Target { get; set; }
     }
 }

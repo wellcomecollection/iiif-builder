@@ -69,6 +69,7 @@ namespace Wellcome.Dds.IIIFBuilding
         // Other resources
         private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
         private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
+        private const string PosterImageFormat =                  "/thumbs/{identifier}";
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
@@ -105,7 +106,7 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestAndAssetIdentifiers(
                 CanvasFormat, manifestIdentifier, assetIdentifier);
-        }        
+        }       
         
         public string CanvasPaintingAnnotationPage(string manifestIdentifier, string assetIdentifier)
         {
@@ -241,6 +242,10 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestIdentifier(RangeFormat, manifestIdentifier)
                 .Replace(RangeIdentifierToken, rangeIdentifier);
         }
-        
+
+        public string PosterImage(string manifestIdentifier)
+        {
+            return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
+        }
     }
 }

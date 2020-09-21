@@ -55,6 +55,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             return GetFilePropertyValue("Length In Seconds");
         }
+
+        public double GetDuration()
+        {
+            throw new System.NotImplementedException();
+        }
+
         public string GetBitrateKbps()
         {
             return GetFilePropertyValue("Bitrate (kbps)");
