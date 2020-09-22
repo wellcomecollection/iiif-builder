@@ -1,5 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using IIIF.Presentation;
+using IIIF.Presentation.Annotation;
+using IIIF.Presentation.Content;
+using Utils;
 using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Repositories.Presentation.SpecialState
@@ -41,11 +45,6 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     /// </summary>
     public class AVState
     {
-        public static void ProcessState(MultipleBuildResult buildResults, State state)
-        {
-            throw new System.NotImplementedException();
-        }
-
         public AVState()
         {
             MultipleManifestationMembers = new List<MultipleManifestationMember>();

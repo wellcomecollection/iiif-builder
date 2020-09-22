@@ -49,7 +49,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null)
         {
             var state = new State();
-            var buildResults = new MultipleBuildResult();
+            var buildResults = new MultipleBuildResult {Identifier = bNumber};
             var ddsId = new DdsIdentifier(bNumber);
             if (ddsId.IdentifierType != IdentifierType.BNumber)
             {
@@ -103,7 +103,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        private static void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
             if (!state.HasState)
             {
@@ -116,7 +116,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             } 
             else if (state.AVState != null)
             {
-                AVState.ProcessState(buildResults, state);
+                build.ProcessAVState(buildResults, state);
             }
             else if (state.ChemistAndDruggistState != null)
             {

@@ -24,6 +24,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     {
         public MultiCopyState MultiCopyState { get; set; }
         public AVState AVState { get; set; }
+        public FileState FileState { get; set; }
         public ChemistAndDruggistState ChemistAndDruggistState { get; set; }
 
         // which one of these to use...

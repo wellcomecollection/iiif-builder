@@ -19,7 +19,7 @@ namespace IIIF.Presentation.Annotation
         /// <summary>
         /// Note that this is a IIIF-specific use of target; can be anything in W3C
         /// </summary>
-        [JsonProperty(Order = 50)]
+        [JsonProperty(Order = 900)]
         public IStructuralLocation Target { get; set; }
     }
 }

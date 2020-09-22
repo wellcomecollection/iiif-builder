@@ -22,6 +22,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AssetIdentifierToken = "{assetIdentifier}";
         private const string RangeIdentifierToken = "{rangeIdentifier}";
         private const string AnnoIdentifierToken = "{annoIdentifier}";
+        private const string FileExtensionToken = "{fileExt}";
         
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
@@ -53,6 +54,8 @@ namespace Wellcome.Dds.IIIFBuilding
         // Canonical - conceptual (not dereffed...)
         private const string CanvasPaintingAnnotationPageFormat = "/presentation/{identifier}/canvases/{assetIdentifier}/painting";
         private const string CanvasPaintingAnnotationFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
+        private const string CanvasSuppAnnotationPageFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing";
+        private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/anno";
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
@@ -77,11 +80,13 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
         // TODO: these need to change to iiif.wellcomecollection.org/... once DLCS routes to it
-        private const string DlcsPdfTemplate = "https://dlcs.io/pdf/wellcome/pdf/{space}/{identifier}";
+        private const string DlcsPdfTemplate          = "https://dlcs.io/pdf/wellcome/pdf/{space}/{identifier}";
         private const string DlcsThumbServiceTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{assetIdentifier}";
         private const string DlcsImageServiceTemplate = "https://dlcs.io/iiif-img/wellcome/{space}/{assetIdentifier}";
-        
-        
+        private const string DlcsVideoTemplate        = "https://dlcs.io/iiif-av/wellcome/{space}/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
+        private const string DlcsAudioTemplate        = "https://dlcs.io/iiif-av/wellcome/{space}/{assetIdentifier}/full/max/default.{fileExt}";
+        private const string DlcsFileTemplate         = "https://dlcs.io/file/wellcome/{space}/{assetIdentifier}";
+
         public UriPatterns(
             IOptions<DdsOptions> ddsOptions,
             ICatalogue catalogue)
@@ -118,6 +123,17 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestAndAssetIdentifiers(
                 CanvasPaintingAnnotationFormat, manifestIdentifier, assetIdentifier);
         }        
+        
+        public string CanvasSupplementingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                CanvasSuppAnnotationPageFormat, manifestIdentifier, assetIdentifier);
+        }    
+        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier);
+        }     
         
         public string CanvasOtherAnnotationPage(string manifestIdentifier, string assetIdentifier)
         {
@@ -193,14 +209,34 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string DlcsThumb(int space, string assetIdentifier)
         {
-            return DlcsThumbServiceTemplate
-                .Replace(SpaceToken, space.ToString())
-                .Replace(AssetIdentifierToken, assetIdentifier);
+            return DlcsIdentifier(DlcsThumbServiceTemplate, space, assetIdentifier);
         }
         
         public string DlcsImageService(int space, string assetIdentifier)
         {
-            return DlcsImageServiceTemplate
+            return DlcsIdentifier(DlcsImageServiceTemplate, space, assetIdentifier);
+        }
+
+        public string DlcsVideo(int space, string assetIdentifier, string fileExt)
+        {
+            return DlcsIdentifier(DlcsVideoTemplate, space, assetIdentifier)
+                .Replace(FileExtensionToken, fileExt);
+        }
+
+        public string DlcsAudio(int space, string assetIdentifier, string fileExt)
+        {
+            return DlcsIdentifier(DlcsAudioTemplate, space, assetIdentifier)
+                .Replace(FileExtensionToken, fileExt);
+        }
+        
+        public string DlcsFile(int space, string assetIdentifier)
+        {
+            return DlcsIdentifier(DlcsFileTemplate, space, assetIdentifier);
+        }
+
+        private string DlcsIdentifier(string template, int space, string assetIdentifier)
+        {
+            return template
                 .Replace(SpaceToken, space.ToString())
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }

@@ -27,6 +27,9 @@ namespace Wellcome.Dds.IIIFBuilding
 
     public class MultipleBuildResult : IEnumerable<BuildResult>
     {
+        // The b number
+        public string Identifier { get; set; }
+        
         private readonly Dictionary<string, BuildResult> resultDict = new Dictionary<string, BuildResult>();
         private readonly List<string> buildOrder = new List<string>();
 
@@ -41,6 +44,8 @@ namespace Wellcome.Dds.IIIFBuilding
             buildOrder.Remove(id);
             resultDict.Remove(id);
         }
+
+        public int Count => buildOrder.Count;
 
         public BuildResult this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
 

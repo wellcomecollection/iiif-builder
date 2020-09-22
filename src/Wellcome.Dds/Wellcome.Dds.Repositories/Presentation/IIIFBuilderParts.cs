@@ -320,6 +320,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
                     case AssetFamily.TimeBased:
+                        if (state == null)
+                        {
+                            // This won't be true once we have handled the new AV model 
+                            // https://github.com/wellcomecollection/platform/issues/4788
+                            // but for now, it is.
+                            throw new IIIFBuildStateException("State is required to build AV resources");
+                        }
                         Size videoSize = null;
                         if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
                         {
@@ -345,7 +352,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             duration = 999.99;
                         }
                         canvas.Duration = duration;
-                        var avChoice = GetAVChoice(physicalFile);
+                        var avChoice = GetAVChoice(digitisedManifestation, physicalFile, videoSize, duration);
                         if (avChoice.Items?.Count > 0)
                         {
                             canvas.Items = new List<AnnotationPage>
@@ -357,8 +364,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     {
                                         new PaintingAnnotation
                                         {
-                                            Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier,
-                                                assetIdentifier),
+                                            Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier, assetIdentifier),
                                             Body = avChoice.Items.Count == 1 ? avChoice.Items[0] : avChoice,
                                             Target = new Canvas {Id = canvas.Id}
                                         }
@@ -381,8 +387,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                         // see b17502792
                         // If this is a transcript, store in AV state map
                         // what do we need to tie it to the right vid? Just one of each? Never more complex than that, yet.
-                        
-                        // If it's n
+                        state.FileState ??= new FileState();
+                        state.FileState.FoundFiles.Add(physicalFile);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -456,14 +462,60 @@ namespace Wellcome.Dds.Repositories.Presentation
             return (mainImage, thumbImage);
         }
 
-        private PaintingChoice GetAVChoice(IPhysicalFile physicalFile)
+        private PaintingChoice GetAVChoice(IDigitisedManifestation digitisedManifestation, IPhysicalFile physicalFile, Size videoSize, double duration)
         {
-            
+            var metsManifestation = digitisedManifestation.MetsManifestation;
+            // TODO - this needs work later. For now, we're deducing the properties of the output
+            // based on inside knowledge of the Elastictranscoder settings.
+            // Ideally, we ask the DLCS what it actually produced - including variations in size and duration 
+            // The duration might not be identical.
+            // The other issue here is that the DLCS probably won't have got round to processing this,
+            // most times we get here. You'd have to come back and run the workflow again to pick it up.
+            var choice = new PaintingChoice { Items = new List<IPaintable>() };
+            if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+            {
+                var confineToBox = new Size(1280, 720);
+                // TODO - this needs to match Elastictranscoder settings, which may be more complex tham this
+                var computedSize = Size.Confine(confineToBox, videoSize);
+                choice.Items.Add(new Video
+                {
+                    Id = uriPatterns.DlcsVideo(dlcsDefaultSpace, physicalFile.StorageIdentifier, "mp4"),
+                    Format = "video/mp4",
+                    Label = Lang.Map("MP4"),
+                    Duration = duration,
+                    Width = computedSize.Width,
+                    Height = computedSize.Height
+                });
+                choice.Items.Add(new Video
+                {
+                    Id = uriPatterns.DlcsVideo(dlcsDefaultSpace, physicalFile.StorageIdentifier, "webm"),
+                    Format = "video/webm",
+                    Label = Lang.Map("WebM"),
+                    Duration = duration,
+                    Width = computedSize.Width,
+                    Height = computedSize.Height
+                });
+            }
+            else if (physicalFile.Type == "Audio" || metsManifestation.Type == "Audio")
+            {
+                choice.Items.Add(new Audio
+                {
+                    Id = uriPatterns.DlcsAudio(dlcsDefaultSpace, physicalFile.StorageIdentifier, "mp3"),
+                    Format = "audio/mp3",
+                    Label = Lang.Map("MP3"),
+                    Duration = duration
+                });
+            }
+            else
+            {
+                // ?
+            }
+            return choice;
         }
         
         
         private void AddAuthServices(
-            Image mainImage, 
+            IPaintable media, 
             IPhysicalFile physicalFile,
             Dictionary<string, IService> foundAuthServices)
         {
@@ -474,16 +526,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     return;
                 case AccessCondition.RequiresRegistration: // i.e., Clickthrough
                     AddAuthServiceToDictionary(foundAuthServices, clickthroughService);
-                    AddAuthServiceToImage(mainImage, clickthroughServiceReference);
+                    AddAuthServiceToMedia(media, clickthroughServiceReference);
                     break;
                 case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
                 case AccessCondition.Degraded:
                     AddAuthServiceToDictionary(foundAuthServices, loginService);
-                    AddAuthServiceToImage(mainImage, loginServiceReference);
+                    AddAuthServiceToMedia(media, loginServiceReference);
                     break;
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
-                    AddAuthServiceToImage(mainImage, externalAuthServiceReference);
+                    AddAuthServiceToMedia(media, externalAuthServiceReference);
                     break;
                 default:
                     throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
@@ -498,22 +550,22 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void AddAuthServiceToImage(Image image, IService service)
+        private void AddAuthServiceToMedia(IPaintable paintable, IService service)
         {
-            if (image == null || service == null)
+            if (paintable == null || service == null)
             {
                 return;
             }
 
-            if (image.Service.HasItems())
+            if (paintable.Service.HasItems())
             {
-                var iiifImageApi2 = (ImageService2) image.Service.First();
+                var iiifImageApi2 = (ImageService2) paintable.Service.First();
                 iiifImageApi2.Service = new List<IService>{service};
-                image.Service.Add(service);
+                paintable.Service.Add(service);
             }
             else
             {
-                image.Service = new List<IService>{service};
+                paintable.Service = new List<IService>{service};
             }
             
         }
@@ -790,6 +842,53 @@ namespace Wellcome.Dds.Repositories.Presentation
                     CopyNumber = metsManifestation.ModsData.CopyNumber,
                     VolumeNumber = metsManifestation.ModsData.VolumeNumber
                 };
+            }
+        }
+
+        public void ProcessAVState(MultipleBuildResult buildResults, State state)
+        {
+            // OK, what do we have here?
+            if (buildResults.Count <= 1)
+            {
+                // we only ended up with one manifest, so we're probably OK here.
+                // If there are none, let the consequences of that be felt elsewhere.
+                return;
+            } 
+            // get the BuildResult that has a video or audio canvas
+            var relevantBuildResult = buildResults
+                .Where(br => br.IIIF3Resource is Manifest)
+                .Single(br =>
+                    ((Manifest) br.IIIF3Resource).Items.HasItems() &&
+                    ((Manifest) br.IIIF3Resource).Items.Exists(c => c.Duration > 0));
+            // let this throw for now if Single(..) broke
+
+            if (state.FileState != null && state.FileState.FoundFiles.HasItems())
+            {
+                var transcript = state.FileState.FoundFiles.First(pf => pf.Type == "Transcript");
+                if (transcript == null) transcript = state.FileState.FoundFiles.First();
+                var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
+                var canvas = manifest.Items.First(c => c.Duration > 0);
+                canvas.Annotations ??= new List<AnnotationPage>();
+                canvas.Annotations.Add(new AnnotationPage
+                {
+                    Id = uriPatterns.CanvasSupplementingAnnotationPage(
+                        buildResults.Identifier, transcript.StorageIdentifier),
+                    Items = new List<IAnnotation>
+                    {
+                        new SupplementingDocumentAnnotation
+                        {
+                            Id = uriPatterns.CanvasSupplementingAnnotation(
+                                buildResults.Identifier, transcript.StorageIdentifier),
+                            Body = new ExternalResource("Text")
+                            {
+                                Id = uriPatterns.DlcsFile(dlcsDefaultSpace, transcript.StorageIdentifier),
+                                Label = Lang.Map("PDF Transcript"),
+                                Format = "application/pdf"
+                            },
+                            Target = new Canvas{ Id = canvas.Id }
+                        }
+                    }
+                });
             }
         }
     }
