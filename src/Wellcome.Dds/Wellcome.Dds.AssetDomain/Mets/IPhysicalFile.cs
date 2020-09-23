@@ -27,6 +27,10 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string AccessCondition { get; set; }
         string DzLicenseCode { get; set; }
         string RelativePath { get; set; }
+        
+        /// <summary>
+        /// Gets path to ALTO file associated with this file.
+        /// </summary>
         string RelativeAltoPath { get; set; }
         string ToStringWithDimensions();
 
