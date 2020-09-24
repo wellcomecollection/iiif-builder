@@ -35,26 +35,30 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
         
-        private async Task<BuildResult> BuildIIIF(string id)
+        private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
         {
             var ddsId = new DdsIdentifier(id);
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
             await dds.RefreshManifestations(ddsId.BNumber, work);
-            var result = await iiifBuilder.Build(id, work);
-            return result;
+            if (all)
+            {
+                return await iiifBuilder.BuildAllManifestations(id);
+            }
+            return await iiifBuilder.Build(id, work);
         }
         
-        public async Task<ContentResult> IIIFRaw(string id)
+        public async Task<ContentResult> IIIFRaw(string id, bool all = false)
         {
-            var result = await BuildIIIF(id);
-            return Content(iiifBuilder.Serialise(result.IIIF3Resource), "application/json");
+            var ddsId = new DdsIdentifier(id);
+            var build = await BuildResult(ddsId, all);
+            return Content(iiifBuilder.Serialise(build.IIIF3Resource), "application/json");
         }
 
 
-        public async Task<ActionResult> IIIF(string id)
+        public async Task<ActionResult> IIIF(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id);
-            var result = await BuildIIIF(ddsId);
+            var build = await BuildResult(ddsId, all);
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",
@@ -62,14 +66,35 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 BNumber = ddsId.BNumber,
                 RelativePath = ddsId,
                 Manifestation = ddsId,
-                CodeAsString = iiifBuilder.Serialise(result.IIIF3Resource),
-                ErrorMessage = result.Message,
+                CodeAsString = iiifBuilder.Serialise(build.IIIF3Resource),
+                ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
-                Raw = Url.Action("IIIFRaw", new {id})
+                Raw = Url.Action("IIIFRaw", new {id}),
+                IncludeLinksToFullBuild = true
             };
             return View("Code", model);
         }
-        
+
+        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all)
+        {
+            var results = await BuildIIIF(ddsId, all);
+            var build = results[ddsId];
+            if (build.RequiresMultipleBuild && all == false)
+            {
+                results = await BuildIIIF(ddsId.BNumber, true);
+                build = results[ddsId];
+                // do we still have the same resource in the results?
+                // This particular manifestation might have been removed.
+                if (build == null)
+                {
+                    // e.g., AV MM rearranged into one Manifest
+                    // So return the b number
+                    build = results[ddsId.BNumber];
+                }
+            }
+            return build;
+        }
+
         public async Task<ContentResult> XmlRaw(string id, string parts)
         {
             var store = await workStorageFactory.GetWorkStore(id);

@@ -1,5 +1,6 @@
 ﻿using IIIF.Presentation.Annotation;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace IIIF.Presentation
 {
@@ -15,18 +16,22 @@ namespace IIIF.Presentation
         /// <summary>
         /// The Width of the Canvas. This value does not have a unit.
         /// </summary>
+        [JsonProperty(Order = 11)]
         public int? Width { get; set; }
         
         /// <summary>
         /// The Height of the Canvas. This value does not have a unit.
         /// </summary>
+        [JsonProperty(Order = 12)]
         public int? Height { get; set; }
         
         /// <summary>
         /// The Duration of the Canvas, in seconds.
         /// </summary>
+        [JsonProperty(Order = 103)]
         public double? Duration { get; set; }
         
+        [JsonProperty(Order = 300)]
         public List<AnnotationPage>? Items { get; set; }
     }
 }

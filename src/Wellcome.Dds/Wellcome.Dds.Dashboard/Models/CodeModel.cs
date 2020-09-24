@@ -12,5 +12,6 @@
         public string ErrorMessage { get; set; }
         public string Mode { get; set; }
         public string Raw { get; set; }
+        public bool IncludeLinksToFullBuild { get; set; }
     }
 }

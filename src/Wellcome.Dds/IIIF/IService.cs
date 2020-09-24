@@ -6,7 +6,7 @@ namespace IIIF
     /// </summary>
     public interface IService
     {
-        string Id { get; set; }
+        string? Id { get; set; }
         string Type { get; }
     }
 }

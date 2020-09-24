@@ -4,16 +4,15 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using IIIF;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 
@@ -27,11 +26,7 @@ namespace Wellcome.Dds.Repositories
         private readonly DdsContext ddsContext;
         private readonly ICatalogue catalogue;
         private readonly DlcsOptions dlcsOptions;
-
-        // TODO: This needs to change to iiif.wellcomecollection.org/... once DLCS routes to it
-        private const string ThumbTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{id}";
-        private const string ImageServiceTemplate = "https://dlcs.io/iiif-img/wellcome/{space}/{id}";
-
+        private readonly UriPatterns uriPatterns;
         
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
@@ -42,13 +37,15 @@ namespace Wellcome.Dds.Repositories
             ILogger<Synchroniser> logger,
             DdsContext ddsContext,
             ICatalogue catalogue,
-            IOptions<DlcsOptions> dlcsOptions)
+            IOptions<DlcsOptions> dlcsOptions,
+            UriPatterns uriPatterns)
         {
             this.metsRepository = metsRepository;
             this.logger = logger;
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
             this.dlcsOptions = dlcsOptions.Value;
+            this.uriPatterns = uriPatterns;
         }
         
 
@@ -289,9 +286,7 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return ThumbTemplate
-                .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
-                .Replace("{id}", asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.CustomerDefaultSpace, asset.StorageIdentifier);
         }
         
         // private string GetDlcsImageServiceForAsset(IPhysicalFile asset)

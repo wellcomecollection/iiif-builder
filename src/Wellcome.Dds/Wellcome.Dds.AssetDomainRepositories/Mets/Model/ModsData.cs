@@ -208,7 +208,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             else
             {
-                modsData.CopyNumber = 1;
+                // CHANGE from old DDS - I'm setting this to -1 to indicate that it was not present in the METS
+                // This now matches the Volume number behaviour
+                modsData.CopyNumber = -1;
+                // modsData.CopyNumber = 1;
             }
         }
 

@@ -46,5 +46,12 @@ namespace Wellcome.Dds.Catalogue
             }
             return metadataList;
         }
+
+        public static IEnumerable<string> GetNotes(this Work work, string noteType)
+        {
+            return work.Notes?
+                .Where(n => n.NoteType.Id == noteType)
+                .SelectMany(n => n.Contents);
+        }
     }
 }

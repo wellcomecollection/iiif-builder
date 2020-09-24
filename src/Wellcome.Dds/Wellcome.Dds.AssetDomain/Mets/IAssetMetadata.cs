@@ -8,6 +8,7 @@
         string GetFormatName();
         string GetAssetId();
         string GetLengthInSeconds();
+        double GetDuration();
         string GetBitrateKbps();
         int GetNumberOfPages();
         int GetNumberOfImages();

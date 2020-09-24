@@ -115,9 +115,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
-            services.AddScoped<IIIIFBuilder, IIIFBuilder>(opts =>
-                ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
-                    factory.Get(NamedClient.Dds)));
+            services.AddScoped<IIIIFBuilder, IIIFBuilder>();
 
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds

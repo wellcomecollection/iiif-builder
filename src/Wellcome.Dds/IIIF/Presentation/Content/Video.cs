@@ -1,6 +1,8 @@
-﻿namespace IIIF.Presentation.Content
+﻿using IIIF.Presentation.Annotation;
+
+namespace IIIF.Presentation.Content
 {
-    public class Video : ExternalResource, ISpatial, ITemporal
+    public class Video : ExternalResource, ISpatial, ITemporal, IPaintable
     {
         public int Width { get; set; }
         public int Height { get; set; }

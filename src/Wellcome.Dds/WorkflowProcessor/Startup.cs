@@ -63,9 +63,7 @@ namespace WorkflowProcessor
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
-            services.AddScoped<IIIIFBuilder, IIIFBuilder>(opts =>
-                ActivatorUtilities.CreateInstance<IIIFBuilder>(opts,
-                    factory.Get(NamedClient.Dds)));
+            services.AddScoped<IIIIFBuilder, IIIFBuilder>();
             services.AddScoped<WorkflowRunner>(opts =>
                 ActivatorUtilities.CreateInstance<WorkflowRunner>(opts,
                     factory.Get(NamedClient.Dds)));

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
 using IIIF.Presentation.Content;
+using Utils;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -43,10 +44,9 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public static void AddOtherProvider(this ResourceBase iiifResource, ManifestationMetadata manifestationMetadata, string host)
         {
-            var locationOfOriginal = manifestationMetadata.Metadata
-                .FirstOrDefault(m => m.Label == "Location");
-            if (locationOfOriginal == null) return;
-            var agent = PartnerAgents.GetAgent(locationOfOriginal.StringValue, host);
+            var locationOfOriginal = manifestationMetadata.Metadata.GetLocationOfOriginal();
+            if (!locationOfOriginal.HasText()) return;
+            var agent = PartnerAgents.GetAgent(locationOfOriginal, host);
             if (agent == null) return;
             iiifResource.Provider ??= new List<Agent>();
             iiifResource.Provider.Add(agent);

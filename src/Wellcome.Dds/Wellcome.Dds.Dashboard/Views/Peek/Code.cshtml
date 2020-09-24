@@ -26,7 +26,16 @@
             @if (Model.AnchorFile.HasText())
             {
                 @: | <a href="@Model.AnchorFile">Anchor file</a>
-            } )
+            } 
+            @if (Model.IncludeLinksToFullBuild)
+            {
+                @: | <a href='@(Model.Raw + "?all=true")'>Full Build Raw</a>
+                @if (Model.BNumber.HasText())
+                {
+                    @: | <a href='@(Model.BNumber + "?all=true")'>@Model.BNumber Full build</a>
+                }
+            }
+            )
         </h3>
         @if (Model.Description.HasText())
         {

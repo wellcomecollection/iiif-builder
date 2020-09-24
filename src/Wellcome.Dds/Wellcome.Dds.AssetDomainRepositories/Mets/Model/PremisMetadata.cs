@@ -64,6 +64,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return GetFilePropertyValue("Duration");
         }
 
+        public double GetDuration()
+        {
+            var possibleStringLength = GetLengthInSeconds();
+            // TODO - this will not work with "2 min 56sec" and whatnot; needs a proper parser
+            // but see if this can be done in Goobi first
+            double.TryParse(possibleStringLength, out var result);
+            return result;
+        }
+        
         public string GetBitrateKbps()
         {
             return GetFilePropertyValue("Bitrate");

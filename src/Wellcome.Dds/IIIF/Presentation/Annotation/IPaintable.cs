@@ -1,4 +1,6 @@
 ﻿
+using System.Collections.Generic;
+
 namespace IIIF.Presentation.Annotation
 {
     /// <summary>
@@ -7,5 +9,6 @@ namespace IIIF.Presentation.Annotation
     /// </summary>
     public interface IPaintable
     {
+        List<IService>? Service { get; set; }
     }
 }

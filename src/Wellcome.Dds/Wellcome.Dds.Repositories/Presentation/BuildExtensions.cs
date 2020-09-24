@@ -2,10 +2,13 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
+using IIIF.Presentation;
+using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -49,7 +52,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                 asset.AssetMetadata.GetImageWidth(),
                 asset.AssetMetadata.GetImageHeight());
             sizes.Add(new Size(actualSize.Width, actualSize.Height));
-            foreach (int thumbSize in ThumbSizes)
+            var usableThumbs = new List<int>();
+            switch (asset.AccessCondition)
+            {
+                case AccessCondition.Open:
+                    usableThumbs = ThumbSizes.ToList();
+                    break;
+                case AccessCondition.RequiresRegistration:
+                    usableThumbs = ThumbSizes.Skip(2).ToList();
+                    break;
+            }
+            foreach (int thumbSize in usableThumbs)
             {
                 var confinedSize = Size.Confine(thumbSize, actualSize);
                 sizes.Add(new Size(confinedSize.Width, confinedSize.Height));
@@ -58,6 +71,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
         // TODO - this can be used for canvas thumbs, too, as an extension for IPhysicalFile.. although different enough...
+        // TODO - needs take into account access conditions - but have we already done that in Synchroniser? YES!
+        
+        // still need posters:
+        // still need PDF thumbs
+        // https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds/LinkedData/LodProviders/PackageTripleProvider.cs#L131
         public static List<ExternalResource> GetThumbnail(
             this List<Manifestation> manifestations, 
             string digitisedManifestationIdentifier)
@@ -84,9 +102,17 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 return null;
             }
+            return new List<ExternalResource>
+            {
+                thumbSource.AsThumbnailWithService(thumbSizes)
+            };
+        }
+
+        public static Image AsThumbnailWithService(this string thumbSource, List<Size> thumbSizes)
+        {
             var largest = thumbSizes.First();
             var smallest = thumbSizes.Last();
-            var thumb = new Image
+            return new Image
             {
                 Id = $"{thumbSource}/full/{smallest.Width},{smallest.Height}/0/default.jpg",
                 Width = smallest.Width,
@@ -103,8 +129,71 @@ namespace Wellcome.Dds.Repositories.Presentation
                     }
                 }
             };
-            return new List<ExternalResource>{ thumb };
         }
+
+        public static Image AsImageWithService(this string imageSource, Size actualSize, Size staticSize)
+        {
+            return new Image
+            {
+                Id = $"{imageSource}/full/{staticSize.Width},{staticSize.Height}/0/default.jpg",
+                Width = staticSize.Width,
+                Height = staticSize.Height,
+                Format = "image/jpeg",
+                Service = new List<IService>
+                {
+                    new ImageService2
+                    {
+                        Id = imageSource,
+                        Width = actualSize.Width,
+                        Height = actualSize.Height,
+                        Profile = ImageService2.Level1Profile
+                    }
+                }
+            };
+        }
+
+        public static string GetLocationOfOriginal(this List<Metadata> metadata)
+        {
+            var locationOfOriginal = metadata
+                .FirstOrDefault(m => m.Label == "Location");
+            return locationOfOriginal?.StringValue;
+        }
+
+        public static string WrapSpan(this string s)
+        {
+            return $"<span>{s}</span>";
+            return $"<span>{s}</span>";
+        }
+
+        public static bool SupportsSearch(this IEnumerable<IPhysicalFile> assets)
+        {
+            return assets.Any(pf => pf.RelativeAltoPath.HasText());
+        }
+
+        public static bool IsMultiPart(this ResourceBase resource)
+        {
+            if (resource.Behavior.HasItems())
+            {
+                return resource.Behavior.Contains(Behavior.MultiPart);
+            }
+            return false;
+        }
+
+        public static bool ExcludeDlcsAssetFromManifest(this IPhysicalFile physicalFile)
+        {
+            switch (physicalFile.AccessCondition)
+            {
+                case AccessCondition.Open:
+                case AccessCondition.RequiresRegistration:
+                case AccessCondition.Degraded:
+                case AccessCondition.ClinicalImages:
+                case AccessCondition.RestrictedFiles:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+        
         
     }
 }

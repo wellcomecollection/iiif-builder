@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Amazon.S3;
-using Amazon.S3.Model;
+using DlcsWebClient.Config;
 using IIIF;
-using IIIF.ImageApi.Service;
 using IIIF.Presentation;
 using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -18,6 +14,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.SpecialState;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -29,7 +26,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ICatalogue catalogue;
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
-        private readonly IAmazonS3 amazonS3;
         private readonly IIIFBuilderParts build;
         
         public IIIFBuilder(
@@ -38,8 +34,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             IDashboardRepository dashboardRepository,
             ICatalogue catalogue,
             IOptions<DdsOptions> ddsOptions,
-            UriPatterns uriPatterns,
-            IAmazonS3 amazonS3)
+            IOptions<DlcsOptions> dlcsOptions,
+            UriPatterns uriPatterns)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -47,13 +43,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.catalogue = catalogue;
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
-            this.amazonS3 = amazonS3;
-            build = new IIIFBuilderParts(uriPatterns);
+            build = new IIIFBuilderParts(uriPatterns, dlcsOptions.Value.CustomerDefaultSpace);
         }
 
-        public async Task<BuildResult> BuildAndSaveAllManifestations(string bNumber, Work work = null)
+        public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null)
         {
-            var result = new BuildResult();
+            var state = new State();
+            var buildResults = new MultipleBuildResult {Identifier = bNumber};
             var ddsId = new DdsIdentifier(bNumber);
             if (ddsId.IdentifierType != IdentifierType.BNumber)
             {
@@ -68,8 +64,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 // This is a bnumber, so can't be part of anything.
-                result = BuildInternal(work, resource, null, manifestationMetadata);
-                await Save(result);
+                buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is IDigitisedCollection parentCollection)
                 {
                     // This will need some special treatment to build Chemist and Druggist in the
@@ -81,25 +76,59 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        result = BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata);
-                        await Save(result);
+                        buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
             }
             catch (Exception e)
             {
-                result.Message = $"Failed at {manifestationId}, {e.Message}";
-                result.Outcome = BuildOutcome.Failure;
+                buildResults.Message = $"Failed at {manifestationId}, {e.Message}";
+                buildResults.Outcome = BuildOutcome.Failure;
+                return buildResults;
             }
 
-            return result;
+            CheckAndProcessState(buildResults, state);
+            
+            // Now the buildResults should have what actually needs to be persisted.
+            // Only now do we convert them to IIIF2
+            // TODO - make this optional - dashboard PeekController shouldn't trigger this
+            foreach (var buildResult in buildResults)
+            {
+                // now build the Presentation 2 version from the Presentation 3 version
+                var iiifPresentation2Resource = MakePresentation2Resource(buildResult.IIIF3Resource);
+                buildResult.IIIF2Resource = iiifPresentation2Resource;
+                buildResult.IIIF2Key = $"v2/{buildResult.Id}";
+            }
+            
+            return buildResults;
         }
 
-      
-        public async Task<BuildResult> Build(string identifier, Work work = null)
+        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        {
+            if (!state.HasState)
+            {
+                return;
+            }
+
+            if (state.MultiCopyState != null)
+            {
+                MultiCopyState.ProcessState(buildResults, state);
+            } 
+            else if (state.AVState != null)
+            {
+                build.ProcessAVState(buildResults, state);
+            }
+            else if (state.ChemistAndDruggistState != null)
+            {
+                // Fear me...
+                ChemistAndDruggistState.ProcessState(buildResults, state);
+            }
+        }
+
+        public async Task<MultipleBuildResult> Build(string identifier, Work work = null)
         {
             // only this identifier, not all for the b number.
-            var result = new BuildResult();
+            var buildResults = new MultipleBuildResult();
             try
             {
                 var ddsId = new DdsIdentifier(identifier);
@@ -114,36 +143,41 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // result to BuildAndSaveAllManifestations
                     partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
                 }
-                result = BuildInternal(work, digitisedResource, partOf, manifestationMetadata);
+                // We can't supply state for a single build.
+                // We should throw an exception. 
+                // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
+                // (dash preview can go back and rebuild all, then pick out the one asked for, 
+                // or redirect to a single AV manifest).
+                buildResults.Add(BuildInternal(work, digitisedResource, partOf, manifestationMetadata, null));
             }
             catch (Exception e)
             {
-                result.Message = e.Message;
-                result.Outcome = BuildOutcome.Failure;
+                buildResults.Message = e.Message;
+                buildResults.Outcome = BuildOutcome.Failure;
             }
-            return result;
+            return buildResults;
         }
         
 
-        private BuildResult BuildInternal(
-            Work work, 
+        private BuildResult BuildInternal(Work work,
             IDigitisedResource digitisedResource, IDigitisedCollection partOf,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata, State state)
         {
-            var result = new BuildResult();
+            var result = new BuildResult(digitisedResource.Identifier);
             try
             {
                 // build the Presentation 3 version from the source materials
-                var iiifPresentation3Resource = MakePresentation3Resource(digitisedResource, partOf, work, manifestationMetadata);
+                var iiifPresentation3Resource = MakePresentation3Resource(
+                    digitisedResource, partOf, work, manifestationMetadata, state);
                 result.IIIF3Resource = iiifPresentation3Resource;
                 result.IIIF3Key = $"v3/{digitisedResource.Identifier}";
-                
-                // now build the Presentation 2 version from the Presentation 3 version
-                var iiifPresentation2Resource = MakePresentation2Resource(iiifPresentation3Resource);
-                result.IIIF2Resource = iiifPresentation2Resource;
-                result.IIIF2Key = $"v2/{digitisedResource.Identifier}";
-                
                 result.Outcome = BuildOutcome.Success;
+            }
+            catch (IIIFBuildStateException bex)
+            {
+                result.RequiresMultipleBuild = true;
+                result.Message = bex.Message;
+                result.Outcome = BuildOutcome.Failure;
             }
             catch (Exception e)
             {
@@ -152,7 +186,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return result;
         }
-  
+
 
         /// <summary>
         /// </summary>
@@ -160,12 +194,14 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <param name="partOf"></param>
         /// <param name="work"></param>
         /// <param name="manifestationMetadata"></param>
+        /// <param name="state"></param>
         /// <returns></returns>
-        public StructureBase MakePresentation3Resource(
+        private StructureBase MakePresentation3Resource(
             IDigitisedResource digitisedResource,
             IDigitisedCollection partOf,
             Work work,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            State state)
         {
             switch (digitisedResource)
             {
@@ -175,7 +211,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
                     };
                     AddCommonMetadata(collection, work, manifestationMetadata);
-                    BuildCollection(collection, digitisedCollection, work, manifestationMetadata);
+                    BuildCollection(collection, digitisedCollection, work, manifestationMetadata, state);
                     return collection;
                 case IDigitisedManifestation digitisedManifestation:
                     var manifest = new Manifest
@@ -195,17 +231,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata);
+                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata, state);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
         }
 
-        private void BuildCollection(
-            Collection collection,
+        private void BuildCollection(Collection collection,
             IDigitisedCollection digitisedCollection,
             Work work,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            State state)
         {
             // TODO - use of Labels.
             // The work label should be preferred over the METS label,
@@ -230,6 +266,23 @@ namespace Wellcome.Dds.Repositories.Presentation
                 int counter = 1;
                 foreach (var mf in digitisedCollection.Manifestations)
                 {
+                    var type = mf.MetsManifestation.Type;
+                    if (type == "Video" || type == "Audio" || type == "Transcript") // anything else?
+                    {
+                        if (state == null)
+                        {
+                            // This won't be true once we have handled the new AV model 
+                            // https://github.com/wellcomecollection/platform/issues/4788
+                            // but for now, it is.
+                            throw new IIIFBuildStateException("State is required to build AV resources");
+                        }
+                        state.AVState ??= new AVState();
+                        state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
+                        {
+                            Id = mf.MetsManifestation.Id,
+                            Type = type
+                        });
+                    }
                     var order = mf.MetsManifestation.Order;
                     if (!order.HasValue || order < 1)
                     {
@@ -253,24 +306,28 @@ namespace Wellcome.Dds.Repositories.Presentation
                 }
             }
         }
+        
 
 
 
         private void BuildManifest(
             Manifest manifest, 
             IDigitisedManifestation digitisedManifestation,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            State state)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(digitisedManifestation.Identifier);
-            build.RequiredStatement(manifest, digitisedManifestation);
+            build.RequiredStatement(manifest, digitisedManifestation, manifestationMetadata);
             build.Rights(manifest, digitisedManifestation);
             build.PagedBehavior(manifest, digitisedManifestation);
             build.ViewingDirection(manifest, digitisedManifestation); // do we do this?
             build.Rendering(manifest, digitisedManifestation);
             build.SearchServices(manifest, digitisedManifestation);
-            build.ServicesForAuth(manifest, digitisedManifestation); // (new services property)
-            build.Canvases(manifest, digitisedManifestation);
+            build.Canvases(manifest, digitisedManifestation, state);
+            // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, digitisedManifestation); // ranges
+            build.ImprovePagingSequence(manifest);
+            build.CheckForCopyAndVolumeStructure(digitisedManifestation, state);
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
         }
         
@@ -296,6 +353,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Summary(iiifResource, work);
             build.HomePage(iiifResource, work);
             build.Metadata(iiifResource, work);
+            build.ArchiveCollectionStructure(iiifResource, work);
         }
      
         /// <summary>
@@ -312,24 +370,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return p2Version;
         }
 
-        private async Task Save(BuildResult buildResult)
-        {
-            await SaveToS3(buildResult.IIIF3Resource, buildResult.IIIF3Key);
-            await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
-        }
         
-        private async Task SaveToS3(StructureBase iiifResource, string key)
-        {
-            var put = new PutObjectRequest
-            {
-                BucketName = ddsOptions.PresentationContainer,
-                Key = key,
-                ContentBody = Serialise(iiifResource),
-                ContentType = "application/json"
-            };
-            await amazonS3.PutObjectAsync(put);
-        }
-
         public string Serialise(StructureBase iiifResource)
         {
             return JsonConvert.SerializeObject(iiifResource, GetJsFriendlySettings());

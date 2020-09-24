@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using IIIF.Presentation;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -106,20 +108,45 @@ namespace WorkflowProcessor
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var result = await iiifBuilder.BuildAndSaveAllManifestations(job.Identifier, work);
-            var packageEnd = DateTime.Now;
-            job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
-            if(result.Outcome != BuildOutcome.Success)
+            var buildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
+            
+            // Now we save them all to S3.
+            string saveId = "-";
+            try
             {
-                if(result.Outcome == BuildOutcome.HasClosedSection)
+                foreach (var buildResult in buildResults)
                 {
-                    return;
-                }
-                if(result.Outcome == BuildOutcome.MissingDzLicenseCode)
-                {
-                    throw new NotSupportedException("MODS Section does not contain a DZ License Code");
+                    saveId = buildResult.Id;
+                    await Save(buildResult);
                 }
             }
+            catch (Exception e)
+            {
+                buildResults.Message = $"Failed at {saveId}, {e.Message}";
+                buildResults.Outcome = BuildOutcome.Failure;
+            }
+
+            var packageEnd = DateTime.Now;
+            job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
+            if(buildResults.Any(br => br.Outcome != BuildOutcome.Success))
+            {
+                // TODO
+                // if(result.Outcome == BuildOutcome.HasClosedSection)
+                // {
+                //     return;
+                // }
+                // if(result.Outcome == BuildOutcome.MissingDzLicenseCode)
+                // {
+                //     throw new NotSupportedException("MODS Section does not contain a DZ License Code");
+                // }
+            }
+        }
+        
+        
+        private async Task Save(BuildResult buildResult)
+        {
+            await SaveToS3(buildResult.IIIF3Resource, buildResult.IIIF3Key);
+            await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
         }
 
         private async Task RebuildAltoDerivedAssets(WorkflowJob job)
@@ -202,6 +229,18 @@ namespace WorkflowProcessor
         private bool HasAltoFiles(IManifestation manifestation)
         {
             return manifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText());
+        }
+
+        private async Task SaveToS3(StructureBase iiifResource, string key)
+        {
+            var put = new PutObjectRequest
+            {
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key,
+                ContentBody = iiifBuilder.Serialise(iiifResource),
+                ContentType = "application/json"
+            };
+            await amazonS3.PutObjectAsync(put);
         }
 
 
