@@ -1,0 +1,31 @@
+title Workflow Build IIIF Manifest
+
+actor Goobi
+participant IIIF-Builder
+participant Database
+participant WFProcessor
+participant Catalogue
+participant S3
+
+Goobi->IIIF-Builder:GET workflowprocess
+IIIF-Builder->Database:store workflow_job
+IIIF-Builder-->Goobi:202 Accepted
+loop Workflow Processor background job
+  Database-->WFProcessor:get oldest waiting job
+  WFProcessor->Catalogue:GET\n/works?identifiers={bnum}
+  Catalogue-->WFProcessor:work json
+  Database-->WFProcessor:get manifestation and metadata
+  WFProcessor->WFProcessor:Get StorageMap
+  loop per manifest
+    WFProcessor->S3:GET {bnum}.XML
+    note right of WFProcessor 
+      bucketkey from 
+      Storage Manifest location
+     end note
+    S3-->WFProcessor:METS file
+  end
+  note over WFProcessor: over simplification of process
+  WFProcessor->WFProcessor:build IIIF manifest
+  WFProcessor->S3:save IIIF3 manifest
+  WFProcessor->S3:save IIIF2 manifest
+ end

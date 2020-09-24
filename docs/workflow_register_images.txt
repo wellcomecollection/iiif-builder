@@ -1,4 +1,4 @@
-title Workflow Ingestion
+title Workflow Register Images
 
 actor Goobi
 participant IIIF-Builder

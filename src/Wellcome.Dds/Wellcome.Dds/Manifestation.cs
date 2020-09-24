@@ -12,6 +12,10 @@ namespace Wellcome.Dds
         // FM = FlatManifestation, see https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds.Data/FlatManifestation.cs
         
         public string Id { get; set; } // this is string3, the same as the manifest in S3; bnnn_0003
+        
+        /// <summary>
+        /// Gets or sets the bNumber for this work (e.g. b18031511)
+        /// </summary>
         public string PackageIdentifier { get; set; } // the b number, aka String1
         
         public string WorkId { get; set; }
@@ -36,6 +40,10 @@ namespace Wellcome.Dds
         /// Eventually, all works will have one of these, but for now it's just archives
         /// </summary>
         public string ReferenceNumber { get; set; } // The same as CalmAltRef for archives, may be
+        
+        /// <summary>
+        /// Gets or sets the individual identifier for this volume (e.g. b18031511_0001)
+        /// </summary>
         public string ManifestationIdentifier { get; set; } // do we need this? Same as Id (String3)
         public string VolumeIdentifier { get; set; } // legacy of Old model - aka String2
         public DateTime Processed { get; set; }
