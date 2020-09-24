@@ -11,7 +11,7 @@ namespace Wellcome.Dds.IIIFBuilding
             Id = id;
         }
         
-        public string Id { get; }
+        public string Id { get; set; }
         public bool RequiresMultipleBuild { get; set; }
         public BuildOutcome Outcome { get; set; }
         public string Message { get; set; }
@@ -63,6 +63,12 @@ namespace Wellcome.Dds.IIIFBuilding
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public void RemoveAll()
+        {
+            resultDict.Clear();
+            buildOrder.Clear();
         }
     }
 }

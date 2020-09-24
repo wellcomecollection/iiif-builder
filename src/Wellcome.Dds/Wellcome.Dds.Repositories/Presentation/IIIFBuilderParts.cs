@@ -189,6 +189,11 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
+            var mType = digitisedManifestation.MetsManifestation.Type;
+            if (mType == "Video" || mType == "Audio")
+            {
+                return;
+            }
             var permitted = digitisedManifestation.MetsManifestation.PermittedOperations;
             if (permitted.HasItems() && permitted.Contains("entireDocumentAsPdf"))
             {
@@ -862,12 +867,27 @@ namespace Wellcome.Dds.Repositories.Presentation
                     ((Manifest) br.IIIF3Resource).Items.Exists(c => c.Duration > 0));
             // let this throw for now if Single(..) broke
 
+            var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
+            var canvas = manifest.Items.First(c => c.Duration > 0);
+            
+            // we now have the right Manifest, but it has the wrong Identifiers everywhere...
+            string oldId = relevantBuildResult.Id;
+            string newId = buildResults.Identifier;
+            relevantBuildResult.Id = buildResults.Identifier;
+            relevantBuildResult.IIIF3Key = relevantBuildResult.IIIF3Key.Replace(oldId, newId);
+            manifest.Id = manifest.Id.Replace(oldId, newId);
+            if (manifest.PartOf.HasItems())
+            {
+                // This is no longer part of a collection
+                manifest.PartOf.RemoveAll(po => po.IsMultiPart());
+            }
+            ChangeCanvasIds(canvas, oldId, newId, false);
+            ChangeCanvasIds(manifest.PlaceholderCanvas, oldId, newId, true);
+            
             if (state.FileState != null && state.FileState.FoundFiles.HasItems())
             {
-                var transcript = state.FileState.FoundFiles.First(pf => pf.Type == "Transcript");
+                var transcript = state.FileState.FoundFiles.FirstOrDefault(pf => pf.Type == "Transcript");
                 if (transcript == null) transcript = state.FileState.FoundFiles.First();
-                var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
-                var canvas = manifest.Items.First(c => c.Duration > 0);
                 canvas.Annotations ??= new List<AnnotationPage>();
                 canvas.Annotations.Add(new AnnotationPage
                 {
@@ -889,6 +909,36 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                     }
                 });
+            }
+            
+            
+            // Now, discard the other buildResults
+            buildResults.RemoveAll();
+            buildResults.Add(relevantBuildResult);
+        }
+
+        private static void ChangeCanvasIds(Canvas canvas, string oldId, string newId, bool changeImageBody)
+        {
+            if (canvas == null)
+            {
+                return;
+            }
+            string oldIdPath = $"/{oldId}/";
+            string newIdPath = $"/{newId}/";
+            canvas.Id = canvas.Id.Replace(oldIdPath, newIdPath);
+            canvas.Items[0].Id = canvas.Items[0].Id.Replace(oldIdPath, newIdPath);
+            var anno = (PaintingAnnotation) canvas.Items[0].Items[0];
+            anno.Id = anno.Id.Replace(oldIdPath, newIdPath);
+            var target = anno.Target as ResourceBase;
+            if (target != null)
+            {
+                target.Id = target.Id.Replace(oldIdPath, newIdPath);
+            }
+
+            if (!changeImageBody) return;
+            if (anno.Body is Image image)
+            {
+                image.Id = image.Id.Replace(oldId, newId);
             }
         }
     }

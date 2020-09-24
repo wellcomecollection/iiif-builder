@@ -16,6 +16,8 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     ///    b16756654 - Dying for a smoke
     ///  - Multiple Manifestation, video and PDF transcript:
     ///    b16759138 - If only we'd known.
+    ///  - Audio
+    ///    b17307922 - Florence Nightingale : greetings to the dear old comrades of Balaclava.
     ///
     ///  - other things:
     ///    - different _download_ permissions. this cannot be expressed in IIIF, it's a viewer-specific UI thing.

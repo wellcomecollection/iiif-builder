@@ -269,6 +269,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                     var type = mf.MetsManifestation.Type;
                     if (type == "Video" || type == "Audio" || type == "Transcript") // anything else?
                     {
+                        if (state == null)
+                        {
+                            // This won't be true once we have handled the new AV model 
+                            // https://github.com/wellcomecollection/platform/issues/4788
+                            // but for now, it is.
+                            throw new IIIFBuildStateException("State is required to build AV resources");
+                        }
                         state.AVState ??= new AVState();
                         state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
                         {

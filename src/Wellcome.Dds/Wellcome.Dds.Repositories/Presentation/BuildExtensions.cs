@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
+using IIIF.Presentation;
+using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using Newtonsoft.Json;
 using Utils;
@@ -166,6 +168,15 @@ namespace Wellcome.Dds.Repositories.Presentation
         public static bool SupportsSearch(this IEnumerable<IPhysicalFile> assets)
         {
             return assets.Any(pf => pf.RelativeAltoPath.HasText());
+        }
+
+        public static bool IsMultiPart(this ResourceBase resource)
+        {
+            if (resource.Behavior.HasItems())
+            {
+                return resource.Behavior.Contains(Behavior.MultiPart);
+            }
+            return false;
         }
 
         public static bool ExcludeDlcsAssetFromManifest(this IPhysicalFile physicalFile)
