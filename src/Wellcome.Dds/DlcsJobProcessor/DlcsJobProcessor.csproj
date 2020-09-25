@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
+    <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
   </ItemGroup>
 
 </Project>
