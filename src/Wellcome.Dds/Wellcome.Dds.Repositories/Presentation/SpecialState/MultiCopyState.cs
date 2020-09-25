@@ -14,6 +14,12 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public int VolumeNumber { get; set; }
     }
     
+    /// <summary>
+    /// Multi-copy items are items with multiple copies of the same work, e.g.
+    /// b10727000
+    /// b17523588
+    /// b10003757
+    /// </summary>
     public class MultiCopyState
     {
         public Dictionary<string, CopyAndVolume> CopyAndVolumes = new Dictionary<string, CopyAndVolume>();

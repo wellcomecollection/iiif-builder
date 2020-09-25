@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -15,6 +16,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
     {
         private readonly DdsOptions options;
         private readonly HttpClient httpClient;
+        private readonly ILogger<WellcomeCollectionCatalogue> logger;
 
         /// <summary>
         /// include=identifiers,items,subjects,genres,contributors,production,notes,parts,partOf,precededBy,succeededBy
@@ -35,10 +37,12 @@ namespace Wellcome.Dds.Repositories.Catalogue
 
         public WellcomeCollectionCatalogue(
             IOptions<DdsOptions> ddsOptions,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            ILogger<WellcomeCollectionCatalogue> logger)
         {
             options = ddsOptions.Value;
             this.httpClient = httpClient;
+            this.logger = logger;
         }
 
         public async Task<Work> GetWorkByOtherIdentifier(string identifier)
@@ -111,8 +115,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
         {
             var queryString = BuildQueryString(query, identifiers, include, pageSize);
             var url = options.ApiWorkTemplate + queryString;
-            var response = await httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
+            var response = await MakeRequest(url);
             return await response.Content.ReadFromJsonAsync<WorkResultPage>();
         }
 
@@ -125,8 +128,20 @@ namespace Wellcome.Dds.Repositories.Catalogue
         public async Task<Work> GetWorkByWorkId(string workId)
         {
             var url = GetCatalogueApiUrl(workId);
-            var response = await httpClient.GetAsync(url);
+            var response = await MakeRequest(url);
             return await response.Content.ReadFromJsonAsync<Work>();
+        }
+        
+        private async Task<HttpResponseMessage> MakeRequest(string url)
+        {
+            var response = await httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Request to '{url}' returned {statusCode}", url, response.StatusCode);
+            }
+
+            response.EnsureSuccessStatusCode();
+            return response;
         }
 
         private string BuildQueryString(string query, string identifiers, IEnumerable<string> include, int pageSize)
