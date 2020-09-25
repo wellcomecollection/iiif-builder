@@ -16,7 +16,10 @@ using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Catalogue;
 
 namespace DlcsJobProcessor
 {
@@ -40,7 +43,7 @@ namespace DlcsJobProcessor
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
-            
+
             services.AddDlcsClient(Configuration);
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
@@ -57,6 +60,7 @@ namespace DlcsJobProcessor
             services.AddMemoryCache();
 
             services.AddHttpClient<OAuth2ApiConsumer>();
+            services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
 
             services
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
@@ -65,6 +69,7 @@ namespace DlcsJobProcessor
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddScoped<IDashboardRepository, DashboardRepository>()
                 .AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>()
+                .AddSingleton<UriPatterns>()
                 .AddHostedService<DashboardContinuousRunningStrategy>();
             
             services.AddHealthChecks()

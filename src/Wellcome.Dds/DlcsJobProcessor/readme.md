@@ -29,3 +29,19 @@ dotnet run DlcsJobProcessor JobProcessor:Filter=b12345678
 # run updatestatus job, with yield time of 15s
 dotnet run DlcsJobProcessor JobProcessor:Mode=updatestatus JobProcessor:YieldTimeSecs=15
 ```
+
+## Go File
+
+> This functionality will be updated in the future to be more gracefully handled.
+
+When starting up the JobProcessor will make a check to verify that a known file exists. If this file does not exist, or it is empty then the job processor _won't start_. The file that is checked is `Dds:GoFile` within the `Dds:StatusContainer` bucket.
+
+If required create a go file with a timestamp in it, e.g.:
+
+```bash
+# create file
+echo '2020-09-25T08:54:08' | dds.txt
+
+# upload to s3
+aws s3 cp dds.txt s3://wellcomecollection-stage-iiif-presentation/_status/
+```
