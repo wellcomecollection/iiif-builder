@@ -62,6 +62,10 @@ namespace Wellcome.Dds.Repositories
             IMetsResource packageMetsResource = null;
             IFileBasedResource packageFileResource = null;
             work ??= await catalogue.GetWorkByOtherIdentifier(identifier);
+            if (work == null)
+            {
+                throw new ArgumentException($"Work in Synchroniser cannot be null - {identifier}", nameof(work));
+            }
             if (isBNumber)
             {
                 // operations we can only do when the identifier being processed is a b number
