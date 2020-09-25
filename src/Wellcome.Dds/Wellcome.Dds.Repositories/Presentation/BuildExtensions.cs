@@ -194,6 +194,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        
+        /// <summary>
+        /// Is there more than one copy of the work? 
+        /// </summary>
+        public static bool IsMultiPart(this IManifestation manifestation)
+        {
+            switch (manifestation.Type)
+            {
+                case "MultipleVolume":
+                case "MultipleCopy":
+                case "MultipleVolumeMultipleCopy":
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }

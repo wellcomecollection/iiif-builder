@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
@@ -143,6 +144,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // result to BuildAndSaveAllManifestations
                     partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
                 }
+
+                if (digitisedResource is IDigitisedCollection collection)
+                {
+                    if (collection.Manifestations.Any(m => m.MetsManifestation.IsMultiPart()))
+                    {
+                        buildResults.Add(new BuildResult(identifier) {RequiresMultipleBuild = true});
+                        return buildResults;
+                    }
+                }
+                
                 // We can't supply state for a single build.
                 // We should throw an exception. 
                 // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
