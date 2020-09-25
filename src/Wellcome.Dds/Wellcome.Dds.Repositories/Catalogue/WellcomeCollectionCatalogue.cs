@@ -112,6 +112,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
             var queryString = BuildQueryString(query, identifiers, include, pageSize);
             var url = options.ApiWorkTemplate + queryString;
             var response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<WorkResultPage>();
         }
 
