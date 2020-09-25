@@ -56,7 +56,7 @@ namespace CatalogueClient
                 ApiWorkTemplate = "https://api.wellcomecollection.org/catalogue/v2/works"
             };
             var options = Options.Create(ddsOptions);
-            var catalogue = new WellcomeCollectionCatalogue(options, httpClient);
+            var catalogue = new WellcomeCollectionCatalogue(options, httpClient, new NullLogger<WellcomeCollectionCatalogue>());
             return catalogue;
         }
 

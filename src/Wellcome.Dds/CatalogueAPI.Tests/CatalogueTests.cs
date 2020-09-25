@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using NuGet.Frameworks;
 using Test.Helpers;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories.Catalogue;
 using Xunit;
 
 namespace CatalogueAPI.Tests
@@ -31,7 +32,7 @@ namespace CatalogueAPI.Tests
 
             var httpClient = new HttpClient();
             var options = Options.Create(ddsOptions);
-            sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(options, httpClient);
+            sut = new Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue(options, httpClient, new NullLogger<WellcomeCollectionCatalogue>());
         }
 
         [Fact]
