@@ -53,7 +53,7 @@ namespace Wellcome.Dds.Repositories
         {
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
-                
+            var workBNumber = new DdsIdentifier(identifier).BNumber;
             List<Manifestation> ddsManifestationsForBNumber = null;
             // bool isNew = false;
             var shortB = -1;
@@ -61,10 +61,10 @@ namespace Wellcome.Dds.Repositories
             var containsRestrictedFiles = false;
             IMetsResource packageMetsResource = null;
             IFileBasedResource packageFileResource = null;
-            work ??= await catalogue.GetWorkByOtherIdentifier(identifier);
+            work ??= await catalogue.GetWorkByOtherIdentifier(workBNumber);
             if (work == null)
             {
-                throw new ArgumentException($"Work in Synchroniser cannot be null - {identifier}", nameof(work));
+                throw new ArgumentException($"Work in Synchroniser cannot be null - {workBNumber}", nameof(work));
             }
             if (isBNumber)
             {
