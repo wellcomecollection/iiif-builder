@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace Wellcome.Dds.Repositories
 {
@@ -23,7 +22,7 @@ namespace Wellcome.Dds.Repositories
             throw new NotImplementedException();
         }
 
-        public List<Manifestation> AutoComplete(string query)
+        public List<Manifestation> AutoComplete(string id)
         {
             throw new NotImplementedException();
         }
