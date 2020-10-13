@@ -196,7 +196,8 @@ namespace Wellcome.Dds.Dashboard.Models
                     return string.Format(GlyphTemplate, "film");
                 case "audio/mp3":
                 case "audio/x-mpeg-3":
-                case "audio/wav":
+                case "audio/wav": 
+                case "audio/mpeg":
                     return string.Format(GlyphTemplate, "volume-up");
                 default:
                     return string.Format(GlyphTemplate, "file");

@@ -31,6 +31,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             "audio/x-mpeg-3",
             "audio/wav",
             "audio/x-wav",
+            "audio/mpeg",
         };
 
         const int MaximumSequentialFailuresTolerated = 3;
