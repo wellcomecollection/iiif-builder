@@ -19,10 +19,14 @@ namespace Wellcome.Dds.AssetDomain
         IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath);
         Task<Stream> GetStreamForPathAsync(string relativePath);
         Task WriteFileAsync(string relativePath, string destination);
-        bool IsKnownFile(string relativePath);
+        bool IsKnownFile(string relativePath); // TODO: Get rid of this method
 
         /// <summary>
         /// Factory method for asset metadata, which depends on the XML structure
+        /// TODO: this doesn't belong in this interface in the new IIIFBuilder - 
+        /// It ties the storage implementation to the metadata implementation,
+        /// expecting that a different storage layer will use different metadata (which WAS the case)
+        /// Now, we can assume that it's all Premis whether the storage is FileSystem or WellcomeStorage.
         /// </summary>
         /// <param name="metsRoot"></param>
         /// <param name="admId"></param>

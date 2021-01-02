@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets:mets xmlns:mets="http://www.loc.gov/METS/" xmlns:dv="http://dfg-viewer.de/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OBJID="328042" xsi:schemaLocation="http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd">
+  <mets:metsHdr CREATEDATE="2020-09-15T10:29:11Z">
+    <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+      <mets:name>Goobi - a9c00 - 2020-06-25 04:29:49+0000</mets:name>
+      <mets:note>Goobi</mets:note>
+    </mets:agent>
+  </mets:metsHdr>
+  <mets:dmdSec ID="DMDLOG_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:note>There is supporting material held in the department.</mods:note>
+          <mods:titleInfo>
+            <mods:title>BMA Hastings Festival.</mods:title>
+          </mods:titleInfo>
+          <mods:recordInfo>
+            <mods:recordIdentifier source="gbv-ppn">b30496020</mods:recordIdentifier>
+          </mods:recordInfo>
+          <mods:note type="leader6">g</mods:note>
+          <mods:accessCondition type="dz">CC-BY</mods:accessCondition>
+          <mods:accessCondition type="player">48</mods:accessCondition>
+          <mods:accessCondition type="status">Open</mods:accessCondition>
+          <mods:originInfo>
+            <mods:place>
+              <mods:placeTerm type="text">Wellcome Trust</mods:placeTerm>
+            </mods:place>
+            <mods:publisher>Wellcome Trust</mods:publisher>
+            <mods:edition>[Electronic ed.]</mods:edition>
+            <mods:dateCaptured encoding="w3cdtf">2012</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>reformatted digital</mods:digitalOrigin>
+          </mods:physicalDescription>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:dmdSec ID="DMDPHYS_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:originInfo>
+            <mods:dateCaptured encoding="w3cdtf">120418</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>Wellcome Trust</mods:digitalOrigin>
+          </mods:physicalDescription>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="AMD">
+    <mets:techMD ID="AMD_0001">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b30496020_0002.mpg</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>26 min 58 s</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>Variable</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>bcb8eca64276008d6b6e23ee4cb82faa357f46e5</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>5505042436</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>MPEG-2 Program Stream</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>x-fmt/386</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0002">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b30496020_0001.jpeg</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>ImageHeight</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>576</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>ImageWidth</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>720</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-256</premis:messageDigestAlgorithm>
+                <premis:messageDigest>3dc8f6d77463bf79de4dba622e8ef71a7da25d5c7954c111688bbd033eeeaaaa</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>156341</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>JPEG File Interchange Format</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/43</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:rightsMD ID="RIGHTS">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVRIGHTS">
+        <mets:xmlData>
+          <dv:rights>
+            <dv:owner />
+            <dv:ownerLogo>http://wellcomelibrary.org/assets/img/wellcome-logo.png</dv:ownerLogo>
+            <dv:ownerSiteURL>http://wellcomelibrary.org</dv:ownerSiteURL>
+            <dv:ownerContact>wdl@wellcome.ac.uk</dv:ownerContact>
+          </dv:rights>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:rightsMD>
+    <mets:digiprovMD ID="DIGIPROV">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVLINKS">
+        <mets:xmlData>
+          <dv:links>
+            <dv:reference>b30496020</dv:reference>
+            <dv:presentation>b30496020</dv:presentation>
+          </dv:links>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:fileSec>
+    <mets:fileGrp USE="ACCESS" ID="OBJECTS">
+      <mets:file ID="FILE_0001_OBJECTS" MIMETYPE="video/mpeg" ADMID="AMD_0001">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b30496020_0002.mpg" />
+      </mets:file>
+    </mets:fileGrp>
+    <mets:fileGrp USE="POSTER" ID="POSTER IMAGE">
+      <mets:file ID="FILE_0001_POSTER" MIMETYPE="image/jpeg" ADMID="AMD_0002">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b30496020_0001.jpeg" />
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div ADMID="AMD" DMDID="DMDLOG_0000" ID="LOG_0000" LABEL="BMA Hastings Festival." TYPE="Video" />
+  </mets:structMap>
+  <mets:structMap TYPE="PHYSICAL">
+    <mets:div DMDID="DMDPHYS_0000" ID="PHYS_0000" TYPE="physSequence">
+      <mets:div ID="PHYS_0001" ORDER="1" ORDERLABEL=" - " TYPE="MPG">
+        <mets:fptr FILEID="FILE_0001_OBJECTS" />
+        <mets:fptr FILEID="FILE_0001_POSTER" />
+      </mets:div>
+    </mets:div>
+  </mets:structMap>
+  <mets:structLink>
+    <mets:smLink xlink:to="PHYS_0001" xlink:from="LOG_0000" />
+  </mets:structLink>
+</mets:mets>

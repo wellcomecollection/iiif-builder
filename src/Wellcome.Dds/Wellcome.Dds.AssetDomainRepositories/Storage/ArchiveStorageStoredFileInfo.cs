@@ -1,7 +1,7 @@
 ﻿using System;
 using Wellcome.Dds.AssetDomain;
 
-namespace Wellcome.Dds.AssetDomainRepositories
+namespace Wellcome.Dds.AssetDomainRepositories.Storage
 {
     public class ArchiveStorageStoredFileInfo : IArchiveStorageStoredFileInfo
     {

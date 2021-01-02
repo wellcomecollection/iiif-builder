@@ -6,8 +6,9 @@ using Microsoft.Extensions.Options;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Mets
+namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 {
     /// <summary>
     /// Implementation of <see cref="IWorkStorageFactory"/> for works from Wellcome storage service.

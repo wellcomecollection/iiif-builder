@@ -24,10 +24,43 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="single_version.json" />
+    <Content Include="FileSystemMetsFixtures\b16675630.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b16675630_0001.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b16675630_0002.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b2914615x.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b22488522.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b30496020.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b30496160.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b30655729.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b30655730.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b31630327.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FileSystemMetsFixtures\b32494361.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="single_version.json" />
     <Content Include="Samples\ordering_test.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

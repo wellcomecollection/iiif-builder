@@ -1,0 +1,155 @@
+<mets:mets xmlns:dv="http://dfg-viewer.de/" xmlns:mets="http://www.loc.gov/METS/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:premis="http://www.loc.gov/premis/v3" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-5.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd">
+  <mets:metsHdr CREATEDATE="2014-09-25T12:48:43">
+    <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+      <mets:name>Goobi - ugh-1.10-ugh-2.0.0-10-g8f2555a - 25−July−2014</mets:name>
+      <mets:note>Goobi</mets:note>
+    </mets:agent>
+  </mets:metsHdr>
+  <mets:dmdSec ID="DMDLOG_0001">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:note type="creation/production credits">Produced by the Wellcome Trust Film Unit. Written and narrated by Dr B. I. Williams. Character voices by Dick Graham.</mods:note>
+          <mods:originInfo>
+            <mods:place>
+              <mods:placeTerm type="code">enk</mods:placeTerm>
+              <mods:placeTerm type="text">London</mods:placeTerm>
+            </mods:place>
+            <mods:publisher>Wellcome Trust</mods:publisher>
+            <mods:dateIssued encoding="w3cdtf" keyDate="yes">1988</mods:dateIssued>
+          </mods:originInfo>
+          <mods:titleInfo>
+            <mods:title>African sleeping sickness</mods:title>
+          </mods:titleInfo>
+          <mods:part order="2" type="host">
+            <mods:detail>
+              <mods:number>2</mods:number>
+            </mods:detail>
+          </mods:part>
+          <mods:relatedItem type="host">
+            <mods:recordInfo>
+              <mods:recordIdentifier source="gbv-ppn">b16675630</mods:recordIdentifier>
+            </mods:recordInfo>
+          </mods:relatedItem>
+          <mods:recordInfo>
+            <mods:recordIdentifier source="gbv-ppn">b16675630_0002</mods:recordIdentifier>
+          </mods:recordInfo>
+          <mods:language>
+            <mods:languageTerm authority="iso639-2b" type="code">eng</mods:languageTerm>
+          </mods:language>
+          <mods:accessCondition type="dz">CC-BY-NC</mods:accessCondition>
+          <mods:accessCondition type="player">48</mods:accessCondition>
+          <mods:accessCondition type="status">Open</mods:accessCondition>
+          <mods:originInfo>
+            <mods:edition>[Electronic ed.]</mods:edition>
+            <mods:dateCaptured encoding="w3cdtf">2012</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:extent>1 encoded moving image (14 min.) sd., col.</mods:extent>
+          </mods:physicalDescription>
+          <mods:note>g</mods:note>
+          <mods:note>Produced by the Wellcome Trust Film Unit. Written and narrated by Dr B. I. Williams. Character voices by Dick Graham.</mods:note>
+          <mods:note>In English</mods:note>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:dmdSec ID="DMDPHYS_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:originInfo>
+            <mods:dateCaptured encoding="w3cdtf">080814</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>Wellcome Trust</mods:digitalOrigin>
+          </mods:physicalDescription>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="AMD">
+    <mets:techMD ID="AMD_0001">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object version="3.0" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd" xsi:type="premis:file">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>0055-0000-3718-0000-0-0000-0000-0.pdf</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>uuid</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>80074470-bb1c-4ed8-99a1-980e0f1290c8</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>PageNumber</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>7</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel/>
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>1487db855416fa16946f6016d3e7018e3987a99b</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>38891</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Acrobat PDF 1.4 - Portable Document Format 1.4</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/18</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:rightsMD ID="RIGHTS">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVRIGHTS">
+        <mets:xmlData>
+          <dv:rights>
+            <dv:owner>Wellcome Collection</dv:owner>
+            <dv:ownerLogo>http://wellcomelibrary.org/assets/img/wellcome-logo.png</dv:ownerLogo>
+            <dv:ownerSiteURL>http://wellcomelibrary.org</dv:ownerSiteURL>
+            <dv:ownerContact>wdl@wellcome.ac.uk</dv:ownerContact>
+          </dv:rights>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:rightsMD>
+    <mets:digiprovMD ID="DIGIPROV">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVLINKS">
+        <mets:xmlData>
+          <dv:links>
+            <dv:reference>b16675630_0002</dv:reference>
+            <dv:presentation>b16675630_0002</dv:presentation>
+          </dv:links>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:fileSec>
+    <mets:fileGrp USE="OBJECTS">
+      <mets:file ID="FILE_0001_OBJECTS" MIMETYPE="application/pdf">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/0055-0000-3718-0000-0-0000-0000-0.pdf"/>
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div ID="LOG_0002" LABEL="African sleeping sickness" TYPE="MultipleManifestation">
+      <mets:mptr LOCTYPE="URL" xlink:href="b16675630.xml"/>
+      <mets:div ADMID="AMD" DMDID="DMDLOG_0001" ID="LOG_0003" LABEL="African sleeping sickness" ORDER="2" TYPE="Transcript"/>
+    </mets:div>
+  </mets:structMap>
+  <mets:structMap TYPE="PHYSICAL">
+    <mets:div DMDID="DMDPHYS_0000" ID="PHYS_0000" TYPE="physSequence">
+      <mets:div ADMID="AMD_0001" ID="PHYS_0001" ORDER="1" ORDERLABEL=" - " TYPE="page">
+        <mets:fptr FILEID="FILE_0001_OBJECTS"/>
+      </mets:div>
+    </mets:div>
+  </mets:structMap>
+  <mets:structLink>
+    <mets:smLink xlink:from="LOG_0003" xlink:to="PHYS_0001"/>
+  </mets:structLink>
+</mets:mets>

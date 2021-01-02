@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets:mets xmlns:mets="http://www.loc.gov/METS/" xmlns:dv="http://dfg-viewer.de/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OBJID="328039" xsi:schemaLocation="http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd">
+  <mets:metsHdr CREATEDATE="2020-09-11T11:02:21Z">
+    <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+      <mets:name>Goobi - a9c00 - 2020-06-25 04:29:49+0000</mets:name>
+      <mets:note>Goobi</mets:note>
+    </mets:agent>
+  </mets:metsHdr>
+  <mets:dmdSec ID="DMDLOG_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:titleInfo>
+            <mods:title>Sukeshi Thakkar: interview 1</mods:title>
+          </mods:titleInfo>
+          <mods:recordInfo>
+            <mods:recordIdentifier source="gbv-ppn">b22488522</mods:recordIdentifier>
+          </mods:recordInfo>
+          <mods:note type="wellcomeidentifier">OH1/A/1</mods:note>
+          <mods:note type="leader6">i</mods:note>
+          <mods:accessCondition type="dz">CC-BY</mods:accessCondition>
+          <mods:accessCondition type="player">48</mods:accessCondition>
+          <mods:accessCondition type="status">Open</mods:accessCondition>
+          <mods:originInfo>
+            <mods:place>
+              <mods:placeTerm type="text">Wellcome Trust</mods:placeTerm>
+            </mods:place>
+            <mods:publisher>Wellcome Trust</mods:publisher>
+            <mods:edition>[Electronic ed.]</mods:edition>
+            <mods:dateCaptured encoding="w3cdtf">2012</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>reformatted digital</mods:digitalOrigin>
+            <mods:extent>1 audio file</mods:extent>
+            <mods:extent>1 WAVE audio file (506,279 KB) and 1 mp3 audio file (28,063KB) when originally accquired</mods:extent>
+            <mods:note type="duration">003000</mods:note>
+          </mods:physicalDescription>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:dmdSec ID="DMDPHYS_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:originInfo>
+            <mods:dateCaptured encoding="w3cdtf">150109</mods:dateCaptured>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>Wellcome Trust</mods:digitalOrigin>
+          </mods:physicalDescription>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="AMD">
+    <mets:techMD ID="AMD_0001">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0001.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0001.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>30mn</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>ffcfdf9cf0b28fda4541fd60a6b1fe6cc932eeaf</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518428822</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1800.100098</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>ffcfdf9cf0b28fda4541fd60a6b1fe6cc932eeaf</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518428822</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0002">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0002.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0002.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>30mn</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>a52de166f8d065986ecebdcab76eda0ec0de3c0e</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1800.006836</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>a52de166f8d065986ecebdcab76eda0ec0de3c0e</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0003">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0003.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0003.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>30mn</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>3e6d36ba37e5772c49c2774882465b7447f65d96</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1800.006836</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>3e6d36ba37e5772c49c2774882465b7447f65d96</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0004">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0004.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0004.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>13mn 11s</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>8332700a7f9a5d81cc799e4906172efef1ff21ce</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>228015382</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>791.720032</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>8332700a7f9a5d81cc799e4906172efef1ff21ce</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>228015382</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0005">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0005.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0005.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>30mn</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>adb98309f8c6bf77dff305cf176e3308097404fd</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1800.006836</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>adb98309f8c6bf77dff305cf176e3308097404fd</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>518401942</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0006">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0006.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0006.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>17mn 34s</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>071f5987f22735069bdfa476661bbbbb2c14634b</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>303568342</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1054.056763</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>071f5987f22735069bdfa476661bbbbb2c14634b</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>303568342</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0007">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0007.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0007.WAV</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2mn 26s</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>eb492a41cf0d43bd58df08fe340385ab3b524ccd</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>42184342</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Duration</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>146.473419</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>Bitrate</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>2304000.0</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>eb492a41cf0d43bd58df08fe340385ab3b524ccd</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>42184342</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Broadcast WAVE</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/703</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:techMD ID="AMD_0008">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml">
+        <mets:xmlData>
+          <premis:object xmlns:premis="http://www.loc.gov/premis/v3" version="3.0" xsi:type="premis:file" xsi:schemaLocation="http://www.loc.gov/premis/v3 http://www.loc.gov/standards/premis/v3/premis.xsd">
+            <premis:objectIdentifier>
+              <premis:objectIdentifierType>local</premis:objectIdentifierType>
+              <premis:objectIdentifierValue>b22488522_0008.pdf</premis:objectIdentifierValue>
+            </premis:objectIdentifier>
+            <premis:significantProperties>
+              <premis:significantPropertiesType>PageNumber</premis:significantPropertiesType>
+              <premis:significantPropertiesValue>1</premis:significantPropertiesValue>
+            </premis:significantProperties>
+            <premis:objectCharacteristics>
+              <premis:compositionLevel />
+              <premis:fixity>
+                <premis:messageDigestAlgorithm>SHA-1</premis:messageDigestAlgorithm>
+                <premis:messageDigest>798e64127c14ec78c53734c6fe054b1ba3295700</premis:messageDigest>
+              </premis:fixity>
+              <premis:size>29463</premis:size>
+              <premis:format>
+                <premis:formatDesignation>
+                  <premis:formatName>Acrobat PDF 1.7 - Portable Document Format</premis:formatName>
+                </premis:formatDesignation>
+                <premis:formatRegistry>
+                  <premis:formatRegistryName>PRONOM</premis:formatRegistryName>
+                  <premis:formatRegistryKey>fmt/276</premis:formatRegistryKey>
+                </premis:formatRegistry>
+              </premis:format>
+            </premis:objectCharacteristics>
+          </premis:object>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:techMD>
+    <mets:rightsMD ID="RIGHTS">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVRIGHTS">
+        <mets:xmlData>
+          <dv:rights>
+            <dv:owner />
+            <dv:ownerLogo>http://wellcomelibrary.org/assets/img/wellcome-logo.png</dv:ownerLogo>
+            <dv:ownerSiteURL>http://wellcomelibrary.org</dv:ownerSiteURL>
+            <dv:ownerContact>wdl@wellcome.ac.uk</dv:ownerContact>
+          </dv:rights>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:rightsMD>
+    <mets:digiprovMD ID="DIGIPROV">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVLINKS">
+        <mets:xmlData>
+          <dv:links>
+            <dv:reference>b22488522</dv:reference>
+            <dv:presentation>b22488522</dv:presentation>
+          </dv:links>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:fileSec>
+    <mets:fileGrp USE="ACCESS" ID="OBJECTS">
+      <mets:file ID="FILE_0001_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0001">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0001.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0002_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0002">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0002.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0003_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0003">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0003.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0004_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0004">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0004.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0005_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0005">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0005.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0006_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0006">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0006.WAV" />
+      </mets:file>
+      <mets:file ID="FILE_0007_OBJECTS" MIMETYPE="audio/x-wav" ADMID="AMD_0007">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0007.WAV" />
+      </mets:file>
+    </mets:fileGrp>
+    <mets:fileGrp USE="TRANSCRIPT" ID="TRANSCRIPT">
+      <mets:file ID="FILE_0001_TRANSCRIPT" MIMETYPE="application/pdf" ADMID="AMD_0008">
+        <mets:FLocat LOCTYPE="URL" xlink:href="objects/b22488522_0008.pdf" />
+      </mets:file>
+    </mets:fileGrp>
+  </mets:fileSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div ADMID="AMD" DMDID="DMDLOG_0000" ID="LOG_0000" LABEL="Sukeshi Thakkar: interview 1" TYPE="Audio" />
+  </mets:structMap>
+  <mets:structMap TYPE="PHYSICAL">
+    <mets:div DMDID="DMDPHYS_0000" ID="PHYS_0000" TYPE="physSequence">
+      <mets:div ID="PHYS_0001" ORDER="1" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0001_OBJECTS" />
+        <mets:fptr FILEID="FILE_0001_TRANSCRIPT" />
+      </mets:div>
+      <mets:div ID="PHYS_0002" ORDER="2" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0002_OBJECTS" />
+      </mets:div>
+      <mets:div ID="PHYS_0003" ORDER="3" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0003_OBJECTS" />
+      </mets:div>
+      <mets:div ID="PHYS_0004" ORDER="4" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0004_OBJECTS" />
+      </mets:div>
+      <mets:div ID="PHYS_0005" ORDER="5" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0005_OBJECTS" />
+      </mets:div>
+      <mets:div ID="PHYS_0006" ORDER="6" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0006_OBJECTS" />
+      </mets:div>
+      <mets:div ID="PHYS_0007" ORDER="7" ORDERLABEL=" - " TYPE="audio">
+        <mets:fptr FILEID="FILE_0007_OBJECTS" />
+      </mets:div>
+    </mets:div>
+  </mets:structMap>
+  <mets:structLink>
+    <mets:smLink xlink:to="PHYS_0001" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0002" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0003" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0004" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0005" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0006" xlink:from="LOG_0000" />
+    <mets:smLink xlink:to="PHYS_0007" xlink:from="LOG_0000" />
+  </mets:structLink>
+</mets:mets>
