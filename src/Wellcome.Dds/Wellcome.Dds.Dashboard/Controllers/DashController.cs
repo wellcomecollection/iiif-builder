@@ -227,12 +227,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     DlcsOptions = dlcsOptions,
                     DlcsSkeletonManifest = skeletonPreview,
                     Work = work,
-                    CatalogueApi = uriPatterns.CatalogueApi(work.Id, null),
-                    WorkPage = uriPatterns.PersistentPlayerUri(work.Id),
                     EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(ddsId.BNumber),
                     EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(ddsId.BNumber),
                     ManifestUrl = uriPatterns.Manifest(ddsId)
                 };
+                if (work != null)
+                {
+                    // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
+                    // We can't make IIIF for it, though.
+                    model.CatalogueApi = uriPatterns.CatalogueApi(work.Id, null);
+                    model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
+                }
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
                 jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
