@@ -219,6 +219,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns></returns>
         public IStoredFile GetPosterImage()
         {
+            // 1. Legacy migrated poster images
             // See if we have a "bagger" poster image:
             const string posterAmdId = "AMD_POSTER";
             var posterTechMds = rootElement
@@ -236,6 +237,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 return sf;
             }
 
+            // 2. Interim MXF workflow, with poster image part of the same physicalFile sequence
             if (Type == "Video")
             {
                 var anImage = physicalFiles.FirstOrDefault(pf => pf.MimeType.StartsWith("image"));
@@ -249,7 +251,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     };
                 }
             }
-            return null;
+            
+            // 3. New AV workflow, where PosterImage is a proper file
+            var singleFile = physicalFiles.FirstOrDefault();
+            var poster = singleFile?.Files.FirstOrDefault(f => f.Use == "POSTER");
+            return poster;
         }
     }
 }

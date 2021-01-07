@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using Amazon.Runtime.Internal;
 using Utils;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
@@ -20,7 +21,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             Type =       (string) physFileElement.Attribute("TYPE");
             Order =      (int?)   physFileElement.Attribute("ORDER");
             OrderLabel = (string) physFileElement.Attribute("ORDERLABEL");
-
+            Files =      new List<IStoredFile>();
+            
+            // When the link to technical metadata is declared on the physical file element itself
+            // This is always the case until the new AV workflow.
             string admId = (string) physFileElement.Attribute("ADMID");
             if (admId.HasText())
             {
@@ -36,46 +40,70 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     AssetMetadata = workStore.MakeAssetMetadata(metsRoot, amdId);
                 }
             }
+            // at this point, AssetMetadata will still be null for the new AV workflow
+            
             
             var filePointers = physFileElement.Elements(XNames.MetsFptr);
             foreach (var pointer in filePointers)
             {
-                var fileId = (string) pointer.Attribute("FILEID");
-                var fileElement = fileMap[fileId];
+                var file = new StoredFile
+                {
+                    Id = (string) pointer.Attribute("FILEID"),
+                    WorkStore = workStore
+                };
+                Files.Add(file);
+
+                var fileElement = fileMap[file.Id];
+                file.Use = fileElement.Parent.Attribute("USE").Value;
+                if (file.Use == "OBJECTS")
+                {
+                    // Will be almost everything, before MXF workflow.
+                    file.Use = "ACCESS";
+                }
                 var xElement = fileElement.Element(XNames.MetsFLocat);
                 string linkHref = null;
-                if (xElement != null)
+                var xAttribute = xElement?.Attribute(XNames.XLinkHref);
+                if (xAttribute != null)
+                    linkHref = xAttribute.Value;
+                if (!linkHref.HasText())
+                    linkHref = null;
+                admId = (string) fileElement.Attribute("ADMID");
+                if (admId.HasText())
                 {
-                    var xAttribute = xElement.Attribute(XNames.XLinkHref);
-                    if (xAttribute != null)
-                        linkHref = xAttribute.Value;
+                    file.AssetMetadata = workStore.MakeAssetMetadata(metsRoot, admId);
                 }
+                file.StorageIdentifier = GetSafeStorageIdentifier(linkHref);
+                file.MimeType = (string)fileElement.Attribute("MIMETYPE");
+                file.RelativePath = linkHref;
+                file.Family = file.MimeType.GetAssetFamily();
 
-                if (fileId.EndsWith("_SDB"))  
+                switch (file.Use)
                 {
-                    // Preservica version, with GUIDs
-                    StorageIdentifier = (string) pointer.Attribute("CONTENTIDS");
-                    //SdbId = (Guid) pointer.Attribute("CONTENTIDS");
-                    MimeType = (string) fileElement.Attribute("MIMETYPE");
-                    RelativePath = linkHref;
-                    Family = MimeType.GetAssetFamily();
-                }
-                else if (fileId.EndsWith("_OBJECTS"))
-                {
-                    // This avoids mapping into the Premis metadata just to get the new identifier
-                    // but, how safe is it?
-                    StorageIdentifier = GetSafeStorageIdentifier(linkHref); 
-                    //SdbId = Guid.Empty;
-                    MimeType = (string)fileElement.Attribute("MIMETYPE");
-                    RelativePath = linkHref;
-                    Family = MimeType.GetAssetFamily();
-                }
-                else if (fileId.EndsWith("_ALTO"))
-                {
-                    if (linkHref.HasText())
-                    {
-                        RelativeAltoPath = linkHref; // TODO - RelativeAltoPath should be IStoredFileInfo
-                    }
+                    case "ALTO":
+                        RelativeAltoPath = linkHref; 
+                        break;
+                    
+                    case "POSTER":
+                        RelativePosterPath = linkHref;
+                        break;
+                    
+                    case "PRESERVATION":
+                        RelativeMasterPath = linkHref;
+                        break;
+                    
+                    case "TRANSCRIPT":
+                        RelativeTranscriptPath = linkHref;
+                        break;
+                        
+                    default:
+                        // Assume that anything else (it should be ACCESS) is the access version,
+                        // and the source of the physical file properties.
+                        AssetMetadata ??= file.AssetMetadata;
+                        StorageIdentifier = file.StorageIdentifier;
+                        MimeType = file.MimeType;
+                        RelativePath = file.RelativePath;
+                        Family = file.Family;
+                        break;
                 }
             }
         }
@@ -119,8 +147,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string AccessCondition { get; set; }
         public string DzLicenseCode { get; set; }
 
+        public List<IStoredFile> Files { get; set; }
+        
         public string RelativePath { get; set; }
         public string RelativeAltoPath { get; set; }
+        public string RelativePosterPath { get; set; }
+        public string RelativeTranscriptPath { get; set; }
+        public string RelativeMasterPath { get; set; }
 
         public AssetFamily Family { get; set; }
 
