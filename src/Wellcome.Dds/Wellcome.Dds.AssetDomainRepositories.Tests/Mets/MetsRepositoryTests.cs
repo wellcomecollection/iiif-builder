@@ -101,10 +101,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
 
         }
 
+        [Fact]
         public async Task New_Model_Supports_Old_Alto()
         {
             var metsRepository = new MetsRepository(workStorageFactory);
             var b30074976 = await metsRepository.GetAsync("b30074976");
+            var mb30074976 = (MetsManifestation) b30074976;
+            mb30074976.PosterImage.Should().BeNull();
+            foreach (var physicalFile in mb30074976.Sequence)
+            {
+                physicalFile.Files.Count.Should().Be(2);
+                physicalFile.RelativeAltoPath.Should().NotBeNullOrEmpty();
+                physicalFile.RelativeAltoPath.Should().StartWith("alto/");
+                var alto = physicalFile.Files.Single(f => f.Use == "ALTO");
+                physicalFile.RelativeAltoPath.Should().Be(alto.RelativePath);
+            }
+
         }
         
     }

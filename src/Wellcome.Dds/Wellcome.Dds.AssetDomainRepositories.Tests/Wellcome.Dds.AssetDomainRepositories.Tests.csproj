@@ -57,6 +57,9 @@
     <Content Include="FileSystemMetsFixtures\b32494361.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="FileSystemMetsFixtures\b30074976.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
