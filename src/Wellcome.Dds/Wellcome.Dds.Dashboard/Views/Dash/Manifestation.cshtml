@@ -494,7 +494,7 @@
                 {
                     var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
                     bool ignored = Model.IsIgnored(pf.StorageIdentifier);
-                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf)">
+                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
                         <td>@pf.Order</td>
                         @if (Model.ManifestationFamily == AssetFamily.Image)
                         {
@@ -556,19 +556,70 @@
                             {
                                 <td>(transcode metadata)</td>
                             }*@
-                    <td>
-                        @{
-                            var thumb24 = Model.GetThumbnail(dlcsImage, 24);
-                            var thumb100 = Model.GetThumbnail(dlcsImage, 100);
-                            var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
-                        }
-                        @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))    
-                        <iiif-thumb class="iiifpreview" 
-                                    small-thumb="thumb24" large-thumb="thumb100" 
-                                    full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri" />
-                         <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
-                    </td>
+                        <td>
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
+                            {
+                                var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                                var thumb100 = Model.GetThumbnail(dlcsImage, 100);
+                                var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
+                                @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
+                                <iiif-thumb class="iiifpreview"
+                                small-thumb="thumb24" large-thumb="thumb100"
+                                full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
+                            }
+                            <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                        </td>
                     </tr>
+                    @foreach (var adjunct in Model.GetAdjuncts(pf.Files))
+                    {
+                        dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
+                        ignored = Model.IsIgnored(adjunct.StorageIdentifier);
+                        <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
+                            <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
+                            @if (adjunct.Family == AssetFamily.Image)
+                            {
+                                <td><small>@adjunct.AssetMetadata.GetImageWidth() x @adjunct.AssetMetadata.GetImageHeight()</small></td>
+                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                <td></td>                                                         
+                            }
+                            else
+                            {
+                                <td>@Model.FormatSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                if (adjunct.Family == AssetFamily.TimeBased)
+                                {
+                                    <td>@adjunct.AssetMetadata.GetLengthInSeconds()</td>
+                                }
+                                else
+                                {
+                                    <td>@adjunct.AssetMetadata.GetNumberOfPages()</td>
+                                }
+                            }
+                            @if (ignored)
+                            {
+                                <td>ignored</td>
+                            }
+                            else
+                            {
+                                <td>@pf.AccessCondition</td>
+                            }
+                            @{
+                                if (dlcsImage != null)
+                                {
+                                    <td>
+                                        <a href="@Model.GetPortalPageForImage(dlcsImage)">@adjunct.StorageIdentifier</a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td>@adjunct.StorageIdentifier</td>
+                                }
+                            }
+                            <td>
+                                <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>

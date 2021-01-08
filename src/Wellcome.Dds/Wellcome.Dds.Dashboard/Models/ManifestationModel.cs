@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -81,7 +82,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     {
                         countsdict[desc] = 0;
                         iconDict[desc] = GetStatusIconForImageRow(dlcsImage, false);
-                        rowIdDict[desc] = GetTableId(pf);
+                        rowIdDict[desc] = GetTableId(pf.StorageIdentifier);
                     }
                     countsdict[desc] = countsdict[desc] + 1;
                     if (desc == "error" || desc == "missing")
@@ -95,7 +96,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     if (!accessConditionCounts.ContainsKey(pf.AccessCondition))
                     {
                         accessConditionCounts[pf.AccessCondition] = 0;
-                        accessConditionLinks[pf.AccessCondition] = GetTableId(pf);
+                        accessConditionLinks[pf.AccessCondition] = GetTableId(pf.StorageIdentifier);
                     }
                     accessConditionCounts[pf.AccessCondition] = accessConditionCounts[pf.AccessCondition] + 1;
                 }
@@ -275,12 +276,12 @@ namespace Wellcome.Dds.Dashboard.Models
                 return "metadata mismatch";
             return "(OK)";
         }
-        public string GetTableId(IPhysicalFile pf)
+        public string GetTableId(string storageIdentifier)
         {
             // this used to be a GUID
             // but now it might be a filename
             // either way it needs to be URL-safe
-            var safeId = pf.StorageIdentifier.Replace("-", "");
+            var safeId = storageIdentifier.Replace("-", "");
             safeId = safeId.Replace(".", "");
             return string.Format("tb{0}", safeId);
         }
@@ -396,6 +397,16 @@ namespace Wellcome.Dds.Dashboard.Models
         public string EncoreRecordUrl { get; set; }
         public string EncoreBiblioRecordUrl { get; set; }
         public string ManifestUrl { get; set; }
+
+        /// <summary>
+        /// return the additional (adjunct) files that need to be displayed in the dashboard
+        /// </summary>
+        /// <param name="files"></param>
+        /// <returns></returns>
+        public IEnumerable<IStoredFile> GetAdjuncts(List<IStoredFile> files)
+        {
+            return files.Where(f => f.Use != "ACCESS" && f.Use != "ALTO");
+        }
     }
 
 
