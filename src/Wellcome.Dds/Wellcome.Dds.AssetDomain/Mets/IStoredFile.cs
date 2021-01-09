@@ -42,6 +42,12 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// This will only be declared in
         /// </summary>
         string Use { get; set; }
-        public AssetFamily Family { get; set; }
+        AssetFamily Family { get; set; }
+        
+        /// <summary>
+        /// The METS PhysicalFile this stored file belongs to
+        /// </summary>
+        IPhysicalFile PhysicalFile { get; set; }
+        
     }
 }

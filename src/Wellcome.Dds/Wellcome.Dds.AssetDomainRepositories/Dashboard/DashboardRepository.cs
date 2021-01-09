@@ -126,7 +126,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             // From this we can make lists - what is missing, what is present but wrong metadata (needs patching), what is still ingesting
 
             // What do we need to ingest? List of assets from METS that are not present on DLCS, or are present with transcoding errors
-            var assetsToIngest = new List<IPhysicalFile>();
+            var assetsToIngest = new List<IStoredFile>();
             foreach (var kvp in syncOperation.ImagesAlreadyOnDlcs)
             {
                 if (syncOperation.StorageIdentifiersToIgnore.Contains(kvp.Key))
@@ -137,7 +137,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 var image = kvp.Value;
                 if (image == null || (reIngestErrorImages && HasProblemRequiringReIngest(image)))
                 {
-                    assetsToIngest.Add(metsManifestation.Sequence.Single(pf => pf.StorageIdentifier == kvp.Key));
+                    assetsToIngest.Add(metsManifestation.SynchronisableFiles.Single(sf => sf.StorageIdentifier == kvp.Key));
                 }
             }
 
@@ -159,17 +159,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             syncOperation.DlcsImagesToPatch = new List<Image>();
             syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
 
-            foreach (var physicalFile in metsManifestation.Sequence)
+            foreach (var storedFile in metsManifestation.SynchronisableFiles)
             {
-                if (syncOperation.StorageIdentifiersToIgnore.Contains(physicalFile.StorageIdentifier))
+                if (syncOperation.StorageIdentifiersToIgnore.Contains(storedFile.StorageIdentifier))
                 {
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
-                var newDlcsImage = MakeDlcsImage(physicalFile, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
-                var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[physicalFile.StorageIdentifier];
+                var newDlcsImage = MakeDlcsImage(storedFile, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
+                var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier];
 
-                if (assetsToIngest.Contains(physicalFile))
+                if (assetsToIngest.Contains(storedFile))
                 {
                     syncOperation.DlcsImagesToIngest.Add(newDlcsImage);
                 }
@@ -262,9 +262,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             // create an empty dictionary for all the images we need to have in the DLCS:
             var imagesAlreadyOnDlcs = new Dictionary<string, Image>();
-            foreach (var physicalFile in metsManifestation.Sequence)
+            foreach (var storedFile in metsManifestation.SynchronisableFiles)
             {
-                imagesAlreadyOnDlcs[physicalFile.StorageIdentifier] = null;
+                imagesAlreadyOnDlcs[storedFile.StorageIdentifier] = null; 
             }
 
             // go through all the DLCS images
@@ -449,7 +449,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         }
 
         private Image MakeDlcsImage(
-            IPhysicalFile asset, 
+            IStoredFile asset, 
             DdsIdentifier ddsId, 
             int sequenceIndex,
             int maxUnauthorised)
@@ -463,14 +463,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 Origin = origin,
                 String1 = ddsId.BNumber, // will be string reference
                 Number1 = sequenceIndex,
-                Number2 = asset.Index,
+                Number2 = asset.PhysicalFile.Index,
                 MediaType = asset.MimeType,
                 Family = (char)asset.Family
             };
-            if (asset.RelativeAltoPath.HasText())
+            if (asset.PhysicalFile.RelativeAltoPath.HasText())
             {
                 // TODO - Give the URI from where the DLCS can fetch this. Use the proper identifier not the seqIndex.
-                imageRegistration.Text = asset.RelativeAltoPath;
+                imageRegistration.Text = asset.PhysicalFile.RelativeAltoPath;
                 imageRegistration.TextType = "alto"; // also need a string to identify this as ALTO
             }
             switch (ddsId.IdentifierType)
@@ -492,7 +492,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     imageRegistration.Number1 = ddsId.SequenceIndex;
                     break;
             }
-            var roles = GetRoles(asset);
+            var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
             imageRegistration.MaxUnauthorised = GetMaxUnauthorised(maxUnauthorised, roles);
             return imageRegistration;
@@ -630,7 +630,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         {
             foreach (var dlcsImage in imagesOnDlcs)
             {
-                var physFile = thisManifestation.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == dlcsImage.StorageIdentifier);
+                var physFile = thisManifestation.SynchronisableFiles.SingleOrDefault(
+                    sf => sf.StorageIdentifier == dlcsImage.StorageIdentifier);
                 if (physFile != null)
                 {
                     // this DLCS image belongs in the dictionary

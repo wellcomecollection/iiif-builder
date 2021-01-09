@@ -30,6 +30,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
+        public List<IStoredFile> SynchronisableFiles
+        {
+            get
+            {
+                LazyInit();
+                return synchronisableFiles;
+            }
+        }
+
         public IStructRange RootStructRange
         {
             get
@@ -106,6 +115,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private bool initialised;
         private List<IPhysicalFile> sequence;
         private List<IPhysicalFile> significantSequence;
+        private List<IStoredFile> synchronisableFiles;
         private IStructRange rootStructRange;
         private List<string> ignoredStorageIdentifiers;
         private string firstSignificantInternetType;
@@ -140,9 +150,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 rootStructRange = BuildStructRange(logicalStructDiv);
                 var ignoreAssetFilter = new IgnoreAssetFilter();
                 if (sequence.HasItems())
-                {
-                    ignoredStorageIdentifiers = ignoreAssetFilter.GetStorageIdentifiersToIgnore(Type, sequence);
+                {                    
+                    // When we want to include POSTER images in the DLCS sync operation, 
+                    // we can add || f.Use == "POSTER" here. Wait till new DLCS before doing that.
+                    synchronisableFiles = sequence.SelectMany(pf => pf.Files)
+                        .Where(sf => sf.Use == "ACCESS" || sf.Use == "TRANSCRIPT")
+                        .ToList();
+                    var ignoredFiles = sequence.SelectMany(pf => pf.Files)
+                        .Where(sf => sf.Use == "POSTER" || sf.Use == "ALTO" || sf.Use == "PRESERVATION")
+                        .ToList();
+                    
+                    // if we're not going to see any "sequence" MXF files, then:
+                    ignoredStorageIdentifiers = ignoredFiles.Select(sf => sf.StorageIdentifier).ToList();
+                    // but for now:
+                    ignoredStorageIdentifiers = ignoredStorageIdentifiers
+                        .Union(ignoreAssetFilter.GetStorageIdentifiersToIgnore(Type, sequence)).ToList();
+                    // and the notion of SignificantSequence can go again (?)
                     significantSequence = sequence.Where(pf => !ignoredStorageIdentifiers.Contains(pf.StorageIdentifier)).ToList();
+
                     var firstSignificantFile = significantSequence.FirstOrDefault();
                     if (firstSignificantFile != null)
                     {

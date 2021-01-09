@@ -49,7 +49,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var file = new StoredFile
                 {
                     Id = (string) pointer.Attribute("FILEID"),
-                    WorkStore = workStore
+                    WorkStore = workStore,
+                    PhysicalFile = this
                 };
                 Files.Add(file);
 

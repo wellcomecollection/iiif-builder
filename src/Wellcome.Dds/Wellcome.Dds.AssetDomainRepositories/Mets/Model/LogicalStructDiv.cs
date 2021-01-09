@@ -229,7 +229,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var sf = new StoredFile
                 {
                     WorkStore = WorkStore,
-                    AssetMetadata = WorkStore.MakeAssetMetadata(rootElement, posterAmdId)
+                    AssetMetadata = WorkStore.MakeAssetMetadata(rootElement, posterAmdId),
+                    PhysicalFile = null // there is explicitly NO METS PhysicalFile
                 };
                 // The insertion of /posters here is because we don't have a physical file element
                 // to tell us where it actually is. We're not recording this anywhere.
@@ -247,7 +248,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     {
                         WorkStore = WorkStore,
                         AssetMetadata = anImage.AssetMetadata,
-                        RelativePath = anImage.RelativePath
+                        RelativePath = anImage.RelativePath,
+                        PhysicalFile = anImage
                     };
                 }
             }

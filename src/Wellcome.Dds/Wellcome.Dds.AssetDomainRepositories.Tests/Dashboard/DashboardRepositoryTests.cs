@@ -318,6 +318,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             public string FirstSignificantInternetType { get; }
             public List<string> IgnoredStorageIdentifiers { get; }
             public IStoredFile PosterImage { get; set; }
+            public List<IStoredFile> SynchronisableFiles { get; }
         }
         
         public class TestCollection : ICollection

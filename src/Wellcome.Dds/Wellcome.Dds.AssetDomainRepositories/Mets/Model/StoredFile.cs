@@ -20,5 +20,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string MimeType { get; set; }
         public string Use { get; set; }
         public AssetFamily Family { get; set; }
+        public IPhysicalFile PhysicalFile { get; set; }
     }
 }

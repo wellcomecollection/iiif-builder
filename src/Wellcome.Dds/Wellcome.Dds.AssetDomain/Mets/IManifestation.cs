@@ -13,6 +13,8 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// Gets or sets a collection of physical files that are relevant for processing.
         /// </summary>
         List<IPhysicalFile> SignificantSequence { get; }
+        
+        List<IStoredFile> SynchronisableFiles { get; }
         IStructRange RootStructRange { get; set; }
         string[] PermittedOperations { get; }
         string FirstSignificantInternetType { get; }

@@ -403,7 +403,7 @@ namespace Wellcome.Dds.Dashboard.Models
         /// </summary>
         /// <param name="files"></param>
         /// <returns></returns>
-        public IEnumerable<IStoredFile> GetAdjuncts(List<IStoredFile> files)
+        public IEnumerable<IStoredFile> GetAdjunctsForDashboardDisplay(List<IStoredFile> files)
         {
             return files.Where(f => f.Use != "ACCESS" && f.Use != "ALTO");
         }

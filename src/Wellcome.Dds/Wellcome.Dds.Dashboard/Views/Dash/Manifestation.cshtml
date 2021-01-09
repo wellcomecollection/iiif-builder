@@ -527,7 +527,7 @@
                             <td>
                                 @if (@pf.RelativeAltoPath.HasText())
                                 {                                    
-                                    <a href="@Url.ActionWithPath("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
+                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
                                        title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
                                 }
                             </td>
@@ -570,7 +570,7 @@
                             <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
                         </td>
                     </tr>
-                    @foreach (var adjunct in Model.GetAdjuncts(pf.Files))
+                    @foreach (var adjunct in Model.GetAdjunctsForDashboardDisplay(pf.Files))
                     {
                         dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
                         ignored = Model.IsIgnored(adjunct.StorageIdentifier);
