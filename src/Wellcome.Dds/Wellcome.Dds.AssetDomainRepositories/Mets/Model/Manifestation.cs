@@ -154,10 +154,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     // When we want to include POSTER images in the DLCS sync operation, 
                     // we can add || f.Use == "POSTER" here. Wait till new DLCS before doing that.
                     synchronisableFiles = sequence.SelectMany(pf => pf.Files)
-                        .Where(sf => sf.Use == "ACCESS" || sf.Use == "TRANSCRIPT")
+                        .Where(sf => 
+                            sf.Use == "OBJECTS" ||  // Old workflows
+                            sf.Use == "ACCESS" ||   // New workflows
+                            sf.Use == "TRANSCRIPT")
                         .ToList();
                     var ignoredFiles = sequence.SelectMany(pf => pf.Files)
-                        .Where(sf => sf.Use == "POSTER" || sf.Use == "ALTO" || sf.Use == "PRESERVATION")
+                        .Where(sf => 
+                            sf.Use == "POSTER" || 
+                            sf.Use == "ALTO" || 
+                            sf.Use == "PRESERVATION")
                         .ToList();
                     
                     // if we're not going to see any "sequence" MXF files, then:

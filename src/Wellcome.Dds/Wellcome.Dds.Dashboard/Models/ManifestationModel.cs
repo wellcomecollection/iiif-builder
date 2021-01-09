@@ -405,7 +405,10 @@ namespace Wellcome.Dds.Dashboard.Models
         /// <returns></returns>
         public IEnumerable<IStoredFile> GetAdjunctsForDashboardDisplay(List<IStoredFile> files)
         {
-            return files.Where(f => f.Use != "ACCESS" && f.Use != "ALTO");
+            return files.Where(f => 
+                f.Use != "OBJECTS" &&  // Old workflow
+                f.Use != "ACCESS" &&   // New workflow
+                f.Use != "ALTO");
         }
     }
 

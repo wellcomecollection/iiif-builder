@@ -56,11 +56,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
                 var fileElement = fileMap[file.Id];
                 file.Use = fileElement.Parent.Attribute("USE").Value;
-                if (file.Use == "OBJECTS")
-                {
-                    // Will be almost everything, before MXF workflow.
-                    file.Use = "ACCESS";
-                }
                 var xElement = fileElement.Element(XNames.MetsFLocat);
                 string linkHref = null;
                 var xAttribute = xElement?.Attribute(XNames.XLinkHref);

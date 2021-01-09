@@ -327,10 +327,22 @@ namespace Wellcome.Dds.Repositories.Presentation
                     case AssetFamily.TimeBased:
                         if (state == null)
                         {
-                            // This won't be true once we have handled the new AV model 
+                            // We need this state to build OLD workflow videos, because we need to consider
+                            // other manifestations within a multiple manifestation.
+                            
+                            // But we don't need this state to build a new workflow video, which all lives
+                            // in a single manifestation.
                             // https://github.com/wellcomecollection/platform/issues/4788
-                            // but for now, it is.
-                            throw new IIIFBuildStateException("State is required to build AV resources");
+                            
+                            // So how do we know what kind of workflow this is?
+                            // Does this IPhysicalFile have an explicit USE="ACCESS" file group?
+                            // For now we will assume that this is a sign of the new workflow
+                            var accessFile = physicalFile.Files.FirstOrDefault(f => f.Use == "ACCESS");
+                            if(accessFile == null)
+                            {
+                                throw new IIIFBuildStateException(
+                                    "State is required to build AV resources for OLD WORKFLOWS");
+                            }
                         }
                         Size videoSize = null;
                         if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
@@ -377,11 +389,21 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 }
                             };
                             AddAuthServices(avChoice, physicalFile, foundAuthServices);
+                            // This is still the DDS-hosted poster image, for old and new AV workflows
                             AddPosterImage(manifest, assetIdentifier, manifestIdentifier);
+                            var transcriptPdf = physicalFile.Files.FirstOrDefault(f => f.Use == "TRANSCRIPT");
+                            if (transcriptPdf != null)
+                            {
+                                // A new workflow transcript for this AV file
+                                AddPdfTranscriptToCanvas(manifestIdentifier, canvas, transcriptPdf);
+                            }
                         }
-                       
-                        state.AVState ??= new AVState();
-                        state.AVState.Canvases.Add(canvas); // is this enough? Map them, somehow?
+
+                        if (state != null)
+                        {
+                            state.AVState ??= new AVState();
+                            state.AVState.Canvases.Add(canvas); // is this enough? Map them, somehow?
+                        }
                         break;
                         
                     case AssetFamily.File:
@@ -888,33 +910,36 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 var transcript = state.FileState.FoundFiles.FirstOrDefault(pf => pf.Type == "Transcript");
                 if (transcript == null) transcript = state.FileState.FoundFiles.First();
-                canvas.Annotations ??= new List<AnnotationPage>();
-                canvas.Annotations.Add(new AnnotationPage
-                {
-                    Id = uriPatterns.CanvasSupplementingAnnotationPage(
-                        buildResults.Identifier, transcript.StorageIdentifier),
-                    Items = new List<IAnnotation>
-                    {
-                        new SupplementingDocumentAnnotation
-                        {
-                            Id = uriPatterns.CanvasSupplementingAnnotation(
-                                buildResults.Identifier, transcript.StorageIdentifier),
-                            Body = new ExternalResource("Text")
-                            {
-                                Id = uriPatterns.DlcsFile(dlcsDefaultSpace, transcript.StorageIdentifier),
-                                Label = Lang.Map("PDF Transcript"),
-                                Format = "application/pdf"
-                            },
-                            Target = new Canvas{ Id = canvas.Id }
-                        }
-                    }
-                });
+                AddPdfTranscriptToCanvas(buildResults.Identifier, canvas, transcript.Files[0]);
             }
-            
-            
             // Now, discard the other buildResults
             buildResults.RemoveAll();
             buildResults.Add(relevantBuildResult);
+        }
+
+        private void AddPdfTranscriptToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile storedPdf)
+        {
+            canvas.Annotations ??= new List<AnnotationPage>();
+            canvas.Annotations.Add(new AnnotationPage
+            {
+                Id = uriPatterns.CanvasSupplementingAnnotationPage(
+                    manifestIdentifier, storedPdf.StorageIdentifier),
+                Items = new List<IAnnotation>
+                {
+                    new SupplementingDocumentAnnotation
+                    {
+                        Id = uriPatterns.CanvasSupplementingAnnotation(
+                            manifestIdentifier, storedPdf.StorageIdentifier),
+                        Body = new ExternalResource("Text")
+                        {
+                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),
+                            Label = Lang.Map("PDF Transcript"),
+                            Format = "application/pdf"
+                        },
+                        Target = new Canvas {Id = canvas.Id}
+                    }
+                }
+            });
         }
 
         private static void ChangeCanvasIds(Canvas canvas, string oldId, string newId, bool changeImageBody)

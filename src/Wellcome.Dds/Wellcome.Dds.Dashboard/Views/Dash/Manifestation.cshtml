@@ -671,6 +671,14 @@
 
 
 <hr />
+<h3>SyncOperation</h3>
+<ul>
+    @foreach (var s in Model.SyncOperation.GetSummary())
+    {
+        <li>@s</li>
+    }
+</ul>
+
 <h3>Log</h3>
 <table class="table table-hover">
     <tr>

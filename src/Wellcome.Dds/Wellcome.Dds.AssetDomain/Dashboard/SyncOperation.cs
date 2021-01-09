@@ -51,5 +51,18 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
             BatchIngestOperationInfos = new List<DlcsBatch>();
             BatchPatchOperationInfos = new List<DlcsBatch>();
         }
+
+        public string[] GetSummary()
+        {
+            var summary = new List<string>();
+            summary.Add($"RequiresSync: {RequiresSync}");
+            summary.Add($"DlcsImagesToIngest: {DlcsImagesToIngest.Count}");
+            summary.Add($"DlcsImagesToPatch: {DlcsImagesToPatch.Count}");
+            summary.Add($"DlcsImagesCurrentlyIngesting: {DlcsImagesCurrentlyIngesting.Count}");
+            summary.Add($"Ignored storage identifiers: {StorageIdentifiersToIgnore.Count}");
+            summary.Add($"Orphans: {Orphans.Count}");
+            summary.Add($"Message: {Message}");
+            return summary.ToArray();
+        }
     }
 }
