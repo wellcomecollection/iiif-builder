@@ -1,5 +1,9 @@
 import json
+import os
+from botocore.exceptions import ClientError
 from http import HTTPStatus
+
+import boto3
 
 
 def lambda_handler(event, context):
@@ -18,9 +22,36 @@ def lambda_handler(event, context):
 
 def generate_pdf(identifier: str):
     # make request to get manifest from s3
+    manifest = get_json_object(identifier)
+
+    if not manifest:
+        return generate_response(HTTPStatus.NOT_FOUND, "Manifest for identifier not found",
+                                 {"Content-Type": "text/plain"})
 
     # generate PDF and return base64 encoded
     print(f"generating PDF cover-page for {identifier}")
+
+
+def get_json_object(identifier: str) -> dict:
+    """
+    Gets specified json-containing key as a dict
+    :param identifier: manifest to get
+    :return: Key as dictionary
+    """
+    region = os.environ.get("AWS_REGION", "eu-west-1")
+    manifest_bucket = os.environ.get("MANIFEST_BUCKET", "wellcomecollection-stage-iiif-presentation")
+    key_prefix = os.environ.get("KEY_PREFIX", "v3")
+
+    try:
+        client = boto3.client("s3", region)
+        response = client.get_object(Bucket=manifest_bucket, Key=f"{key_prefix}/{identifier}")
+        manifest = response.get("Body", "").read().decode()
+        return json.loads(manifest)
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchKey":
+            return {}
+
+        raise
 
 
 def generate_response(http_status: HTTPStatus, body: str, headers: dict, is_base64: bool = False) -> dict:
@@ -61,4 +92,3 @@ if __name__ == '__main__':
 
     result = lambda_handler(event, [])
     print(result)
-

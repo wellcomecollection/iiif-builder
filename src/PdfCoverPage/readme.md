@@ -1,6 +1,6 @@
 # PDF Cover Page
 
-PDF Cover Page generator. This is run as a AWS Lambda Python function and called through ELB.
+PDF Cover Page generator. This is run as an AWS Lambda Python function and called through ELB.
 
 The function will take an `?identifier=` query string parameter and generate the PDF cover-page for that identifier.
 
@@ -23,3 +23,9 @@ Edit the `queryStringParameters` property to simulate passing an identifier.
   "identifier": "b24967646"
 },
 ```
+
+## Testing
+
+[pytest](https://pytest.org) is used for unit tests. 
+
+As generating the PDF has a dependency on S3, [moto](https://github.com/spulec/moto) is used for mocking S3.
