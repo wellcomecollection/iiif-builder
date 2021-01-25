@@ -5,6 +5,9 @@
     /// </summary>
     public static class BasicAuthenticationDefaults
     {
+        /// <summary>
+        /// The Authentication Scheme
+        /// </summary>
         public const string AuthenticationScheme = "Basic";
     }
 }

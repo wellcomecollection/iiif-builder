@@ -162,7 +162,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         public static string WrapSpan(this string s)
         {
             return $"<span>{s}</span>";
-            return $"<span>{s}</span>";
         }
 
         public static bool SupportsSearch(this IEnumerable<IPhysicalFile> assets)

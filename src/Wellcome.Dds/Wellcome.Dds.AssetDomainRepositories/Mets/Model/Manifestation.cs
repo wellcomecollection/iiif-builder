@@ -21,15 +21,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             set { sequence = value; }
         }
 
-        public List<IPhysicalFile> SignificantSequence
-        {
-            get
-            {
-                LazyInit();
-                return significantSequence;
-            }
-        }
-
+        /// <summary>
+        /// Files that should be sent to the DLCS.
+        /// One PhysicalFile might have more than one File pointer - e.g., Images have JP2 and ALTO
+        /// but only the JP2 is synchronisable, or a video might have mpeg and transcript
+        /// </summary>
         public List<IStoredFile> SynchronisableFiles
         {
             get
@@ -50,12 +46,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
         
-        public string FirstSignificantInternetType
+        public string FirstInternetType
         {
             get
             {
                 LazyInit();
-                return firstSignificantInternetType;
+                return firstInternetType;
             }
         }
 
@@ -79,19 +75,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     if (ParentModsData.PlayerOptions > 0)
                     {
                         return LicensesAndOptions.Instance.GetPermittedOperations(
-                            ParentModsData.PlayerOptions, FirstSignificantInternetType);
+                            ParentModsData.PlayerOptions, FirstInternetType);
                     }
                 }
                 // ModsData will be null if Partial == true
                 if (ModsData != null && ModsData.PlayerOptions > 0)
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        ModsData.PlayerOptions, FirstSignificantInternetType);
+                        ModsData.PlayerOptions, FirstInternetType);
                 }
                 if (ModsData != null && ModsData.DzLicenseCode.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        ModsData.DzLicenseCode, Type, FirstSignificantInternetType);
+                        ModsData.DzLicenseCode, Type, FirstInternetType);
                 }
                 return new string[] {};
             }
@@ -114,11 +110,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private IStoredFile posterImage;
         private bool initialised;
         private List<IPhysicalFile> sequence;
-        private List<IPhysicalFile> significantSequence;
+        // private List<IPhysicalFile> significantSequence;
         private List<IStoredFile> synchronisableFiles;
         private IStructRange rootStructRange;
         private List<string> ignoredStorageIdentifiers;
-        private string firstSignificantInternetType;
+        private string firstInternetType;
 
         public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv parentStructDiv = null)
         {
@@ -166,24 +162,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                             sf.Use == "PRESERVATION")
                         .ToList();
                     
-                    // if we're not going to see any "sequence" MXF files, then:
                     ignoredStorageIdentifiers = ignoredFiles.Select(sf => sf.StorageIdentifier).ToList();
-                    // but for now:
-                    ignoredStorageIdentifiers = ignoredStorageIdentifiers
-                        .Union(ignoreAssetFilter.GetStorageIdentifiersToIgnore(Type, sequence)).ToList();
-                    // and the notion of SignificantSequence can go again (?)
-                    significantSequence = sequence.Where(pf => !ignoredStorageIdentifiers.Contains(pf.StorageIdentifier)).ToList();
 
-                    var firstSignificantFile = significantSequence.FirstOrDefault();
-                    if (firstSignificantFile != null)
+                    var firstFile = sequence.FirstOrDefault();
+                    if (firstFile != null)
                     {
-                        firstSignificantInternetType = firstSignificantFile.MimeType.ToLowerInvariant().Trim();
+                        firstInternetType = firstFile.MimeType.ToLowerInvariant().Trim();
                     }
                 }
                 else
                 {
                     ignoredStorageIdentifiers = new List<string>(0);
-                    significantSequence = new List<IPhysicalFile>(0);
                 }
             }
             initialised = true;

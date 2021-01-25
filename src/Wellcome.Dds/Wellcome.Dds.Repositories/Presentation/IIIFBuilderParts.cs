@@ -208,7 +208,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
             }
 
-            if (digitisedManifestation.MetsManifestation.SignificantSequence.SupportsSearch())
+            if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
                 manifest.Rendering ??= new List<ExternalResource>();
                 manifest.Rendering.Add(new ExternalResource("Text")
@@ -222,7 +222,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
-            if (digitisedManifestation.MetsManifestation.SignificantSequence.SupportsSearch())
+            if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
                 manifest.Service ??= new List<IService>();
                 manifest.Service.Add(new SearchService2
@@ -247,7 +247,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var manifestIdentifier = metsManifestation.Id;
             manifest.Items = new List<Canvas>();
-            foreach (var physicalFile in metsManifestation.SignificantSequence)
+            foreach (var physicalFile in metsManifestation.Sequence)
             {
                 string orderLabel = null;
                 LanguageMap canvasLabel = null;
@@ -602,7 +602,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
             
-            var physIdDict = metsManifestation.SignificantSequence.ToDictionary(
+            var physIdDict = metsManifestation.Sequence.ToDictionary(
                 pf => pf.Id, pf => pf.StorageIdentifier);
             
             // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
@@ -765,7 +765,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
-            if (metsManifestation.SignificantSequence.SupportsSearch())
+            if (metsManifestation.Sequence.SupportsSearch())
             {
                 manifest.Annotations = new List<AnnotationPage>
                 {

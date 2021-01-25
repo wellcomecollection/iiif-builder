@@ -122,9 +122,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
             };
 
-            // ImagesAlreadyOnDlcs is a map of what we think DLCS should have, to what it actually has.
-            // From this we can make lists - what is missing, what is present but wrong metadata (needs patching), what is still ingesting
-
+            /*
+             ImagesAlreadyOnDlcs is a map of what we think DLCS should have, to what it actually has.
+             From this we can make lists - 
+             what is missing, what is present but wrong metadata (needs patching), what is still ingesting
+            */
+            
             // What do we need to ingest? List of assets from METS that are not present on DLCS, or are present with transcoding errors
             var assetsToIngest = new List<IStoredFile>();
             foreach (var kvp in syncOperation.ImagesAlreadyOnDlcs)
@@ -270,8 +273,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             // go through all the DLCS images
             PopulateImagesAlreadyOnDlcs(imagesAlreadyOnDlcs, metsManifestation, dlcsImages);
 
-            // do we have any local GUIDs that the DLCS doesn't have? If metadata has changed, our initial query might miss them.
-            // so we should fetch by IDs
+            // do we have any local identifiers that the DLCS doesn't have?
+            // If metadata has changed, our initial query might miss them, so we should fetch by IDs
             var missingDlcsImageIds = imagesAlreadyOnDlcs
                 .Where(kvp => kvp.Value == null).Select(kvp => kvp.Key).ToList();
             if (missingDlcsImageIds.Any())
@@ -385,7 +388,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         }
 
         /// <summary>
-        /// return newDlcsImage if it differes from existingDlcsImage in a way that requires patching
+        /// return newDlcsImage if it differs from existingDlcsImage in a way that requires patching
         /// </summary>
         /// <param name="newDlcsImage"></param>
         /// <param name="existingDlcsImage"></param>

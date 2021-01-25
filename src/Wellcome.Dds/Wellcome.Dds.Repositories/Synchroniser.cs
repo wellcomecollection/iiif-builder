@@ -126,7 +126,7 @@ namespace Wellcome.Dds.Repositories
                     }
                 }
 
-                var assets = metsManifestation.SignificantSequence;
+                var assets = metsManifestation.Sequence;
                 
                 // (some Change code removed here) - we're not going to implement this for now
 
@@ -187,7 +187,7 @@ namespace Wellcome.Dds.Repositories
                     if (assets.Count > 0)
                     { 
                         var asset = assets[0];
-                        ddsManifestation.AssetType = metsManifestation.FirstSignificantInternetType;
+                        ddsManifestation.AssetType = metsManifestation.FirstInternetType;
                         // Drop use of pseudo seadragon/dzi type - this will need attention elsewhere
                         // if (ddsManifestation.AssetType == "image/jp2")
                         //     ddsManifestation.AssetType = "seadragon/dzi";
@@ -229,7 +229,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.Processed = DateTime.Now;
 
                 // extra fields that only the new dash knows about
-                ddsManifestation.DlcsAssetType = metsManifestation.FirstSignificantInternetType;
+                ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
                 ddsManifestation.ManifestationIdentifier = ddsId;
                 ddsManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
                     ? ddsId.VolumePart

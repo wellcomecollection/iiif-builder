@@ -52,10 +52,10 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             int lineCounter = 0;
             int wordCounter = 0;
             int composedBlockCounter = 0;
-            for (int assetIndex = 0; assetIndex < manifestation.SignificantSequence.Count; assetIndex++)
+            for (int assetIndex = 0; assetIndex < manifestation.Sequence.Count; assetIndex++)
             {
                 // TODO - logging, errors
-                var physicalFile = manifestation.SignificantSequence[assetIndex];
+                var physicalFile = manifestation.Sequence[assetIndex];
                 images.Add(new Image
                     {
                         Index = assetIndex,

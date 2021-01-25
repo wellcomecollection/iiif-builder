@@ -66,7 +66,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             var mb30496160 = (MetsManifestation) b30496160;
             mb30496160.Type.Should().Be("Video");
             mb30496160.Label.Should().Be("Anaesthesia in the horse, cow, pig, dog and cat.");
-            mb30496160.SignificantSequence.Count.Should().Be(1);
             mb30496160.Sequence.Count.Should().Be(1);
             var physFile = mb30496160.Sequence[0];
             physFile.Type.Should().Be("MP4"); // unexpected...

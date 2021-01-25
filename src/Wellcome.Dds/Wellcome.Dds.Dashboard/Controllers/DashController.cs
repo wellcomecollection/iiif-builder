@@ -451,7 +451,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
                 return RedirectToAction("Manifestation", new { id = bnumber });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return RedirectToAction("ManifestationSearchError", q);
             }

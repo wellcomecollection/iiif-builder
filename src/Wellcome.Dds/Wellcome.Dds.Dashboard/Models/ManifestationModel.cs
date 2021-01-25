@@ -70,19 +70,19 @@ namespace Wellcome.Dds.Dashboard.Models
                 var accessConditionCounts = new Dictionary<string, int>();
                 var accessConditionLinks = new Dictionary<string, string>();
                 syncSummary.CssClass = "info";
-                foreach (var pf in DigitisedManifestation.MetsManifestation.Sequence)
+                foreach (var sf in DigitisedManifestation.MetsManifestation.SynchronisableFiles)
                 {
-                    if (IsIgnored(pf.StorageIdentifier))
+                    if (IsIgnored(sf.StorageIdentifier))
                     {
                         continue;
                     }
-                    var dlcsImage = GetDlcsImage(pf.StorageIdentifier);
+                    var dlcsImage = GetDlcsImage(sf.StorageIdentifier);
                     var desc = GetStatusDescriptionForImage(dlcsImage);
                     if (!countsdict.ContainsKey(desc))
                     {
                         countsdict[desc] = 0;
                         iconDict[desc] = GetStatusIconForImageRow(dlcsImage, false);
-                        rowIdDict[desc] = GetTableId(pf.StorageIdentifier);
+                        rowIdDict[desc] = GetTableId(sf.StorageIdentifier);
                     }
                     countsdict[desc] = countsdict[desc] + 1;
                     if (desc == "error" || desc == "missing")
@@ -93,12 +93,12 @@ namespace Wellcome.Dds.Dashboard.Models
                     {
                         syncSummary.CssClass = "warning";
                     }
-                    if (!accessConditionCounts.ContainsKey(pf.AccessCondition))
+                    if (!accessConditionCounts.ContainsKey(sf.PhysicalFile.AccessCondition))
                     {
-                        accessConditionCounts[pf.AccessCondition] = 0;
-                        accessConditionLinks[pf.AccessCondition] = GetTableId(pf.StorageIdentifier);
+                        accessConditionCounts[sf.PhysicalFile.AccessCondition] = 0;
+                        accessConditionLinks[sf.PhysicalFile.AccessCondition] = GetTableId(sf.StorageIdentifier);
                     }
-                    accessConditionCounts[pf.AccessCondition] = accessConditionCounts[pf.AccessCondition] + 1;
+                    accessConditionCounts[sf.PhysicalFile.AccessCondition] = accessConditionCounts[sf.PhysicalFile.AccessCondition] + 1;
                 }
                 syncSummary.Categories = countsdict.Select(kvp => new SyncCategory
                 {
@@ -124,7 +124,7 @@ namespace Wellcome.Dds.Dashboard.Models
         {
             get
             {
-                return DigitisedManifestation.MetsManifestation.FirstSignificantInternetType.GetAssetFamily();
+                return DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
             }
         }
 
@@ -187,7 +187,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public string GetAssetGlyph()
         {
-            switch (DigitisedManifestation.MetsManifestation.FirstSignificantInternetType)
+            switch (DigitisedManifestation.MetsManifestation.FirstInternetType)
             {
                 case "image/jp2":
                     return string.Format(GlyphTemplate, "picture");

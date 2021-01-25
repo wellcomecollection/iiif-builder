@@ -315,7 +315,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             public List<IPhysicalFile> SignificantSequence { get; }
             public IStructRange RootStructRange { get; set; }
             public string[] PermittedOperations { get; }
-            public string FirstSignificantInternetType { get; }
+            public string FirstInternetType { get; }
             public List<string> IgnoredStorageIdentifiers { get; }
             public IStoredFile PosterImage { get; set; }
             public List<IStoredFile> SynchronisableFiles { get; }
