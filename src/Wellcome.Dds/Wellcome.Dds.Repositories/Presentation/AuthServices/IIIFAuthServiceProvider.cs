@@ -7,19 +7,15 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
     public abstract class IIIFAuthServiceProvider : IAuthServiceProvider
     {
-        public const string ClickthroughHeader = "Archival material less than 100 years old";
+        public const string ClickthroughHeader = "Content advisory";
         public const string ClickthroughConfirmlabel = "Accept Terms and Open";
 
         // this can be a @lang multi-metadata value
-        public const string ClickthroughLoginDescription = "This digitised " +
-                    "archival material is free to access. By accepting Wellcome Library's terms and conditions, " +
-                    "you agree to the following:<br><br>By viewing this and any subsequent archive " +
-                    "material under 100 years old, I agree that I will use personal data on living " +
-                    "persons for research purposes only. I will not use personal data to support " +
-                    "decisions about the person who is the subject of the data, or in a way that " +
-                    "causes substantial damage or distress to them.<br><br>" +
-                    "<a href='https://wellcomelibrary.org/about-this-site/terms-and-conditions/'>" +
-                    "Read Full Terms and Conditions</a>";
+        public const string ClickthroughLoginDescription = "This digitised material is free to access, but contains information or visuals that may: " +
+                                                           "<ul><li>include personal details of living individuals</li><li>be upsetting or distressing</li><li>be explicit or graphic</li>"+
+                                                           "<li>include objects and images of objects decontextualised in a way that is offensive to the originating culture.</li></ ul >< br >< br >"+
+                                                           "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our" +
+                                                           "<a href="https://wellcomecollection.cdn.prismic.io/wellcomecollection/d4817da5-c71a-4151-81c4-83e39ad4f5b3_Wellcome+Collection_Access+Policy_Aug+2020.pdf"> Access Policy</a>.";
 
         public const string ClickthroughFailureHeader = "Terms not accepted";
         public const string ClickthroughFailureDescription = "You must accept the terms to view the content.";
