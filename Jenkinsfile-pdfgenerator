@@ -1,0 +1,56 @@
+pipeline {
+ agent {
+  node {
+   label 'master'
+  }
+ }
+ options {
+  buildDiscarder(logRotator(numToKeepStr: '100'))
+ }
+ stages {
+  stage('Fetch') {
+   steps {
+    deleteDir()
+    checkout scm: [
+     $class: 'GitSCM',
+     branches: scm.branches,
+     doGenerateSubmoduleConfigurations: false,
+     extensions: [
+      [$class: 'SubmoduleOption',
+       disableSubmodules: false,
+       parentCredentials: true,
+       recursiveSubmodules: true,
+       reference: '',
+       trackingSubmodules: false
+      ]
+     ],
+     submoduleCfg: [],
+     userRemoteConfigs: scm.userRemoteConfigs
+    ]
+   }
+  }
+  stage('Install') {
+    steps {
+      sh "apt-get update"
+      sh "apt install -y zip python3-pip awscli"
+    }
+  }
+  stage('Package') {
+   steps {
+       dir('src/PdfCoverPage') {
+        sh "./create_lambda_package.sh"
+       }
+   }
+  }
+  stage('Deploy') {
+   steps {
+    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --zip-file fileb://src/PdfCoverPage/pdf_gen.zip --region ${REGION}"
+   }
+  }
+  stage('Bounce') {
+   steps {
+    sh "curl --data '{\"text\": \"Lambda ${FUNCTION_NAME} updated\"}' ${SLACK_WEBHOOK_URL}"
+   }
+  }
+ }
+}
