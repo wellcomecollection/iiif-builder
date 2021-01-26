@@ -231,7 +231,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var assetType = manifestation.FirstInternetType;
             if (assetType != null)
                 job.AssetType = assetType;
-            job.ImageCount = manifestation.Sequence.Count;
+            job.ImageCount = manifestation.SynchronisableFiles.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 
             bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);
