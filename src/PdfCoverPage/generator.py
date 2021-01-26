@@ -1,10 +1,10 @@
+import base64
 import json
 import io
 import os
 from botocore.exceptions import ClientError
 from http import HTTPStatus
 
-from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.platypus.flowables import TopPadder
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -39,10 +39,24 @@ def generate_pdf(identifier: str):
     print(f"generating PDF cover-page for '{identifier}'")
 
     # take the pertinent fields and flatten them to make it easier to use
+    relevant_fields = extract_required_fields(manifest)
+
+    # generate PDF and get bytes
+    pdf_bytes = build_pdf(identifier, relevant_fields)
+    print(f"generated PDF cover-page for '{identifier}'")
+
+    return generate_response(HTTPStatus.OK, base64.b64encode(pdf_bytes.getvalue()),
+                             {"Content-Type": "application/pdf"}, True)
+
+
+def extract_required_fields(manifest):
+    """Process manifest and extract only those fields we are interested in"""
     relevant_fields = {}
     for k, v in manifest.items():
-        if k in ["label", "summary"]:
+        if k == "label":
             relevant_fields[k] = get_first_lang_value(v)
+        elif k == "homepage":
+            relevant_fields[k] = v[0]["id"]
         elif k == "metadata":
             flattened = {}
             for d in v:
@@ -55,12 +69,7 @@ def generate_pdf(identifier: str):
             relevant_fields[k] = v["value"][get_first_lang(value)]
         elif k == "provider":
             relevant_fields[k] = v[0]
-
-    # render the PDF
-    pdf = build_pdf(identifier, relevant_fields)
-
-    # generate PDF and return base64 encoded
-    return {}
+    return relevant_fields
 
 
 def build_pdf(identifier: str, data: dict):
@@ -68,22 +77,26 @@ def build_pdf(identifier: str, data: dict):
 
     pdf_elements = []
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="Heading", fontName="Helvetica-Bold", fontSize=18, leading=20))
-    styles.add(ParagraphStyle(name="SubHeading", fontName="Helvetica-Bold", fontSize=14, leading=16))
-    styles.add(ParagraphStyle(name="Footer", fontName="Helvetica", fontSize=13, leading=18))
+    styles.add(ParagraphStyle(name="Heading", fontName="Helvetica-Bold", fontSize=13, leading=16))
+    styles.add(ParagraphStyle(name="Footer", fontName="Helvetica", fontSize=12, leading=14))
     normal = ParagraphStyle("Normal")
-    normal.fontSize = 14
-    normal.leading = 16
+    normal.fontSize = 13
+    normal.leading = 15
 
     label = data.get("label", "---NO TITLE---")
     pdf_elements.append(Paragraph(label, styles["Heading"]))
     pdf_elements.append(Spacer(1, 30))
 
+    def add_metadata(header, value):
+        pdf_elements.append(Paragraph(header, styles["Heading"]))
+        pdf_elements.append(Spacer(1, 6))
+        pdf_elements.append(Paragraph(value, normal))
+        pdf_elements.append(Spacer(1, 10))
+
     for k, v in data["metadata"].items():
-        pdf_elements.append(Paragraph(k, styles["SubHeading"]))
-        pdf_elements.append(Spacer(1, 10))
-        pdf_elements.append(Paragraph(v, normal))
-        pdf_elements.append(Spacer(1, 10))
+        add_metadata(k, v)
+    add_metadata("Reference number", identifier)
+    add_metadata("Persistent URL", data["homepage"])
     pdf_elements.append(Spacer(1, 20))
 
     requiredStatement = data["requiredStatement"]
@@ -108,8 +121,10 @@ def build_pdf(identifier: str, data: dict):
     ])
     pdf_elements.append(TopPadder(bottom))
 
-    doc = SimpleDocTemplate(f"{identifier}.pdf", pagesize=A4, font="Helvetica", topMargin=30, bottomMargin=30)
+    pdf_bytes = io.BytesIO()
+    doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, font="Helvetica", topMargin=30, bottomMargin=30)
     doc.build(pdf_elements)
+    return pdf_bytes
 
 
 def get_first_lang_value(el):
@@ -163,7 +178,6 @@ def generate_response(http_status: HTTPStatus, body: str, headers: dict, is_base
     #     },
     #     "body": "Hello from Lambda (optional)"
     # }
-    # TODO - allow content-type to be specified
     response = {
         "isBase64Encoded": is_base64,
         "statusCode": http_status.value,
@@ -181,3 +195,10 @@ if __name__ == '__main__':
 
     result = lambda_handler(event, [])
     print(result)
+
+    if result["isBase64Encoded"]:
+        contents = base64.b64decode(result["body"])
+        filename = f'{event.get("queryStringParameters", {}).get("identifier", "")}.pdf'
+        with open(filename, "wb") as f:
+            f.write(contents)
+        print(f"Saved file '{filename}'")
