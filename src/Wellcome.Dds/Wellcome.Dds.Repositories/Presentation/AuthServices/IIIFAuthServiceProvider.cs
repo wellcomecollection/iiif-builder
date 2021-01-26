@@ -11,11 +11,15 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         public const string ClickthroughConfirmlabel = "Accept Terms and Open";
 
         // this can be a @lang multi-metadata value
-        public const string ClickthroughLoginDescription = "This digitised material is free to access, but contains information or visuals that may: " +
-                                                           "<ul><li>include personal details of living individuals</li><li>be upsetting or distressing</li><li>be explicit or graphic</li>"+
-                                                           "<li>include objects and images of objects decontextualised in a way that is offensive to the originating culture.</li></ ul >< br >< br >"+
-                                                           "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our" +
-                                                           "<a href="https://wellcomecollection.cdn.prismic.io/wellcomecollection/d4817da5-c71a-4151-81c4-83e39ad4f5b3_Wellcome+Collection_Access+Policy_Aug+2020.pdf"> Access Policy</a>.";
+        public const string ClickthroughLoginDescription =
+            "<p>This digitised material is free to access, but contains information or visuals that may:</p><ul>" +
+            "<li>include personal details of living individuals</li>" +
+            "<li>be upsetting or distressing</li>" +
+            "<li>be explicit or graphic</li>" +
+            "<li>include objects and images of objects decontextualised in a way that is offensive to the originating culture.</li>" +
+            "</ul><br/><br/>" +
+            "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our" +
+            "<a href=\"https://wellcomecollection.cdn.prismic.io/wellcomecollection/d4817da5-c71a-4151-81c4-83e39ad4f5b3_Wellcome+Collection_Access+Policy_Aug+2020.pdf\">Access Policy</a>.";
 
         public const string ClickthroughFailureHeader = "Terms not accepted";
         public const string ClickthroughFailureDescription = "You must accept the terms to view the content.";
