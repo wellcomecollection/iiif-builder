@@ -17,8 +17,8 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             "<li>be upsetting or distressing</li>" +
             "<li>be explicit or graphic</li>" +
             "<li>include objects and images of objects decontextualised in a way that is offensive to the originating culture.</li>" +
-            "</ul><br/><br/>" +
-            "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our" +
+            "</ul>" +
+            "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our " +
             "<a href=\"https://wellcomecollection.cdn.prismic.io/wellcomecollection/d4817da5-c71a-4151-81c4-83e39ad4f5b3_Wellcome+Collection_Access+Policy_Aug+2020.pdf\">Access Policy</a>.";
 
         public const string ClickthroughFailureHeader = "Terms not accepted";
