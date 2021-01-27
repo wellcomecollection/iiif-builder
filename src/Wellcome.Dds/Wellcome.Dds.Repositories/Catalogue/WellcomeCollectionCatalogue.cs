@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Utils;
@@ -142,6 +143,11 @@ namespace Wellcome.Dds.Repositories.Catalogue
 
             response.EnsureSuccessStatusCode();
             return response;
+        }
+
+        public Work FromDumpLine(string line, JsonSerializerOptions options)
+        {
+            return JsonSerializer.Deserialize<Work>(line, options);
         }
 
         private string BuildQueryString(string query, string identifiers, IEnumerable<string> include, int pageSize)

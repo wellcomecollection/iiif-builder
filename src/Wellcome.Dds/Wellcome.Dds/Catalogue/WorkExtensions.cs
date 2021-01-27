@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Utils;
 
 namespace Wellcome.Dds.Catalogue
@@ -52,6 +54,55 @@ namespace Wellcome.Dds.Catalogue
             return work.Notes?
                 .Where(n => n.NoteType.Id == noteType)
                 .SelectMany(n => n.Contents);
+        }
+
+        public static string[] GetSierraSystemBNumbers(this Work work)
+        {
+            var sierraId = work.Identifiers.Where(
+                    i => i.IdentifierType.Id == "sierra-system-number");
+                return sierraId.Select(id => id.Value).ToArray();
+        }
+
+        private static readonly Regex DigitalLocationRegex = new Regex(@"^.*\/(b[0-9x]{8})\/?", RegexOptions.IgnoreCase);
+        
+        public static string[] GetDigitisedBNumbers(this Work work)
+        {
+            var sierraSystemBNumbers = work.GetSierraSystemBNumbers();
+            var iiifLocations = work.Items
+                .SelectMany(item => item.Locations)
+                .Where(loc => loc.LocationType.Id == "iiif-presentation")
+                .ToList();
+            if (iiifLocations.Any())
+            {
+                if (iiifLocations.Count == 1)
+                {
+                    var digBNum = sierraSystemBNumbers.SingleOrDefault(
+                        bNumber => iiifLocations[0].Url.Contains($"/{bNumber}/"));
+                    if (digBNum.HasText())
+                    {
+                        // simplest and happy path. There is one digital location and it's the Sierra system number.
+                        return new[] {digBNum};
+                    }
+                }
+                // This seems to be the case for videos?
+                // Digital Location b number is not mentioned anywhere else in the Work.
+                // Parse the b number out of the digital location; this has to work for old and new
+                // https://wellcomelibrary.org/iiif/b16784613/manifest
+                // https://iiif.wellcomecollection.org/presentation/b16784613
+                var parsedDigitalBNumbers = new List<string>();
+                foreach (var iiifLocation in iiifLocations)
+                {
+                    var m = DigitalLocationRegex.Match(iiifLocation.Url);
+                    if (m.Success)
+                    {
+                        parsedDigitalBNumbers.Add(m.Groups[1].Value);
+                    }
+                }
+
+                return parsedDigitalBNumbers.ToArray();
+            }
+
+            return new string[0];
         }
     }
 }

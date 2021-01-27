@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Wellcome.Dds.Catalogue
@@ -25,5 +26,12 @@ namespace Wellcome.Dds.Catalogue
         Task<WorkResultPage> GetWorkResultPage(string query, string identifiers, IEnumerable<string> include, int pageSize);
 
         string GetCatalogueApiUrl(string workId, string[] include = null);
+        
+        /// <summary>
+        /// Construct a catalogue record from a line in a dump file rather than via the API 
+        /// </summary>
+        /// <param name="line"></param>
+        /// <returns></returns>
+        Work FromDumpLine(string line, JsonSerializerOptions options);
     }
 }
