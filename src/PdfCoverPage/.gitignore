@@ -133,3 +133,7 @@ dmypy.json
 
 # terraform
 .terraform/
+
+*.pdf
+/package
+*.zip
