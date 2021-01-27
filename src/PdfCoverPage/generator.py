@@ -5,6 +5,8 @@ import os
 from botocore.exceptions import ClientError
 from http import HTTPStatus
 
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.platypus.flowables import TopPadder
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -60,7 +62,7 @@ def extract_required_fields(manifest):
         elif k == "metadata":
             flattened = {}
             for d in v:
-                label = get_first_lang_value(d["label"])
+                label = get_first_lang_value(d["label"])[0]
                 value = get_first_lang_value(d["value"])
                 flattened[label] = value
             relevant_fields[k] = flattened
@@ -73,24 +75,31 @@ def extract_required_fields(manifest):
 
 
 def build_pdf(identifier: str, data: dict):
-    # TODO - pass binary stream rather than filename to write to?
-
     pdf_elements = []
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="Heading", fontName="Helvetica-Bold", fontSize=13, leading=16))
-    styles.add(ParagraphStyle(name="Footer", fontName="Helvetica", fontSize=12, leading=14))
+    pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
+    pdfmetrics.registerFont(TTFont("NotoSans-Bold", "fonts/NotoSans-Bold.ttf"))
+    styles.add(ParagraphStyle(name="Heading", fontName="NotoSans-Bold", fontSize=12, leading=15))
+    styles.add(ParagraphStyle(name="Footer", fontName="NotoSans", fontSize=11, leading=13))
     normal = ParagraphStyle("Normal")
-    normal.fontSize = 13
-    normal.leading = 15
+    normal.fontSize = 12
+    normal.leading = 14
+    normal.fontName = "NotoSans"
 
-    label = data.get("label", "---NO TITLE---")
-    pdf_elements.append(Paragraph(label, styles["Heading"]))
+    label_vals = data.get("label", ["---NO TITLE---"])
+    full_label = u" - ".join(label_vals)
+    uu = full_label.encode("utf-8")
+    pdf_elements.append(Paragraph(uu, styles["Heading"]))
     pdf_elements.append(Spacer(1, 30))
 
     def add_metadata(header, value):
         pdf_elements.append(Paragraph(header, styles["Heading"]))
         pdf_elements.append(Spacer(1, 6))
-        pdf_elements.append(Paragraph(value, normal))
+        if isinstance(value, list):
+            pdf_elements.extend([Paragraph(val, normal) for val in value])
+        else:
+            pdf_elements.append(Paragraph(value, normal))
+
         pdf_elements.append(Spacer(1, 10))
 
     for k, v in data["metadata"].items():
@@ -99,9 +108,8 @@ def build_pdf(identifier: str, data: dict):
     add_metadata("Persistent URL", data["homepage"])
     pdf_elements.append(Spacer(1, 20))
 
-    requiredStatement = data["requiredStatement"]
-    for stmt in requiredStatement:
-        pdf_elements.append(Paragraph(stmt, normal))
+    if required_statement := data.get("requiredStatement", []):
+        pdf_elements.extend([Paragraph(stmt, normal) for stmt in required_statement])
 
     # bottom section
     provider = data["provider"]
@@ -122,14 +130,14 @@ def build_pdf(identifier: str, data: dict):
     pdf_elements.append(TopPadder(bottom))
 
     pdf_bytes = io.BytesIO()
-    doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, font="Helvetica", topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, topMargin=30, bottomMargin=30)
     doc.build(pdf_elements)
     return pdf_bytes
 
 
 def get_first_lang_value(el):
-    lang = next(iter(el))
-    return el[lang][0]
+    lang = get_first_lang(el)
+    return el[lang]
 
 
 def get_first_lang(el):
