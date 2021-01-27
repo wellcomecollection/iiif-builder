@@ -2,6 +2,8 @@ import base64
 import json
 import io
 import os
+import boto3
+
 from botocore.exceptions import ClientError
 from http import HTTPStatus
 
@@ -11,8 +13,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.platypus.flowables import TopPadder
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
-
-import boto3
 
 
 def lambda_handler(event, context):
@@ -30,24 +30,24 @@ def lambda_handler(event, context):
 
 
 def generate_pdf(identifier: str):
-    # make request to get manifest from s3
+    """Uses data from S3 manifest to construct PDF response"""
     manifest = get_manifest(identifier)
 
     if not manifest:
-        print(f"could not find PDF cover-page for '{identifier}'")
+        print(f"could not find manifest for '{identifier}'")
         return generate_response(HTTPStatus.NOT_FOUND, "Manifest for identifier not found",
                                  {"Content-Type": "text/plain"})
 
     print(f"generating PDF cover-page for '{identifier}'")
 
-    # take the pertinent fields and flatten them to make it easier to use
+    # take the pertinent fields and flatten them to make easier to use
     relevant_fields = extract_required_fields(manifest)
 
     # generate PDF and get bytes
     pdf_bytes = build_pdf(identifier, relevant_fields)
     print(f"generated PDF cover-page for '{identifier}'")
 
-    return generate_response(HTTPStatus.OK, base64.b64encode(pdf_bytes.getvalue()),
+    return generate_response(HTTPStatus.OK, base64.b64encode(pdf_bytes.getvalue()).decode(),
                              {"Content-Type": "application/pdf"}, True)
 
 
@@ -75,10 +75,12 @@ def extract_required_fields(manifest):
 
 
 def build_pdf(identifier: str, data: dict):
-    pdf_elements = []
-    styles = getSampleStyleSheet()
+    """build pdf and return bytes"""
+
+    # configure document
     pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
     pdfmetrics.registerFont(TTFont("NotoSans-Bold", "fonts/NotoSans-Bold.ttf"))
+    styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name="Heading", fontName="NotoSans-Bold", fontSize=12, leading=15))
     styles.add(ParagraphStyle(name="Footer", fontName="NotoSans", fontSize=11, leading=13))
     normal = ParagraphStyle("Normal")
@@ -86,10 +88,10 @@ def build_pdf(identifier: str, data: dict):
     normal.leading = 14
     normal.fontName = "NotoSans"
 
+    # build elements
+    pdf_elements = []
     label_vals = data.get("label", ["---NO TITLE---"])
-    full_label = u" - ".join(label_vals)
-    uu = full_label.encode("utf-8")
-    pdf_elements.append(Paragraph(uu, styles["Heading"]))
+    pdf_elements.append(Paragraph(" - ".join(label_vals), styles["Heading"]))
     pdf_elements.append(Spacer(1, 30))
 
     def add_metadata(header, value):
@@ -202,7 +204,7 @@ if __name__ == '__main__':
         event = json.load(event_json)
 
     result = lambda_handler(event, [])
-    print(result)
+    print(json.dumps(result))
 
     if result["isBase64Encoded"]:
         contents = base64.b64decode(result["body"])

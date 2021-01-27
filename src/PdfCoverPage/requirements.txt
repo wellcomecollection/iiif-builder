@@ -3,8 +3,8 @@ attrs==20.3.0
 aws-sam-translator==1.33.0
 aws-xray-sdk==2.6.0
 boto==2.49.0
-boto3==1.16.59
-botocore==1.19.59
+boto3==1.16.60
+botocore==1.19.60
 certifi==2020.12.5
 cffi==1.14.4
 cfn-lint==0.44.4
@@ -52,7 +52,7 @@ s3transfer==0.3.4
 six==1.15.0
 sshpubkeys==3.3.0
 toml==0.10.2
-urllib3==1.26.2
+urllib3==1.26.3
 websocket-client==0.57.0
 Werkzeug==1.0.1
 wrapt==1.12.1
