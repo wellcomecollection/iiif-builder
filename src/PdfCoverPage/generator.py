@@ -7,12 +7,14 @@ import boto3
 from botocore.exceptions import ClientError
 from http import HTTPStatus
 
+from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.platypus.flowables import TopPadder
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
+
 
 
 def lambda_handler(event, context):
@@ -44,7 +46,7 @@ def generate_pdf(identifier: str):
     relevant_fields = extract_required_fields(manifest)
 
     # generate PDF and get bytes
-    pdf_bytes = build_pdf(identifier, relevant_fields)
+    pdf_bytes = build_pdf(relevant_fields)
     print(f"generated PDF cover-page for '{identifier}'")
 
     return generate_response(HTTPStatus.OK, base64.b64encode(pdf_bytes.getvalue()).decode(),
@@ -74,19 +76,19 @@ def extract_required_fields(manifest):
     return relevant_fields
 
 
-def build_pdf(identifier: str, data: dict):
+def build_pdf(data: dict):
     """build pdf and return bytes"""
 
     # configure document
-    pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
-    pdfmetrics.registerFont(TTFont("NotoSans-Bold", "fonts/NotoSans-Bold.ttf"))
+    pdfmetrics.registerFont(TTFont("Inter", "fonts/Inter-Regular.ttf"))
+    pdfmetrics.registerFont(TTFont("Inter-Bold", "fonts/Inter-Bold.ttf"))
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="Heading", fontName="NotoSans-Bold", fontSize=12, leading=15))
-    styles.add(ParagraphStyle(name="Footer", fontName="NotoSans", fontSize=11, leading=13))
+    styles.add(ParagraphStyle(name="Heading", fontName="Inter-Bold", fontSize=12, leading=15))
+    styles.add(ParagraphStyle(name="Footer", fontName="Inter", fontSize=11, leading=13))
     normal = ParagraphStyle("Normal")
     normal.fontSize = 12
     normal.leading = 14
-    normal.fontName = "NotoSans"
+    normal.fontName = "Inter"
 
     # build elements
     pdf_elements = []
@@ -104,14 +106,19 @@ def build_pdf(identifier: str, data: dict):
 
         pdf_elements.append(Spacer(1, 10))
 
-    for k, v in data["metadata"].items():
-        add_metadata(k, v)
-    add_metadata("Reference number", identifier)
+    if metadata := data.get("metadata", {}):
+        if contributors := metadata.get("Contributors", []):
+            add_metadata("Contributors", contributors)
+
+        if pub_creation := metadata.get("Publication/creation", []):
+            add_metadata("Publication/Creation", pub_creation)
+
     add_metadata("Persistent URL", data["homepage"])
     pdf_elements.append(Spacer(1, 20))
 
-    if required_statement := data.get("requiredStatement", []):
-        pdf_elements.extend([Paragraph(stmt, normal) for stmt in required_statement])
+    # take the first element that is not "Wellcome Collection"
+    if required_statement := [s for s in data.get("requiredStatement", []) if s != "Wellcome Collection"]:
+        add_metadata("License and attribution", required_statement[0])
 
     # bottom section
     provider = data["provider"]
@@ -127,7 +134,7 @@ def build_pdf(identifier: str, data: dict):
         Paragraph(f"<img src='{logo_url}' height='66' width='200'/>"),
         [Paragraph(part, styles["Footer"]) for part in address_parts])])
     bottom.setStyle([
-        ("VALIGN", (0, 0), (1, 1), "BOTTOM")
+        ("BOTTOMPADDING", (0, 0), (0, 0), 10)
     ])
     pdf_elements.append(TopPadder(bottom))
 

@@ -1,0 +1,54 @@
+pipeline {
+ agent {
+  node {
+   label 'master'
+  }
+ }
+ options {
+  buildDiscarder(logRotator(numToKeepStr: '100'))
+ }
+ stages {
+  stage('Fetch') {
+   steps {
+    deleteDir()
+    checkout scm: [
+     $class: 'GitSCM',
+     branches: scm.branches,
+     doGenerateSubmoduleConfigurations: false,
+     extensions: [
+      [$class: 'SubmoduleOption',
+       disableSubmodules: false,
+       parentCredentials: true,
+       recursiveSubmodules: true,
+       reference: '',
+       trackingSubmodules: false
+      ]
+     ],
+     submoduleCfg: [],
+     userRemoteConfigs: scm.userRemoteConfigs
+    ]
+   }
+  }
+  stage('Package') {
+   steps {
+    sh "cd src/PdfCoverPage"
+    sh "create_lambda_package.sh"
+   }
+  }
+  stage('Upload') {
+   steps {
+    sh "aws s3 cp pdf_gen.zip s3://dlcs-bootstrap-objects/lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
+   }
+  }
+  stage('Deploy') {
+   steps {
+    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --s3-bucket dlcs-bootstrap-objects --s3-key lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
+   }
+  }
+  stage('Bounce') {
+   steps {
+    sh "curl --data '{\"text\": \"Lambda ${FUNCTION_NAME} updated\"}' ${SLACK_WEBHOOK_URL}"
+   }
+  }
+ }
+}
