@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -24,7 +25,8 @@ namespace CatalogueClient
             string id = null,
             FileInfo file = null,
             bool update = false,
-            string bulkop = null)
+            string bulkop = null,
+            int skip = 1)
         {
             if (update)
             {
@@ -44,38 +46,110 @@ namespace CatalogueClient
 
             var sw = new Stopwatch();
             sw.Start();
-            var fi = new FileInfo(Settings.LocalExpandedPath);
-            Console.WriteLine($"Using decompressed dump file dated {fi.LastWriteTime}, {StringUtils.FormatFileSize(fi.Length)}");
-            Console.WriteLine("(Update the catalogue dump with --update)");
+            if (bulkop.HasText())
+            {
+                var fi = new FileInfo(Settings.LocalExpandedPath);
+                Console.WriteLine(
+                    $"Using decompressed dump file dated {fi.LastWriteTime}, {StringUtils.FormatFileSize(fi.Length)}");
+                Console.WriteLine("(Update the catalogue dump with --update)");
+            }
+
+            var stats = new LoopStats();
+            var options = GetSerialiserOptions();
             switch (bulkop)
             {
                 case "count-digitised-locations":
-                    int count = 0;
-                    int iiifCount = 0;
-                    foreach (var line in File.ReadLines(Settings.LocalExpandedPath))
+                    foreach (var line in ReadLines("\"iiif-presentation\"", stats))
                     {
-                        count++;
-                        if (line.Contains("\"iiif-presentation\"", StringComparison.Ordinal))
+                        if (stats.TotalCount % 1000 == 0)
                         {
-                            iiifCount++;
-                        }
-
-                        if (count % 1000 == 0)
-                        {
-                            Console.Write($"\rIIIF Presentation in {iiifCount}/{count} works.");
+                            Console.Write($"\rIIIF Presentation in {stats.MatchCount}/{stats.TotalCount} works.");
                         }
                     }
-                    Console.Write($"\rIIIF Presentation in {iiifCount}/{count} works.");
-                    Console.WriteLine();
+                    Console.Write($"\rIIIF Presentation in {stats.MatchCount}/{stats.TotalCount} works.");
+                    break;
+                case "display-bnumber":
+                    var catalogue = GetCatalogue();
+                    Console.WriteLine($"dump line| message    | work id  | digitised b numbers            | Sierra system b numbers");
+                    var uniqueDigitisedBNumbers = new HashSet<string>();
+                    var usedLines = 0;
+                    var bNumbersInMoreThanOneLine = new HashSet<string>();
+                    foreach (var line in ReadLines("\"iiif-presentation\"", stats))
+                    {
+                        if (stats.MatchCount % skip == 0)
+                        {
+                            usedLines++;
+                            var work = catalogue.FromDumpLine(line, options);
+                            var sierraSystemBNumbers = work.GetSierraSystemBNumbers();
+                            var digitalLocationBNumbers = work.GetDigitisedBNumbers();
+                            foreach (var digitalLocationBNumber in digitalLocationBNumbers)
+                            {
+                                var added = uniqueDigitisedBNumbers.Add(digitalLocationBNumber);
+                                if (!added)
+                                {
+                                    bNumbersInMoreThanOneLine.Add(digitalLocationBNumber);
+                                }
+                            }
+                            var count = stats.TotalCount.ToString().PadLeft(8);
+                            var flagCol = "";
+                            if (!digitalLocationBNumbers.Any())
+                            {
+                                flagCol = "NO-DIG-B";
+                            }
+                            else
+                            {
+                                var intersect = digitalLocationBNumbers.Intersect(sierraSystemBNumbers);
+                                if (!intersect.Any())
+                                {
+                                    flagCol = "MISMATCH";
+                                }
+                            }
+
+                            flagCol = flagCol.PadRight(10);
+                            var digBNums = String.Join(',', digitalLocationBNumbers).PadRight(30);
+                            var workBNums = String.Join(',', sierraSystemBNumbers);
+                            Console.WriteLine($"{count} | {flagCol} | {work.Id} | {digBNums} | {workBNums}");
+                        }
+                    }
+                    Console.WriteLine("--------------------------------------------------------------------------------------------");
+                    Console.WriteLine($"{usedLines} total work lines read from dump, from which ");
+                    Console.WriteLine($"{uniqueDigitisedBNumbers.Count} digitised b numbers were extracted, of which ");
+                    Console.WriteLine($"{bNumbersInMoreThanOneLine.Count} appeared in more than one line.");
                     break;
                 default:
                     Console.WriteLine("(No bulk operation specified)");
                     break;
             }
-            sw.Stop();
-            Console.WriteLine($"Finished in {sw.Elapsed.Seconds} seconds.");
+            Console.WriteLine();
+            sw.Stop();  
+            Console.WriteLine($"Finished in {sw.Elapsed.TotalSeconds} seconds.");
         }
-        
+
+        private static IEnumerable<string> ReadLines(string filter, LoopStats stats)
+        {
+            var lines = File.ReadLines(Settings.LocalExpandedPath);
+            if (filter.HasText())
+            {
+                foreach (var line in lines)
+                {
+                    stats.TotalCount++;
+                    if (line.Contains(filter, StringComparison.Ordinal))
+                    {
+                        stats.MatchCount++;
+                        yield return line;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var line in lines)
+                {
+                    stats.TotalCount++;
+                    stats.MatchCount++;
+                    yield return line;
+                }
+            }
+        }
 
         private static void ShowManyWorksFromFile(FileInfo file)
         {
@@ -172,7 +246,8 @@ namespace CatalogueClient
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
-                IgnoreNullValues = true
+                IgnoreNullValues = true,
+                PropertyNameCaseInsensitive = true
             };
             return options;
         }
