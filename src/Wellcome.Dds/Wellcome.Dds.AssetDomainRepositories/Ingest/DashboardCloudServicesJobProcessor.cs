@@ -224,12 +224,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // The db is a queue for dashboard repository to do.
             // but it needs to surface data (json)_ for logging,...
 
-            // assume that all the files in a manifestation are of the same type
+            // assume that all the physical files in a manifestation are of the same type
+            // (they might have FilePointers to different types, but the PhysicalFile element
+            // will be, for example, TYPE="VIDEO"
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
-            var assetType = manifestation.FirstSignificantInternetType;
+            var assetType = manifestation.FirstInternetType;
             if (assetType != null)
                 job.AssetType = assetType;
-            job.ImageCount = manifestation.SignificantSequence.Count;
+            job.ImageCount = manifestation.SynchronisableFiles.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 
             bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);

@@ -17,6 +17,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
@@ -226,12 +227,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     DlcsOptions = dlcsOptions,
                     DlcsSkeletonManifest = skeletonPreview,
                     Work = work,
-                    CatalogueApi = uriPatterns.CatalogueApi(work.Id, null),
-                    WorkPage = uriPatterns.PersistentPlayerUri(work.Id),
                     EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(ddsId.BNumber),
                     EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(ddsId.BNumber),
                     ManifestUrl = uriPatterns.Manifest(ddsId)
                 };
+                if (work != null)
+                {
+                    // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
+                    // We can't make IIIF for it, though.
+                    model.CatalogueApi = uriPatterns.CatalogueApi(work.Id, null);
+                    model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
+                }
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
                 model.MakeManifestationNavData();
                 jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
@@ -445,7 +451,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
                 return RedirectToAction("Manifestation", new { id = bnumber });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return RedirectToAction("ManifestationSearchError", q);
             }

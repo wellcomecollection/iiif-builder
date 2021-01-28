@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -72,7 +73,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
                 await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
             }
-            await synchroniser.RefreshDdsManifestations(id);
+
+            try
+            {
+                await synchroniser.RefreshDdsManifestations(id);
+            }
+            catch (ArgumentException ae)
+            {
+                TempData["no-work-synchronisation"] = ae.Message;
+            }
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
     }

@@ -219,6 +219,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns></returns>
         public IStoredFile GetPosterImage()
         {
+            // 1. Legacy migrated poster images
             // See if we have a "bagger" poster image:
             const string posterAmdId = "AMD_POSTER";
             var posterTechMds = rootElement
@@ -228,7 +229,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var sf = new StoredFile
                 {
                     WorkStore = WorkStore,
-                    AssetMetadata = WorkStore.MakeAssetMetadata(rootElement, posterAmdId)
+                    AssetMetadata = WorkStore.MakeAssetMetadata(rootElement, posterAmdId),
+                    PhysicalFile = null // there is explicitly NO METS PhysicalFile
                 };
                 // The insertion of /posters here is because we don't have a physical file element
                 // to tell us where it actually is. We're not recording this anywhere.
@@ -236,6 +238,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 return sf;
             }
 
+            // 2. Interim MXF workflow, with poster image part of the same physicalFile sequence
             if (Type == "Video")
             {
                 var anImage = physicalFiles.FirstOrDefault(pf => pf.MimeType.StartsWith("image"));
@@ -245,11 +248,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     {
                         WorkStore = WorkStore,
                         AssetMetadata = anImage.AssetMetadata,
-                        RelativePath = anImage.RelativePath
+                        RelativePath = anImage.RelativePath,
+                        PhysicalFile = anImage
                     };
                 }
             }
-            return null;
+            
+            // 3. New AV workflow, where PosterImage is a proper file
+            var singleFile = physicalFiles.FirstOrDefault();
+            var poster = singleFile?.Files.FirstOrDefault(f => f.Use == "POSTER");
+            return poster;
         }
     }
 }

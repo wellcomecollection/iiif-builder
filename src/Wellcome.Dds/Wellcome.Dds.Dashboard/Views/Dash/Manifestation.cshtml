@@ -52,6 +52,14 @@
             <strong>@((int)TempData["orphans-deleted"]) Orphans deleted!</strong>
         </div>
     }
+    
+    @if (TempData["no-work-synchronisation"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Could not fully sync all DDS metadata:</strong> @TempData["no-work-synchronisation"])
+        </div>
+    }
 
     @if (Model.SyncOperation.Orphans.Any())
     {
@@ -167,7 +175,7 @@
 
         @*<h3><span class="glyphicon glyphicon-info-sign"></span> Details</h3>*@<div class="panel panel-primary">
             <div class="panel-heading">
-                @metsManifestation.Type (@metsManifestation.FirstSignificantInternetType)
+                @metsManifestation.Type (@metsManifestation.FirstInternetType)
             </div>
             <ul class="list-group">
                 <li class="list-group-item">
@@ -346,7 +354,7 @@
                         <small><em>No cached package on disk yet</em></small>
                     }
                 </li>
-                @if (metsManifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText()))
+                @if (metsManifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText()))
                 {
                     <li class="list-group-item">
                         <a class="wip" href="@Url.Action("CacheBustAlto", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Rebuild search</a><br />
@@ -371,7 +379,7 @@
                 }
             </ul>
         </div>
-        @if (metsManifestation.FirstSignificantInternetType == "image/jp2")
+        @if (metsManifestation.FirstInternetType == "image/jp2")
         {
             <h3>PDF</h3>
             if (pdf == null)
@@ -446,9 +454,9 @@
     <div class="col-md-9">
         <h4 style="margin-top: 0;">
             @Html.Raw(Model.GetAssetGlyph())
-            @metsManifestation.SignificantSequence.Count
+            @metsManifestation.Sequence.Count
             assets of type
-            @metsManifestation.FirstSignificantInternetType
+            @metsManifestation.FirstInternetType
         </h4>
 
 
@@ -493,8 +501,8 @@
                 @foreach (IPhysicalFile pf in metsManifestation.Sequence)
                 {
                     var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
-                    bool ignored = Model.IsIgnored(pf.StorageIdentifier);
-                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf)">
+                    bool ignored = false; // The physical file itself is never ignored.
+                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
                         <td>@pf.Order</td>
                         @if (Model.ManifestationFamily == AssetFamily.Image)
                         {
@@ -527,7 +535,7 @@
                             <td>
                                 @if (@pf.RelativeAltoPath.HasText())
                                 {                                    
-                                    <a href="@Url.ActionWithPath("XmlView", "Dash", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
+                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
                                        title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
                                 }
                             </td>
@@ -556,19 +564,70 @@
                             {
                                 <td>(transcode metadata)</td>
                             }*@
-                    <td>
-                        @{
-                            var thumb24 = Model.GetThumbnail(dlcsImage, 24);
-                            var thumb100 = Model.GetThumbnail(dlcsImage, 100);
-                            var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
-                        }
-                        @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))    
-                        <iiif-thumb class="iiifpreview" 
-                                    small-thumb="thumb24" large-thumb="thumb100" 
-                                    full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri" />
-                         <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
-                    </td>
+                        <td>
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
+                            {
+                                var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                                var thumb100 = Model.GetThumbnail(dlcsImage, 100);
+                                var fullIIIF = Model.GetIIIFImageService(dlcsImage, "iiif-img");
+                                @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
+                                <iiif-thumb class="iiifpreview"
+                                small-thumb="thumb24" large-thumb="thumb100"
+                                full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
+                            }
+                            <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                        </td>
                     </tr>
+                    @foreach (var adjunct in Model.GetAdjunctsForDashboardDisplay(pf.Files))
+                    {
+                        dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
+                        ignored = Model.IsIgnored(adjunct.StorageIdentifier);
+                        <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
+                            <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
+                            @if (adjunct.Family == AssetFamily.Image)
+                            {
+                                <td><small>@adjunct.AssetMetadata.GetImageWidth() x @adjunct.AssetMetadata.GetImageHeight()</small></td>
+                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                <td></td>                                                         
+                            }
+                            else
+                            {
+                                <td>@Model.FormatSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                if (adjunct.Family == AssetFamily.TimeBased)
+                                {
+                                    <td>@adjunct.AssetMetadata.GetLengthInSeconds()</td>
+                                }
+                                else
+                                {
+                                    <td>@adjunct.AssetMetadata.GetNumberOfPages()</td>
+                                }
+                            }
+                            @if (ignored)
+                            {
+                                <td>ignored</td>
+                            }
+                            else
+                            {
+                                <td>@pf.AccessCondition</td>
+                            }
+                            @{
+                                if (dlcsImage != null)
+                                {
+                                    <td>
+                                        <a href="@Model.GetPortalPageForImage(dlcsImage)">@adjunct.StorageIdentifier</a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td>@adjunct.StorageIdentifier</td>
+                                }
+                            }
+                            <td>
+                                <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -620,6 +679,14 @@
 
 
 <hr />
+<h3>SyncOperation</h3>
+<ul>
+    @foreach (var s in Model.SyncOperation.GetSummary())
+    {
+        <li>@s</li>
+    }
+</ul>
+
 <h3>Log</h3>
 <table class="table table-hover">
     <tr>

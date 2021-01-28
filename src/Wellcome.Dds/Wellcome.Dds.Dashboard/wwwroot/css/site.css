@@ -54,3 +54,12 @@ img.iiifpreview {
 .asset-table .text-muted {
     font-style: italic;
 }
+
+td.adjunct {
+    padding-left: 1em!important;
+    font-size: small;
+}
+
+td.adjunct span {
+    font-size:larger;
+}

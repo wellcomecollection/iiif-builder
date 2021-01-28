@@ -9,9 +9,10 @@ using Newtonsoft.Json.Linq;
 using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Mets
+namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 {
     /// <summary>
     /// Workstore object from Wellcome Storage service.

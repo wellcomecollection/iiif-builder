@@ -1,0 +1,72 @@
+<mets:mets xmlns:dv="http://dfg-viewer.de/" xmlns:mets="http://www.loc.gov/METS/" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:ns3="http://wellcome.ac.uk/" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-3.xsd http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/version17/mets.v1-7.xsd http://www.loc.gov/standards/premis/ http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd http://www.loc.gov/standards/mix/ http://www.loc.gov/standards/mix/mix.xsd">
+  <mets:metsHdr CREATEDATE="2012-11-01T09:36:48">
+    <mets:agent OTHERTYPE="SOFTWARE" ROLE="CREATOR" TYPE="OTHER">
+      <mets:name>Goobi - UGH-1.10-bacb4a7 - 21−August−2012</mets:name>
+      <mets:note>Goobi</mets:note>
+    </mets:agent>
+  </mets:metsHdr>
+  <mets:dmdSec ID="DMDLOG_0000">
+    <mets:mdWrap MDTYPE="MODS">
+      <mets:xmlData>
+        <mods:mods>
+          <mods:titleInfo>
+            <mods:title>African sleeping sickness</mods:title>
+          </mods:titleInfo>
+          <mods:recordInfo>
+            <mods:recordIdentifier source="gbv-ppn">b16675630</mods:recordIdentifier>
+          </mods:recordInfo>
+          <mods:classification authority="WT">Digitised</mods:classification>
+          <mods:note type="wellcomeidentifier">3718-0000</mods:note>
+          <mods:originInfo>
+            <mods:place>
+              <mods:placeTerm type="text">Wellcome Trust</mods:placeTerm>
+            </mods:place>
+            <mods:publisher>Wellcome Trust</mods:publisher>
+          </mods:originInfo>
+          <mods:physicalDescription>
+            <mods:digitalOrigin>reformatted digital</mods:digitalOrigin>
+          </mods:physicalDescription>
+          <mods:extension>
+            <ns3:wt>
+              <ns3:manifestationType>General</ns3:manifestationType>
+            </ns3:wt>
+          </mods:extension>
+        </mods:mods>
+      </mets:xmlData>
+    </mets:mdWrap>
+  </mets:dmdSec>
+  <mets:amdSec ID="AMD">
+    <mets:rightsMD ID="RIGHTS">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVRIGHTS">
+        <mets:xmlData>
+          <dv:rights>
+            <dv:owner>Wellcome Collection</dv:owner>
+            <dv:ownerLogo>http://library.wellcome.ac.uk/assets/home_logo.gif</dv:ownerLogo>
+            <dv:ownerSiteURL>http://library.wellcome.ac.uk/</dv:ownerSiteURL>
+            <dv:ownerContact>wdl@wellcome.ac.uk</dv:ownerContact>
+          </dv:rights>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:rightsMD>
+    <mets:digiprovMD ID="DIGIPROV">
+      <mets:mdWrap MDTYPE="OTHER" MIMETYPE="text/xml" OTHERMDTYPE="DVLINKS">
+        <mets:xmlData>
+          <dv:links>
+            <dv:reference>b16675630</dv:reference>
+            <dv:presentation>b16675630</dv:presentation>
+          </dv:links>
+        </mets:xmlData>
+      </mets:mdWrap>
+    </mets:digiprovMD>
+  </mets:amdSec>
+  <mets:structMap TYPE="LOGICAL">
+    <mets:div ADMID="AMD" DMDID="DMDLOG_0000" ID="LOG_0000" LABEL="African sleeping sickness" TYPE="MultipleManifestation">
+      <mets:div ID="LOG_0001" LABEL="African sleeping sickness" ORDER="1" TYPE="Video">
+        <mets:mptr LOCTYPE="URL" xlink:href="b16675630_0001.xml"/>
+      </mets:div>
+      <mets:div ID="LOG_0002" LABEL="African sleeping sickness" ORDER="2" TYPE="Transcript">
+        <mets:mptr LOCTYPE="URL" xlink:href="b16675630_0002.xml"/>
+      </mets:div>
+    </mets:div>
+  </mets:structMap>
+</mets:mets>

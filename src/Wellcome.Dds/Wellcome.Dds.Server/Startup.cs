@@ -20,6 +20,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Auth.Web;
 using Wellcome.Dds.Auth.Web.Sierra;
 using Wellcome.Dds.Catalogue;

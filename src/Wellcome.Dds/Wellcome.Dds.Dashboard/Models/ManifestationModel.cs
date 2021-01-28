@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -69,19 +70,19 @@ namespace Wellcome.Dds.Dashboard.Models
                 var accessConditionCounts = new Dictionary<string, int>();
                 var accessConditionLinks = new Dictionary<string, string>();
                 syncSummary.CssClass = "info";
-                foreach (var pf in DigitisedManifestation.MetsManifestation.Sequence)
+                foreach (var sf in DigitisedManifestation.MetsManifestation.SynchronisableFiles)
                 {
-                    if (IsIgnored(pf.StorageIdentifier))
+                    if (IsIgnored(sf.StorageIdentifier))
                     {
                         continue;
                     }
-                    var dlcsImage = GetDlcsImage(pf.StorageIdentifier);
+                    var dlcsImage = GetDlcsImage(sf.StorageIdentifier);
                     var desc = GetStatusDescriptionForImage(dlcsImage);
                     if (!countsdict.ContainsKey(desc))
                     {
                         countsdict[desc] = 0;
                         iconDict[desc] = GetStatusIconForImageRow(dlcsImage, false);
-                        rowIdDict[desc] = GetTableId(pf);
+                        rowIdDict[desc] = GetTableId(sf.StorageIdentifier);
                     }
                     countsdict[desc] = countsdict[desc] + 1;
                     if (desc == "error" || desc == "missing")
@@ -92,12 +93,12 @@ namespace Wellcome.Dds.Dashboard.Models
                     {
                         syncSummary.CssClass = "warning";
                     }
-                    if (!accessConditionCounts.ContainsKey(pf.AccessCondition))
+                    if (!accessConditionCounts.ContainsKey(sf.PhysicalFile.AccessCondition))
                     {
-                        accessConditionCounts[pf.AccessCondition] = 0;
-                        accessConditionLinks[pf.AccessCondition] = GetTableId(pf);
+                        accessConditionCounts[sf.PhysicalFile.AccessCondition] = 0;
+                        accessConditionLinks[sf.PhysicalFile.AccessCondition] = GetTableId(sf.StorageIdentifier);
                     }
-                    accessConditionCounts[pf.AccessCondition] = accessConditionCounts[pf.AccessCondition] + 1;
+                    accessConditionCounts[sf.PhysicalFile.AccessCondition] = accessConditionCounts[sf.PhysicalFile.AccessCondition] + 1;
                 }
                 syncSummary.Categories = countsdict.Select(kvp => new SyncCategory
                 {
@@ -123,7 +124,7 @@ namespace Wellcome.Dds.Dashboard.Models
         {
             get
             {
-                return DigitisedManifestation.MetsManifestation.FirstSignificantInternetType.GetAssetFamily();
+                return DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
             }
         }
 
@@ -186,7 +187,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public string GetAssetGlyph()
         {
-            switch (DigitisedManifestation.MetsManifestation.FirstSignificantInternetType)
+            switch (DigitisedManifestation.MetsManifestation.FirstInternetType)
             {
                 case "image/jp2":
                     return string.Format(GlyphTemplate, "picture");
@@ -196,7 +197,8 @@ namespace Wellcome.Dds.Dashboard.Models
                     return string.Format(GlyphTemplate, "film");
                 case "audio/mp3":
                 case "audio/x-mpeg-3":
-                case "audio/wav": 
+                case "audio/wav":
+                case "audio/x-wav":
                 case "audio/mpeg":
                     return string.Format(GlyphTemplate, "volume-up");
                 default:
@@ -274,12 +276,12 @@ namespace Wellcome.Dds.Dashboard.Models
                 return "metadata mismatch";
             return "(OK)";
         }
-        public string GetTableId(IPhysicalFile pf)
+        public string GetTableId(string storageIdentifier)
         {
             // this used to be a GUID
             // but now it might be a filename
             // either way it needs to be URL-safe
-            var safeId = pf.StorageIdentifier.Replace("-", "");
+            var safeId = storageIdentifier.Replace("-", "");
             safeId = safeId.Replace(".", "");
             return string.Format("tb{0}", safeId);
         }
@@ -395,6 +397,19 @@ namespace Wellcome.Dds.Dashboard.Models
         public string EncoreRecordUrl { get; set; }
         public string EncoreBiblioRecordUrl { get; set; }
         public string ManifestUrl { get; set; }
+
+        /// <summary>
+        /// return the additional (adjunct) files that need to be displayed in the dashboard
+        /// </summary>
+        /// <param name="files"></param>
+        /// <returns></returns>
+        public IEnumerable<IStoredFile> GetAdjunctsForDashboardDisplay(List<IStoredFile> files)
+        {
+            return files.Where(f => 
+                f.Use != "OBJECTS" &&  // Old workflow
+                f.Use != "ACCESS" &&   // New workflow
+                f.Use != "ALTO");
+        }
     }
 
 

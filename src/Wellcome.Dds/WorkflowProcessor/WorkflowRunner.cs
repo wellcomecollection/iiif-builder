@@ -204,7 +204,7 @@ namespace WorkflowProcessor
                         {
                             if (runnerOptions.RebuildAllAnnoPageCaches)
                             {
-                                var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.SignificantSequence);
+                                var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
                                 SaveAnnoPagesToS3(manifestation, annopages);
                                 logger.LogInformation($"Rebuilt annotation pages for {manifestation.Id}: {annopages.Count} pages.");
                                 job.AnnosBuilt++;
@@ -228,7 +228,7 @@ namespace WorkflowProcessor
 
         private bool HasAltoFiles(IManifestation manifestation)
         {
-            return manifestation.SignificantSequence.Any(pf => pf.RelativeAltoPath.HasText());
+            return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
         }
 
         private async Task SaveToS3(StructureBase iiifResource, string key)

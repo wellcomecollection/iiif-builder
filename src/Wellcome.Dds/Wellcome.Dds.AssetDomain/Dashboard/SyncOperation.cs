@@ -36,7 +36,8 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         public List<Image> DlcsImagesCurrentlyIngesting { get; set; }
         public List<Image> Orphans { get; set; }
         /// <summary>
-        /// Not every PhysicalFile needs to be synced with the DLCS
+        /// Not every file mentioned in METS needs to be synced with the DLCS.
+        /// This is an optimisation so we don't have to look stuff up all the time
         /// </summary>
         public List<string> StorageIdentifiersToIgnore { get; set; }
 
@@ -50,6 +51,19 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
             Batches = new List<Batch>();
             BatchIngestOperationInfos = new List<DlcsBatch>();
             BatchPatchOperationInfos = new List<DlcsBatch>();
+        }
+
+        public string[] GetSummary()
+        {
+            var summary = new List<string>();
+            summary.Add($"RequiresSync: {RequiresSync}");
+            summary.Add($"DlcsImagesToIngest: {DlcsImagesToIngest.Count}");
+            summary.Add($"DlcsImagesToPatch: {DlcsImagesToPatch.Count}");
+            summary.Add($"DlcsImagesCurrentlyIngesting: {DlcsImagesCurrentlyIngesting.Count}");
+            summary.Add($"Ignored storage identifiers: {StorageIdentifiersToIgnore.Count}");
+            summary.Add($"Orphans: {Orphans.Count}");
+            summary.Add($"Message: {Message}");
+            return summary.ToArray();
         }
     }
 }
