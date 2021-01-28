@@ -29,6 +29,12 @@ pipeline {
     ]
    }
   }
+  stage('Install') {
+    steps {
+      sh "apt-get update"
+      sh "apt install -y zip python3-pip awscli"
+    }
+  }
   stage('Package') {
    steps {
        dir('src/PdfCoverPage') {
