@@ -42,14 +42,9 @@ pipeline {
        }
    }
   }
-  stage('Upload') {
-   steps {
-    sh "aws s3 cp src/PdfCoverPage/pdf_gen.zip s3://dlcs-bootstrap-objects/lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
-   }
-  }
   stage('Deploy') {
    steps {
-    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --s3-bucket dlcs-bootstrap-objects --s3-key lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip --region ${REGION}"
+    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --zip-file fileb://src/PdfCoverPage/pdf_gen.zip --region ${REGION}"
    }
   }
   stage('Bounce') {
