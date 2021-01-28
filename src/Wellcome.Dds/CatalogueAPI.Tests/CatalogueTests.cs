@@ -71,7 +71,7 @@ namespace CatalogueAPI.Tests
             var work = await sut.GetWorkByOtherIdentifier(identifier);
 
             // Assert
-            work.Title.Should().Be("[Report 1954]");
+            work.Title.Should().Be("[Report 1954] / Medical Officer of Health, St Austell R.D.C.");
         }
         
         
