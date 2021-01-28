@@ -25,7 +25,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         public async Task Presentation_ReturnsV3_IfNoSpecificVersionRequested()
         {
             // Arrange
-            var requestUri = "/presentation/b29718697";
+            var requestUri = "/presentation/b16235083";
 
             // Act
             var response = await client.GetAsync(requestUri);
@@ -57,7 +57,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         public async Task Presentation_ReturnsV3_FromV3Endpoint()
         {
             // Arrange
-            var requestUri = "/presentation/v3/b29718697";
+            var requestUri = "/presentation/v3/b16235083";
 
             // Act
             var response = await client.GetAsync(requestUri);
@@ -76,7 +76,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             string expectedContentType)
         {
             // Arrange
-            var requestUri = "/presentation/b29718697";
+            var requestUri = "/presentation/b16235083";
             var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
             request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse(accepts));
 
