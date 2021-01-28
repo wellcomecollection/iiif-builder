@@ -31,13 +31,14 @@ pipeline {
   }
   stage('Package') {
    steps {
-    sh "cd src/PdfCoverPage"
-    sh "create_lambda_package.sh"
+       dir('src/PdfCoverPage') {
+        sh "./create_lambda_package.sh"
+       }
    }
   }
   stage('Upload') {
    steps {
-    sh "aws s3 cp pdf_gen.zip s3://dlcs-bootstrap-objects/lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
+    sh "aws s3 cp src/PdfCoverPage/pdf_gen.zip s3://dlcs-bootstrap-objects/lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
    }
   }
   stage('Deploy') {
