@@ -77,7 +77,7 @@ namespace Wellcome.Dds.Catalogue
                 if (iiifLocations.Count == 1)
                 {
                     var digBNum = sierraSystemBNumbers.SingleOrDefault(
-                        bNumber => iiifLocations[0].Url.Contains($"/{bNumber}/"));
+                        bNumber => iiifLocations[0].Url.Contains($"/{bNumber}"));
                     if (digBNum.HasText())
                     {
                         // simplest and happy path. There is one digital location and it's the Sierra system number.
