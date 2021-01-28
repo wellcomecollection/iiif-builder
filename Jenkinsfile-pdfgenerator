@@ -49,7 +49,7 @@ pipeline {
   }
   stage('Deploy') {
    steps {
-    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --s3-bucket dlcs-bootstrap-objects --s3-key lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip"
+    sh "aws lambda update-function-code --function-name ${FUNCTION_NAME} --s3-bucket dlcs-bootstrap-objects --s3-key lambda/pdf-generator-${STAGE}-`git rev-parse HEAD`.zip --region ${REGION}"
    }
   }
   stage('Bounce') {
