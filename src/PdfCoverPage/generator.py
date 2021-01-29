@@ -1,4 +1,3 @@
-import base64
 import json
 import io
 import os
@@ -6,8 +5,8 @@ import boto3
 
 from botocore.exceptions import ClientError
 from http import HTTPStatus
+from flask import Flask, jsonify, send_file
 
-from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
@@ -15,30 +14,24 @@ from reportlab.platypus.flowables import TopPadder
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 
+app = Flask(__name__)
+
+region = os.environ.get("AWS_REGION", "eu-west-1")
+manifest_bucket = os.environ.get("MANIFEST_BUCKET", "wellcomecollection-stage-iiif-presentation")
+key_prefix = os.environ.get("KEY_PREFIX", "v3")
 
 
-def lambda_handler(event, context):
-    """
-    Event handler for lambda call
-    :param event: Contains details of event see https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html
-    :param context: Contains context of lambda request. see https://docs.aws.amazon.com/lambda/latest/dg/python-context.html
-    :return: Generated PDF as a stream
-    """
-    identifier = event.get("queryStringParameters", {}).get("identifier", "")
-    if not identifier:
-        return generate_response(HTTPStatus.BAD_REQUEST, "No identifier found", {"Content-Type": "text/plain"})
-
-    return generate_pdf(identifier)
-
-
+@app.route('/pdfcoverpage/<string:identifier>', methods=["GET"])
 def generate_pdf(identifier: str):
     """Uses data from S3 manifest to construct PDF response"""
     manifest = get_manifest(identifier)
 
     if not manifest:
         print(f"could not find manifest for '{identifier}'")
-        return generate_response(HTTPStatus.NOT_FOUND, "Manifest for identifier not found",
-                                 {"Content-Type": "text/plain"})
+        return {
+                   "statusDescription": f'{HTTPStatus.NOT_FOUND.value} - {HTTPStatus.NOT_FOUND.phrase}',
+                   "body": "Manifest for identifier not found",
+               }, 404
 
     print(f"generating PDF cover-page for '{identifier}'")
 
@@ -47,10 +40,10 @@ def generate_pdf(identifier: str):
 
     # generate PDF and get bytes
     pdf_bytes = build_pdf(relevant_fields)
+    pdf_bytes.seek(0)
     print(f"generated PDF cover-page for '{identifier}'")
 
-    return generate_response(HTTPStatus.OK, base64.b64encode(pdf_bytes.getvalue()).decode(),
-                             {"Content-Type": "application/pdf"}, True)
+    return send_file(pdf_bytes, mimetype="application/pdf")
 
 
 def extract_required_fields(manifest):
@@ -159,10 +152,6 @@ def get_manifest(identifier: str) -> dict:
     :param identifier: manifest to get
     :return: Key as dictionary
     """
-    region = os.environ.get("AWS_REGION", "eu-west-1")
-    manifest_bucket = os.environ.get("MANIFEST_BUCKET", "wellcomecollection-stage-iiif-presentation")
-    key_prefix = os.environ.get("KEY_PREFIX", "v3")
-
     try:
         client = boto3.client("s3", region)
         response = client.get_object(Bucket=manifest_bucket, Key=f"{key_prefix}/{identifier}")
@@ -175,47 +164,15 @@ def get_manifest(identifier: str) -> dict:
         raise
 
 
-def generate_response(http_status: HTTPStatus, body: str, headers: dict, is_base64: bool = False) -> dict:
-    """
-    Generate response object that will be correctly understood by ELB
-    :param http_status: Status code for response
-    :param body: Body of response
-    :param headers: Any headers to add to response
-    :param is_base64: true if binary, else false
-    :return: dictionary containing response object understood by ELB
-    """
-    # Sample response -
-    # {
-    #     "isBase64Encoded": false,
-    #     "statusCode": 200,
-    #     "statusDescription": "200 OK",
-    #     "headers": {
-    #         "Set-cookie": "cookies",
-    #         "Content-Type": "application/json"
-    #     },
-    #     "body": "Hello from Lambda (optional)"
-    # }
-    response = {
-        "isBase64Encoded": is_base64,
-        "statusCode": http_status.value,
-        "statusDescription": f'{http_status.value} - {http_status.phrase}',
-        "body": body,
-        "headers": headers
-    }
-    return response
+@app.errorhandler(404)
+def page_not_found(e):
+    return jsonify({"Error": "Resource not found"}), 404
+
+
+@app.route('/pdfcoverpage/ping', methods=["GET"])
+def ping():
+    return jsonify(status='working')
 
 
 if __name__ == '__main__':
-    event = []
-    with open('event.json') as event_json:
-        event = json.load(event_json)
-
-    result = lambda_handler(event, [])
-    print(json.dumps(result))
-
-    if result["isBase64Encoded"]:
-        contents = base64.b64decode(result["body"])
-        filename = f'{event.get("queryStringParameters", {}).get("identifier", "")}.pdf'
-        with open(filename, "wb") as f:
-            f.write(contents)
-        print(f"Saved file '{filename}'")
+    app.run(debug=True)
