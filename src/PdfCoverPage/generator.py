@@ -109,9 +109,9 @@ def build_pdf(data: dict):
     add_metadata("Persistent URL", data["homepage"])
     pdf_elements.append(Spacer(1, 20))
 
-    # take the first element that is not "Wellcome Collection"
+    # take any element that is not "Wellcome Collection"
     if required_statement := [s for s in data.get("requiredStatement", []) if s != "Wellcome Collection"]:
-        add_metadata("License and attribution", required_statement[0])
+        add_metadata("License and attribution", required_statement)
 
     # bottom section
     provider = data["provider"]
