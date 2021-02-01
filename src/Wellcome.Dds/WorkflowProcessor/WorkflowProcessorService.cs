@@ -24,6 +24,23 @@ namespace WorkflowProcessor
             this.serviceScopeFactory = serviceScopeFactory;
         }
 
+        public override Task StartAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                logger.LogInformation("Verifying WorkflowProcessor configuration");
+                using var scope = serviceScopeFactory.CreateScope();
+                GetWorkflowRunner(scope);
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "Failed to resolve WorkflowRunner object, aborting");
+                throw;
+            }
+            
+            return base.StartAsync(cancellationToken);
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             logger.LogInformation("Hosted service ExecuteAsync");
@@ -61,7 +78,7 @@ namespace WorkflowProcessor
                     await dbContext.SaveChangesAsync(stoppingToken);
 
                     waitMs = 2;
-                    var runner = scope.ServiceProvider.GetRequiredService<WorkflowRunner>();
+                    var runner = GetWorkflowRunner(scope);
                     await runner.ProcessJob(job, stoppingToken);
                     job.Finished = true;
                     await dbContext.SaveChangesAsync(stoppingToken);
@@ -74,6 +91,9 @@ namespace WorkflowProcessor
             
             logger.LogInformation("Stopping WorkflowProcessorService...");
         }
+
+        private static WorkflowRunner GetWorkflowRunner(IServiceScope scope) =>
+            scope.ServiceProvider.GetRequiredService<WorkflowRunner>();
 
         private static int GetWaitMs(int waitMs)
         {
