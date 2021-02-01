@@ -31,7 +31,7 @@ pipeline {
   }
   stage('Image') {
    steps {
-    sh "docker build -t ${DOCKER_IMAGE}:jenkins -f Dockerfile-iiifbuilder ."
+    sh "docker build -t ${DOCKER_IMAGE}:jenkins -f ${DOCKER_FILE} ."
    }
   }
   stage('Tag') {

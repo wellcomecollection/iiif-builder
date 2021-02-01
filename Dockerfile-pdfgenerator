@@ -1,0 +1,23 @@
+FROM python:3.8.7-slim-buster
+
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH="/opt/app:${PYTHONPATH}"
+
+RUN apt-get update -y
+RUN apt-get install build-essential -y
+
+WORKDIR /opt/app
+
+RUN /usr/local/bin/python -m pip install --upgrade pip
+COPY src/PdfCoverPage/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/PdfCoverPage/generator.py .
+COPY src/PdfCoverPage/fonts fonts
+
+CMD [ "uwsgi", "--http", "0.0.0.0:8000", \
+               "--enable-threads", \
+               "--http-timeout", "600", \
+               "--module", "generator:app", \
+               "--processes", "4", \
+               "--threads", "2"]
