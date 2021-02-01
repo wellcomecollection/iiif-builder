@@ -79,7 +79,15 @@ namespace Wellcome.Dds.Server
             });
 
             services.AddSwagger();
-            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy",
+                    builder => builder
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .SetIsOriginAllowed(host => true)
+                        .AllowCredentials());
+            });
             services.AddMvc(options =>
             {
                 var jsonFormatter = options.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
@@ -152,7 +160,7 @@ namespace Wellcome.Dds.Server
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseCors();
+            app.UseCors("CorsPolicy");
             app.SetupSwagger();
             app.UseStaticFiles();
             app.UseRouting();
