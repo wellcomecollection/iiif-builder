@@ -31,6 +31,8 @@ RUN dotnet publish "WorkflowProcessor.csproj" -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim
+
+RUN apt-get update && apt-get install curl -y
 WORKDIR /app
 
 EXPOSE 80
