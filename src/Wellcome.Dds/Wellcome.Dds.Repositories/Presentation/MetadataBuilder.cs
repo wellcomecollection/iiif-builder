@@ -18,6 +18,30 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The labels will always be given an English language property, 
             // because they always are.
             
+            /*
+             New unified metadata - all work types have the same potential content
+             They only get it if there are values
+             */
+            AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
+            AddEnglish("Physical description", work.PhysicalDescription);
+            AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
+            AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
+            AddEnglish("Description", work.Description);
+            AddEnglish("Copyright note", work.GetNotes("copyright-note"));
+            AddEnglish("Notes", work.GetNotes("general-note"));
+            AddEnglish("Creator/production credits", work.GetNotes("credits"));
+            AddNonlang("Lettering", work.Lettering);
+            AddEnglish("Language", work.Language?.Label);
+            AddEnglish("Publications note", work.GetNotes("publication-note"));
+            AddNonlang("Reference", work.ReferenceNumber);
+            AddEnglish("Reference notes", work.GetNotes("reference"));
+            AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
+            AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
+            /*
+             * Old model - different work types got different metadata
+             */
+            
+            /*
             switch (work.WorkType.Id)
             {
                 case "a": // monograph
@@ -65,6 +89,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
                     break;
             }
+             */
         }
 
         private void AddNonlang(string label, IEnumerable<string> values)
