@@ -272,10 +272,13 @@ namespace DlcsWebClient.Tests.Dlcs
         public void GetRoleUri_ReturnsClickThrough_ForRequiresRegistration()
         {
             // Act
-            var roleUri = sut.GetRoleUri(AccessCondition.RequiresRegistration);
-
+            var roleUriRr = sut.GetRoleUri(AccessCondition.RequiresRegistration);
+            var roleUriOa = sut.GetRoleUri(AccessCondition.OpenWithAdvisory);
+    
             // Assert
-            roleUri.Should().Be("https://api.dlcs.test/customers/99/roles/clickthrough");
+            var expected = "https://api.dlcs.test/customers/99/roles/clickthrough";
+            roleUriRr.Should().Be(expected);
+            roleUriOa.Should().Be(expected);
         }
         
         [Theory]

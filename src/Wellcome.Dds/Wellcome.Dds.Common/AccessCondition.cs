@@ -8,6 +8,7 @@ namespace Wellcome.Dds.Common
     {
         public const string Open = "Open";
         public const string RequiresRegistration = "Requires registration";
+        public const string OpenWithAdvisory = "Open with advisory";
         public const string ClinicalImages = "Clinical images";
         public const string RestrictedFiles = "Restricted files";
         public const string Closed = "Closed";
@@ -23,6 +24,7 @@ namespace Wellcome.Dds.Common
                       new ComparableAccessCondition(Open, 0),
                       new ComparableAccessCondition(Degraded, 1),
                       new ComparableAccessCondition(RequiresRegistration, 2),
+                      new ComparableAccessCondition(OpenWithAdvisory, 2),
                       new ComparableAccessCondition(ClinicalImages, 3),
                       new ComparableAccessCondition(RestrictedFiles, 4),
                       new ComparableAccessCondition(Closed, 5)
@@ -30,7 +32,13 @@ namespace Wellcome.Dds.Common
 
         public static bool IsValid(string s)
         {
-            return (s == Open || s == Degraded || s == RequiresRegistration || s == ClinicalImages || s == RestrictedFiles || s == Closed);
+            return (s == Open || 
+                    s == RequiresRegistration || 
+                    s == OpenWithAdvisory ||
+                    s == ClinicalImages || 
+                    s == RestrictedFiles || 
+                    s == Closed || 
+                    s == Degraded);
         }
 
 

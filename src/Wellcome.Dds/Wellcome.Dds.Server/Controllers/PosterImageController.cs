@@ -42,7 +42,12 @@ namespace Wellcome.Dds.Server.Controllers
             }
             var poster = avManifestation.PosterImage;
             var avFile = avManifestation.Sequence.FirstOrDefault(pf => pf.Family == AssetFamily.TimeBased);
-            var permitted = new [] {AccessCondition.Open, AccessCondition.RequiresRegistration};
+            var permitted = new []
+            {
+                AccessCondition.Open,
+                AccessCondition.RequiresRegistration,
+                AccessCondition.OpenWithAdvisory
+            };
             var isPublicPoster = avFile != null && permitted.Contains(avFile.AccessCondition);
             if (poster == null || !isPublicPoster)
             {
