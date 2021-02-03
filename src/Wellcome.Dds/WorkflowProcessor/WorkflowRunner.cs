@@ -194,6 +194,8 @@ namespace WorkflowProcessor
                             job.TextPages += text.Images.Length;
                             job.TimeSpentOnTextPages += (int)(DateTime.Now - startTextTs).TotalMilliseconds;
                         }
+                        
+                        //  How do the all-annos file and the images file get built?
                         var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
                         if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
                         {
@@ -204,9 +206,14 @@ namespace WorkflowProcessor
                         {
                             if (runnerOptions.RebuildAllAnnoPageCaches)
                             {
-                                var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
-                                SaveAnnoPagesToS3(manifestation, annopages);
-                                logger.LogInformation($"Rebuilt annotation pages for {manifestation.Id}: {annopages.Count} pages.");
+                                // These are in our internal text model
+                                var annotationPages = await 
+                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
+                                // Now convert them to W3C Web Annotations
+                                var result = iiifBuilder.BuildW3CAnnotations(manifestation, annotationPages);
+                                SaveAnnoPagesToS3(result);
+                                logger.LogInformation(
+                                    $"Rebuilt annotation pages for {manifestation.Id}: {annotationPages.Count} pages.");
                                 job.AnnosBuilt++;
                             }
                             else
@@ -225,7 +232,6 @@ namespace WorkflowProcessor
             }
         }
 
-
         private bool HasAltoFiles(IManifestation manifestation)
         {
             return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
@@ -240,7 +246,13 @@ namespace WorkflowProcessor
                 ContentBody = iiifBuilder.Serialise(iiifResource),
                 ContentType = "application/json"
             };
+            LogPutObject("IIIF Resource", put);
             await amazonS3.PutObjectAsync(put);
+        }
+
+        private void LogPutObject(string label, PutObjectRequest put)
+        {
+            logger.LogInformation($"Putting {label} to S3: bucket: {put.BucketName}, key: {put.Key}");
         }
 
 
@@ -257,13 +269,56 @@ namespace WorkflowProcessor
                 ContentBody = content,
                 ContentType = "text/plain"
             };
+            LogPutObject("raw text", put);
             await amazonS3.PutObjectAsync(put);
         }
 
-        private void SaveAnnoPagesToS3(IManifestation manifestation, AnnotationPageList annopages)
+        private async void SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
         {
-            // TODO - this should be implemented once we have a W3C version of annopage => annos
-            // so we can save it as JSON.
+            // Assumption - we save each page individually to S3 (=> 20m pages...)
+            // We save the allcontent single list to S3
+            // and we save the image list to S3.
+            if (builtAnnotations.AllContentAnnotations != null)
+            {
+                var put = new PutObjectRequest
+                {
+                    BucketName = ddsOptions.AnnotationContainer,
+                    Key = builtAnnotations.AllContentAnnotationsKey,
+                    ContentBody = iiifBuilder.Serialise(builtAnnotations.AllContentAnnotations),
+                    ContentType = "application/json"
+                };
+                LogPutObject("whole manifest annotations", put);
+                await amazonS3.PutObjectAsync(put);
+            }
+            
+            if (builtAnnotations.ImageAnnotations != null)
+            {
+                var put = new PutObjectRequest
+                {
+                    BucketName = ddsOptions.AnnotationContainer,
+                    Key = builtAnnotations.ImageAnnotationsKey,
+                    ContentBody = iiifBuilder.Serialise(builtAnnotations.ImageAnnotations),
+                    ContentType = "application/json"
+                };
+                LogPutObject("manifest image annotations", put);
+                await amazonS3.PutObjectAsync(put);
+            }
+
+            if (builtAnnotations.PageAnnotations != null)
+            {
+                for (int i = 0; i < builtAnnotations.PageAnnotations.Length; i++)
+                {
+                    var put = new PutObjectRequest
+                    {
+                        BucketName = ddsOptions.AnnotationContainer,
+                        Key = builtAnnotations.PageAnnotationsKeys[i],
+                        ContentBody = iiifBuilder.Serialise(builtAnnotations.PageAnnotations[i]),
+                        ContentType = "application/json"
+                    };
+                    LogPutObject("page annotations", put);
+                    await amazonS3.PutObjectAsync(put);
+                }
+            }
         }
     }
 }

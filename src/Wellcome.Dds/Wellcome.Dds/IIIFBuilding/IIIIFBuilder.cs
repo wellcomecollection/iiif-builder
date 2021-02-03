@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
 using IIIF.Presentation;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.IIIFBuilding
 {
@@ -35,6 +37,7 @@ namespace Wellcome.Dds.IIIFBuilding
         public Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null);
 
  
-        string Serialise(StructureBase iiifResource);
+        string Serialise(ResourceBase iiifResource);
+        AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
     }
 }

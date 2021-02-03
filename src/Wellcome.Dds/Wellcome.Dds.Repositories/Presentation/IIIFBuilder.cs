@@ -16,6 +16,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -381,13 +382,26 @@ namespace Wellcome.Dds.Repositories.Presentation
             return p2Version;
         }
 
-        
-        public string Serialise(StructureBase iiifResource)
+        public AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
+        {
+            var result = new AltoAnnotationBuildResult(manifestation);
+            // See IIIFConverter in ecosystem, line 1610
+            // loop through annotationPages
+            // build annos for each page
+            // emit a single page and key per page
+            // append the annos to the all list
+            // append just the images to the image list
+            return result;
+        }
+
+        public string Serialise(ResourceBase iiifResource)
         {
             return JsonConvert.SerializeObject(iiifResource, GetJsFriendlySettings());
         }
         // we'll need another Serialise for IIIFv2
 
+        
+        
         private static JsonSerializerSettings GetJsFriendlySettings()
         {
             var settings = new JsonSerializerSettings
@@ -398,6 +412,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
             return settings;
         }
+        
+        
 
     }
 }
