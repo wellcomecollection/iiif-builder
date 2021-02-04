@@ -27,9 +27,9 @@ namespace Wellcome.Dds.Repositories
             this.synchroniser = synchroniser;
         }
 
-        public List<Manifestation> AutoComplete(string id)
+        public List<Manifestation> AutoComplete(string query)
         {
-            return ddsContext.AutoComplete(id);
+            return ddsContext.AutoComplete(query);
         }
 
         public List<Manifestation> GetByAssetType(string type)

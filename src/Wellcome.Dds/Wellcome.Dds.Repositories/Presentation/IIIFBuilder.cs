@@ -452,10 +452,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private SupplementingDocumentAnnotation GetTextLineAnnotation(
+        private Annotation GetTextLineAnnotation(
             AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
         {
-            return new()
+            return new SupplementingDocumentAnnotation
             {
                 Id = uriPatterns.CanvasSupplementingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"t{lineIndex}"),
@@ -472,7 +472,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
                 Target = new Canvas { Id = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}" },
-                Motivation = Motivation.Classifying,
                 Body = new ClassifyingBody("Image")
                 {
                     Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
