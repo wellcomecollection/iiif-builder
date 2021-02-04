@@ -657,19 +657,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         private string reqRegUri;
         private int GetMaxUnauthorised(int sequenceMaxSize, string[] roles)
         {
-            if (roles.HasItems())
-            {
-                if (reqRegUri == null)
-                {
-                    reqRegUri = dlcs.GetRoleUri(AccessCondition.RequiresRegistration);
-                }
-                if (roles.Contains(reqRegUri))
-                {
-                    return 200;
-                }
-                return 0;
-            }
-            return sequenceMaxSize;
+            if (!roles.HasItems()) return sequenceMaxSize;
+            reqRegUri ??= dlcs.GetRoleUri(AccessCondition.RequiresRegistration);
+            return roles.Contains(reqRegUri) ? 200 : 0;
         }
 
         public Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata() => dlcs.GetErrorsByMetadata();
