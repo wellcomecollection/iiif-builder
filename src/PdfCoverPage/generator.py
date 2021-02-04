@@ -21,7 +21,7 @@ manifest_bucket = os.environ.get("MANIFEST_BUCKET", "wellcomecollection-stage-ii
 key_prefix = os.environ.get("KEY_PREFIX", "v3")
 
 
-@app.route('/pdfcoverpage/<string:identifier>', methods=["GET"])
+@app.route('/pdf-cover/<string:identifier>', methods=["GET"])
 def generate_pdf(identifier: str):
     """Uses data from S3 manifest to construct PDF response"""
     manifest = get_manifest(identifier)
@@ -169,7 +169,7 @@ def page_not_found(e):
     return jsonify({"Error": "Resource not found"}), 404
 
 
-@app.route('/pdfcoverpage/ping', methods=["GET"])
+@app.route('/pdf-cover/ping', methods=["GET"])
 def ping():
     return jsonify(status='working')
 
