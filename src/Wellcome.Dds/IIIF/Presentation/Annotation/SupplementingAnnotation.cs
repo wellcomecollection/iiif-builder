@@ -6,6 +6,6 @@ namespace IIIF.Presentation.Annotation
     {
         public override string Motivation => Constants.Motivation.Supplementing;
         
-        public ExternalResource Body { get; set; }
+        public ResourceBase? Body { get; set; }
     }
 }

@@ -1,17 +1,11 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using DlcsWebClient.Config;
 using IIIF.Presentation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Utils.Storage;
-using Wellcome.Dds.AssetDomain.Dashboard;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
-using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Server.Conneg;
-using Wellcome.Dds.Server.Models;
 
 namespace Wellcome.Dds.Server.Controllers
 {
@@ -24,19 +18,23 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly IStorage storage;
         private readonly DdsOptions ddsOptions;
+        private Helpers helpers;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="storage"></param>
         /// <param name="options"></param>
+        /// <param name="helpers"></param>
         public PresentationController(
             IStorage storage,
-            IOptions<DdsOptions> options
+            IOptions<DdsOptions> options,
+            Helpers helpers
             )
         {
             this.storage = storage;
             ddsOptions = options.Value;
+            this.helpers = helpers;
         }
         
         /// <summary>
@@ -73,12 +71,7 @@ namespace Wellcome.Dds.Server.Controllers
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
         {
-            var stream = await storage.GetStream(ddsOptions.PresentationContainer, path);
-            if (stream == null)
-            {
-                return NotFound($"No IIIF resource found for {path}");
-            }
-            return File(stream, contentType);
+            return await helpers.ServeIIIFContent(ddsOptions.PresentationContainer, path, contentType, this);
         }
     }
 }

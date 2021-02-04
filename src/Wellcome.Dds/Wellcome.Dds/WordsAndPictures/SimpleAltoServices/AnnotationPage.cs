@@ -15,6 +15,9 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         {
             return $"Index {Index}; {TextLines?.Length ?? 0} lines";
         }
+        
+        public string ManifestationIdentifier { get; set; }
+        public string AssetIdentifier { get; set; }
     }
 
     [Serializable]

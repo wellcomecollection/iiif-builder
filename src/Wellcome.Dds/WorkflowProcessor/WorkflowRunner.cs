@@ -145,8 +145,10 @@ namespace WorkflowProcessor
         
         private async Task Save(BuildResult buildResult)
         {
-            await SaveToS3(buildResult.IIIF3Resource, buildResult.IIIF3Key);
-            await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
+            await PutIIIFJsonObjectToS3(buildResult.IIIF3Resource, 
+                ddsOptions.PresentationContainer, buildResult.IIIF3Key, "IIIF 3 Resource");
+            await PutIIIFJsonObjectToS3(buildResult.IIIF2Resource, 
+                ddsOptions.PresentationContainer, buildResult.IIIF2Key, "IIIF 2 Resource");
         }
 
         private async Task RebuildAltoDerivedAssets(WorkflowJob job)
@@ -237,25 +239,19 @@ namespace WorkflowProcessor
             return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
         }
 
-        private async Task SaveToS3(StructureBase iiifResource, string key)
+        private async Task PutIIIFJsonObjectToS3(ResourceBase iiifResource, string bucket, string key, string logLabel)
         {
             var put = new PutObjectRequest
             {
-                BucketName = ddsOptions.PresentationContainer,
+                BucketName = bucket,
                 Key = key,
                 ContentBody = iiifBuilder.Serialise(iiifResource),
                 ContentType = "application/json"
             };
-            LogPutObject("IIIF Resource", put);
+            logger.LogInformation($"Putting {logLabel} to S3: bucket: {put.BucketName}, key: {put.Key}");
             await amazonS3.PutObjectAsync(put);
         }
-
-        private void LogPutObject(string label, PutObjectRequest put)
-        {
-            logger.LogInformation($"Putting {label} to S3: bucket: {put.BucketName}, key: {put.Key}");
-        }
-
-
+        
         private async Task SaveRawTextToS3(string content, string key)
         {
             if(content.IsNullOrWhiteSpace())
@@ -269,7 +265,7 @@ namespace WorkflowProcessor
                 ContentBody = content,
                 ContentType = "text/plain"
             };
-            LogPutObject("raw text", put);
+            logger.LogInformation($"Putting raw text to S3: bucket: {put.BucketName}, key: {put.Key}");
             await amazonS3.PutObjectAsync(put);
         }
 
@@ -280,43 +276,31 @@ namespace WorkflowProcessor
             // and we save the image list to S3.
             if (builtAnnotations.AllContentAnnotations != null)
             {
-                var put = new PutObjectRequest
-                {
-                    BucketName = ddsOptions.AnnotationContainer,
-                    Key = builtAnnotations.AllContentAnnotationsKey,
-                    ContentBody = iiifBuilder.Serialise(builtAnnotations.AllContentAnnotations),
-                    ContentType = "application/json"
-                };
-                LogPutObject("whole manifest annotations", put);
-                await amazonS3.PutObjectAsync(put);
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.AllContentAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.AllContentAnnotationsKey,
+                    "whole manifest annotations");
             }
             
             if (builtAnnotations.ImageAnnotations != null)
             {
-                var put = new PutObjectRequest
-                {
-                    BucketName = ddsOptions.AnnotationContainer,
-                    Key = builtAnnotations.ImageAnnotationsKey,
-                    ContentBody = iiifBuilder.Serialise(builtAnnotations.ImageAnnotations),
-                    ContentType = "application/json"
-                };
-                LogPutObject("manifest image annotations", put);
-                await amazonS3.PutObjectAsync(put);
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.ImageAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.ImageAnnotationsKey,
+                    "manifest image/figure/block annotations");
             }
 
             if (builtAnnotations.PageAnnotations != null)
             {
                 for (int i = 0; i < builtAnnotations.PageAnnotations.Length; i++)
                 {
-                    var put = new PutObjectRequest
-                    {
-                        BucketName = ddsOptions.AnnotationContainer,
-                        Key = builtAnnotations.PageAnnotationsKeys[i],
-                        ContentBody = iiifBuilder.Serialise(builtAnnotations.PageAnnotations[i]),
-                        ContentType = "application/json"
-                    };
-                    LogPutObject("page annotations", put);
-                    await amazonS3.PutObjectAsync(put);
+                    await PutIIIFJsonObjectToS3(
+                        builtAnnotations.PageAnnotations[i],
+                        ddsOptions.AnnotationContainer,
+                        builtAnnotations.PageAnnotationsKeys[i],
+                        "page annotations");
                 }
             }
         }

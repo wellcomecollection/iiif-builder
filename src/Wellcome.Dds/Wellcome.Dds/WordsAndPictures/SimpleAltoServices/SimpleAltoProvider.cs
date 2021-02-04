@@ -10,7 +10,11 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
     {
         private static XNamespace ns = "http://www.loc.gov/standards/alto/ns-v2#";
 
-        public AnnotationPage GetAnnotationPage(XElement altoRoot, int actualWidth, int actualHeight, int index)
+        public AnnotationPage GetAnnotationPage(
+            XElement altoRoot,
+            int actualWidth, int actualHeight,
+            string manifestationIdentifier, string assetIdentifier,
+            int index)
         {
             var textLines = new List<TextLine>();
             var illustrations = new List<Illustration>();
@@ -51,6 +55,8 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
                 TextLines = textLines.ToArray(),
                 Illustrations = illustrations.ToArray(),
                 ComposedBlocks = composedBlocks.ToArray(),
+                ManifestationIdentifier = manifestationIdentifier,
+                AssetIdentifier = assetIdentifier,
                 Index = index
             };
         }

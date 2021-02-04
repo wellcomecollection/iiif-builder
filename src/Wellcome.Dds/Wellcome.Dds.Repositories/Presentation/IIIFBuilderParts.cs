@@ -284,7 +284,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
                         canvas.Items = new List<AnnotationPage>
                         {
-                            new AnnotationPage
+                            new()
                             {
                                 Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
                                 Items = new List<IAnnotation>
@@ -930,7 +930,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     new SupplementingDocumentAnnotation
                     {
                         Id = uriPatterns.CanvasSupplementingAnnotation(
-                            manifestIdentifier, storedPdf.StorageIdentifier),
+                            manifestIdentifier, storedPdf.StorageIdentifier, "transcript"),
                         Body = new ExternalResource("Text")
                         {
                             Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),

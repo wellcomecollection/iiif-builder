@@ -55,13 +55,15 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string CanvasPaintingAnnotationPageFormat = "/presentation/{identifier}/canvases/{assetIdentifier}/painting";
         private const string CanvasPaintingAnnotationFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
         private const string CanvasSuppAnnotationPageFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing";
-        private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/anno";
+        private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/{annoIdentifier}";
+        private const string CanvasClassifyingAnnotationFormat =  "/presentation/{identifier}/canvases/{assetIdentifier}/classifying/{annoIdentifier}";
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
         // NB /line/ is reserved for text granularity - can be other granularities later.
+        public const string AnnotationsPathPrefix = "/annotations/"; // This is leaky here. S3 keys intrude on UriPatterns. Revisit.
         private const string CanvasOtherAnnotationPageFormat =    "/annotations/v3/{identifier}/{assetIdentifier}/line";
-        private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifer}";
+        private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifier}";
         private const string ManifestAnnotationPageAllFormat =    "/annotations/v3/{identifier}/all/line";
         private const string ManifestAnnotationPageImagesFormat = "/annotations/v3/{identifier}/images"; // not line, obvs.
         
@@ -129,11 +131,19 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestAndAssetIdentifiers(
                 CanvasSuppAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier)
+        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetIdentifiers(
-                CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier);
-        }     
+                CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
+        }   
+        
+        public string CanvasClassifyingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                    CanvasClassifyingAnnotationFormat, manifestIdentifier, assetIdentifier)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
+        }   
         
         public string CanvasOtherAnnotationPage(string manifestIdentifier, string assetIdentifier)
         {

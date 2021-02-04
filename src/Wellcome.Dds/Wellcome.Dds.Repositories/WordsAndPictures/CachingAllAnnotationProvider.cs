@@ -62,6 +62,8 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     var page = altoProvider.GetAnnotationPage(altoRoot,
                         physicalFile.AssetMetadata.GetImageWidth(),
                         physicalFile.AssetMetadata.GetImageHeight(),
+                        identifier,
+                        physicalFile.StorageIdentifier,
                         (physicalFile.Order ?? 1) - 1);
                     logger.LogInformation($"Adding page - {page}");
                     pages.Add(page);

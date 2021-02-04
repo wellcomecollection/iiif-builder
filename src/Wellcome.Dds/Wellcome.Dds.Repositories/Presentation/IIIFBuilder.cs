@@ -5,18 +5,22 @@ using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
 using IIIF.Presentation;
+using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
+using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
+using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -384,15 +388,97 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
         {
-            var result = new AltoAnnotationBuildResult(manifestation);
-            // See IIIFConverter in ecosystem, line 1610
+            // This is in the wrong place. We're making S3 keys out of anno IDs (URLs), but
+            // _where_ is the right place to do this?
+            
             // loop through annotationPages
             // build annos for each page
             // emit a single page and key per page
             // append the annos to the all list
             // append just the images to the image list
+            // See ecosystem IIIFConverter in ecosystem, line 1610
+            const string annotationsPathSegment = "/annotations/";
+            var allAnnoPageId = uriPatterns.ManifestAnnotationPageAll(manifestation.Id);
+            var imageAnnoPageId = uriPatterns.ManifestAnnotationPageImages(manifestation.Id);
+            var result = new AltoAnnotationBuildResult(manifestation)
+            {
+                AllContentAnnotations = new() {Id = allAnnoPageId, Items = new List<IAnnotation>()},
+                AllContentAnnotationsKey = allAnnoPageId.Split(annotationsPathSegment)[^1],
+                ImageAnnotations = new() {Id = imageAnnoPageId, Items = new List<IAnnotation>()},
+                ImageAnnotationsKey = imageAnnoPageId.Split(annotationsPathSegment)[^1],
+                PageAnnotations = new IIIF.Presentation.Annotation.AnnotationPage[annotationPages.Count],
+                PageAnnotationsKeys = new string[annotationPages.Count]
+            };
+            result.AllContentAnnotations.AddPresentation3Context();
+            result.ImageAnnotations.AddPresentation3Context();
+            for (var i = 0; i < annotationPages.Count; i++)
+            {
+                var altoPage = annotationPages[i];
+                var w3CPage = new IIIF.Presentation.Annotation.AnnotationPage
+                {
+                    Id = uriPatterns.CanvasOtherAnnotationPage(manifestation.Id, altoPage.AssetIdentifier),
+                    Items = new List<IAnnotation>()
+                };
+                w3CPage.AddPresentation3Context();
+                string canvasId = uriPatterns.Canvas(manifestation.Id, altoPage.AssetIdentifier);
+                result.PageAnnotationsKeys[i] = w3CPage.Id.Split(annotationsPathSegment)[^1];
+
+                var textLines = altoPage.TextLines
+                    .Select((tl, lineIndex) => GetTextLineAnnotation(altoPage, tl, lineIndex, canvasId))
+                    .ToList();
+                var illustrations = altoPage.Illustrations
+                    .Select((il, index) => GetIllustrationAnnotation(altoPage, il, index, canvasId))
+                    .ToList();
+                var composedBlocks = altoPage.ComposedBlocks
+                    .Select((il, index) => GetIllustrationAnnotation(altoPage, il, index, canvasId))
+                    .ToList();
+                var allPageAnnotations = textLines.Concat(illustrations).Concat(composedBlocks).ToArray();
+
+                if (allPageAnnotations.FirstOrDefault()?.Target is Canvas firstAnnoCanvas)
+                {
+                    // add a partOf to the first anno for this page, to associate the canvas with the manifest. Nice!
+                    firstAnnoCanvas.PartOf = new List<ResourceBase>
+                    {
+                        new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
+                    };
+                }
+                result.AllContentAnnotations.Items.AddRange(allPageAnnotations);
+                result.ImageAnnotations.Items.AddRange(illustrations);
+                result.ImageAnnotations.Items.AddRange(composedBlocks);
+                w3CPage.Items.AddRange(allPageAnnotations);
+            }
             return result;
         }
+
+
+        private SupplementingDocumentAnnotation GetTextLineAnnotation(
+            AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
+        {
+            return new()
+            {
+                Id = uriPatterns.CanvasSupplementingAnnotation(
+                    altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"t{lineIndex}"),
+                Target = new Canvas { Id = $"{canvasId}#xywh={tl.X},{tl.Y},{tl.Width},{tl.Height}" },
+                Body = new TextualBody(tl.Text) 
+                // we could use the overload TextualBody(tl.Text, "text/plain"), but verbose.
+            };
+        }
+        private Annotation GetIllustrationAnnotation(
+            AnnotationPage altoPage, Illustration il, int index, string canvasId)
+        {
+            return new TypeClassifyingAnnotation
+            {
+                Id = uriPatterns.CanvasClassifyingAnnotation(
+                    altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
+                Target = new Canvas { Id = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}" },
+                Motivation = Motivation.Classifying,
+                Body = new ClassifyingBody("Image")
+                {
+                    Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
+                }
+            };
+        }
+        
 
         public string Serialise(ResourceBase iiifResource)
         {

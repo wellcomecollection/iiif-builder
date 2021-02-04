@@ -30,6 +30,7 @@ using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Conneg;
+using Wellcome.Dds.Server.Controllers;
 using Wellcome.Dds.Server.Infrastructure;
 
 namespace Wellcome.Dds.Server
@@ -119,6 +120,7 @@ namespace Wellcome.Dds.Server
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
             
             services.AddSingleton<UriPatterns>();
+            services.AddSingleton<Helpers>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
