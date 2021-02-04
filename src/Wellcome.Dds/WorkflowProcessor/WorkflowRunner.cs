@@ -213,7 +213,7 @@ namespace WorkflowProcessor
                                     cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
                                 // Now convert them to W3C Web Annotations
                                 var result = iiifBuilder.BuildW3CAnnotations(manifestation, annotationPages);
-                                SaveAnnoPagesToS3(result);
+                                await SaveAnnoPagesToS3(result);
                                 logger.LogInformation(
                                     $"Rebuilt annotation pages for {manifestation.Id}: {annotationPages.Count} pages.");
                                 job.AnnosBuilt++;
@@ -269,7 +269,7 @@ namespace WorkflowProcessor
             await amazonS3.PutObjectAsync(put);
         }
 
-        private async void SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
+        private async Task SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
         {
             // Assumption - we save each page individually to S3 (=> 20m pages...)
             // We save the allcontent single list to S3

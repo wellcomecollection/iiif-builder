@@ -446,6 +446,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 result.ImageAnnotations.Items.AddRange(illustrations);
                 result.ImageAnnotations.Items.AddRange(composedBlocks);
                 w3CPage.Items.AddRange(allPageAnnotations);
+                result.PageAnnotations[i] = w3CPage;
             }
             return result;
         }
