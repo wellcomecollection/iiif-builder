@@ -80,7 +80,14 @@ namespace Wellcome.Dds.Server
             });
 
             services.AddSwagger();
-            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy",
+                    builder => builder
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()); // we might need to customise CORS handling for IIIF Auth...
+            });
             services.AddMvc(options =>
             {
                 var jsonFormatter = options.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
@@ -130,6 +137,8 @@ namespace Wellcome.Dds.Server
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<Synchroniser>()
+                .AddScoped<IDds, Repositories.Dds>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IDashboardRepository, DashboardRepository>();
@@ -154,7 +163,7 @@ namespace Wellcome.Dds.Server
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseCors();
+            app.UseCors("CorsPolicy");
             app.SetupSwagger();
             app.UseStaticFiles();
             app.UseRouting();
