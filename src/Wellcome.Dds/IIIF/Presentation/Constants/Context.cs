@@ -5,17 +5,65 @@ namespace IIIF.Presentation.Constants
 {
     public static class Context
     {
-        public const string Presentation3Context = "http://iiif.io/api/presentation/3/context.json";
+        public const string Presentation3Context = "http://iiif.io/api/presentation/3/contextToEnsure.json";
 
-        public static void AddPresentation3Context(this ResourceBase resource, params string[] additionalContexts)
+        public static void EnsurePresentation3Context(this ResourceBase resource)
         {
-            if (additionalContexts.Length > 0)
+            resource.EnsureContext(Presentation3Context);
+        }
+
+        // The IIIF context must be last in the list, to override any that come before it.
+        public static void EnsureContext(this ResourceBase resource, string contextToEnsure)
+        {
+            if (resource.Context == null)
             {
-                resource.Context = new List<string>(additionalContexts) {Presentation3Context};
+                resource.Context = contextToEnsure;
+                return;
+            }
+
+            List<string> workingContexts = new();
+            if (resource.Context is List<string> existingContexts)
+            {
+                workingContexts = existingContexts;
+            }
+
+            if (resource.Context is string singleContext)
+            {
+                workingContexts = new List<string> { singleContext };
+            }
+            
+            List<string> newContexts = new();
+            bool hasPresentation3Context = false;
+            foreach (string workingContext in workingContexts)
+            {
+                if (workingContext == Presentation3Context)
+                {
+                    hasPresentation3Context = true;
+                }
+                else
+                {
+                    newContexts.Add(workingContext);
+                }
+            }
+
+            if (!newContexts.Contains(contextToEnsure))
+            {
+                newContexts.Add(contextToEnsure);
+            }
+
+            if (hasPresentation3Context)
+            {
+                // always last
+                newContexts.Add(Presentation3Context);
+            }
+
+            if (newContexts.Count == 1)
+            {
+                resource.Context = newContexts[0];
             }
             else
             {
-                resource.Context = Presentation3Context;
+                resource.Context = newContexts;
             }
         }
     }

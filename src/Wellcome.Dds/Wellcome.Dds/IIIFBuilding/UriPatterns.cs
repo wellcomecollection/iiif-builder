@@ -66,11 +66,13 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifier}";
         private const string ManifestAnnotationPageAllFormat =    "/annotations/v3/{identifier}/all/line";
         private const string ManifestAnnotationPageImagesFormat = "/annotations/v3/{identifier}/images"; // not line, obvs.
-        
+
         // IIIF Content Search
-        private const string IIIFContentSearch2Format =           "/search/v2/{identifier}";
-        private const string IIIFAutoComplete2Format =            "/autocomplete/v2/{identifier}";
-        
+        private const string IIIFContentSearch1Format = "/search/v1/{identifier}";
+        private const string IIIFAutoComplete1Format = "/search/autocomplete/v1/{identifier}";
+        private const string IIIFContentSearch2Format = "/search/v2/{identifier}";
+        private const string IIIFAutoComplete2Format = "/search/autocomplete/v2/{identifier}";
+
         // Other resources
         private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
         private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
@@ -265,10 +267,18 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestIdentifier(IIIFContentSearch2Format, identifier);
         }
+        public string IIIFContentSearchService1(string identifier)
+        {
+            return ManifestIdentifier(IIIFContentSearch1Format, identifier);
+        }
 
         public string IIIFAutoCompleteService2(string identifier)
         {
             return ManifestIdentifier(IIIFAutoComplete2Format, identifier);
+        }
+        public string IIIFAutoCompleteService1(string identifier)
+        {
+            return ManifestIdentifier(IIIFAutoComplete1Format, identifier);
         }
 
         private string ManifestIdentifier(string template, string identifier)

@@ -8,12 +8,8 @@ namespace IIIF.Presentation
     /// <summary>
     /// Base class for all IIIF presentation resources. 
     /// </summary>
-    public abstract class ResourceBase
+    public abstract class ResourceBase : JsonLdBase
     {
-        // TODO - this can be List<string> or string - how will deserializer handle this? string[] or string? 
-        [JsonProperty(Order = 1, PropertyName = "@context")]
-        public object? Context { get; set; } // This one needs its serialisation name changing...
-        
         /// <summary>
         /// The URI that identifies the resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#id">id</a>

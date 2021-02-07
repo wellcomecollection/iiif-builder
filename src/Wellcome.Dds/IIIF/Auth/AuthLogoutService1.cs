@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Auth
 {
-    public class AuthLogoutService1: ServiceBase, IService
+    public class AuthLogoutService1: LegacyResourceBase, IService
     {
         public AuthLogoutService1()
         {

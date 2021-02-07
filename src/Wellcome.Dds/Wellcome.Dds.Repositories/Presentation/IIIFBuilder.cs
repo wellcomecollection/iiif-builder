@@ -9,6 +9,7 @@ using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
+using IIIF.Search.V1;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils;
@@ -19,6 +20,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
 
@@ -360,7 +362,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             StructureBase iiifResource, Work work,
             ManifestationMetadata manifestationMetadata)
         {
-            iiifResource.AddPresentation3Context();
+            iiifResource.EnsurePresentation3Context();
             iiifResource.Label = Lang.Map(work.Title);
             build.SeeAlso(iiifResource, work);
             iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);
@@ -409,8 +411,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 PageAnnotations = new IIIF.Presentation.Annotation.AnnotationPage[annotationPages.Count],
                 PageAnnotationsKeys = new string[annotationPages.Count]
             };
-            result.AllContentAnnotations.AddPresentation3Context();
-            result.ImageAnnotations.AddPresentation3Context();
+            result.AllContentAnnotations.EnsurePresentation3Context();
+            result.ImageAnnotations.EnsurePresentation3Context();
             for (var i = 0; i < annotationPages.Count; i++)
             {
                 var altoPage = annotationPages[i];
@@ -419,7 +421,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Id = uriPatterns.CanvasOtherAnnotationPage(manifestation.Id, altoPage.AssetIdentifier),
                     Items = new List<IAnnotation>()
                 };
-                w3CPage.AddPresentation3Context();
+                w3CPage.EnsurePresentation3Context();
                 string canvasId = uriPatterns.Canvas(manifestation.Id, altoPage.AssetIdentifier);
                 result.PageAnnotationsKeys[i] = w3CPage.Id.Split(annotationsPathSegment)[^1];
 
@@ -480,14 +482,39 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
 
-        public string Serialise(ResourceBase iiifResource)
+        public string Serialise(JsonLdBase iiifResource)
         {
             return JsonConvert.SerializeObject(iiifResource, GetJsFriendlySettings());
         }
-        // we'll need another Serialise for IIIFv2
 
-        
-        
+        public TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions)
+        {
+            var searchUri = uriPatterns.IIIFContentSearchService1(manifestationIdentifier);
+            return new TermList
+            {
+                Context = SearchService1.Search1Context,
+                Id = uriPatterns.IIIFAutoCompleteService1(manifestationIdentifier) + "?q=" + q,
+                Terms = suggestions.Select(suggestion => new Term
+                {
+                        Match = suggestion,
+                        Search = searchUri + "?q=" + q
+                }).ToArray()
+            };
+        }
+
+        public SearchResultAnnotationList BuildSearchResultsV1(IEnumerable<SearchResult> results, string manifestationIdentifier, string s)
+        {
+            // see IIIFConverter, line 1520.
+            // Need to know the canvas IDs, we can't make them from index any more.
+            // Should the Text object store an additional index => canvas ID map?
+
+            // Also need to get the same search impl reorgs done in the /3/ branch on the thumbs tester (move stuff to common - look at the PR)
+            // Think about lessons for IIIF2 serialisation from this LegacyInclusion stuff.
+
+            throw new NotImplementedException();
+        }
+
+
         private static JsonSerializerSettings GetJsFriendlySettings()
         {
             var settings = new JsonSerializerSettings

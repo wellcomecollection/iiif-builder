@@ -28,10 +28,13 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Presentation;
+using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Conneg;
 using Wellcome.Dds.Server.Controllers;
 using Wellcome.Dds.Server.Infrastructure;
+using Wellcome.Dds.WordsAndPictures;
 
 namespace Wellcome.Dds.Server
 {
@@ -140,8 +143,11 @@ namespace Wellcome.Dds.Server
                 .AddScoped<Synchroniser>()
                 .AddScoped<IDds, Repositories.Dds>()
                 .AddScoped<StorageServiceClient>()
+                .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IDashboardRepository, DashboardRepository>();
+                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
+                .AddScoped<CachingAltoSearchTextProvider>(); // mmm
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronApi>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();

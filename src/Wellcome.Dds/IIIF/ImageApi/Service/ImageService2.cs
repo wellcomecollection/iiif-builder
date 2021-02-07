@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.ImageApi.Service
 {
-    public class ImageService2 : ServiceBase, IService
+    public class ImageService2 : LegacyResourceBase, IService
     {
         public const string Image2Context = "http://iiif.io/api/image/2/context.json";
         public const string Level0Profile = "http://iiif.io/api/image/2/level0.json";

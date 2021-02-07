@@ -64,8 +64,8 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Alto(string manifestationIdentifier, string assetIdentifier)
         {
             var metsManifestation = await metsRepository.GetAsync(manifestationIdentifier) as IManifestation;
-            var asset = metsManifestation.Sequence.Single(pf => pf.StorageIdentifier == assetIdentifier);
-            if (asset.RelativeAltoPath.HasText())
+            var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
+            if (asset != null && asset.RelativeAltoPath.HasText())
             {
                 var stream = await asset.WorkStore.GetStreamForPathAsync(asset.RelativeAltoPath);
                 return File(stream, "text/xml");

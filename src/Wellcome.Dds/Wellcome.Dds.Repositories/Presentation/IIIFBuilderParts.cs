@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
+using IIIF.LegacyInclusions;
 using IIIF.Presentation;
 using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
-using IIIF.Search;
+using IIIF.Search.V1;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -225,18 +226,18 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
+                manifest.EnsureContext(SearchService1.Search1Context);
                 manifest.Service ??= new List<IService>();
-                manifest.Service.Add(new SearchService2
+                manifest.Service.Add(new SearchService1
                 {
-                    Id = uriPatterns.IIIFContentSearchService2(digitisedManifestation.Identifier),
-                    Label = Lang.Map("Search within this manifest"),
-                    Service = new List<IService>
+                    Id = uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier),
+                    Profile = SearchService1.Search1Profile,
+                    Label = new MetaDataValue("Search within this manifest"),
+                    Service = new AutoCompleteService1
                     {
-                        new AutoCompleteService2
-                        {
-                            Id = uriPatterns.IIIFAutoCompleteService2(digitisedManifestation.Identifier),
-                            Label = Lang.Map("Autocomplete words in this manifest")
-                        }
+                        Id = uriPatterns.IIIFAutoCompleteService1(digitisedManifestation.Identifier),
+                        Profile = AutoCompleteService1.AutoCompleteService1Profile,
+                        Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
                 });
             }

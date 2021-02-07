@@ -1,7 +1,9 @@
-﻿using System.Threading.Tasks;
-using IIIF.Presentation;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using IIIF;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -20,7 +22,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
         public Task<MultipleBuildResult> Build(string identifier, Work work = null);
-        
+
         /// <summary>
         /// Builds ALL Manifests and Collections for the given bNumber.
         /// For a single volume work this does the same as Build(..),
@@ -35,9 +37,12 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
         public Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null);
+        
+        string Serialise(JsonLdBase iiifResource);
 
- 
-        string Serialise(ResourceBase iiifResource);
         AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
+        
+        IIIF.Search.V1.TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions);
+        IIIF.Search.V1.SearchResultAnnotationList BuildSearchResultsV1(IEnumerable<SearchResult> results, string manifestationIdentifier, string s);
     }
 }
