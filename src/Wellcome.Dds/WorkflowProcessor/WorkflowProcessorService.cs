@@ -43,6 +43,8 @@ namespace WorkflowProcessor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            string[] arguments = Environment.GetCommandLineArgs();
+            logger.LogInformation("GetCommandLineArgs: {0}", string.Join(", ", arguments));
             logger.LogInformation("Hosted service ExecuteAsync");
             int waitMs = 2;
             while (!stoppingToken.IsCancellationRequested)

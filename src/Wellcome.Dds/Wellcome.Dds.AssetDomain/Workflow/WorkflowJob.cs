@@ -26,6 +26,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public int Words { get; set; }
         public int TextPages { get; set; }
         public int TimeSpentOnTextPages { get; set; }
+        public int? WorkflowOptions { get; set; }
 
         public string GetAltoRate()
         {

@@ -67,10 +67,23 @@ namespace WorkflowProcessor
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
             job.Taken = DateTime.Now;
+            var jobOptions = runnerOptions;
+            if (job.WorkflowOptions != null)
+            {
+                // Allow an individual job to override the processor options
+                jobOptions = RunnerOptions.FromInt32(job.WorkflowOptions.Value);
+            }
+
+            // ! NEEDS A DATABASE MIGRATION
+
+            if (!jobOptions.HasWorkToDo())
+            {
+                job.Error = $"No work specified in jobOptions ({job.WorkflowOptions})";
+            }
             Work work = null;
             try
             {
-                if (runnerOptions.RegisterImages)
+                if (jobOptions.RegisterImages)
                 {
                     var batchResponse = await ingestJobRegistry.RegisterImages(job.Identifier);
                     if (batchResponse.Length > 0)
@@ -79,19 +92,19 @@ namespace WorkflowProcessor
                         job.DlcsJobCount = batchResponse.Length;
                     }
                 }
-                if (runnerOptions.RefreshFlatManifestations)
+                if (jobOptions.RefreshFlatManifestations)
                 {
                     work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
                     await dds.RefreshManifestations(job.Identifier, work);
                 }
-                if (runnerOptions.RebuildIIIF3)
+                if (jobOptions.RebuildIIIF3)
                 {
                     work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
                     await RebuildIIIF3(job, work);
                 }
-                if (runnerOptions.RebuildTextCaches || runnerOptions.RebuildAllAnnoPageCaches)
+                if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    await RebuildAltoDerivedAssets(job); 
+                    await RebuildAltoDerivedAssets(job, jobOptions); 
                 }
 
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
@@ -149,9 +162,9 @@ namespace WorkflowProcessor
             await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
         }
 
-        private async Task RebuildAltoDerivedAssets(WorkflowJob job)
+        private async Task RebuildAltoDerivedAssets(WorkflowJob job, RunnerOptions jobOptions)
         {
-            if (runnerOptions.RebuildTextCaches)
+            if (jobOptions.RebuildTextCaches)
             {
                 var start = DateTime.Now;
                 job.ExpectedTexts = 0;
@@ -202,7 +215,7 @@ namespace WorkflowProcessor
                         }
                         else
                         {
-                            if (runnerOptions.RebuildAllAnnoPageCaches)
+                            if (jobOptions.RebuildAllAnnoPageCaches)
                             {
                                 var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
                                 SaveAnnoPagesToS3(manifestation, annopages);
