@@ -30,6 +30,7 @@ namespace Wellcome.Dds.Repositories.Presentation
     {
         private readonly UriPatterns uriPatterns;
         private readonly int dlcsDefaultSpace;
+        private readonly bool referenceV0SearchService;
         private readonly ManifestStructureHelper manifestStructureHelper;
         private readonly IAuthServiceProvider authServiceProvider;
 
@@ -42,10 +43,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
-            int dlcsDefaultSpace)
+            int dlcsDefaultSpace,
+            bool referenceV0SearchService)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
+            this.referenceV0SearchService = referenceV0SearchService;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new DlcsIIIFAuthServiceProvider();
             
@@ -228,9 +231,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.EnsureContext(SearchService1.Search1Context);
                 manifest.Service ??= new List<IService>();
+                string searchServiceId;
+                searchServiceId = referenceV0SearchService ? 
+                    uriPatterns.IIIFContentSearchService0(digitisedManifestation.Identifier) : 
+                    uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier);
                 manifest.Service.Add(new SearchService1
                 {
-                    Id = uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier),
+                    Id = searchServiceId,
                     Profile = SearchService1.Search1Profile,
                     Label = new MetaDataValue("Search within this manifest"),
                     Service = new AutoCompleteService1

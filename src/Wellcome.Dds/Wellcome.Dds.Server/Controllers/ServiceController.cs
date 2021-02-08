@@ -14,7 +14,7 @@ namespace Wellcome.Dds.Server.Controllers
         public ServiceController(IDds dds)
         {
             this.dds = dds;
-        }
+        }       
 
         [HttpGet("suggest-b-number")]
         public IActionResult SuggestBNumber(string q)

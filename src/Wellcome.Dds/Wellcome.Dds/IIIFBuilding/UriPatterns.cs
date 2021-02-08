@@ -58,16 +58,19 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/{annoIdentifier}";
         private const string CanvasClassifyingAnnotationFormat =  "/presentation/{identifier}/canvases/{assetIdentifier}/classifying/{annoIdentifier}";
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
+
+        private const string IIIFSearchAnnotationFormat =         "/annotations/{identifier}/{assetIdentifier}/{annoIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
         // NB /line/ is reserved for text granularity - can be other granularities later.
-        public const string AnnotationsPathPrefix = "/annotations/"; // This is leaky here. S3 keys intrude on UriPatterns. Revisit.
         private const string CanvasOtherAnnotationPageFormat =    "/annotations/v3/{identifier}/{assetIdentifier}/line";
         private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifier}";
         private const string ManifestAnnotationPageAllFormat =    "/annotations/v3/{identifier}/all/line";
         private const string ManifestAnnotationPageImagesFormat = "/annotations/v3/{identifier}/images"; // not line, obvs.
 
         // IIIF Content Search
+        private const string IIIFContentSearch0Format = "/search/v0/{identifier}";
+        // private const string IIIFAutoComplete0Format = "/search/autocomplete/v0/{identifier}";  // not used - use v1
         private const string IIIFContentSearch1Format = "/search/v1/{identifier}";
         private const string IIIFAutoComplete1Format = "/search/autocomplete/v1/{identifier}";
         private const string IIIFContentSearch2Format = "/search/v2/{identifier}";
@@ -159,7 +162,15 @@ namespace Wellcome.Dds.IIIFBuilding
                 CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier)
                 .Replace(AnnoIdentifierToken, annoIdentifier);
         }
-
+        
+        
+        public string IIIFSearchAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(
+                    IIIFSearchAnnotationFormat, manifestIdentifier, assetIdentifier)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
+        }
+        
         public string ManifestAnnotationPageAll(string identifier)
         {
             return ManifestIdentifier(ManifestAnnotationPageAllFormat, identifier);
@@ -270,6 +281,10 @@ namespace Wellcome.Dds.IIIFBuilding
         public string IIIFContentSearchService1(string identifier)
         {
             return ManifestIdentifier(IIIFContentSearch1Format, identifier);
+        }
+        public string IIIFContentSearchService0(string identifier)
+        {
+            return ManifestIdentifier(IIIFContentSearch0Format, identifier);
         }
 
         public string IIIFAutoCompleteService2(string identifier)

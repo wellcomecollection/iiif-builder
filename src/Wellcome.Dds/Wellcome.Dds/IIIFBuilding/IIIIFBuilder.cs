@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using IIIF;
+using IIIF.Search.V1;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
@@ -43,6 +45,9 @@ namespace Wellcome.Dds.IIIFBuilding
         AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
         
         IIIF.Search.V1.TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions);
-        IIIF.Search.V1.SearchResultAnnotationList BuildSearchResultsV1(IEnumerable<SearchResult> results, string manifestationIdentifier, string s);
+        SearchResultAnnotationList BuildSearchResultsV0(Text text, IEnumerable<SearchResult> results,
+            string manifestationIdentifier, string s);
+
+        SearchResultAnnotationList BuildSearchResultsV1(Text text, string manifestationIdentifier, string s);
     }
 }

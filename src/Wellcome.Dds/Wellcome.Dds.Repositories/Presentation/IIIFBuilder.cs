@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
+using IIIF.LegacyInclusions;
 using IIIF.Presentation;
 using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
@@ -20,8 +21,10 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
+using Annotation = IIIF.Presentation.Annotation.Annotation;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -51,7 +54,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.catalogue = catalogue;
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
-            build = new IIIFBuilderParts(uriPatterns, dlcsOptions.Value.CustomerDefaultSpace);
+            build = new IIIFBuilderParts(
+                uriPatterns,
+                dlcsOptions.Value.CustomerDefaultSpace,
+                ddsOptions.Value.ReferenceV0SearchService);
         }
 
         public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null)
@@ -502,18 +508,164 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        public SearchResultAnnotationList BuildSearchResultsV1(IEnumerable<SearchResult> results, string manifestationIdentifier, string s)
+        /// <summary>
+        /// // see https://github.com/wellcomecollection/platform/issues/4740#issuecomment-775035270
+        ///
+        /// The V0 version is page-centric, it uses "Simple Player" results.
+        /// The V1 version allows for hits to span pages, or have more than one hit per page.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="results"></param>
+        /// <param name="manifestationIdentifier"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        public SearchResultAnnotationList BuildSearchResultsV0(
+            Text text,
+            IEnumerable<SearchResult> results,
+            string manifestationIdentifier,
+            string query)
         {
-            // see IIIFConverter, line 1520.
-            // Need to know the canvas IDs, we can't make them from index any more.
-            // Should the Text object store an additional index => canvas ID map?
+            var resultsList = results.ToList();
 
-            // Also need to get the same search impl reorgs done in the /3/ branch on the thumbs tester (move stuff to common - look at the PR)
-            // Think about lessons for IIIF2 serialisation from this LegacyInclusion stuff.
+            // this is the simple annotation list:
+            var resources = new List<SearchResultAnnotation>();
 
-            throw new NotImplementedException();
+            // and these are the decorations that turn it into search results.
+            // a hit might map to more than one annotation, if the result spans lines.
+            var hits = new List<Hit>();
+            
+            foreach(SearchResult sr in resultsList)
+            {
+                var hit = new Hit();
+                var hitAnnos = new List<string>();
+
+                // we need some temporary jiggery-pokery to massage our old format before and afters (which belong to each Rect)
+                string firstBefore = null;
+                string lastAfter = null;
+                string match = "";
+                foreach(Rect rect in sr.Rects)
+                {
+                    var assetIdentifier = text.Images[sr.Index].ImageIdentifier;
+                    var annoIdentifier = $"h{rect.Hit}r{rect.X},{rect.Y},{rect.W},{rect.H}";
+                    var canvasId = uriPatterns.Canvas(manifestationIdentifier, assetIdentifier);
+                    var anno = new SearchResultAnnotation
+                    {
+                        Id = uriPatterns.IIIFSearchAnnotation(manifestationIdentifier, assetIdentifier, annoIdentifier),
+                        On = $"{canvasId}#xywh={rect.X},{rect.Y},{rect.W},{rect.H}",
+                        Resource = new SearchResultAnnotationResource { Chars = rect.Word }
+                    };
+                    if(firstBefore.IsNullOrWhiteSpace())
+                    {
+                        firstBefore = rect.Before;
+                    }
+                    // This is very implementation-specific
+                    match += (match.HasText() ? " " : "") + rect.Word;
+                    lastAfter = rect.After;
+                    hitAnnos.Add(anno.Id);
+                    resources.Add(anno);
+                }
+                hit.Before = firstBefore;
+                hit.After = lastAfter;
+                hit.Annotations = hitAnnos.ToArray();
+                //if(hit.Annotations.Length > 1)
+                //{
+                hit.Match = match;
+                //}
+                hits.Add(hit);
+            }
+            
+            return new SearchResultAnnotationList
+            {
+                Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
+                Context = SearchService1.Search1Context,
+                Resources = resources.ToArray(),
+                Hits = hits.ToArray(),
+                Within = new SearchResultsLayer { Total = resources.Count }
+            };
         }
 
+        /// <summary>
+        /// Build IIIF Hits and Annotation directly, allowing for more complex behaviour
+        /// https://github.com/wellcomecollection/platform/issues/4740#issuecomment-775035270
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="manifestationIdentifier"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        public SearchResultAnnotationList BuildSearchResultsV1(Text text, string manifestationIdentifier, string query)
+        {
+            var resources = new List<SearchResultAnnotation>();
+            List<ResultRect> resultRects;
+            if (query.HasText())
+            {
+                resultRects = text.Search(query);
+            }
+            else
+            {
+                resultRects = new List<ResultRect>(0);
+            }
+
+            // number of rects >= number of hits
+            var hits = new List<Hit>();
+            var hitAnnotations = new List<string>();
+            Hit currentHit = null;
+            int currentHitIndex = -1;
+            string after = null;
+            
+            foreach(var resultRect in resultRects)
+            {
+                if (currentHitIndex != resultRect.Hit)
+                {
+                    if (currentHit != null)
+                    {
+                        // Finish off the previous hit - we are now in another hit
+                        currentHit.After = after;
+                        currentHit.Annotations = hitAnnotations.ToArray();
+                        hits.Add(currentHit);
+                    }
+                    
+                    // start the new Hit
+                    currentHit = new Hit
+                    {
+                        Before = resultRect.Before,
+                        Match = ""
+                    };
+                    currentHitIndex = resultRect.Hit;
+                    hitAnnotations = new List<string>();
+                }
+
+                var assetIdentifier = text.Images[resultRect.Idx].ImageIdentifier;
+                var annoIdentifier = $"h{resultRect.Hit}r{resultRect.X},{resultRect.Y},{resultRect.W},{resultRect.H}";
+                var canvasId = uriPatterns.Canvas(manifestationIdentifier, assetIdentifier);
+                var anno = new SearchResultAnnotation
+                {
+                    Id = uriPatterns.IIIFSearchAnnotation(manifestationIdentifier, assetIdentifier, annoIdentifier),
+                    On = $"{canvasId}#xywh={resultRect.X},{resultRect.Y},{resultRect.W},{resultRect.H}",
+                    Resource = new SearchResultAnnotationResource { Chars = resultRect.ContentRaw }
+                };
+                currentHit.Match += (currentHit.Match.HasText() ? " " : "") + resultRect.ContentRaw;
+                after = resultRect.After;
+                hitAnnotations.Add(anno.Id);
+                resources.Add(anno);
+            }
+
+            // Finish off the LAST hit - as long as we have some results
+            if (currentHit != null)
+            {
+                currentHit.After = after;
+                currentHit.Annotations = hitAnnotations.ToArray();
+                hits.Add(currentHit);
+            }
+
+            return new SearchResultAnnotationList
+            {
+                Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
+                Context = SearchService1.Search1Context,
+                Resources = resources.ToArray(),
+                Hits = hits.ToArray(),
+                Within = new SearchResultsLayer { Total = resources.Count }
+            };
+        }
 
         private static JsonSerializerSettings GetJsFriendlySettings()
         {

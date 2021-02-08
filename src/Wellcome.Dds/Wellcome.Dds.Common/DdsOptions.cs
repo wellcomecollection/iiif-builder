@@ -37,5 +37,6 @@
         public string PresentationContainer { get; set; }
         public string TextContainer { get; set; }
         public string AnnotationContainer { get; set; }
+        public bool ReferenceV0SearchService { get; set; }
     }
 }

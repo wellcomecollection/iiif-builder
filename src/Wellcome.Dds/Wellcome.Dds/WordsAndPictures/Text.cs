@@ -90,7 +90,7 @@ namespace Wellcome.Dds.WordsAndPictures
             int hitCounter = 0;
             while ((matchPos = NormalisedFullText.IndexOf(s, startPos, StringComparison.InvariantCultureIgnoreCase)) != -1)
             {
-                // this match might not be on a word boundary, so walk back to find the preceeding space
+                // this match might not be on a word boundary, so walk back to find the preceding space
                 int padding = 0;
                 while (matchPos > 0 && NormalisedFullText[matchPos - 1] != ' ')
                 {
@@ -158,7 +158,7 @@ namespace Wellcome.Dds.WordsAndPictures
                 }
                 else
                 {
-                    // add the previous coaleseced word to the results
+                    // add the previous coalesced word to the results
                     coalescedResults.Add(coalescedWord.ShallowCopy());
                     coalescedWord = ResultRect.FromWord(nextWord, hitMap[nextWord.Wd]);
                 }
@@ -171,7 +171,7 @@ namespace Wellcome.Dds.WordsAndPictures
 
         private void AddContext(List<ResultRect> coalescedResults)
         {
-            const int maxResultsWithContext = 100;
+            const int maxResultsWithContext = 200;
             const int snippetSize = 150;
             if (coalescedResults.Count < maxResultsWithContext)
             {
