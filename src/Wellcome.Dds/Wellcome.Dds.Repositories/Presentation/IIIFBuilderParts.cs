@@ -314,7 +314,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             canvas.SeeAlso = new List<ExternalResource>
                             {
-                                new ExternalResource("Dataset")
+                                new("Dataset")
                                 {
                                     Id = uriPatterns.MetsAlto(manifestIdentifier, assetIdentifier),
                                     Format = "text/html",
@@ -324,9 +324,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                             };
                             canvas.Annotations = new List<AnnotationPage>
                             {
-                                new AnnotationPage
+                                new ()
                                 {
-                                    Id = uriPatterns.CanvasOtherAnnotationPage(manifestIdentifier, assetIdentifier),
+                                    Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestIdentifier, assetIdentifier, 3),
                                     Label = Lang.Map(orderLabel.HasText() ? $"Text of page {orderLabel}" : "Text of this page")
                                 }
                             };
@@ -780,12 +780,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     new AnnotationPage
                     {
-                        Id = uriPatterns.ManifestAnnotationPageAll(metsManifestation.Id),
+                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
                     },
                     new AnnotationPage
                     {
-                        Id = uriPatterns.ManifestAnnotationPageImages(metsManifestation.Id),
+                        Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
                     },
                 };

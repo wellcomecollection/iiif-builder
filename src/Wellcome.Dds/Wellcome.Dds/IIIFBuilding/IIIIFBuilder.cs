@@ -42,7 +42,7 @@ namespace Wellcome.Dds.IIIFBuilding
         
         string Serialise(JsonLdBase iiifResource);
 
-        AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
+        AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
         
         IIIF.Search.V1.TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions);
         SearchResultAnnotationList BuildSearchResultsV0(Text text, IEnumerable<SearchResult> results,

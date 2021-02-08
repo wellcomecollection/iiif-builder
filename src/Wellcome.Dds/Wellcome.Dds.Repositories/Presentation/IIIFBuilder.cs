@@ -394,7 +394,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return p2Version;
         }
 
-        public AltoAnnotationBuildResult BuildW3CAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
+        public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
         {
             // This is in the wrong place. We're making S3 keys out of anno IDs (URLs), but
             // _where_ is the right place to do this?
@@ -405,44 +405,60 @@ namespace Wellcome.Dds.Repositories.Presentation
             // append the annos to the all list
             // append just the images to the image list
             // See ecosystem IIIFConverter in ecosystem, line 1610
-            const string annotationsPathSegment = "/annotations/";
-            var allAnnoPageId = uriPatterns.ManifestAnnotationPageAll(manifestation.Id);
-            var imageAnnoPageId = uriPatterns.ManifestAnnotationPageImages(manifestation.Id);
             var result = new AltoAnnotationBuildResult(manifestation)
             {
-                AllContentAnnotations = new() {Id = allAnnoPageId, Items = new List<IAnnotation>()},
-                AllContentAnnotationsKey = allAnnoPageId.Split(annotationsPathSegment)[^1],
-                ImageAnnotations = new() {Id = imageAnnoPageId, Items = new List<IAnnotation>()},
-                ImageAnnotationsKey = imageAnnoPageId.Split(annotationsPathSegment)[^1],
+                // W3C
+                AllContentAnnotations = new()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 3),
+                    Items = new List<IAnnotation>()
+                },
+                ImageAnnotations = new()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 3),
+                    Items = new List<IAnnotation>()
+                },
                 PageAnnotations = new IIIF.Presentation.Annotation.AnnotationPage[annotationPages.Count],
-                PageAnnotationsKeys = new string[annotationPages.Count]
+                // OA
+                OpenAnnotationAllContentAnnotations = new ()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 2),
+                    Resources = new List<IAnnotation>()
+                },
+                OpenAnnotationImageAnnotations = new ()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 2),
+                    Resources = new List<IAnnotation>()
+                }
             };
             result.AllContentAnnotations.EnsurePresentation3Context();
             result.ImageAnnotations.EnsurePresentation3Context();
+            result.OpenAnnotationAllContentAnnotations.EnsurePresentation2Context();
+            result.OpenAnnotationImageAnnotations.EnsurePresentation2Context();
             for (var i = 0; i < annotationPages.Count; i++)
             {
                 var altoPage = annotationPages[i];
                 var w3CPage = new IIIF.Presentation.Annotation.AnnotationPage
                 {
-                    Id = uriPatterns.CanvasOtherAnnotationPage(manifestation.Id, altoPage.AssetIdentifier),
+                    Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestation.Id, altoPage.AssetIdentifier, 3),
                     Items = new List<IAnnotation>()
                 };
                 w3CPage.EnsurePresentation3Context();
                 string canvasId = uriPatterns.Canvas(manifestation.Id, altoPage.AssetIdentifier);
-                result.PageAnnotationsKeys[i] = w3CPage.Id.Split(annotationsPathSegment)[^1];
 
-                var textLines = altoPage.TextLines
-                    .Select((tl, lineIndex) => GetTextLineAnnotation(altoPage, tl, lineIndex, canvasId))
+                // Do the W3C conversions
+                var w3CTextLines = altoPage.TextLines
+                    .Select((tl, lineIndex) => GetW3CTextLineAnnotation(altoPage, tl, lineIndex, canvasId))
                     .ToList();
-                var illustrations = altoPage.Illustrations
-                    .Select((il, index) => GetIllustrationAnnotation(altoPage, il, index, canvasId))
+                var w3CIllustrations = altoPage.Illustrations
+                    .Select((il, index) => GetW3CIllustrationAnnotation(altoPage, il, index, canvasId))
                     .ToList();
-                var composedBlocks = altoPage.ComposedBlocks
-                    .Select((il, index) => GetIllustrationAnnotation(altoPage, il, index, canvasId))
+                var w3CComposedBlocks = altoPage.ComposedBlocks
+                    .Select((il, index) => GetW3CIllustrationAnnotation(altoPage, il, index, canvasId))
                     .ToList();
-                var allPageAnnotations = textLines.Concat(illustrations).Concat(composedBlocks).ToArray();
+                var allW3CPageAnnotations = w3CTextLines.Concat(w3CIllustrations).Concat(w3CComposedBlocks).ToArray();
 
-                if (allPageAnnotations.FirstOrDefault()?.Target is Canvas firstAnnoCanvas)
+                if (allW3CPageAnnotations.FirstOrDefault()?.Target is Canvas firstAnnoCanvas)
                 {
                     // add a partOf to the first anno for this page, to associate the canvas with the manifest. Nice!
                     firstAnnoCanvas.PartOf = new List<ResourceBase>
@@ -450,17 +466,34 @@ namespace Wellcome.Dds.Repositories.Presentation
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
                     };
                 }
-                result.AllContentAnnotations.Items.AddRange(allPageAnnotations);
-                result.ImageAnnotations.Items.AddRange(illustrations);
-                result.ImageAnnotations.Items.AddRange(composedBlocks);
-                w3CPage.Items.AddRange(allPageAnnotations);
+                result.AllContentAnnotations.Items.AddRange(allW3CPageAnnotations);
+                result.ImageAnnotations.Items.AddRange(w3CIllustrations);
+                result.ImageAnnotations.Items.AddRange(w3CComposedBlocks);
+                w3CPage.Items.AddRange(allW3CPageAnnotations);
                 result.PageAnnotations[i] = w3CPage;
+                
+                
+                // Now do the OA Conversions:
+                var oATextLines = altoPage.TextLines
+                    .Select((tl, lineIndex) => GetOATextLineAnnotation(altoPage, tl, lineIndex, canvasId))
+                    .ToList();
+                var oAIllustrations = altoPage.Illustrations
+                    .Select((il, index) => GetOAIllustrationAnnotation(altoPage, il, index, canvasId))
+                    .ToList();
+                var oAComposedBlocks = altoPage.ComposedBlocks
+                    .Select((il, index) => GetOAIllustrationAnnotation(altoPage, il, index, canvasId))
+                    .ToList();
+                var allOAPageAnnotations = oATextLines.Concat(oAIllustrations).Concat(oAComposedBlocks).ToArray();
+
+                result.OpenAnnotationAllContentAnnotations.Resources.AddRange(allOAPageAnnotations);
+                result.OpenAnnotationImageAnnotations.Resources.AddRange(oAIllustrations);
+                result.OpenAnnotationImageAnnotations.Resources.AddRange(oAComposedBlocks);
             }
             return result;
         }
 
 
-        private Annotation GetTextLineAnnotation(
+        private Annotation GetW3CTextLineAnnotation(
             AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
         {
             return new SupplementingDocumentAnnotation
@@ -472,7 +505,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // we could use the overload TextualBody(tl.Text, "text/plain"), but verbose.
             };
         }
-        private Annotation GetIllustrationAnnotation(
+        private Annotation GetW3CIllustrationAnnotation(
             AnnotationPage altoPage, Illustration il, int index, string canvasId)
         {
             return new TypeClassifyingAnnotation
@@ -483,6 +516,39 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Body = new ClassifyingBody("Image")
                 {
                     Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
+                }
+            };
+        }
+
+        private IIIF.LegacyInclusions.Annotation GetOATextLineAnnotation(
+            AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
+        {
+            return new()
+            {
+                Id = uriPatterns.CanvasSupplementingAnnotation(
+                    altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"t{lineIndex}"),
+                On = $"{canvasId}#xywh={tl.X},{tl.Y},{tl.Width},{tl.Height}",
+                Motivation = "sc:painting",
+                Resource = new ContentAsTextAnnotationResource
+                {
+                    Chars = tl.Text
+                }
+            };
+        }
+
+        private IIIF.LegacyInclusions.Annotation GetOAIllustrationAnnotation(
+            AnnotationPage altoPage, Illustration il, int index, string canvasId)
+        {
+            return new IIIF.LegacyInclusions.Annotation
+            {
+                Id = uriPatterns.CanvasClassifyingAnnotation(
+                    altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
+                On = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}",
+                Motivation = "oa:classifying",
+                Resource = new IllustrationAnnotationResource
+                {
+                    Id = "dctypes:Image",
+                    Label = new MetaDataValue(il.Type)
                 }
             };
         }
@@ -578,7 +644,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
                 Context = SearchService1.Search1Context,
-                Resources = resources.ToArray(),
+                Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
             };
@@ -661,7 +727,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
                 Context = SearchService1.Search1Context,
-                Resources = resources.ToArray(),
+                Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
             };

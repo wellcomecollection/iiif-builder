@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using IIIF;
 using IIIF.Presentation;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
@@ -212,7 +213,7 @@ namespace WorkflowProcessor
                                 var annotationPages = await 
                                     cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
                                 // Now convert them to W3C Web Annotations
-                                var result = iiifBuilder.BuildW3CAnnotations(manifestation, annotationPages);
+                                var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
                                 await SaveAnnoPagesToS3(result);
                                 logger.LogInformation(
                                     $"Rebuilt annotation pages for {manifestation.Id}: {annotationPages.Count} pages.");
@@ -239,7 +240,7 @@ namespace WorkflowProcessor
             return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
         }
 
-        private async Task PutIIIFJsonObjectToS3(ResourceBase iiifResource, string bucket, string key, string logLabel)
+        private async Task PutIIIFJsonObjectToS3(JsonLdBase iiifResource, string bucket, string key, string logLabel)
         {
             var put = new PutObjectRequest
             {
@@ -271,6 +272,7 @@ namespace WorkflowProcessor
 
         private async Task SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
         {
+            const string annotationsPathSegment = "/annotations/";
             // Assumption - we save each page individually to S3 (=> 20m pages...)
             // We save the allcontent single list to S3
             // and we save the image list to S3.
@@ -279,8 +281,8 @@ namespace WorkflowProcessor
                 await PutIIIFJsonObjectToS3(
                     builtAnnotations.AllContentAnnotations,
                     ddsOptions.AnnotationContainer,
-                    builtAnnotations.AllContentAnnotationsKey,
-                    "whole manifest annotations");
+                    builtAnnotations.AllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "W3C whole manifest annotations");
             }
             
             if (builtAnnotations.ImageAnnotations != null)
@@ -288,8 +290,8 @@ namespace WorkflowProcessor
                 await PutIIIFJsonObjectToS3(
                     builtAnnotations.ImageAnnotations,
                     ddsOptions.AnnotationContainer,
-                    builtAnnotations.ImageAnnotationsKey,
-                    "manifest image/figure/block annotations");
+                    builtAnnotations.ImageAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "W3C manifest image/figure/block annotations");
             }
 
             if (builtAnnotations.PageAnnotations != null)
@@ -299,9 +301,29 @@ namespace WorkflowProcessor
                     await PutIIIFJsonObjectToS3(
                         builtAnnotations.PageAnnotations[i],
                         ddsOptions.AnnotationContainer,
-                        builtAnnotations.PageAnnotationsKeys[i],
-                        "page annotations");
+                        builtAnnotations.PageAnnotations[i].Id.Split(annotationsPathSegment)[^1],
+                        "W3C page annotations");
                 }
+            }
+            
+            // For the Open Annotation versions, we just save the manifest-level all- and image- lists.
+            // We won't save the page level versions (we didn't make them!)
+            if (builtAnnotations.OpenAnnotationAllContentAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.OpenAnnotationAllContentAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.OpenAnnotationAllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "OA whole manifest annotations");
+            }
+            
+            if (builtAnnotations.ImageAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.OpenAnnotationImageAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.OpenAnnotationImageAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "OA manifest image/figure/block annotations");
             }
         }
     }

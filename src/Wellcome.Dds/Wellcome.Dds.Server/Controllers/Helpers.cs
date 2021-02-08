@@ -1,8 +1,10 @@
+#nullable enable
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Utils;
 using Utils.Storage;
 using Wellcome.Dds.Common;
@@ -57,6 +59,24 @@ namespace Wellcome.Dds.Server.Controllers
             string raw = await reader.ReadToEndAsync();
             string rewritten = raw.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
             return controller.Content(rewritten, contentType);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="container"></param>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public async Task<object?> LoadAsJson(string container, string path)
+        {
+            var stream = await storage.GetStream(container, path);
+            if(stream == null)
+            {
+                return null;
+            }
+            using StreamReader reader = new(stream);
+            using JsonTextReader jsonReader = new(reader);
+            return new JsonSerializer().Deserialize(jsonReader);
         }
         
     }
