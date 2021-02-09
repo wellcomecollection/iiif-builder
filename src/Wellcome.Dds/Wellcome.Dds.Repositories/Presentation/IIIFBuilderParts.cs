@@ -561,6 +561,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // no auth services needed, we're open and happy.
                     return;
                 case AccessCondition.RequiresRegistration: // i.e., Clickthrough
+                case AccessCondition.OpenWithAdvisory:     // also Clickthrough
                     AddAuthServiceToDictionary(foundAuthServices, clickthroughService);
                     AddAuthServiceToMedia(media, clickthroughServiceReference);
                     break;

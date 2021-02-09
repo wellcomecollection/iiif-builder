@@ -212,6 +212,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 case "open":
                     return string.Format(GlyphTemplate, "heart");
                 case "requires registration":
+                case "open with advisory":
                     return string.Format(GlyphTemplate, "hand-up");
                 case "clinical images":
                     return string.Format(GlyphTemplate, "sunglasses");

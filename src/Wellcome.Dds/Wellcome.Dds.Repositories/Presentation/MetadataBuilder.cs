@@ -8,7 +8,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class MetadataBuilder
     {
-        private readonly List<LabelValuePair> md = new List<LabelValuePair>();
+        private readonly List<LabelValuePair> md = new();
         
         public MetadataBuilder(Work work)
         {
@@ -18,53 +18,21 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The labels will always be given an English language property, 
             // because they always are.
             
-            switch (work.WorkType.Id)
-            {
-                case "a": // monograph
-                    AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-                    AddEnglish("Physical description", work.PhysicalDescription);
-                    AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
-                    AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
-                    AddEnglish("Language", work.Language?.Label);
-                    AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
-                    break;
-                case "i": // audio
-                case "g": // video
-                    AddEnglish("Description", work.Description);
-                    AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-                    AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Copyright note", work.GetNotes("copyright-note"));
-                    AddEnglish("Notes", work.GetNotes("general-note"));
-                    AddEnglish("Creator/production credits", work.GetNotes("credits"));
-                    AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
-                    AddEnglish("Language", work.Language?.Label);
-                    AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
-                    break;
-                case "k": // artwork
-                    AddEnglish("Description", work.Description);
-                    AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-                    AddEnglish("Physical description", work.PhysicalDescription);
-                    AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
-                    AddNonlang("Lettering", work.Lettering);
-                    AddEnglish("Publications note", work.GetNotes("publication-note"));
-                    AddEnglish("Reference", work.GetNotes("reference"));
-                    AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
-                    break;
-                case "h": // archive
-                    AddEnglish("Description", work.Description);
-                    AddNonlang("Reference", work.ReferenceNumber);
-                    AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-                    AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
-                    break;
-                default: // same as archive, for now
-                    AddEnglish("Description", work.Description);
-                    AddNonlang("Reference", work.ReferenceNumber);
-                    AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-                    AddEnglish("Physical description", work.PhysicalDescription);
-                    AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
-                    break;
-            }
+            AddEnglish("Description", work.Description);
+            AddNonlang("Reference", work.ReferenceNumber);
+            AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
+            AddEnglish("Physical description", work.PhysicalDescription);
+            AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
+            AddEnglish("Copyright note", work.GetNotes("copyright-note"));
+            AddEnglish("Notes", work.GetNotes("general-note"));
+            AddEnglish("Creator/production credits", work.GetNotes("credits"));
+            AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
+            AddEnglish("Language", work.Language?.Label);
+            AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
+            AddNonlang("Lettering", work.Lettering);
+            AddEnglish("Publications note", work.GetNotes("publication-note"));
+            AddEnglish("Reference", work.GetNotes("reference"));
+            AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
         }
 
         private void AddNonlang(string label, IEnumerable<string> values)

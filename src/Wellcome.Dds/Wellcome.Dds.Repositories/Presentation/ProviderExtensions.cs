@@ -16,11 +16,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Label = Lang.Map("en",
                     "Wellcome Collection",
                     "183 Euston Road",
-                    "London NW1 2BE",
-                    "UK"),
+                    "London NW1 2BE UK",
+                    "T +44(0)2076118722",
+                    "E library@wellcome.ac.uk",
+                    "https://wellcomecollection.org"),
                 Homepage = new List<ExternalResource>
                 {
-                    new ExternalResource("Text")
+                    new("Text")
                     {
                         Id = "https://wellcomecollection.org/works",
                         Label = Lang.Map("Explore our collections"),
@@ -30,7 +32,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Logo = new List<Image>
                 {
                     // TODO - Wellcome Collection logo
-                    new Image
+                    new()
                     {
                         Id = $"{host}/logos/wellcome-collection-black.png",
                         Format = "image/png"

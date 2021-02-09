@@ -231,7 +231,7 @@ namespace DlcsWebClient.Dlcs
         {
             // https://api.dlcs.io/customers/1/roles/requiresRegistration
             string firstCharLowered = accessCondition.Trim()[0].ToString().ToLowerInvariant() + accessCondition.Substring(1);
-            if (firstCharLowered == "requires registration")
+            if (firstCharLowered == "requires registration" || firstCharLowered == "open with advisory")
             {
                 firstCharLowered = "clickthrough";
             }

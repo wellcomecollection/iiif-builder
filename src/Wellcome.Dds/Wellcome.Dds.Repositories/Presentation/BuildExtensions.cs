@@ -59,6 +59,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     usableThumbs = ThumbSizes.ToList();
                     break;
                 case AccessCondition.RequiresRegistration:
+                case AccessCondition.OpenWithAdvisory:
                     usableThumbs = ThumbSizes.Skip(2).ToList();
                     break;
             }
@@ -184,6 +185,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 case AccessCondition.Open:
                 case AccessCondition.RequiresRegistration:
+                case AccessCondition.OpenWithAdvisory:
                 case AccessCondition.Degraded:
                 case AccessCondition.ClinicalImages:
                 case AccessCondition.RestrictedFiles:

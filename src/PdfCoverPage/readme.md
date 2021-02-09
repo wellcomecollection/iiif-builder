@@ -4,8 +4,8 @@ This is a Flask app run as via Docker image.
 
 It has the following endpoints:
 
-* `/pdfcoverpage/{bnumber}` - generate PDF cover-page using manifest for specified bnumber.
-* `/pdfcoverpage/ping` - for health-checks
+* `/pdf-cover/{bnumber}` - generate PDF cover-page using manifest for specified bnumber.
+* `/pdf-cover/ping` - for health-checks
 
 ## Implementation Notes
 
