@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using IIIF;
+using IIIF.LegacyInclusions;
 using IIIF.Search.V1;
+using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.WordsAndPictures;
@@ -49,5 +51,13 @@ namespace Wellcome.Dds.IIIFBuilding
             string manifestationIdentifier, string s);
 
         SearchResultAnnotationList BuildSearchResultsV1(Text text, string manifestationIdentifier, string s);
+        
+        /// <summary>
+        /// A dynamically parsed OA anno list.
+        /// TODO: We need to consider this approach (might not be a good idea).
+        /// </summary>
+        /// <param name="v3">A dynamically parsed JSON object</param>
+        /// <returns>A V2 (Open Annotation) AnnotatioList</returns>
+        AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string assetIdentifier);
     }
 }

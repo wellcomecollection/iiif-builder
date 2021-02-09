@@ -8,5 +8,6 @@ namespace IIIF.LegacyInclusions
         
         [JsonProperty(Order = 20, PropertyName = "chars")]
         public string Chars { get; set; }
+        public string Format { get; set; }
     }
 }

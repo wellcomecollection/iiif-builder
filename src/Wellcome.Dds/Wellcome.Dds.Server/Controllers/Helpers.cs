@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Storage;
 using Wellcome.Dds.Common;
@@ -67,7 +68,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="container"></param>
         /// <param name="path"></param>
         /// <returns></returns>
-        public async Task<object?> LoadAsJson(string container, string path)
+        public async Task<JObject?> LoadAsJson(string container, string path)
         {
             var stream = await storage.GetStream(container, path);
             if(stream == null)
@@ -76,7 +77,8 @@ namespace Wellcome.Dds.Server.Controllers
             }
             using StreamReader reader = new(stream);
             using JsonTextReader jsonReader = new(reader);
-            return new JsonSerializer().Deserialize(jsonReader);
+            // In the IIIF context, this should ALWAYS come out as JObject.
+            return new JsonSerializer().Deserialize(jsonReader) as JObject;
         }
         
     }

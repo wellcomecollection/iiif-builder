@@ -13,6 +13,7 @@ using IIIF.Presentation.Strings;
 using IIIF.Search.V1;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -531,6 +532,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Motivation = "sc:painting",
                 Resource = new ContentAsTextAnnotationResource
                 {
+                    Format = "text/plain",
                     Chars = tl.Text
                 }
             };
@@ -731,6 +733,50 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
             };
+        }
+
+        public AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string assetIdentifier)
+        {
+            var annotationList = new AnnotationList
+            {
+                Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestationIdentifier, assetIdentifier, 2),
+                Resources = new List<IAnnotation>()
+            };
+            annotationList.EnsurePresentation2Context();
+            
+            foreach (var jItem in v3["items"])
+            {
+                var annotation = new IIIF.LegacyInclusions.Annotation
+                {
+                    Id = jItem.Value<string>("id"),
+                    On = jItem["target"]?.Value<string>("id") ?? string.Empty
+                };
+                // This will, atm, be either a textual body (line anno) or an image-classifying anno.
+                var body = jItem["body"];
+                if (body != null)
+                {
+                    if ("TextualBody" == body.Value<string>("type"))
+                    {
+                        annotation.Motivation = "sc:painting";
+                        annotation.Resource = new ContentAsTextAnnotationResource
+                        {
+                            Chars = body.Value<string>("value"),
+                            Format = "text/plain"
+                        };
+                    }
+                    else if ("Image" == body.Value<string>("id"))
+                    {
+                        annotation.Motivation = "oa:classifying";
+                        annotation.Resource = new IllustrationAnnotationResource
+                        {
+                            Id = "dctypes:Image",
+                            Label = new MetaDataValue(body["label"]["en"][0].Value<string>())
+                        };
+                    }
+                }
+                annotationList.Resources.Add(annotation);
+            }
+            return annotationList;
         }
 
         private static JsonSerializerSettings GetJsFriendlySettings()
