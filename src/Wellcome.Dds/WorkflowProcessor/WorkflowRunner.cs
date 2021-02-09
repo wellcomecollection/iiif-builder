@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using IIIF;
 using IIIF.Presentation;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
@@ -145,8 +146,10 @@ namespace WorkflowProcessor
         
         private async Task Save(BuildResult buildResult)
         {
-            await SaveToS3(buildResult.IIIF3Resource, buildResult.IIIF3Key);
-            await SaveToS3(buildResult.IIIF2Resource, buildResult.IIIF2Key);
+            await PutIIIFJsonObjectToS3(buildResult.IIIF3Resource, 
+                ddsOptions.PresentationContainer, buildResult.IIIF3Key, "IIIF 3 Resource");
+            await PutIIIFJsonObjectToS3(buildResult.IIIF2Resource, 
+                ddsOptions.PresentationContainer, buildResult.IIIF2Key, "IIIF 2 Resource");
         }
 
         private async Task RebuildAltoDerivedAssets(WorkflowJob job)
@@ -194,6 +197,8 @@ namespace WorkflowProcessor
                             job.TextPages += text.Images.Length;
                             job.TimeSpentOnTextPages += (int)(DateTime.Now - startTextTs).TotalMilliseconds;
                         }
+                        
+                        //  How do the all-annos file and the images file get built?
                         var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
                         if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
                         {
@@ -204,9 +209,14 @@ namespace WorkflowProcessor
                         {
                             if (runnerOptions.RebuildAllAnnoPageCaches)
                             {
-                                var annopages = await cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
-                                SaveAnnoPagesToS3(manifestation, annopages);
-                                logger.LogInformation($"Rebuilt annotation pages for {manifestation.Id}: {annopages.Count} pages.");
+                                // These are in our internal text model
+                                var annotationPages = await 
+                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
+                                // Now convert them to W3C Web Annotations
+                                var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
+                                await SaveAnnoPagesToS3(result);
+                                logger.LogInformation(
+                                    $"Rebuilt annotation pages for {manifestation.Id}: {annotationPages.Count} pages.");
                                 job.AnnosBuilt++;
                             }
                             else
@@ -225,25 +235,24 @@ namespace WorkflowProcessor
             }
         }
 
-
         private bool HasAltoFiles(IManifestation manifestation)
         {
             return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
         }
 
-        private async Task SaveToS3(StructureBase iiifResource, string key)
+        private async Task PutIIIFJsonObjectToS3(JsonLdBase iiifResource, string bucket, string key, string logLabel)
         {
             var put = new PutObjectRequest
             {
-                BucketName = ddsOptions.PresentationContainer,
+                BucketName = bucket,
                 Key = key,
                 ContentBody = iiifBuilder.Serialise(iiifResource),
                 ContentType = "application/json"
             };
+            logger.LogInformation($"Putting {logLabel} to S3: bucket: {put.BucketName}, key: {put.Key}");
             await amazonS3.PutObjectAsync(put);
         }
-
-
+        
         private async Task SaveRawTextToS3(string content, string key)
         {
             if(content.IsNullOrWhiteSpace())
@@ -257,13 +266,65 @@ namespace WorkflowProcessor
                 ContentBody = content,
                 ContentType = "text/plain"
             };
+            logger.LogInformation($"Putting raw text to S3: bucket: {put.BucketName}, key: {put.Key}");
             await amazonS3.PutObjectAsync(put);
         }
 
-        private void SaveAnnoPagesToS3(IManifestation manifestation, AnnotationPageList annopages)
+        private async Task SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
         {
-            // TODO - this should be implemented once we have a W3C version of annopage => annos
-            // so we can save it as JSON.
+            const string annotationsPathSegment = "/annotations/";
+            // Assumption - we save each page individually to S3 (=> 20m pages...)
+            // We save the allcontent single list to S3
+            // and we save the image list to S3.
+            if (builtAnnotations.AllContentAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.AllContentAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.AllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "W3C whole manifest annotations");
+            }
+            
+            if (builtAnnotations.ImageAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.ImageAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.ImageAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "W3C manifest image/figure/block annotations");
+            }
+
+            if (builtAnnotations.PageAnnotations != null)
+            {
+                for (int i = 0; i < builtAnnotations.PageAnnotations.Length; i++)
+                {
+                    await PutIIIFJsonObjectToS3(
+                        builtAnnotations.PageAnnotations[i],
+                        ddsOptions.AnnotationContainer,
+                        builtAnnotations.PageAnnotations[i].Id.Split(annotationsPathSegment)[^1],
+                        "W3C page annotations");
+                }
+            }
+            
+            // For the Open Annotation versions, we just save the manifest-level all- and image- lists.
+            // We won't save the page level versions (we didn't make them!)
+            if (builtAnnotations.OpenAnnotationAllContentAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.OpenAnnotationAllContentAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.OpenAnnotationAllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "OA whole manifest annotations");
+            }
+            
+            if (builtAnnotations.ImageAnnotations != null)
+            {
+                await PutIIIFJsonObjectToS3(
+                    builtAnnotations.OpenAnnotationImageAnnotations,
+                    ddsOptions.AnnotationContainer,
+                    builtAnnotations.OpenAnnotationImageAnnotations.Id.Split(annotationsPathSegment)[^1],
+                    "OA manifest image/figure/block annotations");
+            }
         }
     }
 }

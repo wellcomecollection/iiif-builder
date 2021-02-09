@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
+using IIIF.LegacyInclusions;
 using IIIF.Presentation;
 using IIIF.Presentation.Annotation;
 using IIIF.Presentation.Constants;
 using IIIF.Presentation.Content;
 using IIIF.Presentation.Strings;
-using IIIF.Search;
+using IIIF.Search.V1;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -29,6 +30,7 @@ namespace Wellcome.Dds.Repositories.Presentation
     {
         private readonly UriPatterns uriPatterns;
         private readonly int dlcsDefaultSpace;
+        private readonly bool referenceV0SearchService;
         private readonly ManifestStructureHelper manifestStructureHelper;
         private readonly IAuthServiceProvider authServiceProvider;
 
@@ -41,10 +43,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
-            int dlcsDefaultSpace)
+            int dlcsDefaultSpace,
+            bool referenceV0SearchService)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
+            this.referenceV0SearchService = referenceV0SearchService;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new DlcsIIIFAuthServiceProvider();
             
@@ -225,18 +229,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
+                manifest.EnsureContext(SearchService1.Search1Context);
                 manifest.Service ??= new List<IService>();
-                manifest.Service.Add(new SearchService2
+                string searchServiceId;
+                searchServiceId = referenceV0SearchService ? 
+                    uriPatterns.IIIFContentSearchService0(digitisedManifestation.Identifier) : 
+                    uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier);
+                manifest.Service.Add(new SearchService1
                 {
-                    Id = uriPatterns.IIIFContentSearchService2(digitisedManifestation.Identifier),
-                    Label = Lang.Map("Search within this manifest"),
-                    Service = new List<IService>
+                    Id = searchServiceId,
+                    Profile = SearchService1.Search1Profile,
+                    Label = new MetaDataValue("Search within this manifest"),
+                    Service = new AutoCompleteService1
                     {
-                        new AutoCompleteService2
-                        {
-                            Id = uriPatterns.IIIFAutoCompleteService2(digitisedManifestation.Identifier),
-                            Label = Lang.Map("Autocomplete words in this manifest")
-                        }
+                        Id = uriPatterns.IIIFAutoCompleteService1(digitisedManifestation.Identifier),
+                        Profile = AutoCompleteService1.AutoCompleteService1Profile,
+                        Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
                 });
             }
@@ -284,7 +292,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
                         canvas.Items = new List<AnnotationPage>
                         {
-                            new AnnotationPage
+                            new()
                             {
                                 Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
                                 Items = new List<IAnnotation>
@@ -306,7 +314,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             canvas.SeeAlso = new List<ExternalResource>
                             {
-                                new ExternalResource("Dataset")
+                                new("Dataset")
                                 {
                                     Id = uriPatterns.MetsAlto(manifestIdentifier, assetIdentifier),
                                     Format = "text/html",
@@ -316,9 +324,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                             };
                             canvas.Annotations = new List<AnnotationPage>
                             {
-                                new AnnotationPage
+                                new ()
                                 {
-                                    Id = uriPatterns.CanvasOtherAnnotationPage(manifestIdentifier, assetIdentifier),
+                                    Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestIdentifier, assetIdentifier, 3),
                                     Label = Lang.Map(orderLabel.HasText() ? $"Text of page {orderLabel}" : "Text of this page")
                                 }
                             };
@@ -773,12 +781,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     new AnnotationPage
                     {
-                        Id = uriPatterns.ManifestAnnotationPageAll(metsManifestation.Id),
+                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
                     },
                     new AnnotationPage
                     {
-                        Id = uriPatterns.ManifestAnnotationPageImages(metsManifestation.Id),
+                        Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
                     },
                 };
@@ -931,7 +939,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     new SupplementingDocumentAnnotation
                     {
                         Id = uriPatterns.CanvasSupplementingAnnotation(
-                            manifestIdentifier, storedPdf.StorageIdentifier),
+                            manifestIdentifier, storedPdf.StorageIdentifier, "transcript"),
                         Body = new ExternalResource("Text")
                         {
                             Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),

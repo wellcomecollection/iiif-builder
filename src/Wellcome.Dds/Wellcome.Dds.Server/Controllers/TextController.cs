@@ -1,7 +1,10 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Utils;
 using Utils.Storage;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
@@ -15,19 +18,23 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly IStorage storage;
         private readonly DdsOptions ddsOptions;
-        
+        private readonly IMetsRepository metsRepository;
+
         /// <summary>
         /// ctor
         /// </summary>
         /// <param name="storage">Provides S3 locations</param>
         /// <param name="options">DDS Options</param>
+        /// <param name="metsRepository"></param>
         public TextController(
             IStorage storage,
-            IOptions<DdsOptions> options
+            IOptions<DdsOptions> options,
+            IMetsRepository metsRepository
         )
         {
             this.storage = storage;
             ddsOptions = options.Value;
+            this.metsRepository = metsRepository;
         }
 
 
@@ -45,6 +52,25 @@ namespace Wellcome.Dds.Server.Controllers
                 return NotFound($"No text resource found for {id}");
             }
             return File(stream, "text/plain");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="manifestationIdentifier"></param>
+        /// <param name="assetIdentifier"></param>
+        /// <returns></returns>
+        [HttpGet("alto/{manifestationIdentifier}/{assetIdentifier}")]
+        public async Task<IActionResult> Alto(string manifestationIdentifier, string assetIdentifier)
+        {
+            var metsManifestation = await metsRepository.GetAsync(manifestationIdentifier) as IManifestation;
+            var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
+            if (asset != null && asset.RelativeAltoPath.HasText())
+            {
+                var stream = await asset.WorkStore.GetStreamForPathAsync(asset.RelativeAltoPath);
+                return File(stream, "text/xml");
+            }
+            return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
         }
     }
 }

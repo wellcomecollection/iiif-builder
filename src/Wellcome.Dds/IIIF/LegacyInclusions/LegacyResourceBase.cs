@@ -2,11 +2,8 @@ using Newtonsoft.Json;
 
 namespace IIIF.LegacyInclusions
 {
-    public abstract class ServiceBase
+    public abstract class LegacyResourceBase : JsonLdBase
     {
-        [JsonProperty(PropertyName = "@context", Order = 1)]
-        public string? Context { get; set; } 
-        
         [JsonProperty(PropertyName = "@id", Order = 2)]
         public string? Id { get; set; }
 

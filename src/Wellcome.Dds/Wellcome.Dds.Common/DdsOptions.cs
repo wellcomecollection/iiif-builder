@@ -11,6 +11,7 @@
         // TODO - leave this with the name "LinkedDataDomain" for now, for ease of migration,
         // but later, refactor to "SchemeAndHost"
         public string LinkedDataDomain { get; set; }
+        public string RewriteDomainLinksTo { get; set; }
         
         public bool AvoidCaching { get; set; }
         public string EarliestJobDateTime { get; set; }
@@ -36,5 +37,6 @@
         public string PresentationContainer { get; set; }
         public string TextContainer { get; set; }
         public string AnnotationContainer { get; set; }
+        public bool ReferenceV0SearchService { get; set; }
     }
 }

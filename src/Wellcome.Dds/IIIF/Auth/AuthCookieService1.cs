@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Auth
 {
-    public class AuthCookieService1 : ServiceBase, IService
+    public class AuthCookieService1 : LegacyResourceBase, IService
     {
         private const string LoginProfile = "http://iiif.io/api/auth/1/login";
         private const string ClickthroughProfile = "http://iiif.io/api/auth/1/clickthrough";

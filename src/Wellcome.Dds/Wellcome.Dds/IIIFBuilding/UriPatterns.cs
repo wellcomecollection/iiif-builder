@@ -22,6 +22,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AssetIdentifierToken = "{assetIdentifier}";
         private const string RangeIdentifierToken = "{rangeIdentifier}";
         private const string AnnoIdentifierToken = "{annoIdentifier}";
+        private const string VersionToken = "{version}";
         private const string FileExtensionToken = "{fileExt}";
         
         // TODO - these constants should be in the IIIF model
@@ -55,20 +56,27 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string CanvasPaintingAnnotationPageFormat = "/presentation/{identifier}/canvases/{assetIdentifier}/painting";
         private const string CanvasPaintingAnnotationFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/painting/anno";
         private const string CanvasSuppAnnotationPageFormat =     "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing";
-        private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/anno";
+        private const string CanvasSuppAnnotationFormat =         "/presentation/{identifier}/canvases/{assetIdentifier}/supplementing/{annoIdentifier}";
+        private const string CanvasClassifyingAnnotationFormat =  "/presentation/{identifier}/canvases/{assetIdentifier}/classifying/{annoIdentifier}";
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
+
+        private const string IIIFSearchAnnotationFormat =         "/annotations/{identifier}/{assetIdentifier}/{annoIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
         // NB /line/ is reserved for text granularity - can be other granularities later.
-        private const string CanvasOtherAnnotationPageFormat =    "/annotations/v3/{identifier}/{assetIdentifier}/line";
-        private const string CanvasOtherAnnotationFormat =        "/annotations/v3/{identifier}/{assetIdentifier}/line/{annoIdentifer}";
-        private const string ManifestAnnotationPageAllFormat =    "/annotations/v3/{identifier}/all/line";
-        private const string ManifestAnnotationPageImagesFormat = "/annotations/v3/{identifier}/images"; // not line, obvs.
-        
+        private const string CanvasOtherAnnotationPageFormat =    "/annotations/v{version}/{identifier}/{assetIdentifier}/line";
+        private const string CanvasOtherAnnotationFormat =        "/annotations/v{version}/{identifier}/{assetIdentifier}/line/{annoIdentifier}";
+        private const string ManifestAnnotationPageAllFormat =    "/annotations/v{version}/{identifier}/all/line";
+        private const string ManifestAnnotationPageImagesFormat = "/annotations/v{version}/{identifier}/images"; // not line, obvs.
+
         // IIIF Content Search
-        private const string IIIFContentSearch2Format =           "/search/v2/{identifier}";
-        private const string IIIFAutoComplete2Format =            "/autocomplete/v2/{identifier}";
-        
+        private const string IIIFContentSearch0Format = "/search/v0/{identifier}";
+        // private const string IIIFAutoComplete0Format = "/search/autocomplete/v0/{identifier}";  // not used - use v1
+        private const string IIIFContentSearch1Format = "/search/v1/{identifier}";
+        private const string IIIFAutoComplete1Format = "/search/autocomplete/v1/{identifier}";
+        private const string IIIFContentSearch2Format = "/search/v2/{identifier}";
+        private const string IIIFAutoComplete2Format = "/search/autocomplete/v2/{identifier}";
+
         // Other resources
         private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
         private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
@@ -129,33 +137,45 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestAndAssetIdentifiers(
                 CanvasSuppAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier)
+        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
         {
-            return ManifestAndAssetIdentifiers(
-                CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier);
-        }     
+            return ManifestAndAssetAndAnnoIdentifiers(
+                CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
+        }   
         
-        public string CanvasOtherAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        public string CanvasClassifyingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
         {
-            return ManifestAndAssetIdentifiers(
-                CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier);
+            return ManifestAndAssetAndAnnoIdentifiers(
+                CanvasClassifyingAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
+        }   
+        
+        public string CanvasOtherAnnotationPageWithVersion(string manifestIdentifier, string assetIdentifier, int version)
+        {
+            return ManifestAndAssetIdentifiersWithVersion(
+                CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier, version);
         }
 
-        public string CanvasOtherAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string CanvasOtherAnnotationWithVersion(string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
         {
-            return ManifestAndAssetIdentifiers(
-                CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier)
-                .Replace(AnnoIdentifierToken, annoIdentifier);
-        }
-
-        public string ManifestAnnotationPageAll(string identifier)
-        {
-            return ManifestIdentifier(ManifestAnnotationPageAllFormat, identifier);
+            return ManifestAndAssetAndAnnoIdentifiersWithVersion(
+                CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier, version);
         }
         
-        public string ManifestAnnotationPageImages(string identifier)
+        
+        public string IIIFSearchAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
         {
-            return ManifestIdentifier(ManifestAnnotationPageImagesFormat, identifier);
+            return ManifestAndAssetAndAnnoIdentifiers(
+                    IIIFSearchAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
+        }
+        
+        public string ManifestAnnotationPageAllWithVersion(string identifier, int version)
+        {
+            return ManifestIdentifierWithVersion(ManifestAnnotationPageAllFormat, identifier, version);
+        }
+        
+        public string ManifestAnnotationPageImagesWithVersion(string identifier, int version)
+        {
+            return ManifestIdentifierWithVersion(ManifestAnnotationPageImagesFormat, identifier, version);
         }
 
         public string CollectionForAggregation()
@@ -255,10 +275,22 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestIdentifier(IIIFContentSearch2Format, identifier);
         }
+        public string IIIFContentSearchService1(string identifier)
+        {
+            return ManifestIdentifier(IIIFContentSearch1Format, identifier);
+        }
+        public string IIIFContentSearchService0(string identifier)
+        {
+            return ManifestIdentifier(IIIFContentSearch0Format, identifier);
+        }
 
         public string IIIFAutoCompleteService2(string identifier)
         {
             return ManifestIdentifier(IIIFAutoComplete2Format, identifier);
+        }
+        public string IIIFAutoCompleteService1(string identifier)
+        {
+            return ManifestIdentifier(IIIFAutoComplete1Format, identifier);
         }
 
         private string ManifestIdentifier(string template, string identifier)
@@ -267,10 +299,34 @@ namespace Wellcome.Dds.IIIFBuilding
             return $"{schemeAndHostValue}{path}";
         }
         
+        private string ManifestIdentifierWithVersion(string template, string identifier, int version)
+        {
+            return ManifestIdentifier(template, identifier)
+                .Replace(VersionToken, version.ToString());
+        }
+        
         private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
         {
             return ManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+        
+        private string ManifestAndAssetIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, int version)
+        {
+            return ManifestIdentifierWithVersion(template, manifestIdentifier, version)
+                .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+        
+        private string ManifestAndAssetAndAnnoIdentifiers(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(template, manifestIdentifier, assetIdentifier)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
+        }
+        
+        private string ManifestAndAssetAndAnnoIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
+        {
+            return ManifestAndAssetIdentifiersWithVersion(template, manifestIdentifier, assetIdentifier, version)
+                .Replace(AnnoIdentifierToken, annoIdentifier);
         }
 
         public string Range(string manifestIdentifier, string rangeIdentifier)

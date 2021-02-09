@@ -28,9 +28,13 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Presentation;
+using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.Server.Auth;
 using Wellcome.Dds.Server.Conneg;
+using Wellcome.Dds.Server.Controllers;
 using Wellcome.Dds.Server.Infrastructure;
+using Wellcome.Dds.WordsAndPictures;
 
 namespace Wellcome.Dds.Server
 {
@@ -83,10 +87,9 @@ namespace Wellcome.Dds.Server
             {
                 options.AddPolicy("CorsPolicy",
                     builder => builder
+                        .AllowAnyOrigin()
                         .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .SetIsOriginAllowed(host => true)
-                        .AllowCredentials());
+                        .AllowAnyHeader()); // we might need to customise CORS handling for IIIF Auth...
             });
             services.AddMvc(options =>
             {
@@ -127,6 +130,7 @@ namespace Wellcome.Dds.Server
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
             
             services.AddSingleton<UriPatterns>();
+            services.AddSingleton<Helpers>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -136,9 +140,14 @@ namespace Wellcome.Dds.Server
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
+                .AddScoped<Synchroniser>()
+                .AddScoped<IDds, Repositories.Dds>()
                 .AddScoped<StorageServiceClient>()
+                .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IDashboardRepository, DashboardRepository>();
+                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
+                .AddScoped<AltoSearchTextProvider>(); 
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronApi>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();

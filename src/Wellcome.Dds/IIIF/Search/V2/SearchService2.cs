@@ -1,6 +1,6 @@
 using IIIF.Presentation.Content;
 
-namespace IIIF.Search
+namespace IIIF.Search.V2
 {
     public class SearchService2 : ExternalResource, IService
     {
