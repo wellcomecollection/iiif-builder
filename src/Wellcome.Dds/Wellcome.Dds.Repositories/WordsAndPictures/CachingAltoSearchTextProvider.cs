@@ -8,12 +8,12 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
 {
     public class CachingAltoSearchTextProvider : ISearchTextProvider
     {
-        private readonly ISearchTextProvider altoSearchTextProvider;
+        private readonly AltoSearchTextProvider altoSearchTextProvider;
         private readonly IBinaryObjectCache<Text> searchTextCache; 
         // needs options altoCache and httpRuntimeSeconds, prefix "alto_"
         
         public CachingAltoSearchTextProvider(
-            ISearchTextProvider altoSearchTextProvider,
+            AltoSearchTextProvider altoSearchTextProvider,
             IBinaryObjectCache<Text> searchTextCache)
         {
             this.altoSearchTextProvider = altoSearchTextProvider;

@@ -29,7 +29,6 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             this.logger = logger;
         }
 
-        // TODO - replace with single identifier
         public async Task<Text> GetSearchText(string identifier)
         {
             var sw = new Stopwatch();

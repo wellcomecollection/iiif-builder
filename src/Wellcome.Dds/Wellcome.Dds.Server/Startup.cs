@@ -146,8 +146,8 @@ namespace Wellcome.Dds.Server
                 .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IDashboardRepository, DashboardRepository>()
-                .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
-                .AddScoped<CachingAltoSearchTextProvider>(); // mmm
+                .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
+                .AddScoped<AltoSearchTextProvider>(); 
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronApi>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();

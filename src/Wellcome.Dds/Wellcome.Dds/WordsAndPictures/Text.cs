@@ -171,7 +171,8 @@ namespace Wellcome.Dds.WordsAndPictures
 
         private void AddContext(List<ResultRect> coalescedResults)
         {
-            const int maxResultsWithContext = 200;
+            // TODO - these should be configurable - but do we want to be able to allow the caller to specify?
+            const int maxResultsWithContext = 100;
             const int snippetSize = 150;
             if (coalescedResults.Count < maxResultsWithContext)
             {
