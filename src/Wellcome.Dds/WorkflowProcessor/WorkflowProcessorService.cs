@@ -43,6 +43,16 @@ namespace WorkflowProcessor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            string[] arguments = Environment.GetCommandLineArgs();
+            logger.LogInformation("GetCommandLineArgs: {0}", string.Join(", ", arguments));
+
+            // TODO - if args are supplied, populate the WorkflowJobs table from CatalogueClient code.
+            // This is likely to be a process that is run from a desktop, against an RDS database.
+            // Or deployed to a temporary container.
+            // Need to work out the best way of running the bulk operations against the jobs DB.
+            // Likely to use RunnerOptions.AllButDlcsSync()
+
+
             logger.LogInformation("Hosted service ExecuteAsync");
             int waitMs = 2;
             while (!stoppingToken.IsCancellationRequested)
