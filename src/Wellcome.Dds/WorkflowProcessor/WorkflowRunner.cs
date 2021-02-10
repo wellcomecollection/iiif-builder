@@ -74,8 +74,6 @@ namespace WorkflowProcessor
                 jobOptions = RunnerOptions.FromInt32(job.WorkflowOptions.Value);
             }
 
-            // ! NEEDS A DATABASE MIGRATION
-
             if (!jobOptions.HasWorkToDo())
             {
                 job.Error = $"No work specified in jobOptions ({job.WorkflowOptions})";
