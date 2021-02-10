@@ -4,9 +4,13 @@
     ViewBag.Title = "Dash: Recent Jobs";
 }
 
-<h1>Jobs</h1>
+<h1>DLCS Ingest Jobs</h1>
 
-<p>@Html.ActionLink("View Job Processor log", "Index", "Log")</p>
+<p>
+    @Html.ActionLink("View Job Processor log", "Index", "Log")
+    <br/>
+    @Html.ActionLink("View Workflow Jobs (Goobi calls)", "Recent", "GoobiCall")
+</p>
 
 <div class="row">
     <div class="col-md-3">

@@ -13,5 +13,6 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public List<WorkflowJob> TakenAndUnfinished { get; set; }
         public DateTime EstimatedCompletion { get; set; }
         public int RecentSampleHours { get; set; }
+        public int Errors { get; set; }
     }
 }

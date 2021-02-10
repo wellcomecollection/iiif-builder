@@ -7,7 +7,7 @@ namespace Wellcome.Dds
     public interface IDds
     {
         List<Manifestation> GetByAssetType(string type);
-        Dictionary<string, int> GetTotalsByAssetType();
+        Dictionary<string, long> GetTotalsByAssetType();
         List<Manifestation> AutoComplete(string id);
 
         Task RefreshManifestations(string id, Work work = null);

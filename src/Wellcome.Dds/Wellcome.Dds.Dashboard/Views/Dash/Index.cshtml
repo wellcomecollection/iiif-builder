@@ -22,7 +22,13 @@
 
 <h2>Recently Digitised</h2>
 
-<p>@Html.ActionLink("View Goobi Calls", "Recent", "GoobiCall") | @Html.ActionLink("View Job Processor log", "Index", "Log")</p>
+<p>
+    @Html.ActionLink("View recent workflow (Goobi calls)", "Recent", "GoobiCall")
+    | 
+    @Html.ActionLink("View Job Processor log", "Index", "Log")
+    |
+    @Html.ActionLink("Recent user activity", "RecentActions", "Dash")
+</p>
 <p>This is a list of <i>new</i> bNumbers. It does not include reprocessed bNumbers.</p>
 
 <div class="row">

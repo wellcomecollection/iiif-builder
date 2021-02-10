@@ -11,13 +11,15 @@
     <h3 style="margin: 25px 0 20px 0">Recent Goobi calls</h3>
 </div>
 
+<p>
 @if (ViewBag.IsErrorList)
 {
-    <p>(showing errors only) @Html.ActionLink("Show all", "Recent", "GoobiCall")</p>
+    <text>(showing errors only) @Html.ActionLink("Show all", "Recent", "GoobiCall")</text>
 }
 else
 {
-    <p>@Html.ActionLink("Show errors only", "Errors", "GoobiCall")</p>
+    <text>@Html.ActionLink("Show errors only", "Errors", "GoobiCall")</text>
 }
-
+ | @Html.ActionLink("Workflow statistics", "Stats", "GoobiCall") 
+</p>
 <partial name="_WorkflowJobList" model="Model" />
