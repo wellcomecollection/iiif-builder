@@ -17,6 +17,7 @@
             <th>Total Jobs</th>
             <th>Finished Jobs</th>
             <th>Word Count</th>
+            <th>Errors</th>
         </tr>
     </thead>
     <tbody>
@@ -26,12 +27,29 @@
                 @($"{Model.FinishedJobs:n0}")
                 (@($"{Model.FinishedPercent:P2}"))
         </td>
-        <td>@($"{Model.WordCount:n0}")</td>
+            <td>@($"{Model.WordCount:n0}")</td>
+            <td>@($"{Model.Errors}")</td>
     </tr>
     <tr>
-        <td colspan="3">
+        <td colspan="4">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" 
+                     aria-valuenow='@($"{Model.FinishedJobs}")'
+                     aria-valuemin="0"
+                     aria-valuemax='@($"{Model.TotalJobs}")' 
+                     style="width: @($"{Model.FinishedPercent:P2}");">
+                    <span class="sr-only">@($"{Model.FinishedPercent:P2}") Complete</span>
+                </div>
+            </div>
+            
             Estimated completion based on last @Model.RecentSampleHours hours activity:
             <strong>@Model.EstimatedCompletion</strong>
+            <p>
+                <br/>
+                @Html.ActionLink("Recent workflow calls", "Recent", "GoobiCall")
+                |
+                @Html.ActionLink("Errors", "Errors", "GoobiCall")
+            </p>
         </td>
     </tr>
 </tbody>

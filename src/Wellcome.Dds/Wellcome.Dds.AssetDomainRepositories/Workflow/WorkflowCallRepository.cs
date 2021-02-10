@@ -105,6 +105,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
                 {
                     result.EstimatedCompletion = DateTime.MaxValue;
                 }
+                await reader.NextResultAsync();
+                await reader.ReadAsync();
+                result.Errors = (int) reader[0];
             }
             catch (Exception ex)
             {
@@ -125,6 +128,7 @@ SELECT (COUNT (1)::int) FROM workflow_jobs;
 SELECT (COUNT (1)::int) FROM workflow_jobs WHERE finished=true;
 SELECT SUM(words::BIGINT) FROM workflow_jobs;
 SELECT (COUNT(1)::int) FROM workflow_jobs WHERE taken BETWEEN '$0' AND '$1';
+SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
 ";
             const string sqlFormat = "yyyy-MM-dd HH:mm:ss.fff";
             sql = sql.Replace("$0", start.ToString(sqlFormat));

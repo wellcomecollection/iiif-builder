@@ -659,7 +659,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         public string Type { get; set; }
         public List<Manifestation> FlatManifestations { get; set; }
-        public Dictionary<string, int> TotalsByAssetType { get; set; }
+        public Dictionary<string, long> TotalsByAssetType { get; set; }
     }
 
     /// <summary>

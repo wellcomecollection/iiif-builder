@@ -37,7 +37,7 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetByAssetType(type);
         }
 
-        public Dictionary<string, int> GetTotalsByAssetType()
+        public Dictionary<string, long> GetTotalsByAssetType()
         {
             return ddsContext.GetTotalsByAssetType();
         }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.Http.Headers;
-using System.Text;
 using DlcsWebClient.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
