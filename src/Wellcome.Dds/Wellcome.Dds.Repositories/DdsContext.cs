@@ -55,8 +55,23 @@ namespace Wellcome.Dds.Repositories
         public const string Sql = "select asset_type, count(*) as asset_count from manifestations group by asset_type";
         public AssetTotal(DbDataReader dr)
         {
-            AssetType = (string) dr[0];
-            AssetCount = (long) dr[1];
+            if (dr.IsDBNull(0))
+            {
+                AssetType = "(empty)";
+            }
+            else
+            {
+                AssetType = (string) dr[0];
+            }
+
+            if (dr.IsDBNull(1))
+            {
+                AssetCount = -1;
+            }
+            else
+            {
+                AssetCount = (long) dr[1];
+            }
         }
 
         public string AssetType { get; set; }
