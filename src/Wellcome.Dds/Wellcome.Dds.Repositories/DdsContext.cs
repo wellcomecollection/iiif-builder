@@ -20,6 +20,10 @@ namespace Wellcome.Dds.Repositories
 
         public List<Manifestation> GetByAssetType(string type)
         {
+            if (type == "(empty)")
+            {
+                type = null;
+            }
             return Manifestations.Where(m => m.AssetType == type)
                 .Take(2000).ToList();
         }
