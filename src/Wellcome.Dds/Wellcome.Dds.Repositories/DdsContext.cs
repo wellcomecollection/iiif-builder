@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Utils;
 using Utils.Database;
 
 namespace Wellcome.Dds.Repositories
@@ -33,20 +34,26 @@ namespace Wellcome.Dds.Repositories
 
         public List<Manifestation> AutoComplete(string query)
         {
+            string pattern = null;
             if (Regex.IsMatch(query, "\\Ab\\d+\\z"))
             {
+                pattern = $"%{query}%";
                 return Manifestations.Where(m => 
                     m.Index == 0 &&
-                    m.PackageIdentifier.Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    EF.Functions.ILike(query, m.PackageIdentifier, pattern))
+                    .ToList();
             }
             if (query == "imfeelinglucky")
             {
                 var sql = "SELECT * FROM manifestations OFFSET floor(random()*(select count(*) from manifestations)) LIMIT 1";
                 return Manifestations.FromSqlRaw(sql).ToList();
             }
+
+            pattern = $"%{query.ToAlphanumericOrWhitespace()}%";
             return Manifestations.Where(m => 
                 m.Index == 0 &&
-                m.Label.Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                EF.Functions.ILike(m.Label, pattern))
+                .ToList();
         }
     }
     
