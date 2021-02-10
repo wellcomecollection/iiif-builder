@@ -37,7 +37,7 @@ namespace Wellcome.Dds.Repositories
             {
                 return Manifestations.Where(m => 
                     m.Index == 0 &&
-                    m.PackageIdentifier.Contains(query)).ToList();
+                    m.PackageIdentifier.Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
             }
             if (query == "imfeelinglucky")
             {
