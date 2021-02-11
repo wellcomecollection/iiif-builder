@@ -82,9 +82,10 @@ namespace WorkflowProcessor
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<Synchroniser>()
                 .AddScoped<IDds, Dds>()
+                .AddScoped<AltoSearchTextProvider>()
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
-                .AddScoped<CachingAllAnnotationProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
+                .AddScoped<CachingAllAnnotationProvider>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddHostedService<WorkflowProcessorService>();
             
