@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
-using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
@@ -23,7 +22,8 @@ using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
-
+using Manifest = IIIF.Presentation.V3.Manifest;
+using Collection = IIIF.Presentation.V3.Collection;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

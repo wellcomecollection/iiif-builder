@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
-using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V3;
@@ -17,7 +16,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
-using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -28,6 +26,9 @@ using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 using Annotation = IIIF.Presentation.V3.Annotation.Annotation;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
+using Collection = IIIF.Presentation.V3.Collection;
+using Manifest = IIIF.Presentation.V3.Manifest;
+using Canvas = IIIF.Presentation.V3.Canvas;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

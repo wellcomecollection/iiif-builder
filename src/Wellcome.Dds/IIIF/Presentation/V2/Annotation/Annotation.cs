@@ -25,5 +25,25 @@ namespace IIIF.Presentation.V2.Annotation
         [JsonProperty(Order = 50, PropertyName = "on")]
         public string On { get; set; }
     }
-     
+    
+    /// <summary>
+    /// Marker interface for otherContent
+    /// </summary>
+    public interface IAnnotationListReference{}
+
+    public class AnnotationListReference : LegacyResourceBase, IAnnotationListReference
+    {
+        public override string Type => "sc:AnnotationList";
+
+        [JsonProperty(Order = 40, PropertyName = "label")]
+        public MetaDataValue Label { get; set; }
+    }
+    
+    // TODO - do I need this?
+    public class UriAnnotationListReference : IAnnotationListReference
+    {
+        public string AnnotationListUri { get; set; }
+
+        public override string ToString() => AnnotationListUri;
+    }
 }
