@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using IIIF;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
 using IIIF.Search.V1;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Mets;

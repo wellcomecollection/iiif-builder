@@ -6,6 +6,7 @@ using DlcsWebClient.Config;
 using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
@@ -521,7 +522,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.Presentation.V2.Annotation GetOATextLineAnnotation(
+        private IIIF.Presentation.V2.Annotation.Annotation GetOATextLineAnnotation(
             AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
         {
             return new()
@@ -538,10 +539,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.Presentation.V2.Annotation GetOAIllustrationAnnotation(
+        private IIIF.Presentation.V2.Annotation.Annotation GetOAIllustrationAnnotation(
             AnnotationPage altoPage, Illustration il, int index, string canvasId)
         {
-            return new IIIF.Presentation.V2.Annotation
+            return new IIIF.Presentation.V2.Annotation.Annotation
             {
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
@@ -746,7 +747,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             foreach (var jItem in v3["items"])
             {
-                var annotation = new IIIF.Presentation.V2.Annotation
+                var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
                     Id = jItem.Value<string>("id"),
                     On = jItem["target"]?.Value<string>("id") ?? string.Empty
