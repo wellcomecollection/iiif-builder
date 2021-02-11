@@ -14,13 +14,13 @@ namespace IIIF.Presentation.V2.Serialisation
                     "MetaDataValueSerialiser cannot serialise a " + value.GetType().Name, "value");
             }
 
-            if (metaDataValue.LanguageValues.Length == 0)
+            if (metaDataValue.LanguageValues.Count == 0)
             {
                 throw new ArgumentException(
                     "MetaDataValueSerialiser cannot serialise an empty array " + value.GetType().Name, "value");
             }
 
-            if (metaDataValue.LanguageValues.Length > 1)
+            if (metaDataValue.LanguageValues.Count > 1)
             {
                 writer.WriteStartArray();
             }
@@ -40,7 +40,7 @@ namespace IIIF.Presentation.V2.Serialisation
                 }
             }
 
-            if (metaDataValue.LanguageValues.Length > 1)
+            if (metaDataValue.LanguageValues.Count > 1)
             {
                 writer.WriteEndArray();
             }

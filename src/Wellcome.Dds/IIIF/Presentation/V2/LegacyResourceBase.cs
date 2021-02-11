@@ -87,12 +87,7 @@ namespace IIIF.Presentation.V2
         [JsonProperty(Order = 70, PropertyName = "within")]
         public string Within { get; set; }
     }
-
-    public interface IService
-    {
-        IService Service { get; set; }
-    }
-
+    
     public abstract class ServiceBase : LegacyResourceBase, IService
     {
         public IService Service { get; set; }

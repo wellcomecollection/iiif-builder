@@ -24,6 +24,7 @@ using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
 using Manifest = IIIF.Presentation.V3.Manifest;
 using Collection = IIIF.Presentation.V3.Collection;
+using Canvas = IIIF.Presentation.V3.Canvas;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

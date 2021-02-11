@@ -6,9 +6,8 @@ namespace IIIF.Presentation.V3.Strings
 {
     public class LanguageMap : Dictionary<string, List<string>>
     {
-        public LanguageMap() : base() { }
+        public LanguageMap() { }
 
-        // is this a dict?
         public LanguageMap(string language, string singleValue)
         {
             this[language] = new List<string> { singleValue };
@@ -21,7 +20,7 @@ namespace IIIF.Presentation.V3.Strings
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             foreach (List<string> value in Values)
             {
                 foreach (string s in value)
