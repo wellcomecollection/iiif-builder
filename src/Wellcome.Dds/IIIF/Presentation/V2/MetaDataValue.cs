@@ -20,9 +20,15 @@ namespace IIIF.Presentation.V2
         public MetaDataValue(IEnumerable<LanguageValue> languageValues) 
             => LanguageValues = languageValues.ToList();
 
-        public MetaDataValue(LanguageMap languageMap)
+        /// <summary>
+        /// Create a new MetaDataValue object from specified LanguageMap.
+        /// </summary>
+        /// <returns>Null if LanguageMap null, else new MetaDataValue object </returns>
+        public static MetaDataValue? Create(LanguageMap? languageMap)
         {
-            List<LanguageValue> langVals = new();
+            if (languageMap == null) return null;
+            
+            var langVals = new List<LanguageValue>();
             foreach (var kvp in languageMap)
             {
                 langVals.AddRange(kvp.Value.Select(values => new LanguageValue
@@ -32,7 +38,7 @@ namespace IIIF.Presentation.V2
                 }));
             }
 
-            LanguageValues = langVals;
+            return new MetaDataValue(langVals);
         }
     }
 }

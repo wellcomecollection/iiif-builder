@@ -9,14 +9,17 @@ namespace IIIF.Tests.IIIF.Presentation.V2
     public class MetadataValueTests
     {
         [Fact]
+        public void CtorFromLanguageMap_ReturnsNull_IfPassedNull() 
+            => MetaDataValue.Create(null).Should().BeNull();
+
+        [Fact]
         public void CtorFromLanguageMap_LanguageValuesNullOrEmpty_IfPassedEmptyMap()
         {
             // Arrange
             var languageMap = new LanguageMap();
 
             // Act
-
-            var metadataValue = new MetaDataValue(languageMap);
+            var metadataValue = MetaDataValue.Create(languageMap);
             
             // Assert
             metadataValue.LanguageValues.Should().BeNullOrEmpty();
@@ -34,8 +37,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             };
             
             // Act
-
-            var metadataValue = new MetaDataValue(languageMap);
+            var metadataValue = MetaDataValue.Create(languageMap);
             
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
@@ -54,7 +56,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             };
             
             // Act
-            var metadataValue = new MetaDataValue(languageMap);
+            var metadataValue = MetaDataValue.Create(languageMap);
             
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(2);
@@ -74,7 +76,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             };
             
             // Act
-            var metadataValue = new MetaDataValue(languageMap);
+            var metadataValue = MetaDataValue.Create(languageMap);
             
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(2);
