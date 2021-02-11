@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using IIIF.Presentation.V3;
 
 namespace IIIF.Presentation
 {

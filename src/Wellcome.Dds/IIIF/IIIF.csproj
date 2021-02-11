@@ -10,9 +10,4 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Content" />
-    <Folder Include="Presentation\Services" />
-  </ItemGroup>
-
 </Project>

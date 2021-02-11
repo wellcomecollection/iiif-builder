@@ -6,10 +6,10 @@ using DlcsWebClient.Config;
 using IIIF;
 using IIIF.LegacyInclusions;
 using IIIF.Presentation;
-using IIIF.Presentation.Annotation;
-using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Annotation;
+using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -25,7 +25,7 @@ using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
-using Annotation = IIIF.Presentation.Annotation.Annotation;
+using Annotation = IIIF.Presentation.V3.Annotation.Annotation;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -419,7 +419,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 3),
                     Items = new List<IAnnotation>()
                 },
-                PageAnnotations = new IIIF.Presentation.Annotation.AnnotationPage[annotationPages.Count],
+                PageAnnotations = new IIIF.Presentation.V3.Annotation.AnnotationPage[annotationPages.Count],
                 // OA
                 OpenAnnotationAllContentAnnotations = new ()
                 {
@@ -439,7 +439,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             for (var i = 0; i < annotationPages.Count; i++)
             {
                 var altoPage = annotationPages[i];
-                var w3CPage = new IIIF.Presentation.Annotation.AnnotationPage
+                var w3CPage = new IIIF.Presentation.V3.Annotation.AnnotationPage
                 {
                     Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestation.Id, altoPage.AssetIdentifier, 3),
                     Items = new List<IAnnotation>()

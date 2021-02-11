@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V3.Strings;
 using Utils;
 using Wellcome.Dds.Catalogue;
 

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
-using IIIF.Presentation.Content;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Content;
 using Utils;
 
 namespace Wellcome.Dds.Repositories.Presentation

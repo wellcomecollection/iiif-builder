@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V3.Strings;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

@@ -1,4 +1,4 @@
-using IIIF.Presentation.Annotation;
+using IIIF.Presentation.V3.Annotation;
 using Newtonsoft.Json;
 
 namespace IIIF.LegacyInclusions

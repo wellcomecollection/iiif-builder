@@ -5,10 +5,11 @@ using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.LegacyInclusions;
 using IIIF.Presentation;
-using IIIF.Presentation.Annotation;
-using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Annotation;
+using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Content;
+using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -21,7 +22,7 @@ using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
-using Range = IIIF.Presentation.Range;
+using Range = IIIF.Presentation.V3.Range;
 
 
 namespace Wellcome.Dds.Repositories.Presentation

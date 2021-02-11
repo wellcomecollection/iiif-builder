@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using IIIF.Presentation.V3;
 using Microsoft.Net.Http.Headers;
 
 namespace Wellcome.Dds.Server.Conneg
@@ -19,12 +20,12 @@ namespace Wellcome.Dds.Server.Conneg
             /// <summary>
             /// Content-Type for IIIF presentation 2.
             /// </summary>
-            public const string V2 = "application/ld+json;profile=\"" + IIIF.Presentation.Context.V2 + "\"";
+            public const string V2 = "application/ld+json;profile=\"" + Context.V2 + "\"";
 
             /// <summary>
             /// Content-Type for IIIF presentation 3. 
             /// </summary>
-            public const string V3 = "application/ld+json;profile=\"" + IIIF.Presentation.Context.V3 + "\"";
+            public const string V3 = "application/ld+json;profile=\"" + Context.V3 + "\"";
         }
 
         /// <summary>
@@ -46,8 +47,8 @@ namespace Wellcome.Dds.Server.Conneg
                         string.Equals(p.Name.Value, "profile", StringComparison.OrdinalIgnoreCase))?.Value.Value)
                 .OrderByDescending(s => s);
 
-            var v3Profile = $"\"{IIIF.Presentation.Context.V3}\"";
-            var v2Profile = $"\"{IIIF.Presentation.Context.V2}\"";
+            var v3Profile = $"\"{Context.V3}\"";
+            var v2Profile = $"\"{Context.V2}\"";
 
             foreach (var profile in profiles)
             {
