@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using IIIF.Presentation;
+using IIIF.Presentation.V3;
 
 namespace Wellcome.Dds.IIIFBuilding
 {

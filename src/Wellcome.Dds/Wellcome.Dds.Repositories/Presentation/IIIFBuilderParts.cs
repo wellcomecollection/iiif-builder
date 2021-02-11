@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
-using IIIF.LegacyInclusions;
 using IIIF.Presentation;
-using IIIF.Presentation.Annotation;
-using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V2;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Annotation;
+using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Content;
+using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -21,7 +22,7 @@ using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
-using Range = IIIF.Presentation.Range;
+using Range = IIIF.Presentation.V3.Range;
 
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -229,21 +230,21 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
-                manifest.EnsureContext(SearchService1.Search1Context);
+                manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
                 string searchServiceId;
                 searchServiceId = referenceV0SearchService ? 
                     uriPatterns.IIIFContentSearchService0(digitisedManifestation.Identifier) : 
                     uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier);
-                manifest.Service.Add(new SearchService1
+                manifest.Service.Add(new SearchService
                 {
                     Id = searchServiceId,
-                    Profile = SearchService1.Search1Profile,
+                    Profile = SearchService.Search1Profile,
                     Label = new MetaDataValue("Search within this manifest"),
-                    Service = new AutoCompleteService1
+                    Service = new AutoCompleteService
                     {
                         Id = uriPatterns.IIIFAutoCompleteService1(digitisedManifestation.Identifier),
-                        Profile = AutoCompleteService1.AutoCompleteService1Profile,
+                        Profile = AutoCompleteService.AutoCompleteService1Profile,
                         Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
                 });

@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
-using IIIF.Presentation.Annotation;
-using IIIF.Presentation.Content;
+using IIIF.Presentation.V3;
 using Utils;
 using Wellcome.Dds.IIIFBuilding;
 

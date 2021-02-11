@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using IIIF;
-using IIIF.LegacyInclusions;
 using IIIF.Presentation;
-using IIIF.Presentation.Annotation;
-using IIIF.Presentation.Constants;
-using IIIF.Presentation.Content;
-using IIIF.Presentation.Strings;
+using IIIF.Presentation.V2;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Annotation;
+using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -25,7 +25,7 @@ using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
-using Annotation = IIIF.Presentation.Annotation.Annotation;
+using Annotation = IIIF.Presentation.V3.Annotation.Annotation;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -419,7 +419,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 3),
                     Items = new List<IAnnotation>()
                 },
-                PageAnnotations = new IIIF.Presentation.Annotation.AnnotationPage[annotationPages.Count],
+                PageAnnotations = new IIIF.Presentation.V3.Annotation.AnnotationPage[annotationPages.Count],
                 // OA
                 OpenAnnotationAllContentAnnotations = new ()
                 {
@@ -439,7 +439,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             for (var i = 0; i < annotationPages.Count; i++)
             {
                 var altoPage = annotationPages[i];
-                var w3CPage = new IIIF.Presentation.Annotation.AnnotationPage
+                var w3CPage = new IIIF.Presentation.V3.Annotation.AnnotationPage
                 {
                     Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestation.Id, altoPage.AssetIdentifier, 3),
                     Items = new List<IAnnotation>()
@@ -521,7 +521,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.LegacyInclusions.Annotation GetOATextLineAnnotation(
+        private IIIF.Presentation.V2.Annotation GetOATextLineAnnotation(
             AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
         {
             return new()
@@ -538,10 +538,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.LegacyInclusions.Annotation GetOAIllustrationAnnotation(
+        private IIIF.Presentation.V2.Annotation GetOAIllustrationAnnotation(
             AnnotationPage altoPage, Illustration il, int index, string canvasId)
         {
-            return new IIIF.LegacyInclusions.Annotation
+            return new IIIF.Presentation.V2.Annotation
             {
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
@@ -566,7 +566,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var searchUri = uriPatterns.IIIFContentSearchService1(manifestationIdentifier);
             return new TermList
             {
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Id = uriPatterns.IIIFAutoCompleteService1(manifestationIdentifier) + "?q=" + q,
                 Terms = suggestions.Select(suggestion => new Term
                 {
@@ -645,7 +645,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return new SearchResultAnnotationList
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
@@ -728,7 +728,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return new SearchResultAnnotationList
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
@@ -746,7 +746,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             foreach (var jItem in v3["items"])
             {
-                var annotation = new IIIF.LegacyInclusions.Annotation
+                var annotation = new IIIF.Presentation.V2.Annotation
                 {
                     Id = jItem.Value<string>("id"),
                     On = jItem["target"]?.Value<string>("id") ?? string.Empty

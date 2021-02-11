@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation;
-using IIIF.Presentation.Constants;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Constants;
 using Utils;
 using Utils.Sort;
 
