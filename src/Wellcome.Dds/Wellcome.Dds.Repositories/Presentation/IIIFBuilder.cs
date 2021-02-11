@@ -566,7 +566,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var searchUri = uriPatterns.IIIFContentSearchService1(manifestationIdentifier);
             return new TermList
             {
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Id = uriPatterns.IIIFAutoCompleteService1(manifestationIdentifier) + "?q=" + q,
                 Terms = suggestions.Select(suggestion => new Term
                 {
@@ -645,7 +645,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return new SearchResultAnnotationList
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }
@@ -728,7 +728,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return new SearchResultAnnotationList
             {
                 Id = uriPatterns.IIIFContentSearchService0(manifestationIdentifier) + "?q=" + query,
-                Context = SearchService1.Search1Context,
+                Context = SearchService.Search1Context,
                 Resources = new List<IAnnotation>(resources),
                 Hits = hits.ToArray(),
                 Within = new SearchResultsLayer { Total = resources.Count }

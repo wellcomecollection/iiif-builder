@@ -230,21 +230,21 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
             {
-                manifest.EnsureContext(SearchService1.Search1Context);
+                manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
                 string searchServiceId;
                 searchServiceId = referenceV0SearchService ? 
                     uriPatterns.IIIFContentSearchService0(digitisedManifestation.Identifier) : 
                     uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier);
-                manifest.Service.Add(new SearchService1
+                manifest.Service.Add(new SearchService
                 {
                     Id = searchServiceId,
-                    Profile = SearchService1.Search1Profile,
+                    Profile = SearchService.Search1Profile,
                     Label = new MetaDataValue("Search within this manifest"),
-                    Service = new AutoCompleteService1
+                    Service = new AutoCompleteService
                     {
                         Id = uriPatterns.IIIFAutoCompleteService1(digitisedManifestation.Identifier),
-                        Profile = AutoCompleteService1.AutoCompleteService1Profile,
+                        Profile = AutoCompleteService.AutoCompleteService1Profile,
                         Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
                 });
