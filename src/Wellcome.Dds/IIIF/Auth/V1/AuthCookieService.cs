@@ -2,22 +2,22 @@ using System.Collections.Generic;
 using IIIF.Presentation.V2;
 using Newtonsoft.Json;
 
-namespace IIIF.Auth
+namespace IIIF.Auth.V1
 {
-    public class AuthCookieService1 : LegacyResourceBase, IService
+    public class AuthCookieService : LegacyResourceBase, IService
     {
         private const string LoginProfile = "http://iiif.io/api/auth/1/login";
         private const string ClickthroughProfile = "http://iiif.io/api/auth/1/clickthrough";
         private const string KioskProfile = "http://iiif.io/api/auth/1/kiosk";
         private const string ExternalProfile = "http://iiif.io/api/auth/1/external";
 
-        public AuthCookieService1(string profile)
+        public AuthCookieService(string profile)
         {
             Profile = profile;
         }
         
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthCookieService1);
+        public override string Type => nameof(AuthCookieService);
         
         [JsonProperty(Order = 12, PropertyName = "description")]
         public MetaDataValue Description { get; set; }
@@ -37,21 +37,21 @@ namespace IIIF.Auth
         [JsonProperty(Order = 122, PropertyName = "failureDescription")]
         public MetaDataValue? FailureDescription { get; set; }
         
-        public static AuthCookieService1 NewLoginInstance()
+        public static AuthCookieService NewLoginInstance()
         {
-            return new AuthCookieService1(LoginProfile);
+            return new AuthCookieService(LoginProfile);
         }
-        public static AuthCookieService1 NewClickthroughInstance()
+        public static AuthCookieService NewClickthroughInstance()
         {
-            return new AuthCookieService1(ClickthroughProfile);
+            return new AuthCookieService(ClickthroughProfile);
         }
-        public static AuthCookieService1 NewKioskInstance()
+        public static AuthCookieService NewKioskInstance()
         {
-            return new AuthCookieService1(KioskProfile);
+            return new AuthCookieService(KioskProfile);
         }
-        public static AuthCookieService1 NewExternalInstance()
+        public static AuthCookieService NewExternalInstance()
         {
-            return new AuthCookieService1(ExternalProfile);
+            return new AuthCookieService(ExternalProfile);
         }
     }
 }

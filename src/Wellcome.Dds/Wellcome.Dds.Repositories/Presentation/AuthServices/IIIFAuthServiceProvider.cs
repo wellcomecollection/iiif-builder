@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using IIIF;
 using IIIF.Auth;
+using IIIF.Auth.V1;
 using IIIF.Presentation.V2;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
@@ -64,7 +65,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             // services.Add(clickthrough090Service);
 
             // for UV compliant with 0.9.3
-            var clickthrough093Service = AuthCookieService1.NewClickthroughInstance();
+            var clickthrough093Service = AuthCookieService.NewClickthroughInstance();
             clickthrough093Service.Id = GetClickthroughLoginServiceId093();
             clickthrough093Service.Label = new MetaDataValue(ClickthroughHeader);
             clickthrough093Service.Header = new MetaDataValue(ClickthroughHeader);
@@ -79,7 +80,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         }
         public List<IService> GetClinicalLoginServices()
         {
-            var clinicalLogin = AuthCookieService1.NewLoginInstance();
+            var clinicalLogin = AuthCookieService.NewLoginInstance();
             clinicalLogin.Id = GetClinicalLoginServiceId();
             clinicalLogin.ConfirmLabel = new MetaDataValue("LOGIN");
             clinicalLogin.Label = new MetaDataValue(ClinicalHeader);
@@ -103,7 +104,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             // external090Service.Service = GetCommonChildAuthServices(tokenServiceId);
             // services.Add(external090Service);
 
-            var external093Service = AuthCookieService1.NewExternalInstance();
+            var external093Service = AuthCookieService.NewExternalInstance();
             external093Service.Id = GetRestrictedLoginServiceId093();
             external093Service.Label = new MetaDataValue(RestrictedHeader);
             external093Service.FailureHeader = new MetaDataValue(RestrictedHeader);
@@ -119,11 +120,11 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             var commonChildServices = new List<IService>
             {
-                new AuthTokenService1
+                new AuthTokenService
                 {
                     Id = tokenServiceId
                 },           
-                new AuthLogoutService1
+                new AuthLogoutService
                 {
                     Id = GetLogoutServiceId(),
                     Label = new MetaDataValue(LogoutLabel)
