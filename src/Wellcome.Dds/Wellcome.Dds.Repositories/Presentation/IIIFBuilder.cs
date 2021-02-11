@@ -514,7 +514,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
                 Target = new Canvas { Id = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}" },
-                Body = new ClassifyingBody("Image")
+                Body = new ClassifyingBody("dctypes:StillImage")
                 {
                     Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
                 }
