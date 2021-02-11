@@ -26,19 +26,30 @@ namespace IIIF.Presentation.V2
         /// <returns>Null if LanguageMap null, else new MetaDataValue object </returns>
         public static MetaDataValue? Create(LanguageMap? languageMap)
         {
+            // "none" is used in P3 if language unknown
+            const string unknownLanguage = "none";
             if (languageMap == null) return null;
             
             var langVals = new List<LanguageValue>();
             foreach (var kvp in languageMap)
             {
+                var language = kvp.Key == unknownLanguage ? null : kvp.Key;
                 langVals.AddRange(kvp.Value.Select(values => new LanguageValue
                 {
-                    Language = kvp.Key,
+                    Language = language,
                     Value = values
                 }));
             }
 
             return new MetaDataValue(langVals);
+        }
+
+        public static MetaDataValue? Create(LabelValuePair? labelValuePair)
+        {
+            if (labelValuePair == null) return null;
+
+            // TODO - what is correct here?
+            return Create(labelValuePair.Value);
         }
     }
 }

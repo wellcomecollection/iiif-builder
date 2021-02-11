@@ -3,21 +3,24 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Serialisation
 {
+    /// <summary>
+    /// JsonConverter for <see cref="MetaDataValue"/> objects.
+    /// </summary>
     public class MetaDataValueSerialiser : WriteOnlyConverter
     {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             var metaDataValue = value as MetaDataValue;
             if (metaDataValue == null)
             {
                 throw new ArgumentException(
-                    "MetaDataValueSerialiser cannot serialise a " + value.GetType().Name, "value");
+                    $"MetaDataValueSerialiser cannot serialise a {value.GetType().Name}", nameof(value));
             }
 
             if (metaDataValue.LanguageValues.Count == 0)
             {
                 throw new ArgumentException(
-                    "MetaDataValueSerialiser cannot serialise an empty array " + value.GetType().Name, "value");
+                    $"MetaDataValueSerialiser cannot serialise an empty array {value.GetType().Name}", nameof(value));
             }
 
             if (metaDataValue.LanguageValues.Count > 1)
@@ -27,7 +30,7 @@ namespace IIIF.Presentation.V2.Serialisation
 
             foreach (var lv in metaDataValue.LanguageValues)
             {
-                if (String.IsNullOrWhiteSpace(lv.Language))
+                if (string.IsNullOrWhiteSpace(lv.Language))
                 {
                     writer.WriteValue(lv.Value);
                 }
@@ -36,6 +39,8 @@ namespace IIIF.Presentation.V2.Serialisation
                     writer.WriteStartObject();
                     writer.WritePropertyName("@value");
                     writer.WriteValue(lv.Value);
+                    writer.WritePropertyName("@language");
+                    writer.WriteValue(lv.Language);
                     writer.WriteEndObject();
                 }
             }

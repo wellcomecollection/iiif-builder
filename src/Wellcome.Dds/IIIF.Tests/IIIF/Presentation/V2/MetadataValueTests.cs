@@ -10,7 +10,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
     {
         [Fact]
         public void CtorFromLanguageMap_ReturnsNull_IfPassedNull() 
-            => MetaDataValue.Create(null).Should().BeNull();
+            => MetaDataValue.Create((LanguageMap)null).Should().BeNull();
 
         [Fact]
         public void CtorFromLanguageMap_LanguageValuesNullOrEmpty_IfPassedEmptyMap()
@@ -80,6 +80,24 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(2);
+        }
+        
+        [Fact]
+        public void CtorFromLanguageMap_IgnoresLanguageIfNone()
+        {
+            // Arrange
+            var languageMap = new LanguageMap("none", "foo bar");
+            
+            var expected = new List<LanguageValue>
+            {
+                new() {Language = null, Value = "foo bar"},
+            };
+            
+            // Act
+            var metadataValue = MetaDataValue.Create(languageMap);
+            
+            // Assert
+            metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
         }
     }
 }
