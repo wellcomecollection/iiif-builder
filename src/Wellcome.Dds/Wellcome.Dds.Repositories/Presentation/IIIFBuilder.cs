@@ -21,6 +21,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.Repositories.Presentation.V2;
 using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
@@ -387,14 +388,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// Convert the IIIF v3 Manifest into its equivalent v2 manifest
         /// </summary>
         /// <returns></returns>
-        private StructureBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
+        private JsonLdBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
         {
-            // TODO - this is obviously a placeholder!
-            var p2Version = new Manifest
-            {
-                Label = Lang.Map("[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
-            };
-            return p2Version;
+            // TODO - tidy this up - possibly inject converter? Or have as a static method?
+            var presentationConverter = new PresentationConverter();
+            return presentationConverter.Convert(iiifPresentation3Resource);
         }
 
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)

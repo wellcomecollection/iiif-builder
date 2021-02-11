@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using IIIF;
 using IIIF.Presentation;
 using IIIF.Presentation.V3;
 
@@ -22,7 +23,7 @@ namespace Wellcome.Dds.IIIFBuilding
         
         // TODO - this won't be a StructureBase
         public string IIIF2Key { get; set; }
-        public StructureBase IIIF2Resource { get; set; }
+        public JsonLdBase IIIF2Resource { get; set; }
         
     }
 

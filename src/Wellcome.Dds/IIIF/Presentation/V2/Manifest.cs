@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
@@ -13,13 +14,13 @@ namespace IIIF.Presentation.V2
         public override string Type => "sc:Manifest";
         
         [JsonProperty(Order = 31, PropertyName = "viewingDirection")]
-        public string ViewingDirection { get; set; }
+        public string? ViewingDirection { get; set; }
 
         [JsonProperty(Order = 40, PropertyName = "sequences")]
         public List<Sequence> Sequences { get; set; }
         
         [JsonProperty(Order = 50, PropertyName = "structures")]
-        public List<Range> Structures { get; set; }
+        public List<Range>? Structures { get; set; }
     }
 
     public class Range : IIIFPresentationBase
@@ -27,10 +28,10 @@ namespace IIIF.Presentation.V2
         public override string Type => "sc:Range";
         
         [JsonProperty(Order = 31, PropertyName = "viewingDirection")]
-        public string ViewingDirection { get; set; }
+        public string? ViewingDirection { get; set; }
 
         [JsonProperty(Order = 31, PropertyName = "startCanvas")]
-        public string StartCanvas { get; set; }
+        public Uri? StartCanvas { get; set; }
         
         // URIs of ranges
         [JsonProperty(Order = 41, PropertyName = "ranges")]

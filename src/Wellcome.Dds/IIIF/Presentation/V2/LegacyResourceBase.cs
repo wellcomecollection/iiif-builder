@@ -19,10 +19,10 @@ namespace IIIF.Presentation.V2
         public string Profile { get; set; } 
         
         [JsonProperty(Order = 11, PropertyName = "label")]
-        public MetaDataValue Label { get; set; }
+        public MetaDataValue? Label { get; set; }
         
         [JsonProperty(Order = 13, PropertyName = "description")]
-        public MetaDataValue Description { get; set; }
+        public MetaDataValue? Description { get; set; }
     }
     
     /// <summary>
@@ -51,13 +51,13 @@ namespace IIIF.Presentation.V2
         public dynamic Thumbnail { get; set; } 
         
         [JsonProperty(Order = 16, PropertyName = "attribution")]
-        public MetaDataValue Attribution { get; set; }
+        public MetaDataValue? Attribution { get; set; }
         
         [JsonProperty(Order = 17, PropertyName = "license")]
-        public string License { get; set; }
+        public string? License { get; set; }
 
         [JsonProperty(Order = 18, PropertyName = "logo")]
-        public string Logo { get; set; }
+        public string Logo { get; set; }  // TODO - this isn't a string
 
         // TODO - what type?
         [JsonProperty(Order = 24, PropertyName = "rendering")]
@@ -75,17 +75,17 @@ namespace IIIF.Presentation.V2
         public IService Service { get; set; }
 
         [JsonProperty(Order = 30, PropertyName = "viewingHint")]
-        public string ViewingHint { get; set; }
+        public string? ViewingHint { get; set; }
         
         [JsonProperty(Order = 32, PropertyName = "navDate")]
-        public string NavDate { get; set; }
+        public string? NavDate { get; set; }
 
         // TODO - what type?
         [JsonProperty(Order = 60, PropertyName = "otherContent")]
         public IAnnotationListReference[] OtherContent { get; set; }
 
         [JsonProperty(Order = 70, PropertyName = "within")]
-        public string Within { get; set; }
+        public string? Within { get; set; }
     }
     
     public abstract class ServiceBase : LegacyResourceBase, IService

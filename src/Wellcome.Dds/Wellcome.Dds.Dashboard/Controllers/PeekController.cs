@@ -38,6 +38,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
         {
+            // NOTE - is this just for testing??
             var ddsId = new DdsIdentifier(id);
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
             await dds.RefreshManifestations(ddsId.BNumber, work);
@@ -54,7 +55,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var build = await BuildResult(ddsId, all);
             return Content(iiifBuilder.Serialise(build.IIIF3Resource), "application/json");
         }
-
+        
+        public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var build = await BuildResult(ddsId, all);
+            return Content(iiifBuilder.Serialise(build.IIIF2Resource), "application/json");
+        }
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
         {
