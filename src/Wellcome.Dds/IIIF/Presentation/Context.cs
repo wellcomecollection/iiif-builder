@@ -1,4 +1,4 @@
-﻿namespace IIIF.Presentation.V3
+﻿namespace IIIF.Presentation
 {
     /// <summary>
     /// Contains JSON-LD Contexts for IIIF Presentation API.
