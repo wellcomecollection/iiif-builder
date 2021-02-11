@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace IIIF.LegacyInclusions
+namespace IIIF.Presentation.V2
 {
     public abstract class LegacyResourceBase : JsonLdBase
     {

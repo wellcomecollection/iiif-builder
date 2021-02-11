@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using IIIF;
 using IIIF.Auth;
-using IIIF.LegacyInclusions;
+using IIIF.Presentation.V2;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {

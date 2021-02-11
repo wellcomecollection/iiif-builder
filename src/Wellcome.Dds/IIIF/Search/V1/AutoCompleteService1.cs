@@ -1,4 +1,4 @@
-﻿using IIIF.LegacyInclusions;
+﻿using IIIF.Presentation.V2;
 
 namespace IIIF.Search.V1
 {

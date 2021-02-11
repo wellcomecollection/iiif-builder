@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using IIIF.LegacyInclusions.Serialisation;
+using IIIF.Presentation.V2.Serialisation;
 using Newtonsoft.Json;
 
-namespace IIIF.LegacyInclusions
+namespace IIIF.Presentation.V2
 {
     [JsonConverter(typeof(MetaDataValueSerialiser))]
     public class MetaDataValue

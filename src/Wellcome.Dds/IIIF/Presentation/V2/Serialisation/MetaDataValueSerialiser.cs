@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace IIIF.LegacyInclusions.Serialisation
+namespace IIIF.Presentation.V2.Serialisation
 {
     public class MetaDataValueSerialiser : WriteOnlyConverter
     {

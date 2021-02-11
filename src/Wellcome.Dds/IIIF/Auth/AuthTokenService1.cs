@@ -1,4 +1,4 @@
-using IIIF.LegacyInclusions;
+using IIIF.Presentation.V2;
 using Newtonsoft.Json;
 
 namespace IIIF.Auth

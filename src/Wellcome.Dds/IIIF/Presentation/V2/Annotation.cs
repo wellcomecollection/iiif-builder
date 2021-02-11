@@ -1,7 +1,7 @@
 using IIIF.Presentation.V3.Annotation;
 using Newtonsoft.Json;
 
-namespace IIIF.LegacyInclusions
+namespace IIIF.Presentation.V2
 {
     public class Annotation : LegacyResourceBase, IAnnotation
     {   

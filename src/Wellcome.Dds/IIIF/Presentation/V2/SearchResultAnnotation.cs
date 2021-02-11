@@ -1,4 +1,4 @@
-namespace IIIF.LegacyInclusions
+namespace IIIF.Presentation.V2
 {
     public class SearchResultAnnotation : Annotation
     {
