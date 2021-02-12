@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -56,7 +57,10 @@ namespace IIIF
                                 .GetProperty(member.Name)
                                 ?.GetValue(instance, null) as IList;
                         }
-                        return list != null && list.GetEnumerator().MoveNext();
+                        var hasContent = (list != null && list.GetEnumerator().MoveNext());
+                        var requiredOutputAttr = member.GetCustomAttributes()
+                            .FirstOrDefault(o => o is RequiredOutputAttribute);
+                        return hasContent || requiredOutputAttr != null;
                     };
                 }
             }

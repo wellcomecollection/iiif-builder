@@ -38,8 +38,12 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("autocomplete/v1/{manifestationIdentifier}")]
         public async Task<IActionResult> AutoCompleteV1(string manifestationIdentifier, string q)
         {
-            var text = await searchTextProvider.GetSearchText(manifestationIdentifier);
-            var suggestions = text.GetSuggestions(q);
+            string[] suggestions = new string[0];
+            if (q.HasText() && q.Trim().Length > 2)
+            {
+                var text = await searchTextProvider.GetSearchText(manifestationIdentifier);
+                suggestions = text.GetSuggestions(q);
+            }
             var termList = iiifBuilder.BuildTermListV1(manifestationIdentifier, q, suggestions);
             IgnoreParams(termList);
             return Content(iiifBuilder.Serialise(termList), "application/json");

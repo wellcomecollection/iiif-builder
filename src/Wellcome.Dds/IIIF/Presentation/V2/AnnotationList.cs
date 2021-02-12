@@ -9,6 +9,7 @@ namespace IIIF.Presentation.V2
         public override string Type => "sc:AnnotationList";
 
         [JsonProperty(Order = 20, PropertyName = "resources")]
+        [RequiredOutput]
         public List<IAnnotation> Resources { get; set; }
     }
 }
