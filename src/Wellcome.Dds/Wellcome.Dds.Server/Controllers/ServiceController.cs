@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Utils;
+using Utils.Web;
 
 namespace Wellcome.Dds.Server.Controllers
 {   
@@ -15,12 +16,15 @@ namespace Wellcome.Dds.Server.Controllers
         {
             this.dds = dds;
         }       
-
+        
         [HttpGet("suggest-b-number")]
         public IActionResult SuggestBNumber(string q)
         {
             if (!q.HasText()) return Ok(System.Array.Empty<object>());
-            
+            if (q == "imfeelinglucky")
+            {
+                Response.AppendStandardNoCacheHeaders();
+            }
             var suggestions = dds.AutoComplete(q);
             return Ok(suggestions.Select(fm => new AutoCompleteSuggestion
             {
