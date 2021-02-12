@@ -44,7 +44,7 @@ namespace IIIF
                         return o != null && (int) o != 0;
                     };
                 }
-                // Don't serialise empty lists
+                // Don't serialise empty lists, unless they have the [RequiredOutput] attribute
                 if (pType.IsGenericType && pType.GetGenericTypeDefinition() == typeof(List<>))
                 {
                     property.ShouldSerialize = instance =>

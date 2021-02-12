@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using IIIF.Presentation.V2.Annotation;
 using Newtonsoft.Json;
@@ -13,7 +14,7 @@ namespace IIIF.Presentation.V2
         public string? Id { get; set; }
 
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public abstract string Type { get; }
+        public abstract string? Type { get; }
         
         [JsonProperty(Order = 4)]
         public string? Profile { get; set; } 
@@ -126,7 +127,7 @@ namespace IIIF.Presentation.V2
         public MetaDataValue Label { get; set; }*/
 
         [JsonProperty(Order = 99, PropertyName = "service")]
-        public dynamic Service { get; set; } // object or array of objects
+        public List<IService>? Service { get; set; } // object or array of objects
 
         public override string Type { get; }
     }
