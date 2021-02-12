@@ -55,14 +55,27 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                     if (r.Start is Presi3.Canvas canvas) range.StartCanvas = new Uri(canvas!.Id);
 
-                    // Ranges
-                    
+                    // TODO - change the Ids here?
                     // Canvases
-
+                    range.Canvases = r.Items?.OfType<Presi3.Canvas>().Select(c => c.Id).ToList();
+                    range.Ranges = r.Items?.OfType<Presi3.Range>().Select(c => c.Id).ToList();
+                    
                     manifest.Structures.Add(range);
                 }
             }
 
+            if (!p3Manifest.Items.IsNullOrEmpty())
+            {
+                
+            }
+            
+            /*Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
+                    {
+                        Service = t.Service,
+                        Id = t.Id
+                    }).ToList(),*/
+
+            // There will only ever be 1 sequence
             // TODO Sequences.
             // Add rendering from Manifest to first Sequence
             /*if (addRendering)
@@ -95,11 +108,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
                 Service = resourceBase.Service, // TODO - add legacy services used by wl.org
                 Profile = resourceBase.Profile, // TODO - does this need modified?
-                Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
-                {
-                    Service = t.Service,
-                    Id = t.Id
-                }).ToList(),
+                
             };
 
             if (!resourceBase.Provider.IsNullOrEmpty())

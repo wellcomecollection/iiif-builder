@@ -35,11 +35,11 @@ namespace IIIF.Presentation.V2
         
         // URIs of ranges
         [JsonProperty(Order = 41, PropertyName = "ranges")]
-        public List<string> Ranges { get; set; }
+        public List<string>? Ranges { get; set; }
         
         // URIs of canvases
         [JsonProperty(Order = 42, PropertyName = "canvases")]
-        public List<string> Canvases { get; set; }
+        public List<string>? Canvases { get; set; }
     }
     
     public class Sequence : IIIFPresentationBase
