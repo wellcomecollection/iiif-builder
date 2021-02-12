@@ -24,7 +24,7 @@ namespace IIIF.Presentation.V2
         /// Create a new MetaDataValue object from specified LanguageMap.
         /// </summary>
         /// <returns>Null if LanguageMap null, else new MetaDataValue object </returns>
-        public static MetaDataValue? Create(LanguageMap? languageMap)
+        public static MetaDataValue? Create(LanguageMap? languageMap, bool ignoreLanguage = false)
         {
             // "none" is used in P3 if language unknown
             const string unknownLanguage = "none";
@@ -33,7 +33,7 @@ namespace IIIF.Presentation.V2
             var langVals = new List<LanguageValue>();
             foreach (var kvp in languageMap)
             {
-                var language = kvp.Key == unknownLanguage ? null : kvp.Key;
+                var language = ignoreLanguage || kvp.Key == unknownLanguage ? null : kvp.Key;
                 langVals.AddRange(kvp.Value.Select(values => new LanguageValue
                 {
                     Language = language,

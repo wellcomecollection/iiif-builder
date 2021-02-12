@@ -99,5 +99,23 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
         }
+        
+        [Fact]
+        public void CtorFromLanguageMap_IgnoresLanguageIf_IgnoreLanguageTrue()
+        {
+            // Arrange
+            var languageMap = new LanguageMap("en", "foo bar");
+            
+            var expected = new List<LanguageValue>
+            {
+                new() {Value = "foo bar"},
+            };
+            
+            // Act
+            var metadataValue = MetaDataValue.Create(languageMap, true);
+            
+            // Assert
+            metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
+        }
     }
 }

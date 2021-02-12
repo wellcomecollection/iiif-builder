@@ -71,9 +71,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             var presentationBase = new T
             {
                 Id = resourceBase.Id, // TODO - do these all need rewritten?
-                Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label),
-                Description = MetaDataValue.Create(resourceBase.Summary),
-                Label = MetaDataValue.Create(resourceBase.Label),
+                Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true),
+                Description = MetaDataValue.Create(resourceBase.Summary, true),
+                Label = MetaDataValue.Create(resourceBase.Label, true),
                 NavDate = resourceBase.NavDate,
                 Metadata = ConvertMetadata(resourceBase.Metadata),
                 License = resourceBase.Rights,
@@ -98,8 +98,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return presi3Metadata!
                 .Select(p => new Presi2.Metadata
                 {
-                    Label = MetaDataValue.Create(p.Label),
-                    Value = MetaDataValue.Create(p.Value)
+                    Label = MetaDataValue.Create(p.Label, true),
+                    Value = MetaDataValue.Create(p.Value, true)
                 })
                 .ToList();
         }
