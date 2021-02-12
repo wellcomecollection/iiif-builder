@@ -36,7 +36,7 @@ namespace IIIF.Presentation.V2.Annotation
         public override string Type => "sc:AnnotationList";
 
         [JsonProperty(Order = 40, PropertyName = "label")]
-        public MetaDataValue Label { get; set; }
+        public MetaDataValue? Label { get; set; }
     }
     
     // TODO - do I need this?

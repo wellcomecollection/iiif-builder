@@ -25,6 +25,7 @@ using Range = IIIF.Presentation.V3.Range;
 using Manifest = IIIF.Presentation.V3.Manifest;
 using Collection = IIIF.Presentation.V3.Collection;
 using Canvas = IIIF.Presentation.V3.Canvas;
+using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {

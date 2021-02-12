@@ -57,18 +57,17 @@ namespace IIIF.Presentation.V2
         public string? License { get; set; }
 
         [JsonProperty(Order = 18, PropertyName = "logo")]
-        public string Logo { get; set; }  // TODO - this isn't a string
+        public string? Logo { get; set; }
 
-        // TODO - what type?
         [JsonProperty(Order = 24, PropertyName = "rendering")]
-        public dynamic Rendering { get; set; }
+        public List<ExternalResource>? Rendering { get; set; }
 
         // TODO - what type?
         [JsonProperty(Order = 25, PropertyName = "related")]
-        public Resource Related { get; set; }
+        public List<Resource>? Related { get; set; }
 
         [JsonProperty(Order = 26, PropertyName = "seeAlso")]
-        public dynamic SeeAlso { get; set; }
+        public List<Resource>? SeeAlso { get; set; }
 
         // TODO - this has custom serialiser - do we need?
         [JsonProperty(Order = 27, PropertyName = "service")]
@@ -82,7 +81,7 @@ namespace IIIF.Presentation.V2
 
         // TODO - what type?
         [JsonProperty(Order = 60, PropertyName = "otherContent")]
-        public IAnnotationListReference[] OtherContent { get; set; }
+        public List<IAnnotationListReference>? OtherContent { get; set; }
 
         [JsonProperty(Order = 70, PropertyName = "within")]
         public string? Within { get; set; }
@@ -92,22 +91,35 @@ namespace IIIF.Presentation.V2
     {
         public IService Service { get; set; }
     }
+
+    public class ExternalResource
+    {
+        [JsonProperty(Order = 1, PropertyName = "@id")]
+        public string? Id { get; set; }
+        
+        [JsonProperty(Order = 2, PropertyName = "label")]
+        public MetaDataValue? Label { get; set; }
+        
+        [JsonProperty(Order = 3, PropertyName = "format")]
+        public string? Format { get; set; }
+    }
     
-    public abstract class Resource : LegacyResourceBase
+    public class Resource : LegacyResourceBase
     {
         [JsonProperty(Order = 10, PropertyName = "format")]
-        public string Format { get; set; }
+        public string? Format { get; set; }
 
         //public override string Type { get; }
 
-        [JsonProperty(Order = 11, PropertyName = "profile")]
+        /*[JsonProperty(Order = 11, PropertyName = "profile")]
         public virtual dynamic Profile { get; set; }
 
         [JsonProperty(Order = 20, PropertyName = "label")]
-        public MetaDataValue Label { get; set; }
+        public MetaDataValue Label { get; set; }*/
 
         [JsonProperty(Order = 99, PropertyName = "service")]
         public dynamic Service { get; set; } // object or array of objects
 
+        public override string Type { get; }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Strings;
 using Utils;
@@ -19,7 +20,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             presentation.ThrowIfNull(nameof(presentation));
 
-            LegacyResourceBase p2Resource = null;
+            LegacyResourceBase p2Resource;
 
             if (presentation is Presi3.Manifest p3Manifest)
             {
@@ -41,12 +42,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             var manifest = GetHydratedPresentationBase<Manifest>(p3Manifest);
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
-            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
+            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way 
 
             if (!p3Manifest.Structures.IsNullOrEmpty())
             {
                 manifest.Structures = new List<Range>(p3Manifest.Structures!.Count);
-                foreach (var r in p3Manifest.Structures ?? new List<Presi3.Range>())
+                foreach (var r in p3Manifest!.Structures)
                 {
                     // ensure context?
                     var range = GetHydratedPresentationBase<Range>(r);
@@ -55,13 +56,24 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     if (r.Start is Presi3.Canvas canvas) range.StartCanvas = new Uri(canvas!.Id);
 
                     // Ranges
+                    
                     // Canvases
 
                     manifest.Structures.Add(range);
                 }
             }
 
-            // TODO Sequences
+            // TODO Sequences.
+            // Add rendering from Manifest to first Sequence
+            /*if (addRendering)
+            {
+                // Rendering is only added to first sequence element
+                presentationBase.Rendering = resourceBase.Rendering?
+                    .Select(r => new ExternalResource
+                        {Format = r.Format, Id = r.Id, Label = MetaDataValue.Create(r.Label, true)})
+                    .ToList();
+            }*/
+            
             return manifest;
         }
 
@@ -70,21 +82,39 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             var presentationBase = new T
             {
-                Id = resourceBase.Id, // TODO - do these all need rewritten?
+                Id = resourceBase.Id, // TODO - do all Ids need rewritten?
                 Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true),
                 Description = MetaDataValue.Create(resourceBase.Summary, true),
                 Label = MetaDataValue.Create(resourceBase.Label, true),
-                NavDate = resourceBase.NavDate,
-                Metadata = ConvertMetadata(resourceBase.Metadata),
                 License = resourceBase.Rights,
-                Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
+                Metadata = ConvertMetadata(resourceBase.Metadata),
+                NavDate = resourceBase.NavDate,
+                Related = resourceBase.Homepage?.Select(h => new Resource{Id = h.Id, Format = h.Format}).ToList(),
+                SeeAlso = resourceBase.SeeAlso?.Select(sa => new Resource{Id = sa.Id, Format = sa.Format}).ToList(),
                 ViewingHint = resourceBase.Behavior?.FirstOrDefault(),
+                Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
+
+                // Service =
                 // Profile = TODO for linking to external  
+                // Thumbnail = TODO handle only if Canvas? 
             };
 
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
-                
+                // NOTE - Logo can be an image-svc but we only support URI for now
+                presentationBase.Logo = resourceBase!.Provider.First().Logo?.FirstOrDefault()?.Id;
+            }
+
+            if (!resourceBase.Annotations.IsNullOrEmpty())
+            {
+                presentationBase.OtherContent = resourceBase.Annotations?
+                    .Select(a => new AnnotationListReference
+                    {
+                        Id = a.Id,
+                        Label = MetaDataValue.Create(a.Label, true),
+                    })
+                    .Cast<IAnnotationListReference>()
+                    .ToList();
             }
 
             presentationBase.EnsureContext(IIIF.Presentation.Context.V2);
