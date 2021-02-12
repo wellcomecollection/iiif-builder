@@ -82,18 +82,14 @@ namespace IIIF.Presentation.V3
         /// </summary>
         [JsonProperty(Order = 20)]
         public LabelValuePair? RequiredStatement { get; set; }
-        
-        
+
         /// <summary>
         /// An organization or person that contributed to providing the content of the resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#provider">provider</a>
         /// </summary>
         [JsonProperty(Order = 21)]
         public List<Agent>? Provider { get; set; }
-        
-        
-        
-        
+
         /// <summary>
         /// A resource that is an alternative, non-IIIF representation of the resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#rendering">rendering</a>
@@ -107,8 +103,7 @@ namespace IIIF.Presentation.V3
         /// </summary>
         [JsonProperty(Order = 24)]
         public List<ExternalResource>? SeeAlso { get; set; }
-        
-        
+
         [JsonProperty(Order = 28)]
         public List<IService>? Service { get; set; }
         
@@ -119,9 +114,7 @@ namespace IIIF.Presentation.V3
         /// </summary>
         [JsonProperty(Order = 31)]
         public List<string>? Behavior { get; set; }
-        
-        
-        
+
         /// <summary>
         /// A containing resource that includes this resource.
         /// See <a href="https://iiif.io/api/presentation/3.0/#partof">partof</a>

@@ -16,7 +16,7 @@ namespace IIIF.Presentation.V2
         public abstract string Type { get; }
         
         [JsonProperty(Order = 4)]
-        public string Profile { get; set; } 
+        public string? Profile { get; set; } 
         
         [JsonProperty(Order = 11, PropertyName = "label")]
         public MetaDataValue? Label { get; set; }
@@ -44,11 +44,11 @@ namespace IIIF.Presentation.V2
     public abstract class IIIFPresentationBase : LegacyResourceBase
     {
         [JsonProperty(Order = 12, PropertyName = "metadata")]
-        public List<Metadata> Metadata { get; set; }
+        public List<Metadata>? Metadata { get; set; }
         
-        // TODO - what type?
+        // TODO - what type? this seems too specific
         [JsonProperty(Order = 15, PropertyName = "thumbnail")]
-        public dynamic Thumbnail { get; set; } 
+        public List<Thumbnail>? Thumbnail { get; set; } 
         
         [JsonProperty(Order = 16, PropertyName = "attribution")]
         public MetaDataValue? Attribution { get; set; }
@@ -71,7 +71,7 @@ namespace IIIF.Presentation.V2
 
         // TODO - this has custom serialiser - do we need?
         [JsonProperty(Order = 27, PropertyName = "service")]
-        public IService Service { get; set; }
+        public List<IService>? Service { get; set; }
 
         [JsonProperty(Order = 30, PropertyName = "viewingHint")]
         public string? ViewingHint { get; set; }
@@ -85,6 +85,14 @@ namespace IIIF.Presentation.V2
 
         [JsonProperty(Order = 70, PropertyName = "within")]
         public string? Within { get; set; }
+    }
+
+    public class Thumbnail : LegacyResourceBase
+    {
+        public override string Type => "dctypes:Image";
+        
+        [JsonProperty(Order = 28)]
+        public List<IService>? Service { get; set; }
     }
     
     public abstract class ServiceBase : LegacyResourceBase, IService

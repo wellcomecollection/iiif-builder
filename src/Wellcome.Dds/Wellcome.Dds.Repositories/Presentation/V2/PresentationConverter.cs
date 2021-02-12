@@ -89,14 +89,17 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 License = resourceBase.Rights,
                 Metadata = ConvertMetadata(resourceBase.Metadata),
                 NavDate = resourceBase.NavDate,
-                Related = resourceBase.Homepage?.Select(h => new Resource{Id = h.Id, Format = h.Format}).ToList(),
-                SeeAlso = resourceBase.SeeAlso?.Select(sa => new Resource{Id = sa.Id, Format = sa.Format}).ToList(),
+                Related = resourceBase.Homepage?.Select(h => new Resource {Id = h.Id, Format = h.Format}).ToList(),
+                SeeAlso = resourceBase.SeeAlso?.Select(sa => new Resource {Id = sa.Id, Format = sa.Format}).ToList(),
                 ViewingHint = resourceBase.Behavior?.FirstOrDefault(),
                 Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
-
-                // Service =
-                // Profile = TODO for linking to external  
-                // Thumbnail = TODO handle only if Canvas? 
+                Service = resourceBase.Service, // TODO - add legacy services used by wl.org
+                Profile = resourceBase.Profile, // TODO - does this need modified?
+                Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
+                {
+                    Service = t.Service,
+                    Id = t.Id
+                }).ToList(),
             };
 
             if (!resourceBase.Provider.IsNullOrEmpty())
@@ -121,7 +124,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return presentationBase;
         }
 
-        private List<Presi2.Metadata> ConvertMetadata(List<LabelValuePair>? presi3Metadata)
+        private static List<Presi2.Metadata>? ConvertMetadata(List<LabelValuePair>? presi3Metadata)
         {
             if (presi3Metadata.IsNullOrEmpty()) return null;
 
