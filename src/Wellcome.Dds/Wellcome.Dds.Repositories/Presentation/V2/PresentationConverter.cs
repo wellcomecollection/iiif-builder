@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Utils;
 using Utils.Guard;
+using Wellcome.Dds.IIIFBuilding;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using Presi3 = IIIF.Presentation.V3;
 using Presi2 = IIIF.Presentation.V2;
@@ -27,27 +28,30 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     /// </summary>
     public class PresentationConverter
     {
+        private readonly UriPatterns uriPatterns;
         private readonly ILogger<PresentationConverter> logger;
 
-        public PresentationConverter()
+        public PresentationConverter(UriPatterns uriPatterns)
         {
+            this.uriPatterns = uriPatterns;
             // TODO - configure logger
             logger = NullLogger<PresentationConverter>.Instance;
         }
         
-        public LegacyResourceBase Convert(Presi3.StructureBase presentation)
+        public LegacyResourceBase Convert(Presi3.StructureBase presentation, string manifestId)
         {
             presentation.ThrowIfNull(nameof(presentation));
+            manifestId.ThrowIfNullOrEmpty(nameof(manifestId));
 
             LegacyResourceBase p2Resource;
 
             if (presentation is Presi3.Manifest p3Manifest)
             {
-                p2Resource = ConvertManifest(p3Manifest, true);
+                p2Resource = ConvertManifest(p3Manifest, manifestId, true);
             }
             else if (presentation is Presi3.Collection p3Collection)
             {
-                p2Resource = ConvertCollection(p3Collection);
+                p2Resource = ConvertCollection(p3Collection, manifestId);
             }
             else
             {
@@ -60,7 +64,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return p2Resource;
         }
 
-        private Collection ConvertCollection(Presi3.Collection p3Collection)
+        private Collection ConvertCollection(Presi3.Collection p3Collection, string manifestId)
         {
             var collection = GetIIIFPresentationBase<Collection>(p3Collection);
             collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way 
@@ -72,16 +76,19 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             collection.Manifests = p3Collection.Items
                 !.OfType<Presi3.Manifest>()
-                .Select(m => ConvertManifest(m, false))
+                .Select(m => ConvertManifest(m, manifestId, false))
                 .ToList();
-            collection.Collections = p3Collection.Items.OfType<Presi3.Collection>().Select(ConvertCollection).ToList();
+            collection.Collections = p3Collection.Items
+                .OfType<Presi3.Collection>()
+                .Select(c => ConvertCollection(c, manifestId))
+                .ToList();
             
             // TODO .Members?
 
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, bool rootResource)
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string manifestId, bool rootResource)
         {
             // We only want "Volume X" and "Copy X" labels for Manifests within Collections
             var manifest = rootResource
@@ -101,8 +108,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                     if (r.Start is Presi3.Canvas {Id: not null} canvas)
                         range.StartCanvas = new Uri(canvas.Id);
-
-                    // TODO - change the Ids here?
+                    
                     range.Canvases = r.Items?.OfType<Presi3.Canvas>().Select(c => c.Id ?? string.Empty).ToList();
                     range.Ranges = r.Items?.OfType<Presi3.Range>().Select(c => c.Id ?? string.Empty).ToList();
 
@@ -115,7 +121,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (p3Manifest.Items.IsNullOrEmpty()) return manifest;
 
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
-            foreach (var p3Canvas in p3Manifest!.Items)
+            foreach (var p3Canvas in p3Manifest.Items)
             {
                 var canvas = GetIIIFPresentationBase<Canvas>(p3Canvas);
                 canvas.Height = canvas.Height;
@@ -137,9 +143,15 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var images = new List<ImageAnnotation>(paintingAnnotations.Count);
                     foreach (var paintingAnnotation in paintingAnnotations)
                     {
-                        var imageAnnotation =
-                            ConvertPaintingAnnotation(p3Manifest, paintingAnnotation, p3Canvas, canvas);
-                        if (imageAnnotation != null) images.Add(imageAnnotation);
+                        if (paintingAnnotation.Body is not Image image)
+                        {
+                            logger.LogWarning(
+                                "'{ManifestId}', canvas '{CanvasId}', anno '{AnnotationId}' has non-painting annotations",
+                                p3Manifest.Id, p3Canvas.Id, paintingAnnotation.Id);
+                            continue;
+                        }
+
+                        images.Add(GetImageAnnotation(image, paintingAnnotation, canvas));
                     }
 
                     canvas.Images = images;
@@ -152,8 +164,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 new()
                 {
-                    Id = "/what/goes/here?", // TODO
-                    Label = new MetaDataValue("Sequence s0"), // TODO,
+                    Id = uriPatterns.Sequence(manifestId, "seq0"),
+                    Label = new MetaDataValue("Sequence s0"),
                     Rendering = p3Manifest.Rendering?
                         .Select(r => new Presi2.ExternalResource
                             {Format = r.Format, Id = r.Id, Label = MetaDataValue.Create(r.Label, true)})
@@ -165,17 +177,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return manifest;
         }
 
-        private ImageAnnotation? ConvertPaintingAnnotation(Presi3.Manifest p3Manifest, PaintingAnnotation paintingAnnotation, Presi3.Canvas p3Canvas,
-            Canvas canvas)
+        private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas)
         {
-            if (paintingAnnotation.Body is not Image image)
-            {
-                logger.LogWarning(
-                    "'{ManifestId}', canvas '{CanvasId}', anno '{AnnotationId}' has non-painting annotations",
-                    p3Manifest.Id, p3Canvas.Id, paintingAnnotation.Id);
-                return null;
-            }
-
             var imageServices = image.Service?.OfType<ImageService2>()
                 .Select(i => DeepCopy(i, service2 =>
                 {
@@ -184,9 +187,10 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }))
                 .Cast<IService>()
                 .ToList();
+            
             var imageAnnotation = new ImageAnnotation
             {
-                Id = paintingAnnotation.Id, // TODO
+                Id = paintingAnnotation.Id,
                 On = canvas.Id ?? string.Empty,
                 Resource = new ImageResource
                 {
@@ -205,7 +209,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             var presentationBase = new T
             {
-                Id = resourceBase.Id, // TODO - do all Ids need rewritten? (only if dereferencable)
+                Id = resourceBase.Id,
                 Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true),
                 Description = MetaDataValue.Create(resourceBase.Summary, true),
                 License = resourceBase.Rights,
@@ -228,17 +232,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         .Cast<IService>()
                         .ToList(),
                     Id = t.Id
-                }).ToList()
+                }).ToList(),
+                Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter)
             };
-
-            presentationBase.Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter);
 
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
                 // NOTE - Logo can be an image-svc but we only support URI for now
                 presentationBase.Logo = resourceBase.Provider!.First().Logo?.FirstOrDefault()?.Id;
             }
-
+            
             if (!resourceBase.Annotations.IsNullOrEmpty())
             {
                 presentationBase.OtherContent = resourceBase.Annotations?
@@ -277,10 +280,10 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 .ToList();
         }
 
-        private static T? DeepCopy<T>(T source, Action<T>? modifier = null)
+        private static T? DeepCopy<T>(T source, Action<T>? postCopyModifier = null)
         {
-            var copy = DeepCopier.Copy(source, new CopyContext());
-            modifier?.Invoke(copy);
+            var copy = DeepCopier.Copy(source);
+            postCopyModifier?.Invoke(copy);
             return copy;
         }
     }

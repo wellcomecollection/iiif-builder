@@ -115,7 +115,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             foreach (var buildResult in buildResults)
             {
                 // now build the Presentation 2 version from the Presentation 3 version
-                var iiifPresentation2Resource = MakePresentation2Resource(buildResult.IIIF3Resource);
+                var iiifPresentation2Resource = MakePresentation2Resource(buildResult.IIIF3Resource, buildResult.Id);
                 buildResult.IIIF2Resource = iiifPresentation2Resource;
                 buildResult.IIIF2Key = $"v2/{buildResult.Id}";
             }
@@ -390,11 +390,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// Convert the IIIF v3 Manifest into its equivalent v2 manifest
         /// </summary>
         /// <returns></returns>
-        private JsonLdBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
+        private JsonLdBase MakePresentation2Resource(StructureBase iiifPresentation3Resource, string manifestId)
         {
             // TODO - tidy this up - possibly inject converter? Or have as a static method?
-            var presentationConverter = new PresentationConverter();
-            return presentationConverter.Convert(iiifPresentation3Resource);
+            var presentationConverter = new PresentationConverter(uriPatterns);
+            return presentationConverter.Convert(iiifPresentation3Resource, manifestId);
         }
 
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)

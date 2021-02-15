@@ -24,6 +24,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AnnoIdentifierToken = "{annoIdentifier}";
         private const string VersionToken = "{version}";
         private const string FileExtensionToken = "{fileExt}";
+        private const string SequenceIdentifierToken = "{sequenceIdentifier}";
         
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
@@ -61,6 +62,9 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
 
         private const string IIIFSearchAnnotationFormat =         "/annotations/{identifier}/{assetIdentifier}/{annoIdentifier}";
+
+        // V2 only
+        private const string SequenceFormat = "/presentation/v2/{identifier}/sequences/{sequenceIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
         // NB /line/ is reserved for text granularity - can be other granularities later.
@@ -100,7 +104,10 @@ namespace Wellcome.Dds.IIIFBuilding
             ICatalogue catalogue)
         {
             schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            this.catalogue = catalogue;
+            
+            // TODO - it feels odd that to generate IIIF uri's you need a reference to ICatalogue
+            // if you need a Catalogue URI reference ICatalogue directly?
+            this.catalogue = catalogue; 
         }
 
         public string Manifest(string identifier)
@@ -338,6 +345,12 @@ namespace Wellcome.Dds.IIIFBuilding
         public string PosterImage(string manifestIdentifier)
         {
             return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
+        }
+        
+        public string Sequence(string manifestIdentifier, string sequenceIdentifier)
+        {
+            return ManifestIdentifier(SequenceFormat, manifestIdentifier)
+                .Replace(SequenceIdentifierToken, sequenceIdentifier);
         }
     }
 }

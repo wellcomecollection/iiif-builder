@@ -13,14 +13,14 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
 
         public PresentationConverterTests()
         {
-            sut = new PresentationConverter();
+            sut = new PresentationConverter(null);
         }
         
         [Fact]
         public void Convert_Throws_IfPassedNull()
         {
             // Arrange
-            Action action = () => sut.Convert(null!);
+            Action action = () => sut.Convert(null!, "b10727000");
 
             // Assert
             action.Should().Throw<ArgumentNullException>();
@@ -30,7 +30,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
         public void Convert_Throws_IfNonManifestOrCollection()
         {
             // Arrange
-            Action action = () => sut.Convert(new Canvas());
+            Action action = () => sut.Convert(new Canvas(), "b10727000");
 
             // Assert
             action.Should()
@@ -46,7 +46,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             manifest.EnsureContext(IIIF.Presentation.Context.V3);
 
             // Act
-            var result = sut.Convert(manifest);
+            var result = sut.Convert(manifest, "b10727000");
             
             // Assert
             result.Context.Should().BeOfType<string>().Which.Should().Be(IIIF.Presentation.Context.V2);
@@ -60,7 +60,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             collection.EnsureContext(IIIF.Presentation.Context.V3);
 
             // Act
-            var result = sut.Convert(collection);
+            var result = sut.Convert(collection, "b10727000");
             
             // Assert
             result.Context.Should().BeOfType<string>().Which.Should().Be(IIIF.Presentation.Context.V2);
