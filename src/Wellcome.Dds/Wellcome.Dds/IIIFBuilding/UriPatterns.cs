@@ -180,17 +180,17 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string CollectionForAggregation()
         {
-            return AggregationFormat;
+            return $"{schemeAndHostValue}{AggregationFormat}";
         }
         
         public string CollectionForAggregation(string aggregator)
         {
-            return $"{AggregationFormat}/{aggregator}";
+            return $"{schemeAndHostValue}{AggregationFormat}/{aggregator}";
         }
         
         public string CollectionForAggregation(string aggregator, string value)
         {
-            return $"{AggregationFormat}/{aggregator}/{value}";
+            return $"{schemeAndHostValue}{AggregationFormat}/{aggregator}/{value}";
         }
         
         // TODO - rename to Work page
