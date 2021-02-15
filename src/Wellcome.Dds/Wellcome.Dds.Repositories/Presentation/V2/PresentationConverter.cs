@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using DeepCopy;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2;
@@ -273,8 +274,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
         private static T? DeepCopy<T>(T source, Action<T>? modifier = null)
         {
-            // TODO - implement
-            modifier?.Invoke(source);
+            var copy = DeepCopier.Copy(source, new CopyContext());
+            modifier?.Invoke(copy);
             return source;
         }
     }

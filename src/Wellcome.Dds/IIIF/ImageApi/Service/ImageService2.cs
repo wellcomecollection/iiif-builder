@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
 using Newtonsoft.Json;
