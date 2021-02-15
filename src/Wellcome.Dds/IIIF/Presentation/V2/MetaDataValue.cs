@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation.V2.Serialisation;
@@ -23,33 +24,34 @@ namespace IIIF.Presentation.V2
         /// <summary>
         /// Create a new MetaDataValue object from specified LanguageMap.
         /// </summary>
+        /// <param name="languageMap">LanguageMap to convert to MetaDataValue</param>
+        /// <param name="ignoreLanguage">If true language not set</param>
+        /// <param name="languagePredicate">Optional predicate to filter MetaDataValues.</param>
         /// <returns>Null if LanguageMap null, else new MetaDataValue object </returns>
-        public static MetaDataValue? Create(LanguageMap? languageMap, bool ignoreLanguage = false)
+        public static MetaDataValue? Create(LanguageMap? languageMap, bool ignoreLanguage = false,
+            Func<string, bool>? languagePredicate = null)
         {
             // "none" is used in P3 if language unknown
             const string unknownLanguage = "none";
             if (languageMap == null) return null;
-            
+
+            languagePredicate ??= s => true;
+
             var langVals = new List<LanguageValue>();
             foreach (var kvp in languageMap)
             {
                 var language = ignoreLanguage || kvp.Key == unknownLanguage ? null : kvp.Key;
-                langVals.AddRange(kvp.Value.Select(values => new LanguageValue
-                {
-                    Language = language,
-                    Value = values
-                }));
+
+                langVals.AddRange(kvp.Value
+                    .Where(languagePredicate)
+                    .Select(values => new LanguageValue
+                    {
+                        Language = language,
+                        Value = values
+                    }));
             }
 
             return new MetaDataValue(langVals);
-        }
-
-        public static MetaDataValue? Create(LabelValuePair? labelValuePair)
-        {
-            if (labelValuePair == null) return null;
-
-            // TODO - what is correct here?
-            return Create(labelValuePair.Value);
         }
     }
 }

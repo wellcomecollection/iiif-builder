@@ -9,11 +9,11 @@ namespace IIIF.Tests.IIIF.Presentation.V2
     public class MetadataValueTests
     {
         [Fact]
-        public void CtorFromLanguageMap_ReturnsNull_IfPassedNull() 
-            => MetaDataValue.Create((LanguageMap)null).Should().BeNull();
+        public void Create_ReturnsNull_IfPassedNull() 
+            => MetaDataValue.Create(null).Should().BeNull();
 
         [Fact]
-        public void CtorFromLanguageMap_LanguageValuesNullOrEmpty_IfPassedEmptyMap()
+        public void Create_LanguageValuesNullOrEmpty_IfPassedEmptyMap()
         {
             // Arrange
             var languageMap = new LanguageMap();
@@ -26,7 +26,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
         }
         
         [Fact]
-        public void CtorFromLanguageMap_Handles_SingleLanguageSingleValue()
+        public void Create_Handles_SingleLanguageSingleValue()
         {
             // Arrange
             var languageMap = new LanguageMap("en", "foo bar");
@@ -44,7 +44,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
         }
         
         [Fact]
-        public void CtorFromLanguageMap_Handles_SingleLanguageMultiValue()
+        public void Create_Handles_SingleLanguageMultiValue()
         {
             // Arrange
             var languageMap = new LanguageMap("en", new[] {"foo", "bar"});
@@ -63,7 +63,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
         }
         
         [Fact]
-        public void CtorFromLanguageMap_Handles_MultiLanguage()
+        public void Create_Handles_MultiLanguage()
         {
             // Arrange
             var languageMap = new LanguageMap("en", "foo");
@@ -83,7 +83,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
         }
         
         [Fact]
-        public void CtorFromLanguageMap_IgnoresLanguageIfNone()
+        public void Create_IgnoresLanguageIfNone()
         {
             // Arrange
             var languageMap = new LanguageMap("none", "foo bar");
@@ -101,7 +101,7 @@ namespace IIIF.Tests.IIIF.Presentation.V2
         }
         
         [Fact]
-        public void CtorFromLanguageMap_IgnoresLanguageIf_IgnoreLanguageTrue()
+        public void Create_IgnoresLanguageIf_IgnoreLanguageTrue()
         {
             // Arrange
             var languageMap = new LanguageMap("en", "foo bar");
@@ -113,6 +113,24 @@ namespace IIIF.Tests.IIIF.Presentation.V2
             
             // Act
             var metadataValue = MetaDataValue.Create(languageMap, true);
+            
+            // Assert
+            metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
+        }
+        
+        [Fact]
+        public void Create_CanFilterWithPredicate()
+        {
+            // Arrange
+            var languageMap = new LanguageMap("en", new[] {"foo", "bar"});
+
+            var expected = new List<LanguageValue>
+            {
+                new() {Language = "en", Value = "foo"}
+            };
+            
+            // Act
+            var metadataValue = MetaDataValue.Create(languageMap, languagePredicate: s => s != "bar");
             
             // Assert
             metadataValue.LanguageValues.Should().BeEquivalentTo(expected).And.HaveCount(1);
