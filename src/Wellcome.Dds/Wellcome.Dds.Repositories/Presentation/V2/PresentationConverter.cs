@@ -1,24 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using DeepCopy;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Newtonsoft.Json;
 using Utils;
 using Utils.Guard;
-using Wellcome.Dds.IIIFBuilding;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using Presi3 = IIIF.Presentation.V3;
 using Presi2 = IIIF.Presentation.V2;
@@ -266,8 +262,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return presi3Metadata!
                 .Select(p => new Presi2.Metadata
                 {
-                    Label = MetaDataValue.Create(p.Label, true),
-                    Value = MetaDataValue.Create(p.Value, true)
+                    Label = MetaDataValue.Create(p.Label, true)!,
+                    Value = MetaDataValue.Create(p.Value, true)!
                 })
                 .ToList();
         }

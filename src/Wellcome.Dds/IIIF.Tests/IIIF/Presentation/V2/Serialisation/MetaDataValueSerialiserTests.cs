@@ -3,6 +3,7 @@ using System.Linq;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Serialisation;
 using FluentAssertions;
+using IIIF.Presentation.V2.Strings;
 using Newtonsoft.Json;
 using Xunit;
 

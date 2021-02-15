@@ -5,7 +5,7 @@ using IIIF.Presentation.V2.Serialisation;
 using IIIF.Presentation.V3.Strings;
 using Newtonsoft.Json;
 
-namespace IIIF.Presentation.V2
+namespace IIIF.Presentation.V2.Strings
 {
     [JsonConverter(typeof(MetaDataValueSerialiser))]
     public class MetaDataValue

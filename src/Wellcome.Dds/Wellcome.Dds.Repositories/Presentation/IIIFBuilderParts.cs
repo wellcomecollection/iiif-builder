@@ -4,6 +4,7 @@ using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;

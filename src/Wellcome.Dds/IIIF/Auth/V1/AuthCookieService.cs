@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 using Newtonsoft.Json;
 
 namespace IIIF.Auth.V1

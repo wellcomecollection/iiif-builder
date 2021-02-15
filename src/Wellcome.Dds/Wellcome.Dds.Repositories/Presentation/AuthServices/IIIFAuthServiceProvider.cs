@@ -3,6 +3,7 @@ using IIIF;
 using IIIF.Auth;
 using IIIF.Auth.V1;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
