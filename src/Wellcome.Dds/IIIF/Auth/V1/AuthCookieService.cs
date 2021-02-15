@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Strings;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.Auth.V1
@@ -25,7 +26,8 @@ namespace IIIF.Auth.V1
         public MetaDataValue Description { get; set; }
 
         [JsonProperty(Order = 26, PropertyName = "service")]
-        public List<IService> Service { get; set; } // object or array of objects
+        [ObjectIfSingle]
+        public List<IService> Service { get; set; }
         
         [JsonProperty(Order = 103, PropertyName = "confirmLabel")]
         public MetaDataValue? ConfirmLabel { get; set; }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
@@ -9,7 +10,8 @@ namespace IIIF.Presentation.V2
         public string? Format { get; set; }
 
         [JsonProperty(Order = 99, PropertyName = "service")]
-        public List<IService>? Service { get; set; } // object or array of objects
+        [ObjectIfSingle]
+        public List<IService>? Service { get; set; }
 
         public override string Type { get; }
     }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V2.Strings;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
@@ -13,7 +14,6 @@ namespace IIIF.Presentation.V2
         [JsonProperty(Order = 12, PropertyName = "metadata")]
         public List<Metadata>? Metadata { get; set; }
         
-        // TODO - what type? this seems too specific
         [JsonProperty(Order = 15, PropertyName = "thumbnail")]
         public List<Thumbnail>? Thumbnail { get; set; } 
         
@@ -27,17 +27,19 @@ namespace IIIF.Presentation.V2
         public string? Logo { get; set; }
 
         [JsonProperty(Order = 24, PropertyName = "rendering")]
+        [ObjectIfSingle]
         public List<ExternalResource>? Rendering { get; set; }
-
-        // TODO - what type?
+        
         [JsonProperty(Order = 25, PropertyName = "related")]
+        [ObjectIfSingle]
         public List<Resource>? Related { get; set; }
 
         [JsonProperty(Order = 26, PropertyName = "seeAlso")]
+        [ObjectIfSingle]
         public List<Resource>? SeeAlso { get; set; }
-
-        // TODO - this has custom serialiser - do we need?
+        
         [JsonProperty(Order = 27, PropertyName = "service")]
+        [ObjectIfSingle]
         public List<IService>? Service { get; set; }
 
         [JsonProperty(Order = 30, PropertyName = "viewingHint")]
@@ -45,8 +47,7 @@ namespace IIIF.Presentation.V2
         
         [JsonProperty(Order = 32, PropertyName = "navDate")]
         public string? NavDate { get; set; }
-
-        // TODO - what type?
+        
         [JsonProperty(Order = 60, PropertyName = "otherContent")]
         public List<IAnnotationListReference>? OtherContent { get; set; }
 
