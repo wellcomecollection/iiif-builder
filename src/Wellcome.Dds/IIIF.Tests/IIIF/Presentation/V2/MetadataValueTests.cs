@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using FluentAssertions;
-using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3.Strings;
 using Xunit;

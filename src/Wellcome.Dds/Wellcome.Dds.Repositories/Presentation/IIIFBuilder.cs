@@ -12,6 +12,7 @@ using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
+using IIIF.Serialisation;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
