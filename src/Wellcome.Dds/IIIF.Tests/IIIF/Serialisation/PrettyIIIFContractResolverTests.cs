@@ -141,12 +141,43 @@ namespace IIIF.Tests.IIIF.Serialisation
             output.Should().Be(expected);
         }
         
+        [Fact]
+        public void List_SerialisedAsObject_IfSingleElement_AndMarkedAsObjectIfSingle()
+        {
+            // Arrange
+            var testClass = new TestClass {OneOrMore = new List<string>{"foo"}};
+            const string expected = "{\"oneOrMore\":\"foo\"}";
+            
+            // Act
+            var output = JsonConvert.SerializeObject(testClass, jsonSerializerSettings);
+            
+            // Assert
+            output.Should().Be(expected);
+        }
+        
+        [Fact]
+        public void List_SerialisedAsArray_IfMultipleElements_AndMarkedAsObjectIfSingle()
+        {
+            // Arrange
+            var testClass = new TestClass {OneOrMore = new List<string>{"foo", "bar"}};
+            const string expected = "{\"oneOrMore\":[\"foo\",\"bar\"]}";
+            
+            // Act
+            var output = JsonConvert.SerializeObject(testClass, jsonSerializerSettings);
+            
+            // Assert
+            output.Should().Be(expected);
+        }
+        
         private class TestClass
         {
             public List<string> OptionalList { get; set; }
             
             [RequiredOutput]
             public List<string> RequiredList { get; set; }
+            
+            [ObjectIfSingle]
+            public List<string> OneOrMore { get; set; }
             
             public int Width { get; set; }
             

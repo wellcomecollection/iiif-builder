@@ -61,6 +61,11 @@ namespace IIIF.Serialisation
                     var requiredOutputAttr = member.GetCustomAttribute<RequiredOutputAttribute>();
                     return hasContent || requiredOutputAttr != null;
                 };
+
+                if (member.GetCustomAttribute<ObjectIfSingleAttribute>() != null)
+                {
+                    property.Converter = new ObjectIfSingleConverter();
+                }
             }
             return property;
         }
