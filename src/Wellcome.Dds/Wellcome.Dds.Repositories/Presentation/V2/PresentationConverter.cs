@@ -22,6 +22,9 @@ using Range = IIIF.Presentation.V2.Range;
 
 namespace Wellcome.Dds.Repositories.Presentation.V2
 {
+    /// <summary>
+    /// Contains logic for converting IIIF P3 to IIIF P2.
+    /// </summary>
     public class PresentationConverter
     {
         private readonly ILogger<PresentationConverter> logger;
@@ -48,7 +51,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
             else
             {
-                throw new ArgumentException($"Unable to convert {presentation.GetType()} to v2", nameof(presentation));
+                throw new ArgumentException(
+                    $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
+                    nameof(presentation));
             }
 
             p2Resource.EnsureContext(IIIF.Presentation.Context.V2);
@@ -58,6 +63,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         private Collection ConvertCollection(Presi3.Collection p3Collection)
         {
             var collection = GetIIIFPresentationBase<Collection>(p3Collection);
+            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way 
             if (p3Collection.Items.IsNullOrEmpty())
             {
                 logger.LogWarning("Collection {CollectionId} has no items", p3Collection.Id);
@@ -69,6 +75,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 .Select(m => ConvertManifest(m, false))
                 .ToList();
             collection.Collections = p3Collection.Items.OfType<Presi3.Collection>().Select(ConvertCollection).ToList();
+            
+            // TODO .Members?
 
             return collection;
         }
@@ -206,7 +214,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList(),
                 ViewingHint = resourceBase.Behavior?.FirstOrDefault(),
                 Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
-                Service = DeepCopy(resourceBase.Service), // TODO - add legacy services used by wl.org
+                Service = DeepCopy(resourceBase.Service),
                 Profile = resourceBase.Profile, // TODO - does this need modified?
                 Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
                 {
@@ -227,7 +235,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
                 // NOTE - Logo can be an image-svc but we only support URI for now
-                presentationBase.Logo = resourceBase!.Provider.First().Logo?.FirstOrDefault()?.Id;
+                presentationBase.Logo = resourceBase.Provider!.First().Logo?.FirstOrDefault()?.Id;
             }
 
             if (!resourceBase.Annotations.IsNullOrEmpty())
