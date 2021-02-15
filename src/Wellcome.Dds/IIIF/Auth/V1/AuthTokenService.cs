@@ -11,7 +11,10 @@ namespace IIIF.Auth.V1
         }
         
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthTokenService);
-        
+        public override string Type
+        {
+            get => nameof(AuthTokenService);
+            set => throw new System.NotImplementedException();
+        }
     }
 }

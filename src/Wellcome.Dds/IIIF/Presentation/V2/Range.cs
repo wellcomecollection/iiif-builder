@@ -6,8 +6,12 @@ namespace IIIF.Presentation.V2
 {
     public class Range : IIIFPresentationBase
     {
-        public override string Type => "sc:Range";
-        
+        public override string Type
+        {
+            get => "sc:Range";
+            set => throw new NotImplementedException();
+        }
+
         [JsonProperty(Order = 31, PropertyName = "viewingDirection")]
         public string? ViewingDirection { get; set; }
 

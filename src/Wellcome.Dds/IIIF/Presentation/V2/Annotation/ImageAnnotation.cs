@@ -4,7 +4,11 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class ImageAnnotation : LegacyResourceBase
     {
-        public override string Type => "oa:Annotation";
+        public override string Type
+        {
+            get => "oa:Annotation";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 4, PropertyName = "motivation")]
         public string Motivation => "sc:painting";

@@ -5,8 +5,12 @@ namespace IIIF.Presentation.V2
 {
     public class Sequence : IIIFPresentationBase
     {
-        public override string Type => "sc:Sequence";
-        
+        public override string Type
+        {
+            get => "sc:Sequence";
+            set => throw new System.NotImplementedException();
+        }
+
         [JsonProperty(Order = 31, PropertyName = "startCanvas")]
         public string StartCanvas { get; set; }
 

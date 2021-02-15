@@ -11,6 +11,10 @@ namespace IIIF.Auth.V1
         }
         
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthLogoutService);
+        public override string Type
+        {
+            get => nameof(AuthLogoutService);
+            set => throw new System.NotImplementedException();
+        }
     }
 }

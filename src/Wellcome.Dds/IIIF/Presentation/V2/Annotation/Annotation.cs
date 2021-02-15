@@ -8,8 +8,12 @@ namespace IIIF.Presentation.V2.Annotation
         [JsonProperty(Order = 10, PropertyName = "motivation")]
         public virtual string Motivation { get; set; }
 
-        public override string Type => "oa:Annotation";
-        
+        public override string Type
+        {
+            get => "oa:Annotation";
+            set => throw new System.NotImplementedException();
+        }
+
         [JsonProperty(Order = 40, PropertyName = "resource")]
         public LegacyResourceBase Resource { get; set; }
 

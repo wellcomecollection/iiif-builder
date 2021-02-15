@@ -4,7 +4,7 @@ using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3.Strings;
 using Xunit;
 
-namespace IIIF.Tests.IIIF.Presentation.V2
+namespace IIIF.Tests.Presentation.V2
 {
     public class MetadataValueTests
     {

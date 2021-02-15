@@ -5,7 +5,11 @@ namespace IIIF.Search.V1
 {
     public class TermList : LegacyResourceBase, IHasIgnorableParameters
     {
-        public override string Type => "search:TermList";
+        public override string Type
+        {
+            get => "search:TermList";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 20, PropertyName = "ignored")]
         public string[] Ignored { get; set; }

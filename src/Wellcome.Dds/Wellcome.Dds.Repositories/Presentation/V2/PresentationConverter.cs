@@ -99,7 +99,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var range = GetIIIFPresentationBase<Range>(r);
                     range.ViewingDirection = r.ViewingDirection;
 
-                    if (r.Start is Presi3.Canvas canvas) range.StartCanvas = new Uri(canvas!.Id);
+                    if (r.Start is Presi3.Canvas {Id: not null} canvas)
+                        range.StartCanvas = new Uri(canvas.Id);
 
                     // TODO - change the Ids here?
                     range.Canvases = r.Items?.OfType<Presi3.Canvas>().Select(c => c.Id ?? string.Empty).ToList();
@@ -122,12 +123,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                 if (!p3Canvas.Items.IsNullOrEmpty())
                 {
-                    if (p3Canvas!.Items.Count > 1)
+                    if (p3Canvas.Items!.Count > 1)
                         logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has more Items than expected",
                             p3Manifest.Id, p3Canvas.Id);
 
                     var annotations = p3Canvas.Items[0].Items;
-                    var paintingAnnotations = annotations.OfType<PaintingAnnotation>().ToList();
+                    var paintingAnnotations = annotations!.OfType<PaintingAnnotation>().ToList();
 
                     if (annotations.Count > paintingAnnotations.Count)
                         logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has non-painting annotations",
@@ -175,18 +176,18 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 return null;
             }
 
-            var imageServices = image.Service.OfType<ImageService2>()
+            var imageServices = image.Service?.OfType<ImageService2>()
                 .Select(i => DeepCopy(i, service2 =>
                 {
                     service2.EnsureContext(ImageService2.Image2Context);
-                    // TODO - clear type - maybe in serializer? Custom for 2 or not if in p2?
+                    service2.Type = null;
                 }))
                 .Cast<IService>()
                 .ToList();
             var imageAnnotation = new ImageAnnotation
             {
                 Id = paintingAnnotation.Id, // TODO
-                On = canvas.Id,
+                On = canvas.Id ?? string.Empty,
                 Resource = new ImageResource
                 {
                     Id = image.Id,
@@ -218,11 +219,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 Profile = resourceBase.Profile, // TODO - does this need modified?
                 Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
                 {
-                    Service = t.Service.OfType<ImageService2>()
+                    Service = t.Service?.OfType<ImageService2>()
                         .Select(i => DeepCopy(i, service2 =>
                         {
                             service2.EnsureContext(ImageService2.Image2Context);
-                            // TODO - clear type - maybe in serializer? Custom for 2 or not if in p2?
+                            service2.Type = null;
                         }))
                         .Cast<IService>()
                         .ToList(),
@@ -280,7 +281,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             var copy = DeepCopier.Copy(source, new CopyContext());
             modifier?.Invoke(copy);
-            return source;
+            return copy;
         }
     }
 }

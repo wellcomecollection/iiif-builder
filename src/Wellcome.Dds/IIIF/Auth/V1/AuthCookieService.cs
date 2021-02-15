@@ -20,8 +20,12 @@ namespace IIIF.Auth.V1
         }
         
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthCookieService);
-        
+        public override string Type
+        {
+            get => nameof(AuthCookieService);
+            set => throw new NotImplementedException();
+        }
+
         [JsonProperty(Order = 12, PropertyName = "description")]
         public MetaDataValue Description { get; set; }
 

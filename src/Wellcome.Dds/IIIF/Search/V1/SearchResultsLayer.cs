@@ -8,7 +8,11 @@ namespace IIIF.Search.V1
     /// </summary>
     public class SearchResultsLayer : LegacyResourceBase, IHasIgnorableParameters
     {
-        public override string Type => "sc:Layer";
+        public override string Type
+        {
+            get => "sc:Layer";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 10, PropertyName = "total")]
         public int Total { get; set; }

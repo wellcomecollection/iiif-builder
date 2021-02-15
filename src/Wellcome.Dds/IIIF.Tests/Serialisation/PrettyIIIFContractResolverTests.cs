@@ -4,7 +4,7 @@ using IIIF.Serialisation;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace IIIF.Tests.IIIF.Serialisation
+namespace IIIF.Tests.Serialisation
 {
     public class PrettyIIIFContractResolverTests
     {

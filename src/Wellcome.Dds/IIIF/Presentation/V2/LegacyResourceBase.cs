@@ -12,7 +12,7 @@ namespace IIIF.Presentation.V2
         public string? Id { get; set; }
 
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public abstract string? Type { get; }
+        public abstract string? Type { get; set; }
         
         [JsonProperty(Order = 4)]
         public string? Profile { get; set; } 

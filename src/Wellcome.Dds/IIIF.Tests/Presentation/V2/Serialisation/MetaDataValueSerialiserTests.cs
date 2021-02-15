@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Linq;
+using FluentAssertions;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Serialisation;
-using FluentAssertions;
 using IIIF.Presentation.V2.Strings;
 using Newtonsoft.Json;
 using Xunit;
 
-namespace IIIF.Tests.IIIF.Presentation.V2.Serialisation
+namespace IIIF.Tests.Presentation.V2.Serialisation
 {
     public class MetaDataValueSerialiserTests
     {

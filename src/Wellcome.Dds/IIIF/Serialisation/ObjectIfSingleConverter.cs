@@ -12,7 +12,7 @@ namespace IIIF.Serialisation
     {
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            if (!(value is IList list))
+            if (value is not IList list)
             {
                 throw new ArgumentException(
                     $"ObjectIfSingleConverter expected IEnumerable but got {value.GetType().Name}", nameof(value));

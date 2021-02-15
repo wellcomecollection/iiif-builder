@@ -9,9 +9,11 @@ namespace IIIF.Search.V1
         public const string Search1Profile = "http://iiif.io/api/search/1/search";
 
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(SearchService);
-
-        
+        public override string Type
+        {
+            get => nameof(SearchService);
+            set => throw new System.NotImplementedException();
+        }
 
         public AutoCompleteService? Service { get; set; }
     }

@@ -7,7 +7,11 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class AnnotationList : LegacyResourceBase
     {
-        public override string Type => "sc:AnnotationList";
+        public override string Type
+        {
+            get => "sc:AnnotationList";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 20, PropertyName = "resources")]
         [RequiredOutput]

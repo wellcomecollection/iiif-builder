@@ -10,8 +10,12 @@ namespace IIIF.Presentation.V2
     /// <remarks>See: https://iiif.io/api/presentation/2.1/#collection</remarks>
     public class Collection : IIIFPresentationBase
     {
-        public override string Type => "sc:Collection";
-        
+        public override string Type
+        {
+            get => "sc:Collection";
+            set => throw new System.NotImplementedException();
+        }
+
         [JsonProperty(Order = 100, PropertyName = "collections")]
         public List<Collection> Collections { get; set; }
 

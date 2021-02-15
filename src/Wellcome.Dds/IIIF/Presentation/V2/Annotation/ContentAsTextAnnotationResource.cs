@@ -4,7 +4,11 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class ContentAsTextAnnotationResource : LegacyResourceBase
     {
-        public override string Type => "cnt:ContentAsText";
+        public override string Type
+        {
+            get => "cnt:ContentAsText";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 10, PropertyName = "format")]
         public string Format { get; set; }

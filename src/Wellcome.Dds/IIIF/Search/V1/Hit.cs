@@ -5,7 +5,11 @@ namespace IIIF.Search.V1
 {
     public class Hit : LegacyResourceBase
     {
-        public override string Type => "search:Hit";
+        public override string Type
+        {
+            get => "search:Hit";
+            set => throw new System.NotImplementedException();
+        }
 
         [JsonProperty(Order = 40, PropertyName = "annotations")]
         public string[] Annotations { get; set; }
