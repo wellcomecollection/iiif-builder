@@ -9,7 +9,9 @@ using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories.Catalogue.ToolSupport;
 
 namespace WorkflowProcessor
 {
@@ -25,6 +27,33 @@ namespace WorkflowProcessor
         private readonly string[] workflowOptionsParam = {"--runnerOptions"};
         private readonly string FinishAllJobsParam = "--finish-all";
 
+        /// <summary>
+        /// Usage:
+        ///
+        /// (no args)
+        /// Process workflow jobs from the table - standard continuous behaviour of this service.
+        ///
+        /// --finish-all
+        /// Mark all non-taken jobs as finished (reset them)
+        ///
+        /// --populate file {filepath}
+        /// Create workflow jobs from the b numbers in a file
+        ///
+        /// --populate-slice {skip}
+        /// Create workflow jobs from a subset of all possible digitised b numbers.
+        /// This will download and unpack the catalogue dump file, take every {skip} lines,
+        /// produce a list of unique b numbers that have digital locations, then register jobs for them.
+        /// e.g., skip 100 will populate 1% of the total possible jobs, skip 10 will populate 10%, skip 1 will do ALL jobs.
+        ///
+        /// --runnerOptions {flags-int}
+        /// Optional argument for the two populate-*** operations.
+        /// This will create a job with a set of processing options that will override the default RunnerOptions, when
+        /// the job is picked up by the WorkflowProcessor.
+        /// This flags integer can be obtained by creating a new RunnerOptions instance and calling ToInt32().
+        /// There is also a helper RunnerOptions.AllButDlcsSync() call for large-scale operations.
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="serviceScopeFactory"></param>
         public WorkflowProcessorService(
             ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory)
@@ -80,6 +109,7 @@ namespace WorkflowProcessor
             {
                 int count = FinishAllJobs();
                 logger.LogInformation($"Force-finished {count} workflow jobs");
+                return;
             }
             switch (populationOperationWithParameter.operation)
             {
@@ -101,8 +131,34 @@ namespace WorkflowProcessor
             logger.LogInformation("Stopping WorkflowProcessorService...");
         }
 
-        private async Task PopulateJobsFromSlice(string parameter, int? workflowOptionsValue, CancellationToken stoppingToken)
+        private async Task PopulateJobsFromSlice(string parameter, int? workflowOptions, CancellationToken stoppingToken)
         {
+            using var scope = serviceScopeFactory.CreateScope();
+            var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
+            var catalogue = scope.ServiceProvider.GetRequiredService<ICatalogue>();
+            if (!int.TryParse(parameter, out int skip))
+            {
+                throw new ArgumentException("Cannot parse skip integer", nameof(parameter));
+            }
+            var dumpLoopInfo = new DumpLoopInfo
+            {
+                Skip = skip, 
+                Filter = DumpLoopInfo.IIIFLocationFilter
+            };
+            logger.LogInformation("Downloading dump file (will take several minutes");
+            await DumpUtils.DownloadDump();
+            logger.LogInformation("Unpacking dump file");
+            DumpUtils.UnpackDump();
+            DumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
+            logger.LogInformation(
+                $"{dumpLoopInfo.UniqueDigitisedBNumbers.Count} unique digitised b numbers found (from skip value of {skip})");
+            int counter = 1;
+            foreach (string uniqueDigitisedBNumber in dumpLoopInfo.UniqueDigitisedBNumbers)
+            {
+                await CreateNewWorkflowJob(workflowOptions, uniqueDigitisedBNumber, workflowCallRepository);
+                logger.LogInformation($"({counter++} of {dumpLoopInfo.UniqueDigitisedBNumbers.Count})");
+            }
+            logger.LogInformation("Finished processing unique b numbers.");
         }
 
         private int FinishAllJobs()
@@ -121,20 +177,27 @@ namespace WorkflowProcessor
             {
                 if (bNumber.IsBNumber() && !stoppingToken.IsCancellationRequested)
                 {
-                    logger.LogInformation($"Attempting to create job for {bNumber}...");
-                    var job = await workflowCallRepository.CreateWorkflowJob(bNumber, workflowOptions);
-                    var displayString = "(none specified)";
-                    if (job.WorkflowOptions.HasValue)
-                    {
-                        displayString = RunnerOptions.FromInt32(job.WorkflowOptions.Value).ToString();
-                    }
-                    logger.LogInformation($"Job {job.Identifier} created with options {displayString}");
+                    await CreateNewWorkflowJob(workflowOptions, bNumber, workflowCallRepository);
                 }
                 else
                 {
                     logger.LogInformation($"Skipping line, '{bNumber}' is not a b number.");
                 }
             }
+        }
+
+        private async Task CreateNewWorkflowJob(int? workflowOptions, string bNumber,
+            IWorkflowCallRepository workflowCallRepository)
+        {
+            logger.LogInformation($"Attempting to create job for {bNumber}...");
+            var job = await workflowCallRepository.CreateWorkflowJob(bNumber, workflowOptions);
+            var displayString = "(none specified)";
+            if (job.WorkflowOptions.HasValue)
+            {
+                displayString = RunnerOptions.FromInt32(job.WorkflowOptions.Value).ToDisplayString();
+            }
+
+            logger.LogInformation($"Job {job.Identifier} created with options {displayString}");
         }
 
         private async Task PollForWorkflowJobs(CancellationToken stoppingToken)

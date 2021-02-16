@@ -14,6 +14,19 @@ namespace WorkflowProcessor.Tests
             this.output = output;
         }
 
+        [Fact]
+        public void RunnerOptions_AllButDlcs_Produces_Correct_Flags()
+        {
+            var allButDlcs = RunnerOptions.AllButDlcsSync();
+            
+            output.WriteLine(allButDlcs.ToString());
+            output.WriteLine(allButDlcs.ToInt32().ToString());
+            allButDlcs.RegisterImages.Should().BeFalse();
+            allButDlcs.RefreshFlatManifestations.Should().BeTrue();
+            allButDlcs.RebuildIIIF3.Should().BeTrue();
+            allButDlcs.RebuildTextCaches.Should().BeTrue();
+            allButDlcs.RebuildAllAnnoPageCaches.Should().BeTrue();
+        }
 
         [Fact]
         public void RunnerOptions_Can_Round_Trip_From_Flags()
