@@ -6,7 +6,7 @@ using Wellcome.Dds.AssetDomainRepositories;
 
 namespace Wellcome.Dds.Server.Controllers
 {
-    public class WorkflowController : Controller
+    public class WorkflowController : ControllerBase
     {
         private readonly DdsInstrumentationContext instrumentationContext;
         private readonly ILogger<WorkflowController> logger;

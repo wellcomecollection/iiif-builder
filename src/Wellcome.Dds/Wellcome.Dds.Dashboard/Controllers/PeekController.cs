@@ -36,18 +36,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.iiifBuilder = iiifBuilder;
         }
 
-        private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
-        {
-            var ddsId = new DdsIdentifier(id);
-            var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-            await dds.RefreshManifestations(ddsId.BNumber, work);
-            if (all)
-            {
-                return await iiifBuilder.BuildAllManifestations(id);
-            }
-            return await iiifBuilder.Build(id, work);
-        }
-        
         public async Task<ContentResult> IIIFRaw(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id);
@@ -61,7 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var build = await BuildResult(ddsId, all);
 
             var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] {build});
-            return Content(iiif2.First().IIIFResource.AsJson(), "application/json");
+            return Content(iiif2[id]?.IIIFResource.AsJson(), "application/json");
         }
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
@@ -82,26 +70,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 IncludeLinksToFullBuild = true
             };
             return View("Code", model);
-        }
-
-        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all)
-        {
-            var results = await BuildIIIF(ddsId, all);
-            var build = results[ddsId];
-            if (build.RequiresMultipleBuild && all == false)
-            {
-                results = await BuildIIIF(ddsId.BNumber, true);
-                build = results[ddsId];
-                // do we still have the same resource in the results?
-                // This particular manifestation might have been removed.
-                if (build == null)
-                {
-                    // e.g., AV MM rearranged into one Manifest
-                    // So return the b number
-                    build = results[ddsId.BNumber];
-                }
-            }
-            return build;
         }
 
         public async Task<ContentResult> XmlRaw(string id, string parts)
@@ -193,6 +161,38 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 Raw = Url.Action("StorageManifestRaw", new {id})
             };
             return View("Code", model);
+        }
+        
+        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all)
+        {
+            var results = await BuildIIIF(ddsId, all);
+            var build = results[ddsId];
+            if (build.RequiresMultipleBuild && all == false)
+            {
+                results = await BuildIIIF(ddsId.BNumber, true);
+                build = results[ddsId];
+                // do we still have the same resource in the results?
+                // This particular manifestation might have been removed.
+                if (build == null)
+                {
+                    // e.g., AV MM rearranged into one Manifest
+                    // So return the b number
+                    build = results[ddsId.BNumber];
+                }
+            }
+            return build;
+        }
+        
+        private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
+            await dds.RefreshManifestations(ddsId.BNumber, work);
+            if (all)
+            {
+                return await iiifBuilder.BuildAllManifestations(id);
+            }
+            return await iiifBuilder.Build(id, work);
         }
     }
 }
