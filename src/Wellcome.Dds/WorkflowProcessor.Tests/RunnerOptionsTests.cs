@@ -23,7 +23,7 @@ namespace WorkflowProcessor.Tests
             output.WriteLine(allButDlcs.ToInt32().ToString());
             allButDlcs.RegisterImages.Should().BeFalse();
             allButDlcs.RefreshFlatManifestations.Should().BeTrue();
-            allButDlcs.RebuildIIIF3.Should().BeTrue();
+            allButDlcs.RebuildIIIF.Should().BeTrue();
             allButDlcs.RebuildTextCaches.Should().BeTrue();
             allButDlcs.RebuildAllAnnoPageCaches.Should().BeTrue();
         }
