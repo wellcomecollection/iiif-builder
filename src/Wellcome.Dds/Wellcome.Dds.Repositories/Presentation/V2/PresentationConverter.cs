@@ -34,8 +34,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         public PresentationConverter(UriPatterns uriPatterns, ILogger logger)
         {
             this.uriPatterns = uriPatterns;
-            // TODO - configure logger
-            logger = NullLogger<PresentationConverter>.Instance;
+            this.logger = logger;
         }
         
         public LegacyResourceBase Convert(Presi3.StructureBase presentation, string identifier)

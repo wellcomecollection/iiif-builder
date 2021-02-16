@@ -3,6 +3,7 @@ using FluentAssertions;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Constants;
 using Microsoft.Extensions.Logging.Abstractions;
+using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.V2;
 using Xunit;
 
@@ -34,9 +35,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             Action action = () => sut.Convert(new Canvas(), "b10727000");
 
             // Assert
-            action.Should()
-                .Throw<ArgumentException>()
-                .WithMessage("Unable to convert IIIF.Presentation.V3.Canvas to v2. Expected: Canvas or Manifest (Parameter 'presentation')");
+            action.Should().Throw<IIIFBuildStateException>();
         }
 
         [Fact]
