@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Wellcome.Dds.Repositories.Catalogue.ToolSupport
+namespace CatalogueClient.ToolSupport
 {
     public class DumpLoopInfo
     {

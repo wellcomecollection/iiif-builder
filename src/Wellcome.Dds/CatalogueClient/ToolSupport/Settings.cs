@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace Wellcome.Dds.Repositories.Catalogue.ToolSupport
+namespace CatalogueClient.ToolSupport
 {
     /// <summary>
     /// Nothing fancy, just some hard-coded values for now

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CatalogueClient.ToolSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,6 @@ using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
-using Wellcome.Dds.Repositories.Catalogue.ToolSupport;
 
 namespace WorkflowProcessor
 {
@@ -22,9 +22,8 @@ namespace WorkflowProcessor
     {
         private readonly ILogger<WorkflowProcessorService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
-        //private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
-        private readonly string[] workflowOptionsParam = {"--runnerOptions"};
+        private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
 
         /// <summary>
@@ -36,7 +35,7 @@ namespace WorkflowProcessor
         /// --finish-all
         /// Mark all non-taken jobs as finished (reset them)
         ///
-        /// --populate file {filepath}
+        /// --populate-file {filepath}
         /// Create workflow jobs from the b numbers in a file
         ///
         /// --populate-slice {skip}
@@ -45,14 +44,14 @@ namespace WorkflowProcessor
         /// produce a list of unique b numbers that have digital locations, then register jobs for them.
         /// e.g., skip 100 will populate 1% of the total possible jobs, skip 10 will populate 10%, skip 1 will do ALL jobs.
         ///
-        /// --runnerOptions {flags-int}
+        /// --workflow-options {flags-int}
         /// Optional argument for the two populate-*** operations.
         /// This will create a job with a set of processing options that will override the default RunnerOptions, when
         /// the job is picked up by the WorkflowProcessor.
         /// This flags integer can be obtained by creating a new RunnerOptions instance and calling ToInt32().
         /// There is also a helper RunnerOptions.AllButDlcsSync() call for large-scale operations.
         ///
-        /// --runnerOptions 30
+        /// --workflow-options 30
         /// This is (currently) the all-but-DLCS flags value.
         /// </summary>
         /// <param name="logger"></param>

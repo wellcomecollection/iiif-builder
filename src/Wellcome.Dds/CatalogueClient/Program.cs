@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Auth.AccessControlPolicy.ActionIdentifiers;
+using CatalogueClient.ToolSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using ShellProgressBar;
@@ -16,7 +17,6 @@ using Utils;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories.Catalogue;
-using Wellcome.Dds.Repositories.Catalogue.ToolSupport;
 
 namespace CatalogueClient
 {

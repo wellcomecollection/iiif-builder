@@ -12,12 +12,13 @@ using ShellProgressBar;
 using Utils;
 using Wellcome.Dds.Catalogue;
 
-namespace Wellcome.Dds.Repositories.Catalogue.ToolSupport
+namespace CatalogueClient.ToolSupport
 {
     public static class DumpUtils
     {
         public static async Task DownloadDump()
         {
+            const int bufferSize = 81920;
             using var client = new HttpClient();
             using var response = await client.GetAsync(
                 Settings.CatalogueDump, HttpCompletionOption.ResponseHeadersRead);
@@ -28,7 +29,7 @@ namespace Wellcome.Dds.Repositories.Catalogue.ToolSupport
             using var progressBar = new ProgressBar(totalTicks, $"Dump file is {totalTicks} MB");
             var progressWrapper = new Progress<long>(totalBytes => Report(progressBar, totalTicks, totalBytes, contentLength));
             await using Stream destination = File.Open(Settings.LocalDumpPath, FileMode.Create);
-            await download.CopyToAsync(destination, 81920, progressWrapper, CancellationToken.None);
+            await download.CopyToAsync(destination, bufferSize, progressWrapper, CancellationToken.None);
         }
         
         private static void Report(ProgressBar progressBar, int ticks, long totalBytes, long? contentLength)
