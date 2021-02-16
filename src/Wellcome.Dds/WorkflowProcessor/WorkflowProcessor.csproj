@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CatalogueClient\CatalogueClient.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
     <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />

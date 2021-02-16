@@ -13,11 +13,13 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.AssetDomainRepositories.Dashboard;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -70,7 +72,7 @@ namespace WorkflowProcessor
                     factory.Get(NamedClient.Dds)));
 
             services.AddMemoryCache();
-
+            
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
@@ -78,6 +80,7 @@ namespace WorkflowProcessor
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
                 .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IWorkflowCallRepository, WorkflowCallRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<Synchroniser>()

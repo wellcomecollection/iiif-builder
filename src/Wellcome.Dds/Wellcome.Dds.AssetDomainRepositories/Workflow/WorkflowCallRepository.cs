@@ -27,7 +27,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 
         public async Task<WorkflowJob> CreateWorkflowJob(string id)
         {
-            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false);
+            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, -1);
+            return workflowJob;
+        }
+        
+        public async Task<WorkflowJob> CreateWorkflowJob(string id, int? workflowOptions)
+        {
+            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions);
             return workflowJob;
         }
 
@@ -135,6 +141,11 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
             sql = sql.Replace("$1", end.ToString(sqlFormat));
             command.CommandText = sql;
             return command;
+        }
+
+        public int FinishAllJobs()
+        {
+            return ddsInstrumentationContext.FinishAllJobs();
         }
     }
 }
