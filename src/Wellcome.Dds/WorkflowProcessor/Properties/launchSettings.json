@@ -3,7 +3,7 @@
     "WorkflowProcessor": {
       "commandName": "Project",
       "launchBrowser": false,
-      "commandLineArgs": "-- --populate-slice 1000 --runnerOptions 30",
+      "commandLineArgs": "-- --populate-file /home/tomcrane/git/wellcomecollection/iiif-builder/src/Wellcome.Dds/WorkflowProcessor.Tests/examples.txt",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

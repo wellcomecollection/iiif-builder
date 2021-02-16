@@ -51,6 +51,9 @@ namespace WorkflowProcessor
         /// the job is picked up by the WorkflowProcessor.
         /// This flags integer can be obtained by creating a new RunnerOptions instance and calling ToInt32().
         /// There is also a helper RunnerOptions.AllButDlcsSync() call for large-scale operations.
+        ///
+        /// --runnerOptions 30
+        /// This is (currently) the all-but-DLCS flags value.
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="serviceScopeFactory"></param>

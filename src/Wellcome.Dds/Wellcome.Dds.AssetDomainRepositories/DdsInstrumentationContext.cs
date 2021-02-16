@@ -54,10 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             }
 
             job.Created = DateTime.Now;
-            if (workflowOptions >= 0)
-            {
-                job.WorkflowOptions = workflowOptions;
-            }
+            job.WorkflowOptions = workflowOptions >= 0 ? workflowOptions : null;
             if (take)
             {
                 job.Waiting = false;
@@ -78,7 +75,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         public int FinishAllJobs()
         {
-            var sql = "update workflow_jobs set waiting=false, finished=true, error='Force-finished before job could be taken' where waiting=true";
+            const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, error='Force-finished before job could be taken' where waiting=true";
             return Database.ExecuteSqlRaw(sql);
         }
     }
