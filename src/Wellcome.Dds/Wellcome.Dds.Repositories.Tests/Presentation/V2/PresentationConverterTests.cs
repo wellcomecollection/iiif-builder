@@ -2,6 +2,7 @@
 using FluentAssertions;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Constants;
+using Microsoft.Extensions.Logging.Abstractions;
 using Wellcome.Dds.Repositories.Presentation.V2;
 using Xunit;
 
@@ -13,7 +14,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
 
         public PresentationConverterTests()
         {
-            sut = new PresentationConverter(null);
+            sut = new PresentationConverter(null, NullLogger.Instance);
         }
         
         [Fact]

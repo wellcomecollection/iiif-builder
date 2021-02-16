@@ -29,36 +29,27 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     public class PresentationConverter
     {
         private readonly UriPatterns uriPatterns;
-        private readonly ILogger<PresentationConverter> logger;
+        private readonly ILogger logger;
 
-        public PresentationConverter(UriPatterns uriPatterns)
+        public PresentationConverter(UriPatterns uriPatterns, ILogger logger)
         {
             this.uriPatterns = uriPatterns;
             // TODO - configure logger
             logger = NullLogger<PresentationConverter>.Instance;
         }
         
-        public LegacyResourceBase Convert(Presi3.StructureBase presentation, string manifestId)
+        public LegacyResourceBase Convert(Presi3.StructureBase presentation, string identifier)
         {
             presentation.ThrowIfNull(nameof(presentation));
-            manifestId.ThrowIfNullOrEmpty(nameof(manifestId));
+            identifier.ThrowIfNullOrEmpty(nameof(identifier));
 
-            LegacyResourceBase p2Resource;
-
-            if (presentation is Presi3.Manifest p3Manifest)
+            LegacyResourceBase p2Resource = presentation switch
             {
-                p2Resource = ConvertManifest(p3Manifest, manifestId, true);
-            }
-            else if (presentation is Presi3.Collection p3Collection)
-            {
-                p2Resource = ConvertCollection(p3Collection, manifestId);
-            }
-            else
-            {
-                throw new ArgumentException(
-                    $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
-                    nameof(presentation));
-            }
+                Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true),
+                Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier),
+                _ => throw new IIIFBuildStateException(
+                    $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest")
+            };
 
             p2Resource.EnsureContext(IIIF.Presentation.Context.V2);
             return p2Resource;

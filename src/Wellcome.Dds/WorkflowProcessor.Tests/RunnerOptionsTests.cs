@@ -36,7 +36,7 @@ namespace WorkflowProcessor.Tests
             var allFlags = new RunnerOptionsFlags[32];
             var test1 = new RunnerOptions
             {
-                RebuildIIIF3 = true,
+                RebuildIIIF = true,
                 RebuildAllAnnoPageCaches = true
             };
             var test2 = new RunnerOptions
@@ -72,7 +72,7 @@ namespace WorkflowProcessor.Tests
 
             fromTest2.RegisterImages.Should().BeTrue();
             fromTest2.RefreshFlatManifestations.Should().BeTrue();
-            fromTest2.RebuildIIIF3.Should().BeFalse();
+            fromTest2.RebuildIIIF.Should().BeFalse();
             fromTest2.RebuildTextCaches.Should().BeFalse();
             fromTest2.RebuildAllAnnoPageCaches.Should().BeTrue();
         }

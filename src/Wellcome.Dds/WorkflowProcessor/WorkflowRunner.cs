@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
 using IIIF;
-using IIIF.Presentation;
-using Microsoft.EntityFrameworkCore.Internal;
+using IIIF.Serialisation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -18,7 +17,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
-using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
+using Version = IIIF.Presentation.Version;
 
 namespace WorkflowProcessor
 {
@@ -79,6 +78,7 @@ namespace WorkflowProcessor
             {
                 job.Error = $"No work specified in jobOptions ({job.WorkflowOptions})";
             }
+            
             Work work = null;
             try
             {
@@ -96,10 +96,10 @@ namespace WorkflowProcessor
                     work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
                     await dds.RefreshManifestations(job.Identifier, work);
                 }
-                if (jobOptions.RebuildIIIF3)
+                if (jobOptions.RebuildIIIF)
                 {
                     work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
-                    await RebuildIIIF3(job, work);
+                    await RebuildIIIF(job, work);
                 }
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
@@ -115,32 +115,35 @@ namespace WorkflowProcessor
             }
         }
 
-        private async Task RebuildIIIF3(WorkflowJob job, Work work)
+        private async Task RebuildIIIF(WorkflowJob job, Work work)
         {
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var buildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
+            var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
+            var iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
             
             // Now we save them all to S3.
             string saveId = "-";
             try
             {
-                foreach (var buildResult in buildResults)
+                foreach (var buildResult in iiif3BuildResults.Concat(iiif2BuildResults))
                 {
                     saveId = buildResult.Id;
-                    await Save(buildResult);
+                    await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
+                        ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
+                        buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
                 }
             }
             catch (Exception e)
             {
-                buildResults.Message = $"Failed at {saveId}, {e.Message}";
-                buildResults.Outcome = BuildOutcome.Failure;
+                iiif3BuildResults.Message = $"Failed at {saveId}, {e.Message}";
+                iiif3BuildResults.Outcome = BuildOutcome.Failure;
             }
 
             var packageEnd = DateTime.Now;
             job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
-            if(buildResults.Any(br => br.Outcome != BuildOutcome.Success))
+            if (iiif3BuildResults.Any(br => br.Outcome != BuildOutcome.Success))
             {
                 // TODO
                 // if(result.Outcome == BuildOutcome.HasClosedSection)
@@ -152,15 +155,6 @@ namespace WorkflowProcessor
                 //     throw new NotSupportedException("MODS Section does not contain a DZ License Code");
                 // }
             }
-        }
-        
-        
-        private async Task Save(BuildResult buildResult)
-        {
-            await PutIIIFJsonObjectToS3(buildResult.IIIF3Resource, 
-                ddsOptions.PresentationContainer, buildResult.IIIF3Key, "IIIF 3 Resource");
-            await PutIIIFJsonObjectToS3(buildResult.IIIF2Resource, 
-                ddsOptions.PresentationContainer, buildResult.IIIF2Key, "IIIF 2 Resource");
         }
 
         private async Task RebuildAltoDerivedAssets(WorkflowJob job, RunnerOptions jobOptions)
@@ -257,10 +251,11 @@ namespace WorkflowProcessor
             {
                 BucketName = bucket,
                 Key = key,
-                ContentBody = iiifBuilder.Serialise(iiifResource),
+                ContentBody = iiifResource.AsJson(),
                 ContentType = "application/json"
             };
-            logger.LogInformation($"Putting {logLabel} to S3: bucket: {put.BucketName}, key: {put.Key}");
+            logger.LogInformation("Putting {LogLabel} to S3: bucket: {BucketName}, key: {Key}", logLabel,
+                put.BucketName, put.Key);
             await amazonS3.PutObjectAsync(put);
         }
         

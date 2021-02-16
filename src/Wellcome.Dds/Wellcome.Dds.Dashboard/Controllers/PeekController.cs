@@ -1,10 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -35,10 +36,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.iiifBuilder = iiifBuilder;
         }
 
-        
         private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
         {
-            // NOTE - is this just for testing??
             var ddsId = new DdsIdentifier(id);
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
             await dds.RefreshManifestations(ddsId.BNumber, work);
@@ -53,14 +52,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id);
             var build = await BuildResult(ddsId, all);
-            return Content(iiifBuilder.Serialise(build.IIIF3Resource), "application/json");
+            return Content(build.IIIFResource.AsJson(), "application/json");
         }
         
+        [HttpGet("IIIFRaw/v2/{id}")]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id);
             var build = await BuildResult(ddsId, all);
-            return Content(iiifBuilder.Serialise(build.IIIF2Resource), "application/json");
+
+            var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] {build});
+            return Content(iiif2.First().IIIFResource.AsJson(), "application/json");
         }
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
@@ -74,7 +76,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 BNumber = ddsId.BNumber,
                 RelativePath = ddsId,
                 Manifestation = ddsId,
-                CodeAsString = iiifBuilder.Serialise(build.IIIF3Resource),
+                CodeAsString = build.IIIFResource.AsJson(),
                 ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("IIIFRaw", new {id}),

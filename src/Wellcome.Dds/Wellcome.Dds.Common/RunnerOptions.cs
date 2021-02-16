@@ -20,7 +20,7 @@ namespace Wellcome.Dds.Common
         /// <summary>
         /// Create IIIF v3 and save to S3.
         /// </summary>
-        public bool RebuildIIIF3 { get; set; }
+        public bool RebuildIIIF { get; set; }
         
         public bool RebuildTextCaches { get; set; } 
         
@@ -34,7 +34,7 @@ namespace Wellcome.Dds.Common
             var flags = RunnerOptionsFlags.None;
             if (RegisterImages) flags = flags | RunnerOptionsFlags.RegisterImages;
             if (RefreshFlatManifestations) flags = flags | RunnerOptionsFlags.RefreshFlatManifestations;
-            if (RebuildIIIF3) flags = flags | RunnerOptionsFlags.RebuildIIIF3;
+            if (RebuildIIIF) flags = flags | RunnerOptionsFlags.RebuildIIIF;
             if (RebuildTextCaches) flags = flags | RunnerOptionsFlags.RebuildTextCaches;
             if (RebuildAllAnnoPageCaches) flags = flags | RunnerOptionsFlags.RebuildAllAnnoPageCaches;
             return flags;
@@ -46,7 +46,7 @@ namespace Wellcome.Dds.Common
             {
                 RegisterImages            = (flags & RunnerOptionsFlags.RegisterImages) == RunnerOptionsFlags.RegisterImages,
                 RefreshFlatManifestations = (flags & RunnerOptionsFlags.RefreshFlatManifestations) == RunnerOptionsFlags.RefreshFlatManifestations,
-                RebuildIIIF3              = (flags & RunnerOptionsFlags.RebuildIIIF3) == RunnerOptionsFlags.RebuildIIIF3,
+                RebuildIIIF              = (flags & RunnerOptionsFlags.RebuildIIIF) == RunnerOptionsFlags.RebuildIIIF,
                 RebuildTextCaches         = (flags & RunnerOptionsFlags.RebuildTextCaches) == RunnerOptionsFlags.RebuildTextCaches,
                 RebuildAllAnnoPageCaches  = (flags & RunnerOptionsFlags.RebuildAllAnnoPageCaches) == RunnerOptionsFlags.RebuildAllAnnoPageCaches
             };
@@ -64,7 +64,7 @@ namespace Wellcome.Dds.Common
 
         public bool HasWorkToDo()
         {
-            return RegisterImages || RefreshFlatManifestations || RebuildIIIF3 || RebuildTextCaches ||
+            return RegisterImages || RefreshFlatManifestations || RebuildIIIF || RebuildTextCaches ||
                    RebuildAllAnnoPageCaches;
         }
 
@@ -79,7 +79,7 @@ namespace Wellcome.Dds.Common
             {
                 RegisterImages = false,
                 RefreshFlatManifestations = true,
-                RebuildIIIF3 = true,
+                RebuildIIIF = true,
                 RebuildTextCaches = true,
                 RebuildAllAnnoPageCaches = true
             };
@@ -92,7 +92,7 @@ namespace Wellcome.Dds.Common
         None = 0,
         RegisterImages = 1,
         RefreshFlatManifestations = 2,
-        RebuildIIIF3 = 4,
+        RebuildIIIF = 4,
         RebuildTextCaches = 8,
         RebuildAllAnnoPageCaches = 16
     }
