@@ -17,6 +17,7 @@ COPY src/Wellcome.Dds/Utils.Tests/Utils.Tests.csproj Utils.Tests/
 COPY src/Wellcome.Dds/DlcsWebClient.Tests/DlcsWebClient.Tests.csproj DlcsWebClient.Tests/
 COPY src/Wellcome.Dds/Wellcome.Dds.AssetDomainRepositories.Tests/Wellcome.Dds.AssetDomainRepositories.Tests.csproj Wellcome.Dds.AssetDomainRepositories.Tests/
 COPY src/Wellcome.Dds/Wellcome.Dds.Common.Tests/Wellcome.Dds.Common.Tests.csproj Wellcome.Dds.Common.Tests/
+COPY src/Wellcome.Dds/Wellcome.Dds.Repositories.Tests/Wellcome.Dds.Repositories.Tests.csproj Wellcome.Dds.Repositories.Tests/
 
 RUN dotnet restore "Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj"
 
