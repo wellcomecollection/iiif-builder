@@ -44,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take)
+        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take, int? workflowOptions)
         {
             WorkflowJob job = await WorkflowJobs.FindAsync(bNumber);
             if (job == null)
@@ -54,6 +54,10 @@ namespace Wellcome.Dds.AssetDomainRepositories
             }
 
             job.Created = DateTime.Now;
+            if (workflowOptions >= 0)
+            {
+                job.WorkflowOptions = workflowOptions;
+            }
             if (take)
             {
                 job.Waiting = false;
@@ -70,6 +74,12 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.ForceTextRebuild = forceRebuild;
             await SaveChangesAsync();
             return job;
+        }
+
+        public int FinishAllJobs()
+        {
+            var sql = "update workflow_jobs set waiting=false, finished=true, error='Force-finished before job could be taken' where waiting=true";
+            return Database.ExecuteSqlRaw(sql);
         }
     }
 }

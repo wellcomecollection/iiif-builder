@@ -68,6 +68,11 @@ namespace Wellcome.Dds.Common
                    RebuildAllAnnoPageCaches;
         }
 
+        public string ToDisplayString()
+        {
+            return ToFlags().ToString();
+        }
+
         public static RunnerOptions AllButDlcsSync()
         {
             return new()

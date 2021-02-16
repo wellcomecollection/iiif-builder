@@ -511,6 +511,32 @@ namespace Utils
             return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
         }
 
+        /// <summary>
+        /// Finds an operation and its required parameter from a string array (command line args).
+        /// Not sophisticated, no parameterless args
+        /// </summary>
+        /// <param name="arguments"></param>
+        /// <param name="permittedOperations"></param>
+        /// <returns></returns>
+        public static (string operation, string parameter) GetOperationAndParameter(string[] arguments, string[] permittedOperations)
+        {
+            string operation = null, parameter = null;
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var op = arguments[i];
+                if (permittedOperations.Contains(op))
+                {
+                    operation = op;
+                    i++;
+                    if (i < arguments.Length)
+                    {
+                        parameter = arguments[i];
+                    }
+                }
+            }
+            return (operation, parameter);
+        }
+
         
     }
 }

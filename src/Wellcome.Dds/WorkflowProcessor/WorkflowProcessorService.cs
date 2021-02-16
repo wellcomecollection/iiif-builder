@@ -1,11 +1,15 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Utils;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.Common;
 
 namespace WorkflowProcessor
 {
@@ -16,8 +20,13 @@ namespace WorkflowProcessor
     {
         private readonly ILogger<WorkflowProcessorService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
+        //private readonly IWorkflowCallRepository workflowCallRepository;
+        private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
+        private readonly string[] workflowOptionsParam = {"--runnerOptions"};
+        private readonly string FinishAllJobsParam = "--finish-all";
 
-        public WorkflowProcessorService(ILogger<WorkflowProcessorService> logger,
+        public WorkflowProcessorService(
+            ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory)
         {
             this.logger = logger;
@@ -41,19 +50,95 @@ namespace WorkflowProcessor
             return base.StartAsync(cancellationToken);
         }
 
+        private (string operation, string parameter) GetOperationWithParameter(string[] lookingFor)
+        {
+            var arguments = Environment.GetCommandLineArgs();
+            logger.LogInformation("GetCommandLineArgs: {0}", string.Join(", ", arguments));
+            return StringUtils.GetOperationAndParameter(arguments, lookingFor);
+        }
+
+        private bool HasArgument(string arg)
+        {
+            return Environment.GetCommandLineArgs().Contains(arg);
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            string[] arguments = Environment.GetCommandLineArgs();
-            logger.LogInformation("GetCommandLineArgs: {0}", string.Join(", ", arguments));
-
-            // TODO - if args are supplied, populate the WorkflowJobs table from CatalogueClient code.
-            // This is likely to be a process that is run from a desktop, against an RDS database.
-            // Or deployed to a temporary container.
-            // Need to work out the best way of running the bulk operations against the jobs DB.
-            // Likely to use RunnerOptions.AllButDlcsSync()
-
-
+            // if using launchSettings.json, you'll need to add something like
+            // "commandLineArgs": "-- --populate-file /home/iiif-builder/src/Wellcome.Dds/WorkflowProcessor.Tests/examples.txt"
+            // ...to run an examples file rather than default to job processing mode. 
             logger.LogInformation("Hosted service ExecuteAsync");
+            var populationOperationWithParameter = GetOperationWithParameter(knownPopulationOperations);
+            var workflowOptionsString = GetOperationWithParameter(workflowOptionsParam).parameter;
+            int? workflowOptionsFlags = null;
+            if(int.TryParse(workflowOptionsString, out var workflowOptionsValue))
+            {
+                workflowOptionsFlags = workflowOptionsValue;
+            }
+
+            if (HasArgument(FinishAllJobsParam))
+            {
+                int count = FinishAllJobs();
+                logger.LogInformation($"Force-finished {count} workflow jobs");
+            }
+            switch (populationOperationWithParameter.operation)
+            {
+                // Population operations might be run from a desktop, against an RDS database.
+                // Or deployed to a temporary container and run from there.
+                case "--populate-file":
+                    await PopulateJobsFromFile(populationOperationWithParameter.parameter, workflowOptionsFlags, stoppingToken);
+                    break;
+                
+                case "--populate-slice":
+                    await PopulateJobsFromSlice(populationOperationWithParameter.parameter, workflowOptionsFlags, stoppingToken);
+                    break;
+                
+                default:
+                    // This is what the workflowprocessor normally does! Takes jobs rather than creates them.
+                    await PollForWorkflowJobs(stoppingToken);
+                    break;
+            }
+            logger.LogInformation("Stopping WorkflowProcessorService...");
+        }
+
+        private async Task PopulateJobsFromSlice(string parameter, int? workflowOptionsValue, CancellationToken stoppingToken)
+        {
+        }
+
+        private int FinishAllJobs()
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
+            return workflowCallRepository.FinishAllJobs();
+        }
+
+        private async Task PopulateJobsFromFile(string file, int? workflowOptions, CancellationToken stoppingToken)
+        {
+            // https://stackoverflow.com/a/48368934
+            using var scope = serviceScopeFactory.CreateScope();
+            var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
+            foreach (var bNumber in File.ReadLines(file))
+            {
+                if (bNumber.IsBNumber() && !stoppingToken.IsCancellationRequested)
+                {
+                    logger.LogInformation($"Attempting to create job for {bNumber}...");
+                    var job = await workflowCallRepository.CreateWorkflowJob(bNumber, workflowOptions);
+                    var displayString = "(none specified)";
+                    if (job.WorkflowOptions.HasValue)
+                    {
+                        displayString = RunnerOptions.FromInt32(job.WorkflowOptions.Value).ToString();
+                    }
+                    logger.LogInformation($"Job {job.Identifier} created with options {displayString}");
+                }
+                else
+                {
+                    logger.LogInformation($"Skipping line, '{bNumber}' is not a b number.");
+                }
+            }
+        }
+
+        private async Task PollForWorkflowJobs(CancellationToken stoppingToken)
+        {
             int waitMs = 2;
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -98,8 +183,6 @@ namespace WorkflowProcessor
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }
-            
-            logger.LogInformation("Stopping WorkflowProcessorService...");
         }
 
         private static WorkflowRunner GetWorkflowRunner(IServiceScope scope) =>
