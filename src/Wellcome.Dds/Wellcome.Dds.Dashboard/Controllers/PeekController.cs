@@ -55,7 +55,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return Content(build.IIIFResource.AsJson(), "application/json");
         }
         
-        [HttpGet("IIIFRaw/v2/{id}")]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id);
