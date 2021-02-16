@@ -12,7 +12,6 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Utils;
 using Utils.Guard;
 using Wellcome.Dds.IIIFBuilding;
@@ -37,21 +36,35 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             this.logger = logger;
         }
         
+        /// <summary>
+        /// Convert P3 Collection or Manifest to P2 equivalent.
+        /// </summary>
+        /// <param name="presentation">Collection or Manifest to convert.</param>
+        /// <param name="identifier">BNumber of collection/manifest</param>
         public LegacyResourceBase Convert(Presi3.StructureBase presentation, string identifier)
         {
             presentation.ThrowIfNull(nameof(presentation));
             identifier.ThrowIfNullOrEmpty(nameof(identifier));
 
-            LegacyResourceBase p2Resource = presentation switch
+            try
             {
-                Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true),
-                Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier),
-                _ => throw new IIIFBuildStateException(
-                    $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest")
-            };
-
-            p2Resource.EnsureContext(IIIF.Presentation.Context.V2);
-            return p2Resource;
+                LegacyResourceBase p2Resource = presentation switch
+                {
+                    Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true),
+                    Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier),
+                    _ => throw new ArgumentException(
+                        $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
+                        nameof(presentation))
+                };
+                
+                p2Resource.EnsureContext(IIIF.Presentation.Context.V2);
+                return p2Resource;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error converting bnumber '{BNumber}' to IIIF2", identifier);
+                throw;
+            }
         }
 
         private Collection ConvertCollection(Presi3.Collection p3Collection, string manifestId)
@@ -86,7 +99,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 : GetIIIFPresentationBase<Manifest>(p3Manifest, s => s.StartsWith("Copy") || s.StartsWith("Volume"));
 
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
-            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way 
+            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way
+
+            if (!p3Manifest.Services.IsNullOrEmpty())
+            {
+                (manifest.Service ??= new List<IService>()).AddRange(DeepCopy(p3Manifest.Services)!);
+            }
 
             if (!p3Manifest.Structures.IsNullOrEmpty())
             {
@@ -107,7 +125,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
 
             // Sequence
-            // NOTE - there will only ever be 1 sequence in output
+            // NOTE - there will only ever be 1 sequence
             if (p3Manifest.Items.IsNullOrEmpty()) return manifest;
 
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
@@ -178,18 +196,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 .Cast<IService>()
                 .ToList();
             
-            var imageAnnotation = new ImageAnnotation
+            var imageAnnotation = new ImageAnnotation();
+            imageAnnotation.Id = paintingAnnotation.Id;
+            imageAnnotation.On = canvas.Id ?? string.Empty;
+            imageAnnotation.Resource = new ImageResource
             {
-                Id = paintingAnnotation.Id,
-                On = canvas.Id ?? string.Empty,
-                Resource = new ImageResource
-                {
-                    Id = image.Id,
-                    Height = image.Height,
-                    Width = image.Width,
-                    Format = image.Format,
-                    Service = imageServices
-                }
+                Id = image.Id,
+                Height = image.Height,
+                Width = image.Width,
+                Format = image.Format,
+                Service = imageServices
             };
             return imageAnnotation;
         }
@@ -197,34 +213,22 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         private T GetIIIFPresentationBase<T>(Presi3.StructureBase resourceBase, Func<string, bool>? labelFilter = null)
             where T : IIIFPresentationBase, new()
         {
-            var presentationBase = new T
-            {
-                Id = resourceBase.Id,
-                Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true),
-                Description = MetaDataValue.Create(resourceBase.Summary, true),
-                License = resourceBase.Rights,
-                Metadata = ConvertMetadata(resourceBase.Metadata),
-                NavDate = resourceBase.NavDate,
-                Related = resourceBase.Homepage?.Select(ConvertResource).ToList(),
-                SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList(),
-                ViewingHint = resourceBase.Behavior?.FirstOrDefault(),
-                Within = resourceBase.PartOf?.FirstOrDefault()?.Id,
-                Service = DeepCopy(resourceBase.Service),
-                Profile = resourceBase.Profile, // TODO - does this need modified?
-                Thumbnail = resourceBase.Thumbnail?.Select(t => new Thumbnail
-                {
-                    Service = t.Service?.OfType<ImageService2>()
-                        .Select(i => DeepCopy(i, service2 =>
-                        {
-                            service2.EnsureContext(ImageService2.Image2Context);
-                            service2.Type = null;
-                        }))
-                        .Cast<IService>()
-                        .ToList(),
-                    Id = t.Id
-                }).ToList(),
-                Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter)
-            };
+            // NOTE - using assignment statements rather than object initialiser to get line numbers for any errors
+            var presentationBase = new T();
+            presentationBase.Id = resourceBase.Id;
+            presentationBase.Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true);
+            presentationBase.Description = MetaDataValue.Create(resourceBase.Summary, true);
+            presentationBase.Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter);
+            presentationBase.License = resourceBase.Rights;
+            presentationBase.Metadata = ConvertMetadata(resourceBase.Metadata);
+            presentationBase.NavDate = resourceBase.NavDate;
+            presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
+            presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
+            presentationBase.ViewingHint = resourceBase.Behavior?.FirstOrDefault();
+            presentationBase.Within = resourceBase.PartOf?.FirstOrDefault()?.Id;
+            presentationBase.Service = DeepCopy(resourceBase.Service);
+            presentationBase.Profile = resourceBase.Profile;
+            presentationBase.Thumbnail = ConvertThumbnails(resourceBase.Thumbnail);
 
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
@@ -247,16 +251,35 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return presentationBase;
         }
 
-        private static Resource ConvertResource(ExternalResource externalResource)
-            => new()
+        private static List<Thumbnail>? ConvertThumbnails(List<ExternalResource>? thumbnails)
+        {
+            if (thumbnails.IsNullOrEmpty()) return null;
+
+            return thumbnails!.Select(t => new Thumbnail
             {
-                Id = externalResource.Id,
-                Description = MetaDataValue.Create(externalResource.Label, true),
-                Format = externalResource.Format, 
-                Profile = externalResource.Profile,
-                Service = DeepCopy(externalResource.Service)
-            };
-        
+                Service = t.Service?.OfType<ImageService2>()
+                    .Select(i => DeepCopy(i, service2 =>
+                    {
+                        service2.EnsureContext(ImageService2.Image2Context);
+                        service2.Type = null;
+                    }))
+                    .Cast<IService>()
+                    .ToList(),
+                Id = t.Id
+            }).ToList();
+        }
+
+        private static Resource ConvertResource(ExternalResource externalResource)
+        {
+            var resource = new Resource();
+            resource.Id = externalResource.Id;
+            resource.Description = MetaDataValue.Create(externalResource.Label, true);
+            resource.Format = externalResource.Format;
+            resource.Profile = externalResource.Profile;
+            resource.Service = DeepCopy(externalResource.Service);
+            return resource;
+        }
+
         private static List<Presi2.Metadata>? ConvertMetadata(List<LabelValuePair>? presi3Metadata)
         {
             if (presi3Metadata.IsNullOrEmpty()) return null;

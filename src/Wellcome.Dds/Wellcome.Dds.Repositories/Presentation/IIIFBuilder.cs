@@ -130,12 +130,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                         result.IIIFResource = iiif2;
                         result.Outcome = BuildOutcome.Success;
                     }
-                    catch (IIIFBuildStateException bex)
-                    {
-                        result.RequiresMultipleBuild = true;
-                        result.Message = bex.Message;
-                        result.Outcome = BuildOutcome.Failure;
-                    }
                     catch (Exception e)
                     {
                         result.Message = e.Message;
