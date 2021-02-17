@@ -13,10 +13,10 @@ namespace IIIF.Presentation.V2
         }
 
         [JsonProperty(Order = 35, PropertyName = "height")]
-        public int Height { get; set; }
+        public int? Height { get; set; }
 
         [JsonProperty(Order = 36, PropertyName = "width")]
-        public int Width { get; set; }
+        public int? Width { get; set; }
 
         // Link to Image resources
         [JsonProperty(Order = 60, PropertyName = "images")]

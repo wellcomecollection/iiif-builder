@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Search.V1
 {
-    public class SearchService : LegacyResourceBase, IService
+    public class SearchService : ResourceBase, IService
     {
         public const string Search1Context = "http://iiif.io/api/search/1/context.json";
         public const string Search1Profile = "http://iiif.io/api/search/1/search";
@@ -11,7 +11,7 @@ namespace IIIF.Search.V1
         [JsonProperty(PropertyName = "@type", Order = 3)]
         public override string Type
         {
-            get => nameof(SearchService);
+            get => "SearchService1";
             set => throw new System.NotImplementedException();
         }
 

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Search.V1
 {
-    public class Hit : LegacyResourceBase
+    public class Hit : ResourceBase
     {
         public override string Type
         {

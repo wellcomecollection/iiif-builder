@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Annotation
 {
-    public class AnnotationList : LegacyResourceBase
+    public class AnnotationList : ResourceBase
     {
         public override string Type
         {

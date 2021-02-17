@@ -18,7 +18,6 @@ namespace IIIF.Serialisation
             MemberInfo member,
             MemberSerialization memberSerialization)
         {
-            
             var property = base.CreateProperty(member, memberSerialization);
             var pType = property.PropertyType;
             if (pType == null) return property;

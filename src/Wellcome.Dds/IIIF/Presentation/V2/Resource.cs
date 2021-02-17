@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
 {
-    public class Resource : LegacyResourceBase
+    public class Resource : ResourceBase
     {
         [JsonProperty(Order = 10, PropertyName = "format")]
         public string? Format { get; set; }

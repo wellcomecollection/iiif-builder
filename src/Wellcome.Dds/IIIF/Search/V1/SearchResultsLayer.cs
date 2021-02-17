@@ -6,7 +6,7 @@ namespace IIIF.Search.V1
     /// <summary>
     /// Each AnnotationList references a Layer.  The Layer can be a blank node, and must be included in every annotation list. 
     /// </summary>
-    public class SearchResultsLayer : LegacyResourceBase, IHasIgnorableParameters
+    public class SearchResultsLayer : ResourceBase, IHasIgnorableParameters
     {
         public override string Type
         {

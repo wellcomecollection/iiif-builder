@@ -2,7 +2,7 @@
 
 namespace IIIF.Presentation.V2.Annotation
 {
-    public class ImageAnnotation : LegacyResourceBase
+    public class ImageAnnotation : ResourceBase
     {
         public override string Type
         {

@@ -6,7 +6,7 @@ namespace IIIF.Presentation.V2
     /// <summary>
     /// Common base for all legacy/pre-v3 IIIF models.
     /// </summary>
-    public abstract class LegacyResourceBase : JsonLdBase
+    public abstract class ResourceBase : JsonLdBase
     {
         [JsonProperty(PropertyName = "@id", Order = 2)]
         public string? Id { get; set; }

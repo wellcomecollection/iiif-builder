@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Annotation
 {
-    public class AnnotationListReference : LegacyResourceBase, IAnnotationListReference
+    public class AnnotationListReference : ResourceBase, IAnnotationListReference
     {
         public override string Type
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DeepCopy;
 using IIIF;
+using IIIF.Auth.V1;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
@@ -12,8 +13,10 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Utils;
 using Utils.Guard;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using Presi3 = IIIF.Presentation.V3;
@@ -41,23 +44,23 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         /// </summary>
         /// <param name="presentation">Collection or Manifest to convert.</param>
         /// <param name="identifier">BNumber of collection/manifest</param>
-        public LegacyResourceBase Convert(Presi3.StructureBase presentation, string identifier)
+        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier? identifier)
         {
             presentation.ThrowIfNull(nameof(presentation));
-            identifier.ThrowIfNullOrEmpty(nameof(identifier));
+            identifier.ThrowIfNull(nameof(identifier));
 
             try
             {
-                LegacyResourceBase p2Resource = presentation switch
+                ResourceBase p2Resource = presentation switch
                 {
                     Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true),
-                    Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier),
+                    Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier!),
                     _ => throw new ArgumentException(
                         $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
                         nameof(presentation))
                 };
                 
-                p2Resource.EnsureContext(IIIF.Presentation.Context.V2);
+                p2Resource.EnsurePresentation2Context();
                 return p2Resource;
             }
             catch (Exception ex)
@@ -67,43 +70,57 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
         }
 
-        private Collection ConvertCollection(Presi3.Collection p3Collection, string manifestId)
+        private Collection ConvertCollection(Presi3.Collection p3Collection, DdsIdentifier identifier)
         {
-            var collection = GetIIIFPresentationBase<Collection>(p3Collection);
-            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way 
             if (p3Collection.Items.IsNullOrEmpty())
             {
-                logger.LogWarning("Collection {CollectionId} has no items", p3Collection.Id);
-                return collection;
+                throw new InvalidOperationException($"Collection {p3Collection.Id} has no items");
             }
+            
+            var collection = GetIIIFPresentationBase<Collection>(p3Collection);
+            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); 
             
             collection.Manifests = p3Collection.Items
                 !.OfType<Presi3.Manifest>()
-                .Select(m => ConvertManifest(m, manifestId, false))
+                .Select(m => ConvertManifest(m, identifier, false))
                 .ToList();
             collection.Collections = p3Collection.Items
                 .OfType<Presi3.Collection>()
-                .Select(c => ConvertCollection(c, manifestId))
+                .Select(c => ConvertCollection(c, identifier))
                 .ToList();
-            
-            // TODO .Members?
 
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string manifestId, bool rootResource)
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string? identifier, bool rootResource)
         {
+            if (p3Manifest.Items.IsNullOrEmpty())
+            {
+                throw new InvalidOperationException($"Manifest {p3Manifest.Id} has no items");
+            }
+            
             // We only want "Volume X" and "Copy X" labels for Manifests within Collections
             var manifest = rootResource
                 ? GetIIIFPresentationBase<Manifest>(p3Manifest)
                 : GetIIIFPresentationBase<Manifest>(p3Manifest, s => s.StartsWith("Copy") || s.StartsWith("Volume"));
 
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
-            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/"); // TODO - find better way
+            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
+            
+            // TODO - will need to handle {"@context": "http://universalviewer.io/context.json"} uihints + tracking
+            // services once these are added to IIIF3 manifest. Will be added to p3Manifest.Service
 
             if (!p3Manifest.Services.IsNullOrEmpty())
             {
-                (manifest.Service ??= new List<IService>()).AddRange(DeepCopy(p3Manifest.Services)!);
+                manifest.Service ??= new List<IService>();
+
+                // Services will all be authservices
+                foreach (var authService in p3Manifest.Services!)
+                {
+                    var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+
+                    manifest.Service.Add(wellcomeAuthService);
+                }
             }
 
             if (!p3Manifest.Structures.IsNullOrEmpty())
@@ -114,8 +131,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var range = GetIIIFPresentationBase<Range>(r);
                     range.ViewingDirection = r.ViewingDirection;
 
-                    if (r.Start is Presi3.Canvas {Id: not null} canvas)
-                        range.StartCanvas = new Uri(canvas.Id);
+                    // NOTE - this may break UV as it's a new prop
+                    /*if (r.Start is Presi3.Canvas {Id: not null} canvas)
+                        range.StartCanvas = new Uri(canvas.Id);*/
                     
                     range.Canvases = r.Items?.OfType<Presi3.Canvas>().Select(c => c.Id ?? string.Empty).ToList();
                     range.Ranges = r.Items?.OfType<Presi3.Range>().Select(c => c.Id ?? string.Empty).ToList();
@@ -123,19 +141,21 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     manifest.Structures.Add(range);
                 }
             }
-
-            // Sequence
+            
             // NOTE - there will only ever be 1 sequence
-            if (p3Manifest.Items.IsNullOrEmpty()) return manifest;
-
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
             foreach (var p3Canvas in p3Manifest.Items)
             {
                 var canvas = GetIIIFPresentationBase<Canvas>(p3Canvas);
-                canvas.Height = canvas.Height;
-                canvas.Width = canvas.Width;
+                if (p3Canvas.Duration.HasValue)
+                {
+                    throw new InvalidOperationException("A/V not yet supported!");
+                }
+                
+                canvas.Height = p3Canvas.Height;
+                canvas.Width = p3Canvas.Width;
 
-                if (!p3Canvas.Items.IsNullOrEmpty())
+                if (p3Canvas.Items.HasItems())
                 {
                     if (p3Canvas.Items!.Count > 1)
                         logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has more Items than expected",
@@ -172,17 +192,68 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 new()
                 {
-                    Id = uriPatterns.Sequence(manifestId, "seq0"),
+                    Id = GetSequenceId(identifier, "seq0"),
                     Label = new MetaDataValue("Sequence s0"),
                     Rendering = p3Manifest.Rendering?
                         .Select(r => new Presi2.ExternalResource
                             {Format = r.Format, Id = r.Id, Label = MetaDataValue.Create(r.Label, true)})
                         .ToList(),
-                    Canvases = canvases
+                    Canvases = canvases, 
+                    ViewingHint = p3Manifest.Behavior?.FirstOrDefault()
                 }
             };
 
             return manifest;
+        }
+
+        private WellcomeAuthService GetWellcomeAuthService(string identifier, IService authService)
+        {
+            // All auth services are ResourceBase, we need to cast to access Context property to set it correctly
+            if (authService is not ResourceBase authResourceBase)
+            {
+                throw new InvalidOperationException("Expected manifest.Services to only contain ResourceBase");
+            }
+
+            var copiedService = DeepCopy(authResourceBase, svc =>
+            {
+                svc.Type = null;
+                svc.Context = Constants.IIIFAuthContext;
+            })!;
+
+            // The access hint is the last section of current profile
+            var accessHint =
+                copiedService.Profile?.Substring(
+                    copiedService.Profile.LastIndexOf("/", StringComparison.Ordinal) + 1);
+
+            // this is a list but there'll only be 1
+            if (copiedService is AuthCookieService cookieService)
+            {
+                cookieService.ConfirmLabel = null;
+                cookieService.Header = null;
+                cookieService.FailureHeader = null;
+                cookieService.FailureDescription = null;
+                
+                // Remove @type and set @context in all sub-services
+                // we've already copied these so these are fine to edit
+                foreach (var svc in cookieService.Service.OfType<ResourceBase>())
+                {
+                    svc.Type = null;
+                    svc.Context = Constants.IIIFAuthContext;
+                    if (svc.Label != null)
+                    {
+                        svc.Description = svc.Label;
+                    }
+                }
+            }
+
+            // Create a fale WellcomeAuthService to contain the above services
+            var wellcomeAuthService = new WellcomeAuthService();
+            wellcomeAuthService.Id = GetAuthServiceId(identifier);
+            wellcomeAuthService.Profile = GetAuthServiceProfile(identifier);
+            wellcomeAuthService.AuthService = new List<IService> {copiedService as IService};
+            wellcomeAuthService.AccessHint = accessHint;
+            wellcomeAuthService.EnsureContext("http://wellcomelibrary.org/ld/iiif-ext/0/context.json");
+            return wellcomeAuthService;
         }
 
         private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas)
@@ -224,7 +295,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             presentationBase.NavDate = resourceBase.NavDate;
             presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
             presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
-            presentationBase.ViewingHint = resourceBase.Behavior?.FirstOrDefault();
             presentationBase.Within = resourceBase.PartOf?.FirstOrDefault()?.Id;
             presentationBase.Service = DeepCopy(resourceBase.Service);
             presentationBase.Profile = resourceBase.Profile;
@@ -232,7 +302,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
-                // NOTE - Logo can be an image-svc but we only support URI for now
                 presentationBase.Logo = resourceBase.Provider!.First().Logo?.FirstOrDefault()?.Id;
             }
             
@@ -298,6 +367,26 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             var copy = DeepCopier.Copy(source);
             postCopyModifier?.Invoke(copy);
             return copy;
+        }
+
+        private string GetSequenceId(DdsIdentifier identifier, string sequenceIdentifier)
+        {
+            const string sequenceIdentifierToken = "{sequenceIdentifier}";
+            const string sequenceFormat = "/presentation/v2/{identifier}/sequences/{sequenceIdentifier}";
+
+            return uriPatterns.GetPath(sequenceFormat, identifier, (sequenceIdentifierToken, sequenceIdentifier));
+        } 
+        
+        private string GetAuthServiceId(DdsIdentifier identifier)
+        {
+            const string authServiceIdFormat = "/iiif/{identifier}-0/access-control-hints-service";
+            return uriPatterns.GetPath(authServiceIdFormat, identifier);
+        }
+        
+        private string GetAuthServiceProfile(DdsIdentifier identifier)
+        {
+            const string authServiceProfileFormat = "/ld/iiif-ext/access-control-hints";
+            return uriPatterns.GetPath(authServiceProfileFormat, identifier);
         }
     }
 }

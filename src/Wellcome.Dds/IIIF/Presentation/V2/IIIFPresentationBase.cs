@@ -9,7 +9,7 @@ namespace IIIF.Presentation.V2
     /// <summary>
     /// Base class, used as root to all IIIF v2 Presentation models.
     /// </summary>
-    public abstract class IIIFPresentationBase : LegacyResourceBase
+    public abstract class IIIFPresentationBase : ResourceBase
     {
         [JsonProperty(Order = 12, PropertyName = "metadata")]
         public List<Metadata>? Metadata { get; set; }

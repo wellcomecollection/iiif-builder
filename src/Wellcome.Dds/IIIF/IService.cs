@@ -1,6 +1,4 @@
-﻿
-
-namespace IIIF
+﻿namespace IIIF
 {
     public interface IService
     {

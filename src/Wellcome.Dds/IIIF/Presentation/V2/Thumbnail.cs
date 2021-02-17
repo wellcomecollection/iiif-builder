@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
 {
-    public class Thumbnail : LegacyResourceBase
+    public class Thumbnail : ResourceBase
     {
         public override string Type
         {

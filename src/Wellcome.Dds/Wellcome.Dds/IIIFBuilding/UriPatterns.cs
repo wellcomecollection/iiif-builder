@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -24,8 +27,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AnnoIdentifierToken = "{annoIdentifier}";
         private const string VersionToken = "{version}";
         private const string FileExtensionToken = "{fileExt}";
-        private const string SequenceIdentifierToken = "{sequenceIdentifier}";
-        
+
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
         private const string IIIF2ImageContext = "http://iiif.io/api/image/2/context.json";
@@ -62,9 +64,6 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string RangeFormat =                        "/presentation/{identifier}/ranges/{rangeIdentifier}";
 
         private const string IIIFSearchAnnotationFormat =         "/annotations/{identifier}/{assetIdentifier}/{annoIdentifier}";
-
-        // V2 only
-        private const string SequenceFormat = "/presentation/v2/{identifier}/sequences/{sequenceIdentifier}";
         
         // Always versioned - todo... bring version out as parameter? 
         // NB /line/ is reserved for text granularity - can be other granularities later.
@@ -346,11 +345,18 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
         }
-        
-        public string Sequence(string manifestIdentifier, string sequenceIdentifier)
+
+        public string GetPath(string format, string manifestIdentifier,
+            params (string Token, string Replacement)[] replacements)
         {
-            return ManifestIdentifier(SequenceFormat, manifestIdentifier)
-                .Replace(SequenceIdentifierToken, sequenceIdentifier);
+            var path = ManifestIdentifier(format, manifestIdentifier);
+
+            foreach (var (token, value) in replacements ?? Enumerable.Empty<(string, string)>())
+            {
+                path = path.Replace(token, value);
+            }
+
+            return path;
         }
     }
 }

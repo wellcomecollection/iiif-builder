@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Search.V1
 {
-    public class TextQuoteSelector: LegacyResourceBase
+    public class TextQuoteSelector: ResourceBase
     {
         public override string Type
         {

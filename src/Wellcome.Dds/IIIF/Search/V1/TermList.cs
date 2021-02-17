@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Search.V1
 {
-    public class TermList : LegacyResourceBase, IHasIgnorableParameters
+    public class TermList : ResourceBase, IHasIgnorableParameters
     {
         public override string Type
         {

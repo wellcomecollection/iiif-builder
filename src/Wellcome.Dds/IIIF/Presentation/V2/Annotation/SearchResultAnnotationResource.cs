@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Annotation
 {
-    public class SearchResultAnnotationResource : LegacyResourceBase
+    public class SearchResultAnnotationResource : ResourceBase
     {
         public override string Type
         {

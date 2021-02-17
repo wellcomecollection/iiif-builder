@@ -27,6 +27,7 @@ using Manifest = IIIF.Presentation.V3.Manifest;
 using Collection = IIIF.Presentation.V3.Collection;
 using Canvas = IIIF.Presentation.V3.Canvas;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
+using ResourceBase = IIIF.Presentation.V3.ResourceBase;
 using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation

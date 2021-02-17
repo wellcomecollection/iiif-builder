@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Annotation
 {
-    public class Annotation : LegacyResourceBase, IAnnotation
+    public class Annotation : ResourceBase, IAnnotation
     {   
         [JsonProperty(Order = 10, PropertyName = "motivation")]
         public virtual string Motivation { get; set; }
@@ -15,7 +15,7 @@ namespace IIIF.Presentation.V2.Annotation
         }
 
         [JsonProperty(Order = 40, PropertyName = "resource")]
-        public LegacyResourceBase Resource { get; set; }
+        public ResourceBase Resource { get; set; }
 
         // TODO - on can be an object with an @id and a "within" as well as a URI
         // "on" : {
