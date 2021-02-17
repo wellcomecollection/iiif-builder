@@ -11,6 +11,5 @@ namespace IIIF.Search.V2
             // Allow callers to decide whether to set the @context
             Profile = AutoComplete2Profile;
         }
-        
     }
 }

@@ -1,33 +1,36 @@
 using System;
+using IIIF.Presentation.V2.Strings;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Serialisation
 {
-    public class MetaDataValueSerialiser : WriteOnlyConverter
+    /// <summary>
+    /// JsonConverter for <see cref="MetaDataValue"/> objects.
+    /// </summary>
+    public class MetaDataValueSerialiser : WriteOnlyConverter<MetaDataValue>
     {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, MetaDataValue? value, JsonSerializer serializer)
         {
-            var metaDataValue = value as MetaDataValue;
-            if (metaDataValue == null)
+            if (value == null)
             {
                 throw new ArgumentException(
-                    "MetaDataValueSerialiser cannot serialise a " + value.GetType().Name, "value");
+                    $"MetaDataValueSerialiser cannot serialise a {value.GetType().Name}", nameof(value));
             }
 
-            if (metaDataValue.LanguageValues.Length == 0)
+            if (value.LanguageValues.Count == 0)
             {
                 throw new ArgumentException(
-                    "MetaDataValueSerialiser cannot serialise an empty array " + value.GetType().Name, "value");
+                    $"MetaDataValueSerialiser cannot serialise an empty array {value.GetType().Name}", nameof(value));
             }
 
-            if (metaDataValue.LanguageValues.Length > 1)
+            if (value.LanguageValues.Count > 1)
             {
                 writer.WriteStartArray();
             }
 
-            foreach (var lv in metaDataValue.LanguageValues)
+            foreach (var lv in value.LanguageValues)
             {
-                if (String.IsNullOrWhiteSpace(lv.Language))
+                if (string.IsNullOrWhiteSpace(lv.Language))
                 {
                     writer.WriteValue(lv.Value);
                 }
@@ -36,11 +39,13 @@ namespace IIIF.Presentation.V2.Serialisation
                     writer.WriteStartObject();
                     writer.WritePropertyName("@value");
                     writer.WriteValue(lv.Value);
+                    writer.WritePropertyName("@language");
+                    writer.WriteValue(lv.Language);
                     writer.WriteEndObject();
                 }
             }
 
-            if (metaDataValue.LanguageValues.Length > 1)
+            if (value.LanguageValues.Count > 1)
             {
                 writer.WriteEndArray();
             }

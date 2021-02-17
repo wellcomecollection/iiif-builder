@@ -31,7 +31,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             // Each Manifest will have a copy number.
             // There might be more than one volume per copy, in which case we have
             // a nested collection.
-            if (!(buildResults.First().IIIF3Resource is Collection bNumberCollection))
+            if (!(buildResults.First().IIIFResource is Collection bNumberCollection))
             {
                 throw new IIIFBuildStateException("State is missing the parent collection");
             }
@@ -65,7 +65,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                         foreach (var copyAndVolume in identifiersForVolume)
                         {
                             var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
-                            var manifest = (Manifest) manifestResult.IIIF3Resource;
+                            var manifest = (Manifest) manifestResult.IIIFResource;
                             manifest.Label?.Values.First().Add($"Copy {copy}, Volume {volume}");
                             copyCollection.Items.Add(new Manifest
                             {
@@ -90,7 +90,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     foreach (var copyAndVolume in identifiersForCopy)
                     {
                         var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
-                        var manifest = (Manifest) manifestResult.IIIF3Resource;
+                        var manifest = (Manifest) manifestResult.IIIFResource;
                         manifest.Label?.Values.First().Add($"Copy {copy}");
                         newItems.Add(new Manifest
                         {

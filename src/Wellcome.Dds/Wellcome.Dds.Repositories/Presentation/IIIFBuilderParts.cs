@@ -4,8 +4,8 @@ using System.Linq;
 using Amazon.Runtime.Internal.Util;
 using IIIF;
 using IIIF.ImageApi.Service;
-using IIIF.Presentation;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
@@ -25,7 +25,12 @@ using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
 using StringUtils = Utils.StringUtils;
-
+using Manifest = IIIF.Presentation.V3.Manifest;
+using Collection = IIIF.Presentation.V3.Collection;
+using Canvas = IIIF.Presentation.V3.Canvas;
+using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
+using ResourceBase = IIIF.Presentation.V3.ResourceBase;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -898,11 +903,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return;
             } 
             // get the BuildResult that has a video or audio canvas
+
             var relevantBuildResults = buildResults
-                .Where(br => br.IIIF3Resource is Manifest)
+                .Where(br => br.IIIFResource is Manifest)
                 .Where(br =>
-                    ((Manifest) br.IIIF3Resource).Items.HasItems() &&
-                    ((Manifest) br.IIIF3Resource).Items.Exists(c => c.Duration > 0));
+                    ((Manifest) br.IIIFResource).Items.HasItems() &&
+                    ((Manifest) br.IIIFResource).Items.Exists(c => c.Duration > 0));
 
             
             string newId = buildResults.Identifier;
@@ -910,7 +916,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             BuildResult firstManifestationBuildResult = null;
             foreach (var relevantBuildResult in relevantBuildResults)
             {
-                var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
+                var manifest = (Manifest) relevantBuildResult.IIIFResource;
                 if (firstManifestationBuildResult == null)
                 {
                     firstManifestationBuildResult = relevantBuildResult;
@@ -919,8 +925,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // we now have the right Manifest, but it has the wrong Identifiers everywhere...
                 string oldId = relevantBuildResult.Id;
                 relevantBuildResult.Id = newId;
-                // This line will break
-                relevantBuildResult.IIIF3Key = relevantBuildResult.IIIF3Key.Replace(oldId, newId);
                 manifest.Id = manifest.Id.Replace(oldId, newId);
                 if (manifest.PartOf.HasItems())
                 {
@@ -954,7 +958,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             if (firstManifestationBuildResult != null)
             {
                 buildResults.Add(firstManifestationBuildResult);
-                if (firstManifestationBuildResult.IIIF3Resource is Manifest firstManifest)
+                if (firstManifestationBuildResult.IIIFResource is Manifest firstManifest)
                 {
                     firstManifest.Items = avCanvases;
                 }
@@ -986,7 +990,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             });
         }
 
-        private static void ChangeCanvasIds(Canvas canvas, string oldId, string newId, bool changeImageBody)
+        private static void ChangeCanvasIds(Canvas? canvas, string oldId, string newId, bool changeImageBody)
         {
             if (canvas == null)
             {

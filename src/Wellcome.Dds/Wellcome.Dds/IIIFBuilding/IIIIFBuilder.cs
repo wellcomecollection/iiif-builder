@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using IIIF;
-using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
 using IIIF.Search.V1;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -25,7 +25,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="identifier">e.g., b12345678, b87654321_0001</param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<MultipleBuildResult> Build(string identifier, Work work = null);
+        public Task<MultipleBuildResult> Build(string identifier, Work? work = null);
 
         /// <summary>
         /// Builds ALL Manifests and Collections for the given bNumber.
@@ -40,13 +40,20 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="bNumber"></param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null);
-        
-        string Serialise(JsonLdBase iiifResource);
+        public Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null);
+
+        /// <summary>
+        /// Build IIIF Presentation 2 representation from provided IIIF Presentation 3 BuildResults.
+        /// Only V3 results will be processed, any V2 will be ignored.
+        /// </summary>
+        /// <param name="identifier">e.g., b12345678, b87654321_0001</param>
+        /// <param name="buildResults">IIIF 3 build results</param>
+        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults);
 
         AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
         
-        IIIF.Search.V1.TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions);
+        TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions);
+        
         SearchResultAnnotationList BuildSearchResultsV0(Text text, IEnumerable<SearchResult> results,
             string manifestationIdentifier, string s);
 

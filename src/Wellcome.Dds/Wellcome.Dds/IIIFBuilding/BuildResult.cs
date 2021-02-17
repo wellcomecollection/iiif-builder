@@ -1,38 +1,64 @@
-﻿using System.Collections;
+﻿#nullable enable
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using IIIF.Presentation;
-using IIIF.Presentation.V3;
+using IIIF;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.IIIFBuilding
 {
     public class BuildResult
     {
-        public BuildResult(string id)
+        public BuildResult(string id, Version version)
         {
             Id = id;
+            IIIFVersion = version;
         }
-        
+
         public string Id { get; set; }
+        
         public bool RequiresMultipleBuild { get; set; }
+        
+        /// <summary>
+        /// Overall outcome of build operation
+        /// </summary>
         public BuildOutcome Outcome { get; set; }
+        
         public string Message { get; set; }
-        public string IIIF3Key { get; set; }
-        public StructureBase IIIF3Resource { get; set; }
         
+        /// <summary>
+        /// The IIIF Presentation Version this BuildResult represents.
+        /// </summary>
+        public Version IIIFVersion { get; }
         
-        // TODO - this won't be a StructureBase
-        public string IIIF2Key { get; set; }
-        public StructureBase IIIF2Resource { get; set; }
-        
+        /// <summary>
+        /// Generated IIIF result
+        /// </summary>
+        public JsonLdBase IIIFResource { get; set; }
+
+        /// <summary>
+        /// Get storage key where this build result would be stored.
+        /// </summary>
+        public string GetStorageKey()
+            => IIIFVersion switch
+            {
+                Version.V2 => $"v2/{Id}",
+                Version.V3 => $"v3/{Id}",
+                Version.Unknown => throw new InvalidOperationException(
+                    "Unable to get storage get for Unknown IIIFVersion"),
+                _ => throw new ArgumentOutOfRangeException()
+            };
     }
 
     public class MultipleBuildResult : IEnumerable<BuildResult>
     {
-        // The b number
+        /// <summary>
+        /// The b number
+        /// </summary>
         public string Identifier { get; set; }
         
-        private readonly Dictionary<string, BuildResult> resultDict = new Dictionary<string, BuildResult>();
-        private readonly List<string> buildOrder = new List<string>();
+        private readonly Dictionary<string, BuildResult> resultDict = new();
+        private readonly List<string> buildOrder = new();
 
         public void Add(BuildResult buildResult)
         {
@@ -48,7 +74,7 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public int Count => buildOrder.Count;
 
-        public BuildResult this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
+        public BuildResult? this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
 
         public BuildOutcome Outcome { get; set; }
         public string Message { get; set; }
@@ -61,10 +87,7 @@ namespace Wellcome.Dds.IIIFBuilding
             }
         }
         
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void RemoveAll()
         {

@@ -3,14 +3,24 @@ using Newtonsoft.Json;
 
 namespace IIIF.Auth.V1
 {
-    public class AuthLogoutService: LegacyResourceBase, IService
+    public class AuthLogoutService: ResourceBase, IService
     {
         public AuthLogoutService()
         {
             Profile = "http://iiif.io/api/auth/1/logout";
         }
         
+        private string? type;
+        private bool typeHasBeenSet;
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthLogoutService);
+        public override string? Type
+        {
+            get => typeHasBeenSet ? type : "AuthLogoutService1";
+            set
+            {
+                type = value;
+                typeHasBeenSet = true;
+            }
+        }
     }
 }
