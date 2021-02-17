@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Amazon.Runtime.Internal.Util;
 using IIIF;
 using IIIF.ImageApi.Service;
-using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
@@ -30,7 +28,6 @@ using Collection = IIIF.Presentation.V3.Collection;
 using Canvas = IIIF.Presentation.V3.Canvas;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using ResourceBase = IIIF.Presentation.V3.ResourceBase;
-using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
