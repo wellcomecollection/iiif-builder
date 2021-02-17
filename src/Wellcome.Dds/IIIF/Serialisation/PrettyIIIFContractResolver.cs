@@ -7,26 +7,18 @@ using Newtonsoft.Json.Serialization;
 namespace IIIF.Serialisation
 {
     /// <summary>
-    /// TODO:
-    ///
-    /// (some of these need additional serialisers)
-    ///
-    ///  - format string arrays on a single line IF they have only one string and it is less than n chars
-    ///  - format Size on one line: { "width": 100, "height": 200 }
-    ///  - format label and value on one line, if they have a single string array that also formats to one line
-    ///          "label": { "en": [ "Explore our collections" ] },
-    /// 
+    /// Resolves mappings for IIIF objects.
     /// </summary>
     public class PrettyIIIFContractResolver : CamelCasePropertyNamesContractResolver
     {
         // adapted from https://stackoverflow.com/a/34903827
+        private static readonly ObjectIfSingleConverter ObjectIfSingleConverter = new();
         
-        // TODO: Serialise single val string arrays on one line
-        // TODO: Serialise Sizes on one line
         protected override JsonProperty CreateProperty(
             MemberInfo member,
             MemberSerialization memberSerialization)
         {
+            
             var property = base.CreateProperty(member, memberSerialization);
             var pType = property.PropertyType;
             if (pType == null) return property;
@@ -43,7 +35,7 @@ namespace IIIF.Serialisation
                     return o != null && (int) o != 0;
                 };
             }
-                
+            
             // Don't serialise empty lists, unless they have the [RequiredOutput] attribute
             if (pType.IsGenericType && pType.GetGenericTypeDefinition() == typeof(List<>))
             {
@@ -64,7 +56,7 @@ namespace IIIF.Serialisation
 
                 if (member.GetCustomAttribute<ObjectIfSingleAttribute>() != null)
                 {
-                    property.Converter = new ObjectIfSingleConverter();
+                    property.Converter = ObjectIfSingleConverter;
                 }
             }
             return property;

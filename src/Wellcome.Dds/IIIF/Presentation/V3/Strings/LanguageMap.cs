@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using IIIF.Serialisation;
+using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V3.Strings
 {
+    [JsonConverter(typeof(LanguageMapSerialiser))]
     public class LanguageMap : Dictionary<string, List<string>>
     {
         public LanguageMap() { }

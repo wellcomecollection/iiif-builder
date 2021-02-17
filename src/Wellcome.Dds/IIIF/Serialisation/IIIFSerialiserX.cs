@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace IIIF.Serialisation
 {
@@ -11,7 +12,8 @@ namespace IIIF.Serialisation
         {
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new PrettyIIIFContractResolver(),
-            Formatting = Formatting.Indented
+            Formatting = Formatting.Indented,
+            Converters = new List<JsonConverter> {new SizeConverter(), new StringArrayConverter()}
         };
         
         /// <summary>

@@ -8,7 +8,17 @@ namespace IIIF.Presentation.V2.Serialisation
         public override bool CanConvert(Type objectType) => true;
         public override bool CanRead => false;
 
-        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue,
+            JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public abstract class WriteOnlyConverter<T> : JsonConverter<T>
+    {
+        public override bool CanRead => false;
+        public override T ReadJson(JsonReader reader, Type objectType, T? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             throw new NotImplementedException();
         }

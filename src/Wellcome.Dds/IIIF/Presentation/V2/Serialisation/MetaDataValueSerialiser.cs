@@ -7,29 +7,28 @@ namespace IIIF.Presentation.V2.Serialisation
     /// <summary>
     /// JsonConverter for <see cref="MetaDataValue"/> objects.
     /// </summary>
-    public class MetaDataValueSerialiser : WriteOnlyConverter
+    public class MetaDataValueSerialiser : WriteOnlyConverter<MetaDataValue>
     {
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, MetaDataValue? value, JsonSerializer serializer)
         {
-            var metaDataValue = value as MetaDataValue;
-            if (metaDataValue == null)
+            if (value == null)
             {
                 throw new ArgumentException(
                     $"MetaDataValueSerialiser cannot serialise a {value.GetType().Name}", nameof(value));
             }
 
-            if (metaDataValue.LanguageValues.Count == 0)
+            if (value.LanguageValues.Count == 0)
             {
                 throw new ArgumentException(
                     $"MetaDataValueSerialiser cannot serialise an empty array {value.GetType().Name}", nameof(value));
             }
 
-            if (metaDataValue.LanguageValues.Count > 1)
+            if (value.LanguageValues.Count > 1)
             {
                 writer.WriteStartArray();
             }
 
-            foreach (var lv in metaDataValue.LanguageValues)
+            foreach (var lv in value.LanguageValues)
             {
                 if (string.IsNullOrWhiteSpace(lv.Language))
                 {
@@ -46,7 +45,7 @@ namespace IIIF.Presentation.V2.Serialisation
                 }
             }
 
-            if (metaDataValue.LanguageValues.Count > 1)
+            if (value.LanguageValues.Count > 1)
             {
                 writer.WriteEndArray();
             }

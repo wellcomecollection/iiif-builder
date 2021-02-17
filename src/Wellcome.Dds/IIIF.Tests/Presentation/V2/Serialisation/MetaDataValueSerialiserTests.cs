@@ -16,19 +16,6 @@ namespace IIIF.Tests.Presentation.V2.Serialisation
         {
             sut = new MetaDataValueSerialiser();
         }
-
-        [Fact]
-        public void WriteJson_Throws_IfNonMetaDataValuePassed()
-        {
-            // Arrange
-            var notMetadata = new Manifest();
-            
-            // Act
-            Action action = () => JsonConvert.SerializeObject(notMetadata, sut);
-            
-            // Assert
-            action.Should().Throw<ArgumentException>();
-        }
         
         [Fact]
         public void WriteJson_Throws_IfNoLanguageValues()

@@ -7,6 +7,9 @@ using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2.Strings
 {
+    /// <summary>
+    /// A collection of <see cref="LanguageValues"/> for metadata.
+    /// </summary>
     [JsonConverter(typeof(MetaDataValueSerialiser))]
     public class MetaDataValue
     {
