@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Amazon.Runtime.Internal.Util;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation;
@@ -23,6 +24,7 @@ using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
+using StringUtils = Utils.StringUtils;
 
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -810,13 +812,16 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             if (work.Parts.Any())
             {
-                if (!(iiifResource is Collection collection))
+                if (iiifResource is Collection collection)
+                {
+                    collection.Items = work.Parts.Select(MakePart).ToList();
+                }
+                else
                 {
                     // what to do here? I have parts, but I'm not a collection.
                     // Maybe this is OK, but for now I'll throw an exception, so we can see it.
-                    throw new NotSupportedException("Only collections can have parts");
+                    // throw new NotSupportedException("Only collections can have parts");
                 }
-                collection.Items = work.Parts.Select(MakePart).ToList();
             }
 
             var currentWork = work;
@@ -893,39 +898,67 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return;
             } 
             // get the BuildResult that has a video or audio canvas
-            var relevantBuildResult = buildResults
+            var relevantBuildResults = buildResults
                 .Where(br => br.IIIF3Resource is Manifest)
-                .Single(br =>
+                .Where(br =>
                     ((Manifest) br.IIIF3Resource).Items.HasItems() &&
                     ((Manifest) br.IIIF3Resource).Items.Exists(c => c.Duration > 0));
-            // let this throw for now if Single(..) broke
 
-            var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
-            var canvas = manifest.Items.First(c => c.Duration > 0);
             
-            // we now have the right Manifest, but it has the wrong Identifiers everywhere...
-            string oldId = relevantBuildResult.Id;
             string newId = buildResults.Identifier;
-            relevantBuildResult.Id = buildResults.Identifier;
-            relevantBuildResult.IIIF3Key = relevantBuildResult.IIIF3Key.Replace(oldId, newId);
-            manifest.Id = manifest.Id.Replace(oldId, newId);
-            if (manifest.PartOf.HasItems())
+            var avCanvases = new List<Canvas>();
+            BuildResult firstManifestationBuildResult = null;
+            foreach (var relevantBuildResult in relevantBuildResults)
             {
-                // This is no longer part of a collection
-                manifest.PartOf.RemoveAll(po => po.IsMultiPart());
+                var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
+                if (firstManifestationBuildResult == null)
+                {
+                    firstManifestationBuildResult = relevantBuildResult;
+                }
+                var canvases = manifest.Items.Where(c => c.Duration > 0);
+                // we now have the right Manifest, but it has the wrong Identifiers everywhere...
+                string oldId = relevantBuildResult.Id;
+                relevantBuildResult.Id = newId;
+                // This line will break
+                relevantBuildResult.IIIF3Key = relevantBuildResult.IIIF3Key.Replace(oldId, newId);
+                manifest.Id = manifest.Id.Replace(oldId, newId);
+                if (manifest.PartOf.HasItems())
+                {
+                    // This is no longer part of a collection
+                    manifest.PartOf.RemoveAll(po => po.IsMultiPart());
+                }
+                foreach (var canvas in canvases)
+                {
+                    ChangeCanvasIds(canvas, oldId, newId, false);
+                    avCanvases.Add(canvas);
+                }
+                ChangeCanvasIds(manifest.PlaceholderCanvas, oldId, newId, true);
             }
-            ChangeCanvasIds(canvas, oldId, newId, false);
-            ChangeCanvasIds(manifest.PlaceholderCanvas, oldId, newId, true);
-            
             if (state.FileState != null && state.FileState.FoundFiles.HasItems())
             {
-                var transcript = state.FileState.FoundFiles.FirstOrDefault(pf => pf.Type == "Transcript");
-                if (transcript == null) transcript = state.FileState.FoundFiles.First();
-                AddPdfTranscriptToCanvas(buildResults.Identifier, canvas, transcript.Files[0]);
+                var transcripts = state.FileState.FoundFiles.Where(pf => pf.Type == "Transcript").ToList();
+                if (!transcripts.HasItems()) transcripts = state.FileState.FoundFiles.ToList();
+                // allocate the transcripts to the canvases.
+                // This is not a very clever way of doing it but almost certainly won't be a problem, any complex
+                // AV with multiple canvases and transcripts will come through the new workflow.
+                for (int tCounter = 0; tCounter < transcripts.Count; tCounter++)
+                {
+                    if (tCounter < avCanvases.Count)
+                    {
+                        AddPdfTranscriptToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0]);
+                    }
+                }
             }
             // Now, discard the other buildResults
             buildResults.RemoveAll();
-            buildResults.Add(relevantBuildResult);
+            if (firstManifestationBuildResult != null)
+            {
+                buildResults.Add(firstManifestationBuildResult);
+                if (firstManifestationBuildResult.IIIF3Resource is Manifest firstManifest)
+                {
+                    firstManifest.Items = avCanvases;
+                }
+            }
         }
 
         private void AddPdfTranscriptToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile storedPdf)
