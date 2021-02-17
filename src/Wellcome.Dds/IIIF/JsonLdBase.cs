@@ -1,7 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace IIIF
 {
+    /// <summary>
+    /// Base class, serves as root for all IIIF models.
+    /// </summary>
     public abstract class JsonLdBase
     {
         // TODO - this can be List<string> or string - how will deserializer handle this? string[] or string? 

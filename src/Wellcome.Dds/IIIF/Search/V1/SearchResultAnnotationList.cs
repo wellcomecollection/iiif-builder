@@ -1,4 +1,5 @@
 ﻿using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
 using Newtonsoft.Json;
 
 namespace IIIF.Search.V1

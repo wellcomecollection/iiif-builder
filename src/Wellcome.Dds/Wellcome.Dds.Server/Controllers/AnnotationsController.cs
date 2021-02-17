@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Utils.Storage;
@@ -50,7 +51,7 @@ namespace Wellcome.Dds.Server.Controllers
                 v3, identifier, assetIdentifier);
             
             // Jsonify and serve: return Content(..)
-            return Content(iiifBuilder.Serialise(v2), IIIFPresentation.ContentTypes.V2);
+            return Content(v2.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
         
         [HttpGet("v2/{*id}")]

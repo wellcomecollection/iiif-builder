@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.Auth.V1
 {
-    public class AuthCookieService : LegacyResourceBase, IService
+    public class AuthCookieService : ResourceBase, IService
     {
         private const string LoginProfile = "http://iiif.io/api/auth/1/login";
         private const string ClickthroughProfile = "http://iiif.io/api/auth/1/clickthrough";
@@ -16,14 +18,25 @@ namespace IIIF.Auth.V1
             Profile = profile;
         }
         
+        private string? type;
+        private bool typeHasBeenSet;
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type => nameof(AuthCookieService);
-        
+        public override string? Type
+        {
+            get => typeHasBeenSet ? type : "AuthCookieService1";
+            set
+            {
+                type = value;
+                typeHasBeenSet = true;
+            }
+        }
+
         [JsonProperty(Order = 12, PropertyName = "description")]
         public MetaDataValue Description { get; set; }
 
         [JsonProperty(Order = 26, PropertyName = "service")]
-        public List<IService> Service { get; set; } // object or array of objects
+        [ObjectIfSingle]
+        public List<IService> Service { get; set; }
         
         [JsonProperty(Order = 103, PropertyName = "confirmLabel")]
         public MetaDataValue? ConfirmLabel { get; set; }

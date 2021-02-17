@@ -21,6 +21,7 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         [Route("thumbs/{id}")]
+        [HttpGet]
         public async Task<IActionResult> Index(string id)
         {
             IMetsResource resource = await metsRepository.GetAsync(id);

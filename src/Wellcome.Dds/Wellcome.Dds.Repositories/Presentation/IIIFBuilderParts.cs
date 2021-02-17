@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.ImageApi.Service;
-using IIIF.Presentation;
 using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
@@ -23,7 +23,12 @@ using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
-
+using Manifest = IIIF.Presentation.V3.Manifest;
+using Collection = IIIF.Presentation.V3.Collection;
+using Canvas = IIIF.Presentation.V3.Canvas;
+using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
+using ResourceBase = IIIF.Presentation.V3.ResourceBase;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -894,20 +899,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             } 
             // get the BuildResult that has a video or audio canvas
             var relevantBuildResult = buildResults
-                .Where(br => br.IIIF3Resource is Manifest)
+                .Where(br => br.IIIFResource is Manifest)
                 .Single(br =>
-                    ((Manifest) br.IIIF3Resource).Items.HasItems() &&
-                    ((Manifest) br.IIIF3Resource).Items.Exists(c => c.Duration > 0));
+                    ((Manifest) br.IIIFResource).Items.HasItems() &&
+                    ((Manifest) br.IIIFResource).Items.Exists(c => c.Duration > 0));
             // let this throw for now if Single(..) broke
 
-            var manifest = (Manifest) relevantBuildResult.IIIF3Resource;
+            var manifest = (Manifest) relevantBuildResult.IIIFResource;
             var canvas = manifest.Items.First(c => c.Duration > 0);
             
             // we now have the right Manifest, but it has the wrong Identifiers everywhere...
             string oldId = relevantBuildResult.Id;
             string newId = buildResults.Identifier;
             relevantBuildResult.Id = buildResults.Identifier;
-            relevantBuildResult.IIIF3Key = relevantBuildResult.IIIF3Key.Replace(oldId, newId);
             manifest.Id = manifest.Id.Replace(oldId, newId);
             if (manifest.PartOf.HasItems())
             {
@@ -953,7 +957,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             });
         }
 
-        private static void ChangeCanvasIds(Canvas canvas, string oldId, string newId, bool changeImageBody)
+        private static void ChangeCanvasIds(Canvas? canvas, string oldId, string newId, bool changeImageBody)
         {
             if (canvas == null)
             {

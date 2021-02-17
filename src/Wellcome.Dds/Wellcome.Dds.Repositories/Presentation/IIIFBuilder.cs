@@ -3,30 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
-using IIIF;
-using IIIF.Presentation;
-using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Annotation;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dashboard;
-using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.Repositories.Presentation.V2;
 using Wellcome.Dds.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 using Annotation = IIIF.Presentation.V3.Annotation.Annotation;
 using AnnotationPage = Wellcome.Dds.WordsAndPictures.SimpleAltoServices.AnnotationPage;
+using Collection = IIIF.Presentation.V3.Collection;
+using Manifest = IIIF.Presentation.V3.Manifest;
+using Canvas = IIIF.Presentation.V3.Canvas;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
@@ -38,8 +41,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ICatalogue catalogue;
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
+        private readonly ILogger<IIIFBuilder> logger;
         private readonly IIIFBuilderParts build;
-        
+        private readonly PresentationConverter presentation2Converter;
+
         public IIIFBuilder(
             IDds dds,
             IMetsRepository metsRepository,
@@ -47,7 +52,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             ICatalogue catalogue,
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
-            UriPatterns uriPatterns)
+            UriPatterns uriPatterns,
+            ILogger<IIIFBuilder> logger)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -55,13 +61,15 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.catalogue = catalogue;
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
+            this.logger = logger;
             build = new IIIFBuilderParts(
                 uriPatterns,
                 dlcsOptions.Value.CustomerDefaultSpace,
                 ddsOptions.Value.ReferenceV0SearchService);
+            presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 
-        public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work work = null)
+        public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
         {
             var state = new State();
             var buildResults = new MultipleBuildResult {Identifier = bNumber};
@@ -103,19 +111,40 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
 
             CheckAndProcessState(buildResults, state);
-            
-            // Now the buildResults should have what actually needs to be persisted.
-            // Only now do we convert them to IIIF2
-            // TODO - make this optional - dashboard PeekController shouldn't trigger this
+            return buildResults;
+        }
+
+        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
+        {
+            var multipleBuildResult = new MultipleBuildResult();
+            logger.LogDebug("Building LegacyIIIF for Id '{Identifier}'", identifier);
+
             foreach (var buildResult in buildResults)
             {
-                // now build the Presentation 2 version from the Presentation 3 version
-                var iiifPresentation2Resource = MakePresentation2Resource(buildResult.IIIF3Resource);
-                buildResult.IIIF2Resource = iiifPresentation2Resource;
-                buildResult.IIIF2Key = $"v2/{buildResult.Id}";
+                if (buildResult.IIIFVersion == Version.V3 && buildResult.IIIFResource is StructureBase iiif3)
+                {
+                    var result = new BuildResult(buildResult.Id, Version.V2);
+                    try
+                    {
+                        var iiif2 = presentation2Converter.Convert(iiif3, buildResult.Id);
+                        result.IIIFResource = iiif2;
+                        result.Outcome = BuildOutcome.Success;
+                    }
+                    catch (Exception e)
+                    {
+                        result.Message = e.Message;
+                        result.Outcome = BuildOutcome.Failure;
+                    }
+                    multipleBuildResult.Add(result);
+                }
+                else
+                {
+                    logger.LogWarning("BuildLegacyIIIF called with non-IIIF3 BuildResult. Id: '{Identifier}'",
+                        identifier);
+                }
             }
-            
-            return buildResults;
+
+            return multipleBuildResult;
         }
 
         private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
@@ -140,7 +169,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public async Task<MultipleBuildResult> Build(string identifier, Work work = null)
+        public async Task<MultipleBuildResult> Build(string identifier, Work? work = null)
         {
             // only this identifier, not all for the b number.
             var buildResults = new MultipleBuildResult();
@@ -150,7 +179,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var digitisedResource = await dashboardRepository.GetDigitisedResource(identifier);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
-                IDigitisedCollection partOf = null;
+                IDigitisedCollection? partOf = null;
                 if (ddsId.IdentifierType != IdentifierType.BNumber)
                 {
                     // this identifier has a parent, which we will need to build the resource properly
@@ -163,7 +192,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (collection.Manifestations.Any(m => m.MetsManifestation.IsMultiPart()))
                     {
-                        buildResults.Add(new BuildResult(identifier) {RequiresMultipleBuild = true});
+                        buildResults.Add(new BuildResult(identifier, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
                     }
                 }
@@ -185,17 +214,16 @@ namespace Wellcome.Dds.Repositories.Presentation
         
 
         private BuildResult BuildInternal(Work work,
-            IDigitisedResource digitisedResource, IDigitisedCollection partOf,
-            ManifestationMetadata manifestationMetadata, State state)
+            IDigitisedResource digitisedResource, IDigitisedCollection? partOf,
+            ManifestationMetadata manifestationMetadata, State? state)
         {
-            var result = new BuildResult(digitisedResource.Identifier);
+            var result = new BuildResult(digitisedResource.Identifier, Version.V3);
             try
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
                     digitisedResource, partOf, work, manifestationMetadata, state);
-                result.IIIF3Resource = iiifPresentation3Resource;
-                result.IIIF3Key = $"v3/{digitisedResource.Identifier}";
+                result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
             catch (IIIFBuildStateException bex)
@@ -211,22 +239,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return result;
         }
-
-
-        /// <summary>
-        /// </summary>
-        /// <param name="digitisedResource"></param>
-        /// <param name="partOf"></param>
-        /// <param name="work"></param>
-        /// <param name="manifestationMetadata"></param>
-        /// <param name="state"></param>
-        /// <returns></returns>
+        
         private StructureBase MakePresentation3Resource(
             IDigitisedResource digitisedResource,
-            IDigitisedCollection partOf,
+            IDigitisedCollection? partOf,
             Work work,
             ManifestationMetadata manifestationMetadata,
-            State state)
+            State? state)
         {
             switch (digitisedResource)
             {
@@ -266,7 +285,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IDigitisedCollection digitisedCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
-            State state)
+            State? state)
         {
             // TODO - use of Labels.
             // The work label should be preferred over the METS label,
@@ -319,7 +338,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         Id = uriPatterns.Manifest(mf.Identifier),
                         Label = new LanguageMap
                         {
-                            ["en"] = new List<string>
+                            ["en"] = new()
                             {
                                 $"Volume {order}",
                                 work.Title
@@ -332,9 +351,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-
-
-
         private void BuildManifest(
             Manifest manifest, 
             IDigitisedManifestation digitisedManifestation,
@@ -380,21 +396,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work);
         }
-     
-        /// <summary>
-        /// Convert the IIIF v3 Manifest into its equivalent v2 manifest
-        /// </summary>
-        /// <returns></returns>
-        private StructureBase MakePresentation2Resource(StructureBase iiifPresentation3Resource)
-        {
-            // TODO - this is obviously a placeholder!
-            var p2Version = new Manifest
-            {
-                Label = Lang.Map("[IIIF 2.1 version of] " + iiifPresentation3Resource.Label)
-            };
-            return p2Version;
-        }
-
+        
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
         {
             // This is in the wrong place. We're making S3 keys out of anno IDs (URLs), but
@@ -521,7 +523,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.Presentation.V2.Annotation GetOATextLineAnnotation(
+        private IIIF.Presentation.V2.Annotation.Annotation GetOATextLineAnnotation(
             AnnotationPage altoPage, TextLine tl, int lineIndex, string canvasId)
         {
             return new()
@@ -538,10 +540,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        private IIIF.Presentation.V2.Annotation GetOAIllustrationAnnotation(
+        private IIIF.Presentation.V2.Annotation.Annotation GetOAIllustrationAnnotation(
             AnnotationPage altoPage, Illustration il, int index, string canvasId)
         {
-            return new IIIF.Presentation.V2.Annotation
+            return new IIIF.Presentation.V2.Annotation.Annotation
             {
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
@@ -553,12 +555,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = new MetaDataValue(il.Type)
                 }
             };
-        }
-        
-
-        public string Serialise(JsonLdBase iiifResource)
-        {
-            return JsonConvert.SerializeObject(iiifResource, GetJsFriendlySettings());
         }
 
         public TermList BuildTermListV1(string manifestationIdentifier, string q, string[] suggestions)
@@ -746,7 +742,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             foreach (var jItem in v3["items"])
             {
-                var annotation = new IIIF.Presentation.V2.Annotation
+                var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
                     Id = jItem.Value<string>("id"),
                     On = jItem["target"]?.Value<string>("id") ?? string.Empty
@@ -778,19 +774,5 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return annotationList;
         }
-
-        private static JsonSerializerSettings GetJsFriendlySettings()
-        {
-            var settings = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-                ContractResolver = new PrettyIIIFContractResolver(),
-                Formatting = Formatting.Indented
-            };
-            return settings;
-        }
-        
-        
-
     }
 }

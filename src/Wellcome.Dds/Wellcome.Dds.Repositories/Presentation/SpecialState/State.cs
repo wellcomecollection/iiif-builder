@@ -22,10 +22,10 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     /// </summary>
     public class State : IState
     {
-        public MultiCopyState MultiCopyState { get; set; }
-        public AVState AVState { get; set; }
-        public FileState FileState { get; set; }
-        public ChemistAndDruggistState ChemistAndDruggistState { get; set; }
+        public MultiCopyState? MultiCopyState { get; set; }
+        public AVState? AVState { get; set; }
+        public FileState? FileState { get; set; }
+        public ChemistAndDruggistState? ChemistAndDruggistState { get; set; }
 
         // which one of these to use...
         public bool NeedsInfoFromChildren { get; set; }

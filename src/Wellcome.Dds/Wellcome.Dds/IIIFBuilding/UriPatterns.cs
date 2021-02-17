@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -24,7 +27,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AnnoIdentifierToken = "{annoIdentifier}";
         private const string VersionToken = "{version}";
         private const string FileExtensionToken = "{fileExt}";
-        
+
         // TODO - these constants should be in the IIIF model
         private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
         private const string IIIF2ImageContext = "http://iiif.io/api/image/2/context.json";
@@ -100,7 +103,10 @@ namespace Wellcome.Dds.IIIFBuilding
             ICatalogue catalogue)
         {
             schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            this.catalogue = catalogue;
+            
+            // TODO - it feels odd that to generate IIIF uri's you need a reference to ICatalogue
+            // if you need a Catalogue URI reference ICatalogue directly?
+            this.catalogue = catalogue; 
         }
 
         public string Manifest(string identifier)
@@ -338,6 +344,19 @@ namespace Wellcome.Dds.IIIFBuilding
         public string PosterImage(string manifestIdentifier)
         {
             return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
+        }
+
+        public string GetPath(string format, string manifestIdentifier,
+            params (string Token, string Replacement)[] replacements)
+        {
+            var path = ManifestIdentifier(format, manifestIdentifier);
+
+            foreach (var (token, value) in replacements ?? Enumerable.Empty<(string, string)>())
+            {
+                path = path.Replace(token, value);
+            }
+
+            return path;
         }
     }
 }

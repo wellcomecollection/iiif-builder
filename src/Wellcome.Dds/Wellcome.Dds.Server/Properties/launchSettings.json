@@ -10,7 +10,7 @@
   "profiles": {
     "Wellcome.Dds.Server": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "applicationUrl": "http://localhost:8084",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
