@@ -11,18 +11,8 @@ namespace IIIF.ImageApi.Service
         public const string Level1Profile = "http://iiif.io/api/image/2/level1.json";
         public const string Level2Profile = "http://iiif.io/api/image/2/level2.json";
 
-        private string? type;
-        private bool typeHasBeenSet;
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string? Type
-        {
-            get => typeHasBeenSet ? type : nameof(ImageService2);
-            set
-            {
-                type = value;
-                typeHasBeenSet = true;
-            }
-        }
+        public override string? Type { get; set; } = nameof(ImageService2);
 
         [JsonProperty(Order = 11)]
         public int Width { get; set; }

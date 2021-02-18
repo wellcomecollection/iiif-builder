@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace IIIF
+﻿namespace IIIF
 {
     public class ServiceReference : IService
     {

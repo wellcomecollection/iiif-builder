@@ -12,6 +12,7 @@ using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
+using IIIF.Search.V1;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Utils;
@@ -78,6 +79,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
             
             var collection = GetIIIFPresentationBase<Collection>(p3Collection);
+            collection.ViewingHint = p3Collection.Behavior?.FirstOrDefault();
             collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); 
             
             collection.Manifests = p3Collection.Items
@@ -192,7 +194,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 new()
                 {
-                    Id = GetSequenceId(identifier, "seq0"),
+                    Id = GetSequenceId(identifier, "s0"),
                     Label = new MetaDataValue("Sequence s0"),
                     Rendering = p3Manifest.Rendering?
                         .Select(r => new Presi2.ExternalResource
@@ -296,7 +298,18 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
             presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
             presentationBase.Within = resourceBase.PartOf?.FirstOrDefault()?.Id;
-            presentationBase.Service = DeepCopy(resourceBase.Service);
+
+            if (resourceBase.Service.HasItems())
+            {
+                presentationBase.Service = resourceBase.Service!.Select(s => DeepCopy(s, service =>
+                {
+                    if (service is ResourceBase serviceResourceBase)
+                        serviceResourceBase.Type = null;
+                    if (service is SearchService searchService)
+                        searchService.EnsureContext(SearchService.Search1Context);
+                })!).ToList();
+            }
+
             presentationBase.Profile = resourceBase.Profile;
             presentationBase.Thumbnail = ConvertThumbnails(resourceBase.Thumbnail);
 
@@ -342,7 +355,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             var resource = new Resource();
             resource.Id = externalResource.Id;
-            resource.Description = MetaDataValue.Create(externalResource.Label, true);
+            resource.Label = MetaDataValue.Create(externalResource.Label, true);
             resource.Format = externalResource.Format;
             resource.Profile = externalResource.Profile;
             resource.Service = DeepCopy(externalResource.Service);

@@ -15,6 +15,7 @@ namespace IIIF.Presentation.V2
         public List<Metadata>? Metadata { get; set; }
         
         [JsonProperty(Order = 15, PropertyName = "thumbnail")]
+        [ObjectIfSingle]
         public List<Thumbnail>? Thumbnail { get; set; } 
         
         [JsonProperty(Order = 16, PropertyName = "attribution")]
