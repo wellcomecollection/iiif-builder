@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
@@ -34,11 +35,8 @@ namespace IIIF.Tests.Serialisation
         {
             // Arrange
             var languageMap = new LanguageMap("en", "this string is slightly longer than the threshold");
-            var expected = @"{
-  ""en"": [
-    ""this string is slightly longer than the threshold""
-  ]
-}";
+            var expected =
+                $"{{{Environment.NewLine}  \"en\": [{Environment.NewLine}    \"this string is slightly longer than the threshold\"{Environment.NewLine}  ]{Environment.NewLine}}}";
             
             // Act
             var result = JsonConvert.SerializeObject(languageMap, Formatting.Indented, sut);
@@ -52,12 +50,8 @@ namespace IIIF.Tests.Serialisation
         {
             // Arrange
             var languageMap = new LanguageMap("en", new[] {"single and short", "also short"});
-            var expected = @"{
-  ""en"": [
-    ""single and short"",
-    ""also short""
-  ]
-}";
+            var expected =
+                $"{{{Environment.NewLine}  \"en\": [{Environment.NewLine}    \"single and short\",{Environment.NewLine}    \"also short\"{Environment.NewLine}  ]{Environment.NewLine}}}";
             
             // Act
             var result = JsonConvert.SerializeObject(languageMap, Formatting.Indented, sut);
@@ -72,14 +66,8 @@ namespace IIIF.Tests.Serialisation
             // Arrange
             var languageMap = new LanguageMap("en", "single and short");
             languageMap.Add("fr", new List<string> {"also short"});
-            var expected = @"{
-  ""en"": [
-    ""single and short""
-  ],
-  ""fr"": [
-    ""also short""
-  ]
-}";
+            var expected =
+                $"{{{Environment.NewLine}  \"en\": [{Environment.NewLine}    \"single and short\"{Environment.NewLine}  ],{Environment.NewLine}  \"fr\": [{Environment.NewLine}    \"also short\"{Environment.NewLine}  ]{Environment.NewLine}}}";
             
             // Act
             var result = JsonConvert.SerializeObject(languageMap, Formatting.Indented, sut);
