@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.ImageApi.Service
@@ -32,6 +33,7 @@ namespace IIIF.ImageApi.Service
         
         // TODO - Auth Services
         [JsonProperty(Order = 28)]
+        [ObjectIfSingle]
         public List<IService>? Service { get; set; }
     }
 }

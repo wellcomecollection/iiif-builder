@@ -106,6 +106,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 ? GetIIIFPresentationBase<Manifest>(p3Manifest)
                 : GetIIIFPresentationBase<Manifest>(p3Manifest, s => s.StartsWith("Copy") || s.StartsWith("Volume"));
 
+            // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services
+            // but with some values stripped back (ConfirmLabel, Header etc).
+            // however - we want the full object to FIRST canvas, and links thereafter
+            WellcomeAuthService? wellcomeAuthService = null;
+
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
             manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
             
@@ -116,12 +121,23 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 manifest.Service ??= new List<IService>();
 
-                // Services will all be authservices
+                // P3 Services will all be auth-services
                 foreach (var authService in p3Manifest.Services!)
                 {
-                    var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+                    wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
 
-                    manifest.Service.Add(wellcomeAuthService);
+                    // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
+                    // null everywhere
+                    manifest.Service.Add(DeepCopy(wellcomeAuthService, authService =>
+                    {
+                        foreach (var authCookieService in authService.AuthService.OfType<AuthCookieService>())
+                        {
+                            authCookieService.ConfirmLabel = null;
+                            authCookieService.Header = null;
+                            authCookieService.FailureHeader = null;
+                            authCookieService.FailureDescription = null;
+                        }
+                    }));
                 }
             }
 
@@ -146,6 +162,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             // NOTE - there will only ever be 1 sequence
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
+            bool firstImage = true;
             foreach (var p3Canvas in p3Manifest.Items)
             {
                 var canvas = GetIIIFPresentationBase<Canvas>(p3Canvas);
@@ -181,7 +198,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                             continue;
                         }
 
-                        images.Add(GetImageAnnotation(image, paintingAnnotation, canvas));
+                        images.Add(GetImageAnnotation(image, paintingAnnotation, canvas, wellcomeAuthService, firstImage));
+                        firstImage = false;
                     }
 
                     canvas.Images = images;
@@ -230,11 +248,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // this is a list but there'll only be 1
             if (copiedService is AuthCookieService cookieService)
             {
-                cookieService.ConfirmLabel = null;
-                cookieService.Header = null;
-                cookieService.FailureHeader = null;
-                cookieService.FailureDescription = null;
-                
                 // Remove @type and set @context in all sub-services
                 // we've already copied these so these are fine to edit
                 foreach (var svc in cookieService.Service.OfType<ResourceBase>())
@@ -258,7 +271,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return wellcomeAuthService;
         }
 
-        private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas)
+        private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas,
+            WellcomeAuthService? wellcomeAuthService, bool firstImage)
         {
             var imageServices = image.Service?.OfType<ImageService2>()
                 .Select(i => DeepCopy(i, service2 =>
@@ -266,8 +280,25 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     service2.EnsureContext(ImageService2.Image2Context);
                     service2.Type = null;
                 }))
-                .Cast<IService>()
                 .ToList();
+
+            // Now make a pass to remove "type" from nested services (e.g. AuthCookieService1)
+            foreach (var resourceBaseService in imageServices?.SelectMany(i => i.Service.OfType<ServiceReference>()))
+            {
+                resourceBaseService.Type = null;
+            }
+
+            var imageResourceServices = imageServices.Cast<IService>().ToList();
+
+            // We have an auth service...
+            if (wellcomeAuthService != null)
+            {
+                // If this is the first image on entire manifest, add the full auth service to services
+                if (firstImage)
+                {
+                    imageResourceServices.AddRange(wellcomeAuthService.AuthService);
+                }
+            }
             
             var imageAnnotation = new ImageAnnotation();
             imageAnnotation.Id = paintingAnnotation.Id;
@@ -278,7 +309,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 Height = image.Height,
                 Width = image.Width,
                 Format = image.Format,
-                Service = imageServices
+                Service = imageResourceServices
             };
             return imageAnnotation;
         }
