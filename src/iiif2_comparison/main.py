@@ -1,6 +1,7 @@
 import asyncio
+import traceback
+
 import aiohttp
-import json
 from logzero import logger
 
 ORIGINAL_FORMAT = "https://wellcomelibrary.org/iiif/{bnum}/manifest"
@@ -8,7 +9,7 @@ NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
 
 rules = {
     "": {
-        # "contains" with label, metadata a mess, service complicated
+        # metadata + seeAlso massively different
         "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "otherContent"],
         "extra_new": ["thumbnail", "attribution", "within", "description"],
     },
@@ -31,7 +32,7 @@ rules = {
     "sequences-canvases-thumbnail-service": {
         "version_insensitive": ["@id"],
         "ignore": ["protocol"],
-        "extra_orig": ["protocol"]
+        "extra_orig": ["protocol"]  # add to new?
     },
     "sequences-canvases-seeAlso": {
         "ignore": ["@id"],
@@ -41,18 +42,16 @@ rules = {
     },
     "sequences-canvases-images-resource": {
         "ignore": ["@id"],
-        "ignore_length": ["service"]  # original duplicates auth-services
     },
     "sequences-canvases-images-resource-service": {
         "version_insensitive": ["@id", "profile"],
         "extra_new": ["width", "height"],
-        "ignore_length": ["service"]  # original duplicates auth-services
     },
     "sequences-canvases-images-resource-service-service": {
-        "version_insensitive": ["profile"],
+        "version_insensitive": ["profile"],  # auth
     },
     "sequences-canvases-images-resource-service-service-service": {
-        "version_insensitive": ["profile"],
+        "version_insensitive": ["profile"],  # auth
     },
     "sequences-canvases-otherContent": {
         "ignore": ["@id", "label"],
@@ -87,43 +86,25 @@ rules = {
 class Comparer:
     is_authed = False
 
-    def clean_auth(self, original):
-        # auth services are duplicated in the original in:
-        # sequences[].canvases[].images[].resource.service[] AND
-        # sequences[].canvases[].images[].resource.service["@type": "dctypes:Image"].service[]
-        # this makes it very difficult to deal with so cleaning prior to handling
-        # the duplicated element is not identical, one has missing elements. Remove the more sparse one.
-        # missing elements: confirmLabel, header, failureHeader and failureDescription
+    def run_compare(self, bnumber, original, new):
+        logger.info(f"Comparing {bnumber}")
+        self.is_authed = False
 
-        def clean_service_element(services, is_first_image):
-            to_keep = []
-            for svc in services:
-                if isinstance(svc, str):
-                    if svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
-                        to_keep.append(svc)
-                elif "/image/" in svc["@context"]:  # this is an image service, process it's internal services element
-                    svc["service"] = clean_service_element(svc["service"], is_first_image)
-                    to_keep.append(svc)
-                elif "auth" in svc["@id"] and "header" in svc:
-                    to_keep.append(svc)
+        original_type = original["@type"]
+        if original_type != new["@type"]:
+            logger.warning(f"Type mismatch {original['@type']} - {new['@type']}")
+            return False
 
-            return to_keep
+        if original_type == "sc:Manifest":
+            logger.info(f"{bnumber} is a manifest..")
+            return self.compare_manifests(bnumber, original, new)
 
-        # for each canvas...
-        is_first_image = False
-        for c in original["sequences"][0]["canvases"]:
-            # iterate the images...
-            for i in c["images"]:
-                # get the resource
-                resource = i["resource"]
-                # iterate the services
-                resource["service"] = clean_service_element(resource["service"], is_first_image)
-                is_first_image = False
+        elif original_type == "sc:Collection":
+            logger.info(f"{bnumber} is a collection..")
+            logger.warning("don't handle collections yet.. aborting")
+            return False
 
     def compare_manifests(self, bnumber, original, new):
-        logger.info(f"Comparing {bnumber}")
-
-        self.is_authed = False
         original_services = original["service"]
         for s in original_services:
             if "authService" in s:
@@ -138,16 +119,47 @@ class Comparer:
             are_equal = False
 
         # services are finnicky - handle separately
-        are_equal = self.compare_services(original_services, new["service"]) and are_equal
+        are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
 
         # otherContent can be in different order
-        # are_equal = self.compare_other_content(original.get("otherContent", []),
-        #                                        new.get("otherContent", [])) and are_equal
+        are_equal = self.compare_other_content(original.get("otherContent", []),
+                                               new.get("otherContent", [])) and are_equal
 
         # fall through
         are_equal = self.dictionary_comparison(original, new, "") and are_equal
 
         return are_equal
+
+    def clean_auth(self, original):
+        # auth services are duplicated in the original in:
+        # sequences[].canvases[].images[].resource.service[] AND
+        # sequences[].canvases[].images[].resource.service["@type": "dctypes:Image"].service[]
+        # this makes it very difficult to deal with so cleaning prior to handling
+        # the duplicated element is not identical, one has missing elements. Remove the more sparse one.
+        # missing elements: confirmLabel, header, failureHeader and failureDescription
+
+        def clean_service_element(services):
+            to_keep = []
+            for svc in services:
+                if isinstance(svc, str):
+                    if svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
+                        to_keep.append(svc)
+                elif "/image/" in svc["@context"]:  # this is an image service, process it's internal services element
+                    svc["service"] = clean_service_element(svc["service"])
+                    to_keep.append(svc)
+                elif "auth" in svc["@id"] and "header" in svc:
+                    to_keep.append(svc)
+
+            return to_keep
+
+        # for each canvas...
+        for c in original["sequences"][0]["canvases"]:
+            # iterate the images...
+            for i in c["images"]:
+                # get the resource
+                resource = i["resource"]
+                # iterate the services
+                resource["service"] = clean_service_element(resource["service"])
 
     def compare_services(self, orig, new):
         # build new dict by key as these can be in funny order
@@ -159,7 +171,7 @@ class Comparer:
 
             output = {}
             for s in svcs:
-                profile = s["profile"]
+                profile = s.get("profile", "")
                 if "access-control-hints" in profile:
                     if s.get("accessHint", "") == "open":  # should this be in new?
                         output["open-access"] = s
@@ -194,10 +206,15 @@ class Comparer:
         orig_sorted = sorted(orig, key=lambda item: item["@id"])
         new_sorted = sorted(new, key=lambda item: item["@id"])
 
-        return self.dictionary_comparison(orig_sorted, new_sorted)
+        if len(orig_sorted) != len(new_sorted):
+            logger.warning(f"otherContent are lists of different length")
+            return False
 
-    def get_next_level(self, current, next):
-        return f"{current}-{next}" if current else next
+        are_equal = True
+        for i in range(0, len(orig_sorted)):
+            are_equal = self.compare_elements("", "otherContent", orig_sorted[i], new_sorted[i]) and are_equal
+
+        return are_equal
 
     def dictionary_comparison(self, orig, new, level):
         orig_keys = orig.keys()
@@ -206,56 +223,25 @@ class Comparer:
         are_equal = True
         rules_for_level = rules.get(level, {})
         ignore = rules_for_level.get("ignore", [])
-        version_insensitive = rules_for_level.get("version_insensitive", [])
+
         expected_extra_new = rules_for_level.get("extra_new", [])
         expected_extra_orig = rules_for_level.get("extra_orig", [])
         size_only = rules_for_level.get("size_only", [])
         ignore_length = rules_for_level.get("ignore_length", [])
-        domain_insensitive = rules_for_level.get("domain_insensitive", [])
 
         if orig_extra := orig_keys - new_keys:
             if unexpected_extra := [e for e in orig_extra if e not in expected_extra_orig]:
-                logger.warning(f"Original has additional keys {','.join(unexpected_extra)} at {level}")
+                logger.warning(f"Original has additional keys '{','.join(unexpected_extra)}' at {level}")
                 are_equal = False
 
         if new_extra := new_keys - orig_keys:
             if unexpected_extra := [e for e in new_extra if e not in expected_extra_new]:
-                logger.warning(f"New has additional keys {','.join(unexpected_extra)} at {level}")
+                logger.warning(f"New has additional keys '{','.join(unexpected_extra)}' at {level}")
                 are_equal = False
 
-        def compare_elements(eq, k, lvl, o, n):
-            if isinstance(o, dict) and isinstance(n, dict):
-                eq = self.dictionary_comparison(o, n, self.get_next_level(lvl, k)) and eq
-            elif isinstance(o, dict) or isinstance(n, dict):
-                logger.warning(f"{k} at {lvl} have mismatching type - one is dict")
-                eq = False
-            else:
-                o_v = self.single_or_first(o)
-                n_v = self.single_or_first(n)
-                if k in version_insensitive:
-                    if not self.version_insensitive_compare(o_v, n_v):
-                        logger.warning(f"{k} at {lvl} don't pass version_insensitive_compare: '{o_v}' - '{n_v}'")
-                        eq = False
-                elif k in domain_insensitive:
-                    if not self.domain_insensitive_compare(o_v, n_v):
-                        logger.warning(f"{k} at {lvl} don't pass domain_insensitive_compare: '{o_v}' - '{n_v}'")
-                        eq = False
-                elif o_v != n_v:
-                    # old P2 shows largest Width and Height in "sequences-canvases-images-resource"
-                    # however, if auth the new will show the largest available
-                    if self.is_authed and lvl == "sequences-canvases-images-resource" and key in ["width",
-                                                                                                  "height"] and o_v > n_v:
-                        # logger.debug(f"{k} at {lvl} don't match: '{o_v}' - '{n_v}' but this is due to auth")
-                        pass
-                    else:
-                        logger.warning(f"{k} at {lvl} don't match: '{o_v}' - '{n_v}'")
-                        eq = False
-            return eq
-
         for key in [k for k in orig_keys if k not in ignore]:
-
-            o = orig[key]
-            n = new[key]
+            o = orig.get(key, "")
+            n = new.get(key, "")
 
             if isinstance(o, dict) and isinstance(n, list):
                 o = [o]
@@ -272,26 +258,62 @@ class Comparer:
                         if key in ignore_length and len(n) <= i:
                             continue
                         else:
-                            are_equal = compare_elements(are_equal, key, level, o[i], n[i]) and are_equal
+                            are_equal = self.compare_elements(key, level, o[i], n[i]) and are_equal
             else:
-                are_equal = compare_elements(are_equal, key, level, o, n) and are_equal
+                are_equal = self.compare_elements(key, level, o, n) and are_equal
 
         return are_equal
 
-    def single_or_first(self, val):
+    def compare_elements(self, key, level, orig, new):
+        rules_for_level = rules.get(level, {})
+        version_insensitive = rules_for_level.get("version_insensitive", [])
+        domain_insensitive = rules_for_level.get("domain_insensitive", [])
+
+        if isinstance(orig, dict) and isinstance(new, dict):
+            return self.dictionary_comparison(orig, new, self.get_next_level(level, key))
+        elif isinstance(orig, dict) or isinstance(new, dict):
+            logger.warning(f"{key} at {level} have mismatching type - one is dict")
+            return False
+        else:
+            o_v = self.single_or_first(orig)
+            n_v = self.single_or_first(new)
+            if key in version_insensitive:
+                if not self.version_insensitive_compare(o_v, n_v):
+                    logger.warning(f"{key} at {level} don't pass version_insensitive_compare: '{o_v}' - '{n_v}'")
+                    return False
+            elif key in domain_insensitive:
+                if not self.domain_insensitive_compare(o_v, n_v):
+                    logger.warning(f"{key} at {level} don't pass domain_insensitive_compare: '{o_v}' - '{n_v}'")
+                    return False
+            elif o_v != n_v:
+                # old P2 shows largest Width and Height in "sequences-canvases-images-resource"
+                # however, if auth the new will show the largest available
+                if self.is_authed and level == "sequences-canvases-images-resource" and key in ["width",
+                                                                                                "height"] and o_v > n_v:
+                    # logger.debug(f"{k} at {lvl} don't match: '{o_v}' - '{n_v}' but this is due to auth")
+                    pass
+                else:
+                    logger.warning(f"{key} at {level} don't match: '{o_v}' - '{n_v}'")
+                    return False
+        return True
+
+    @staticmethod
+    def get_next_level(current, next):
+        if not next:
+            return current
+
+        return f"{current}-{next}" if current else next
+
+    @staticmethod
+    def single_or_first(val):
         """
         this is to handle a specific case where ['val'] in 1 manifest but 'val' in other
         it's really only for thumbnail>service>profile
         """
+        return val[0] if isinstance(val, list) else val
 
-        if isinstance(val, list):
-            # if len(val) > 1:
-            #     raise ValueError(f"{val} has expected length of 1")
-            return val[0]
-
-        return val
-
-    def version_insensitive_compare(self, orig, new):
+    @staticmethod
+    def version_insensitive_compare(orig, new):
 
         if orig == "http://iiif.io/api/auth/0/login/clickthrough" and new == "http://iiif.io/api/auth/1/clickthrough":
             return True
@@ -307,7 +329,8 @@ class Comparer:
         # if here, no diffs so they are teh same
         return True
 
-    def domain_insensitive_compare(self, orig, new):
+    @staticmethod
+    def domain_insensitive_compare(orig, new):
         # first 3 will be ["https", "", "domain.com"]
         return orig.split("/")[3:] == new.split("/")[3:]
 
@@ -316,13 +339,17 @@ async def run_comparison(bnumbers):
     comparer = Comparer()
     async with aiohttp.ClientSession(raise_for_status=True) as session:
         for bnumber in bnumbers:
-            original = await load_manifest(session, bnumber, True)
-            new = await load_manifest(session, bnumber, False)
+            try:
+                original = await load_manifest(session, bnumber, True)
+                new = await load_manifest(session, bnumber, False)
 
-            if comparer.compare_manifests(bnumber, original, new):
-                logger.info(f"{bnumber} passed")
-            else:
-                logger.info(f"{bnumber} failed")
+                if comparer.run_compare(bnumber, original, new):
+                    logger.info(f"{bnumber} passed")
+                else:
+                    logger.info(f"{bnumber} failed")
+            except Exception:
+                e = traceback.format_exc()
+                logger.error(f"Error processing {bnumber}: {e}")
 
 
 async def load_manifest(session, bnumber, is_original):
@@ -330,15 +357,17 @@ async def load_manifest(session, bnumber, is_original):
     uri = format.replace("{bnum}", bnumber)
 
     async with session.get(uri) as response:
-        return await response.json()
+        return await response.json(content_type=None)  # collections are coming back as text/plain
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    # "b14583793", "b20641151", "b24963215",
     bnums = [
-        "b29182608",
-        "b19348216"
-    ]
+         "b32497179", "b32497167", "b32497088", "b19348216", "b24990796",
+        "b32496485", "b14584463", "b24967646", "b29182608", "b10727000", "b2178081x", "b22454408", "b2043067x",
+        "b24923333", "b30136155", "b19812292", "b19812413", "b18031511", "b31919996", "b19977335", ]
 
     asyncio.run(run_comparison(bnums))
+    # asyncio.run(run_comparison(['b32497088']))
     # asyncio.run(run_comparison('b19348216'))
