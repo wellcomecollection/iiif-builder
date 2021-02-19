@@ -96,7 +96,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
         private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string? identifier, bool rootResource)
         {
-            if (p3Manifest.Items.IsNullOrEmpty())
+            if (rootResource && p3Manifest.Items.IsNullOrEmpty())
             {
                 throw new InvalidOperationException($"Manifest {p3Manifest.Id} has no items");
             }
@@ -159,7 +159,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     manifest.Structures.Add(range);
                 }
             }
-            
+
+            if (p3Manifest.Items.IsNullOrEmpty()) return manifest;
+
             // NOTE - there will only ever be 1 sequence
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
             bool firstImage = true;
