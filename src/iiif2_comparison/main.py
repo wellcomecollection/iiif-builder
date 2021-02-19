@@ -22,7 +22,6 @@ rules = {
     },
     "-sequences-canvases": {
         "ignore": ["@id"],
-        "space_insensitive": []
     },
     "-sequences-canvases-thumbnail": {
         "space_insensitive": ["@id"],

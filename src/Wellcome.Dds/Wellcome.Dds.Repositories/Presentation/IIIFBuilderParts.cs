@@ -332,7 +332,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 new("Dataset")
                                 {
                                     Id = uriPatterns.MetsAlto(manifestIdentifier, assetIdentifier),
-                                    Format = "text/html",
+                                    Format = "text/xml",
                                     Profile = "http://www.loc.gov/standards/alto/v3/alto.xsd",
                                     Label = Lang.Map("none", "METS-ALTO XML")
                                 }

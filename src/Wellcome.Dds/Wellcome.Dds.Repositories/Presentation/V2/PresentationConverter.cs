@@ -274,32 +274,56 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas,
             WellcomeAuthService? wellcomeAuthService, bool firstImage)
         {
-            var imageServices = image.Service?.OfType<ImageService2>()
-                .Select(i => DeepCopy(i, service2 =>
+            // Copy all services over, these will be ImageService2 and potentially ServiceReference for auth
+            ImageService2? imageService = null;
+            List<ServiceReference> serviceReference = new();
+            var services = image.Service?
+                .Select(i => DeepCopy(i, s =>
                 {
-                    service2.EnsureContext(ImageService2.Image2Context);
-                    service2.Type = null;
+                    switch (s)
+                    {
+                        case ImageService2 imageService2:
+                        {
+                            imageService2.EnsureContext(ImageService2.Image2Context);
+                            imageService2.Type = null;
+
+                            if (imageService2.Service.HasItems())
+                            {
+                                foreach (var resourceBaseService in imageService2.Service.OfType<ServiceReference>())
+                                {
+                                    resourceBaseService.Type = null;
+                                }
+                            }
+
+                            imageService = imageService2;
+
+                            break;
+                        }
+                        case ServiceReference svcRef:
+                            svcRef.Type = null;
+
+                            serviceReference.Add(svcRef);
+                            break;
+                    }
                 }))
                 .ToList();
-
-            // Now make a pass to remove "type" from nested services (e.g. AuthCookieService1)
-            foreach (var resourceBaseService in imageServices?.SelectMany(i => i.Service.OfType<ServiceReference>()))
-            {
-                resourceBaseService.Type = null;
-            }
-
-            var imageResourceServices = imageServices.Cast<IService>().ToList();
-
-            // We have an auth service...
-            if (wellcomeAuthService != null)
-            {
-                // If this is the first image on entire manifest, add the full auth service to services
-                if (firstImage)
-                {
-                    imageResourceServices.AddRange(wellcomeAuthService.AuthService);
-                }
-            }
             
+            // We have an auth service and this is the first image on entire manifest
+            if (wellcomeAuthService != null && firstImage)
+            {
+                // add the full auth service to ImageService.Service 
+                imageService?.Service?.AddRange(wellcomeAuthService.AuthService);
+                
+                // removing serviceReference as this is to cookie service, which we've just embedded 
+                imageService?.Service?.RemoveAll(s => s is ServiceReference);
+
+                // and add it to the main Services collection
+                services?.AddRange(wellcomeAuthService.AuthService);
+
+                // but remove any ServiceReferences to click through
+                services?.RemoveAll(s => serviceReference.Contains(s));
+            }
+
             var imageAnnotation = new ImageAnnotation();
             imageAnnotation.Id = paintingAnnotation.Id;
             imageAnnotation.On = canvas.Id ?? string.Empty;
@@ -309,7 +333,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 Height = image.Height,
                 Width = image.Width,
                 Format = image.Format,
-                Service = imageResourceServices
+                Service = services
             };
             return imageAnnotation;
         }
