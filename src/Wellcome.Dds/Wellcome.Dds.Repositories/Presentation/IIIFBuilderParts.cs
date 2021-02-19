@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2.Strings;
@@ -45,11 +47,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService loginServiceReference;
         private readonly IService externalAuthService;
         private readonly IService externalAuthServiceReference;
+        private readonly IPdfThumbnailServices pdfThumbnailServices;
         
-        public IIIFBuilderParts(
-            UriPatterns uriPatterns,
+        public IIIFBuilderParts(UriPatterns uriPatterns,
             int dlcsDefaultSpace,
-            bool referenceV0SearchService)
+            bool referenceV0SearchService,
+            IPdfThumbnailServices pdfThumbnailServices)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
@@ -65,6 +68,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             loginServiceReference = new ServiceReference(loginService);
             externalAuthService = authServiceProvider.GetRestrictedLoginServices().First();
             externalAuthServiceReference = new ServiceReference(externalAuthService);
+            this.pdfThumbnailServices = pdfThumbnailServices;
         }
 
 
@@ -255,7 +259,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
+        public async Task Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -409,7 +413,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             if (transcriptPdf != null)
                             {
                                 // A new workflow transcript for this AV file
-                                AddPdfTranscriptToCanvas(manifestIdentifier, canvas, transcriptPdf);
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
                             }
                         }
 
@@ -421,15 +425,31 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
-                        // This might be an AV transcript, in which case we note it down and add it to the AVState
-                        // Or it might just be a PDF, Born Digital - in which case... what? We can't make IIIF3 for it.
-                        // Make an issue for this.
-                        // 
-                        // see b17502792
-                        // If this is a transcript, store in AV state map
-                        // what do we need to tie it to the right vid? Just one of each? Never more complex than that, yet.
-                        state.FileState ??= new FileState();
-                        state.FileState.FoundFiles.Add(physicalFile);
+                        if (metsManifestation.Type == "Monograph")
+                        {
+                            // TODO: is this simple logic OK for every BD PDF? See what comparison tool reveals.
+                            // This is a born digital PDF
+                            var bornDigitalPdf = physicalFile.Files.FirstOrDefault();
+                            if (bornDigitalPdf != null)
+                            {
+                                // A new workflow transcript for this AV file
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
+                                    "pdf", manifest.Label.ToString());
+                                manifest.Behavior = null;
+                                List<Size> pdfThumbnailSizes = await EnsurePdfThumbs(bornDigitalPdf, manifestIdentifier);
+                                string thumbSource = uriPatterns.PdfThumbnail(manifestIdentifier);
+                                manifest.Thumbnail = new List<ExternalResource>
+                                {
+                                    thumbSource.AsThumbnailWithService(pdfThumbnailSizes)
+                                };
+                            }
+                        }
+                        else
+                        {
+                            // An AV transcript. Note it down and add it to the AVState
+                            state.FileState ??= new FileState();
+                            state.FileState.FoundFiles.Add(physicalFile);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -440,6 +460,16 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Services = foundAuthServices.Values.ToList();
             }
+        }
+
+        private async Task<List<Size>> EnsurePdfThumbs(IStoredFile bornDigitalPdf, string identifier)
+        {
+            // This is a delegate because we only want to invoke it if we have to.
+            // This method triggers an async chain all the way up IIIFBuilder.BuildInternal, which we can remove
+            // once the DLCS handles these PDF thumbs.
+            var pdfStreamGetter = new Func<Task<Stream>>(
+                async () => await bornDigitalPdf.WorkStore.GetStreamForPathAsync(bornDigitalPdf.RelativePath));
+            return await pdfThumbnailServices.EnsurePdfThumbnails(pdfStreamGetter, BuildExtensions.ThumbSizes, identifier);
         }
 
         private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)
@@ -946,7 +976,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (tCounter < avCanvases.Count)
                     {
-                        AddPdfTranscriptToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0]);
+                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0], "transcript", "PDF Transcript");
                     }
                 }
             }
@@ -962,23 +992,24 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private void AddPdfTranscriptToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile storedPdf)
+        private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
+            string annoIdentifier, string label)
         {
             canvas.Annotations ??= new List<AnnotationPage>();
             canvas.Annotations.Add(new AnnotationPage
             {
                 Id = uriPatterns.CanvasSupplementingAnnotationPage(
-                    manifestIdentifier, storedPdf.StorageIdentifier),
+                    manifestIdentifier, pdfFile.StorageIdentifier),
                 Items = new List<IAnnotation>
                 {
                     new SupplementingDocumentAnnotation
                     {
                         Id = uriPatterns.CanvasSupplementingAnnotation(
-                            manifestIdentifier, storedPdf.StorageIdentifier, "transcript"),
+                            manifestIdentifier, pdfFile.StorageIdentifier, annoIdentifier),
                         Body = new ExternalResource("Text")
                         {
-                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),
-                            Label = Lang.Map("PDF Transcript"),
+                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, pdfFile.StorageIdentifier),
+                            Label = Lang.Map(label),
                             Format = "application/pdf"
                         },
                         Target = new Canvas {Id = canvas.Id}

@@ -53,7 +53,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
-            ILogger<IIIFBuilder> logger)
+            ILogger<IIIFBuilder> logger,
+            IPdfThumbnailServices pdfThumbnailServices)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -65,7 +66,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             build = new IIIFBuilderParts(
                 uriPatterns,
                 dlcsOptions.Value.CustomerDefaultSpace,
-                ddsOptions.Value.ReferenceV0SearchService);
+                ddsOptions.Value.ReferenceV0SearchService,
+                pdfThumbnailServices);
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 
@@ -87,7 +89,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 // This is a bnumber, so can't be part of anything.
-                buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
+                buildResults.Add(await BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is IDigitisedCollection parentCollection)
                 {
                     // This will need some special treatment to build Chemist and Druggist in the
@@ -99,7 +101,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
+                        buildResults.Add(await BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
             }
@@ -202,7 +204,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
                 // (dash preview can go back and rebuild all, then pick out the one asked for, 
                 // or redirect to a single AV manifest).
-                buildResults.Add(BuildInternal(work, digitisedResource, partOf, manifestationMetadata, null));
+                buildResults.Add(await BuildInternal(work, digitisedResource, partOf, manifestationMetadata, null));
             }
             catch (Exception e)
             {
@@ -213,7 +215,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
 
-        private BuildResult BuildInternal(Work work,
+        private async Task<BuildResult> BuildInternal(Work work,
             IDigitisedResource digitisedResource, IDigitisedCollection? partOf,
             ManifestationMetadata manifestationMetadata, State? state)
         {
@@ -221,7 +223,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             try
             {
                 // build the Presentation 3 version from the source materials
-                var iiifPresentation3Resource = MakePresentation3Resource(
+                var iiifPresentation3Resource = await MakePresentation3Resource(
                     digitisedResource, partOf, work, manifestationMetadata, state);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
@@ -240,7 +242,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return result;
         }
         
-        private StructureBase MakePresentation3Resource(
+        private async Task<StructureBase> MakePresentation3Resource(
             IDigitisedResource digitisedResource,
             IDigitisedCollection? partOf,
             Work work,
@@ -275,7 +277,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata, state);
+                    await BuildManifest(manifest, digitisedManifestation, manifestationMetadata, state);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
@@ -351,7 +353,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void BuildManifest(
+        private async Task BuildManifest(
             Manifest manifest, 
             IDigitisedManifestation digitisedManifestation,
             ManifestationMetadata manifestationMetadata,
@@ -364,7 +366,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ViewingDirection(manifest, digitisedManifestation); // do we do this?
             build.Rendering(manifest, digitisedManifestation);
             build.SearchServices(manifest, digitisedManifestation);
-            build.Canvases(manifest, digitisedManifestation, state);
+            await build.Canvases(manifest, digitisedManifestation, state);
             // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, digitisedManifestation); // ranges
             build.ImprovePagingSequence(manifest);
