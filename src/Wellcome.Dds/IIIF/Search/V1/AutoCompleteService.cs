@@ -8,6 +8,6 @@ namespace IIIF.Search.V1
         public const string AutoCompleteService1Profile = "http://iiif.io/api/search/1/autocomplete";
 
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string Type { get; set; } = "AutoCompleteService1";
+        public override string? Type { get; set; } = "AutoCompleteService1";
     }
 }

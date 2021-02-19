@@ -363,7 +363,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     if (service is ResourceBase serviceResourceBase)
                         serviceResourceBase.Type = null;
                     if (service is SearchService searchService)
+                    {
                         searchService.EnsureContext(SearchService.Search1Context);
+                        if (searchService.Service != null)
+                            searchService.Service.Type = null;
+                    }
                 })!).ToList();
             }
 
