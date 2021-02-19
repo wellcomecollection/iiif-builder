@@ -90,7 +90,6 @@ namespace WorkflowProcessor
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAllAnnotationProvider>()
-                .AddScoped<IPdfThumbnailServices, PdfThumbnailUtil>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddHostedService<WorkflowProcessorService>();
             

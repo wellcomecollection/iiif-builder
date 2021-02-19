@@ -11,12 +11,11 @@ using IIIF;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils.Aws.S3;
-using Wellcome.Dds;
 using Wellcome.Dds.Common;
 
 namespace PdfService
 {
-    public class PdfThumbnailUtil : IPdfThumbnailServices
+    public class PdfThumbnailUtil
     {
         private readonly IAmazonS3 ddsServiceS3;
         private readonly DdsOptions ddsOptions;

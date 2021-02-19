@@ -47,12 +47,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService loginServiceReference;
         private readonly IService externalAuthService;
         private readonly IService externalAuthServiceReference;
-        private readonly IPdfThumbnailServices pdfThumbnailServices;
         
         public IIIFBuilderParts(UriPatterns uriPatterns,
             int dlcsDefaultSpace,
-            bool referenceV0SearchService,
-            IPdfThumbnailServices pdfThumbnailServices)
+            bool referenceV0SearchService)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsDefaultSpace = dlcsDefaultSpace;
@@ -68,7 +66,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             loginServiceReference = new ServiceReference(loginService);
             externalAuthService = authServiceProvider.GetRestrictedLoginServices().First();
             externalAuthServiceReference = new ServiceReference(externalAuthService);
-            this.pdfThumbnailServices = pdfThumbnailServices;
         }
 
 
@@ -259,7 +256,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public async Task Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
+        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -436,11 +433,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
                                     "pdf", manifest.Label.ToString());
                                 manifest.Behavior = null;
-                                List<Size> pdfThumbnailSizes = await EnsurePdfThumbs(bornDigitalPdf, manifestIdentifier);
-                                string thumbSource = uriPatterns.PdfThumbnail(manifestIdentifier);
                                 manifest.Thumbnail = new List<ExternalResource>
                                 {
-                                    thumbSource.AsThumbnailWithService(pdfThumbnailSizes)
+                                    new Image
+                                    {
+                                        Id = uriPatterns.PdfThumbnail(manifestIdentifier),
+                                        Format = "image/jpeg"
+                                    }
                                 };
                             }
                         }
@@ -460,16 +459,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Services = foundAuthServices.Values.ToList();
             }
-        }
-
-        private async Task<List<Size>> EnsurePdfThumbs(IStoredFile bornDigitalPdf, string identifier)
-        {
-            // This is a delegate because we only want to invoke it if we have to.
-            // This method triggers an async chain all the way up IIIFBuilder.BuildInternal, which we can remove
-            // once the DLCS handles these PDF thumbs.
-            var pdfStreamGetter = new Func<Task<Stream>>(
-                async () => await bornDigitalPdf.WorkStore.GetStreamForPathAsync(bornDigitalPdf.RelativePath));
-            return await pdfThumbnailServices.EnsurePdfThumbnails(pdfStreamGetter, BuildExtensions.ThumbSizes, identifier);
         }
 
         private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)

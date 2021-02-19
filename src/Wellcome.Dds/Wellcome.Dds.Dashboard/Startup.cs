@@ -118,7 +118,6 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
             services.AddScoped<IIIIFBuilder, IIIFBuilder>();
-            services.AddScoped<IPdfThumbnailServices, PdfThumbnailUtil>();
 
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
