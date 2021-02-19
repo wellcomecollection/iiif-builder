@@ -279,11 +279,11 @@ class Comparer:
             n_v = self.single_or_first(new)
             if key in version_insensitive:
                 if not self.version_insensitive_compare(o_v, n_v):
-                    logger.warning(f"{key} at {level} don't pass version_insensitive_compare: '{o_v}' - '{n_v}'")
+                    logger.warning(f"{key} at {level} fails version_insensitive_compare: '{o_v}' - '{n_v}'")
                     return False
             elif key in domain_insensitive:
                 if not self.domain_insensitive_compare(o_v, n_v):
-                    logger.warning(f"{key} at {level} don't pass domain_insensitive_compare: '{o_v}' - '{n_v}'")
+                    logger.warning(f"{key} at {level} fails domain_insensitive_compare: '{o_v}' - '{n_v}'")
                     return False
             elif o_v != n_v:
                 # old P2 shows largest Width and Height in "sequences-canvases-images-resource"
@@ -322,11 +322,11 @@ class Comparer:
         orig_parts = orig.split("/")
         new_parts = new.split("/")
 
-        # get any diffs, there should be 1 diff that is '5' (prod space)
+        # get any diffs, there should be 1 diff
         if diffs := list(set(orig_parts) - set(new_parts)):
             return len(diffs) == 1
 
-        # if here, no diffs so they are teh same
+        # if here, no diffs so they are the same
         return True
 
     @staticmethod
@@ -337,6 +337,8 @@ class Comparer:
 
 async def run_comparison(bnumbers):
     comparer = Comparer()
+    failed = []
+    passed = []
     async with aiohttp.ClientSession(raise_for_status=True) as session:
         for bnumber in bnumbers:
             try:
@@ -344,12 +346,18 @@ async def run_comparison(bnumbers):
                 new = await load_manifest(session, bnumber, False)
 
                 if comparer.run_compare(bnumber, original, new):
+                    passed.append(bnumber)
                     logger.info(f"{bnumber} passed")
                 else:
+                    failed.append(bnumber)
                     logger.info(f"{bnumber} failed")
             except Exception:
                 e = traceback.format_exc()
                 logger.error(f"Error processing {bnumber}: {e}")
+
+    logger.info("*****************************")
+    logger.info(f"{','.join(passed)} passed")
+    logger.info(f"{','.join(failed)} failed")
 
 
 async def load_manifest(session, bnumber, is_original):
