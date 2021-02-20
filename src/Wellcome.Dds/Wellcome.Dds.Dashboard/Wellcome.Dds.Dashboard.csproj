@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
-    <ProjectReference Include="..\PdfService\PdfService.csproj" />
     <ProjectReference Include="..\Utils.Aws\Utils.Aws.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Data\Wellcome.Dds.Data.csproj" />
