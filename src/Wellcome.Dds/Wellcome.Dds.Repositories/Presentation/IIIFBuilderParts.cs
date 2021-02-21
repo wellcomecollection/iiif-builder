@@ -89,11 +89,12 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 foreach (var md in @group)
                 {
+                    var urlFriendlyAggregator = Wellcome.Dds.Metadata.ToUrlFriendlyAggregator(md.Label);
                     iiifResource.PartOf ??= new List<ResourceBase>();
                     iiifResource.PartOf.Add(
                         new Collection
                         {
-                            Id = uriPatterns.CollectionForAggregation(md.Label, md.Identifier),
+                            Id = uriPatterns.CollectionForAggregation(urlFriendlyAggregator, md.Identifier),
                             Label = new LanguageMap("en", $"{md.Label}: {md.StringValue}")
                         });
                 }

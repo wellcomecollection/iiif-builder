@@ -59,6 +59,39 @@ namespace Wellcome.Dds.Repositories
                 EF.Functions.ILike(m.Label, pattern))
                 .ToList();
         }
+
+        public IEnumerable<AggregationMetadata> GetAggregation(string aggregator)
+        {
+            var query = String.Format(AggregationMetadata.Sql, aggregator.ToAlphanumeric());
+            return Database
+                .MapRawSql<AggregationMetadata>(query, dr => new AggregationMetadata(dr));
+        }
+
+        public IEnumerable<ValueAggregationResult> GetAggregation(string aggregator, string value)
+        {
+            var query =
+                from metadata in Metadata
+                join manifestation in Manifestations
+                    on metadata.ManifestationId equals manifestation.PackageIdentifier
+                where manifestation.Index == 0 && metadata.Label == aggregator && metadata.Identifier == value
+                select new {metadata, manifestation};
+            foreach (var result in query)
+            {
+                yield return new ValueAggregationResult
+                {
+                    Manifestation = result.manifestation,
+                    CollectionStringValue = result.metadata.StringValue,
+                    CollectionLabel = result.metadata.Label
+                };
+            }
+        }
+    }
+
+    public record ValueAggregationResult
+    {
+        public Manifestation Manifestation;
+        public string CollectionStringValue;
+        public string CollectionLabel;
     }
     
     class AssetTotal
@@ -87,5 +120,20 @@ namespace Wellcome.Dds.Repositories
 
         public string AssetType { get; set; }
         public long AssetCount { get; set; }
+    }
+
+    public class AggregationMetadata
+    {
+        public const string Sql =
+            "select distinct identifier, string_value from metadata where label='{0}' order by string_value";
+
+        public string Identifier;
+        public string Label;
+        
+        public AggregationMetadata(DbDataReader dr)
+        {
+            Identifier = (string) dr[0];
+            Label = (string) dr[1];
+        }
     }
 }

@@ -20,10 +20,10 @@ namespace Wellcome.Dds
             ManifestationId = manifestationId;
             Label = label;
             StringValue = stringValue;
-            Identifier = identifier.HasText() ? identifier : UrlFriendly(stringValue);
+            Identifier = identifier.HasText() ? identifier : UrlFriendlyValue(stringValue);
         }
 
-        private string UrlFriendly(string stringValue)
+        private string UrlFriendlyValue(string stringValue)
         {
             if (stringValue.Contains('_'))
             {
@@ -32,6 +32,19 @@ namespace Wellcome.Dds
             }
             // See if this is enough. If there is only ONE replacement, it's more easily reversed.
             return stringValue.Replace(" ", "_");
+        }
+
+        public static string ToUrlFriendlyAggregator(string apiType)
+        {
+            // subjects, genres, contributor all work simply for now
+            return apiType.ToLowerInvariant() + "s";
+        }
+        
+        public static string FromUrlFriendlyAggregator(string pathElement)
+        {
+            // subjects, genres, contributor all work simply for now
+            var initial = pathElement[0].ToString();
+            return pathElement.Chomp("s").ReplaceFirst(initial, initial.ToUpperInvariant());
         }
     }
 }
