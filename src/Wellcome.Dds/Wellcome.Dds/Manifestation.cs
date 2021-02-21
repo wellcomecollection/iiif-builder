@@ -58,8 +58,7 @@ namespace Wellcome.Dds
         public bool SupportsSearch { get; set; }
         public bool IsAllOpen { get; set; }
         
-        // Consider adding
-        //public bool ContainsRestrictedFiles { get; set; }
+        public bool ContainsRestrictedFiles { get; set; }
         
         /// <summary>
         /// Image service for thumbnail obtained from Catalogue Record, which might

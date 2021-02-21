@@ -97,11 +97,7 @@ namespace Wellcome.Dds.Repositories
                 {
                     if (metsManifestation.ModsData.AccessCondition == "Restricted files")
                     {
-                        // TODO: do we want to omit it like this?
-                        // Why not just add a "contains restricted files" field to Manifestation?
                         containsRestrictedFiles = true;
-                        foundManifestationIndexes = new List<int>();
-                        break;
                     }
                     foundManifestationIndexes.Add(mic.SequenceIndex);
                 }
@@ -234,20 +230,16 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
                     ? ddsId.VolumePart
                     : null;
-
+                if (isBNumber)
+                {
+                    ddsManifestation.ContainsRestrictedFiles = containsRestrictedFiles;
+                }
             }
             
             if (isBNumber)
             {
                 string betterTitle = null;
-                if (containsRestrictedFiles)
-                {
-                    // TODO - not an error, just flag it, we can constrain queries later
-                    const string message = "{0} contains restricted files, creating error manifestation";
-                    const string dipStatus = "restricted";
-                    CreateErrorManifestation(shortB, message, identifier, dipStatus);
-                }
-                else if (foundManifestationIndexes.Count == 0)
+                if (foundManifestationIndexes.Count == 0)
                 {
                     const string message = "No manifestations for {0}, creating error manifestation";
                     const string dipStatus = "no-manifs";
