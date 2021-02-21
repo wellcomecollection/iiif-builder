@@ -32,9 +32,19 @@ namespace Wellcome.Dds
         public string CalmAltRefParent { get; set; } // Only for archive items
         
         /// <summary>
-        /// The top level of this item's archive tree
+        /// The top level of this item's archive tree, eg PP/CRI
         /// </summary>
         public string CollectionReferenceNumber { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// The top level of this item's archive tree, as a work Id
+        /// </summary>
+        public string CollectionWorkId { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// The top level of this item's archive tree - its title
+        /// </summary>
+        public string CollectionTitle { get; set; } // Only for archive items
         
         /// <summary>
         /// Eventually, all works will have one of these, but for now it's just archives

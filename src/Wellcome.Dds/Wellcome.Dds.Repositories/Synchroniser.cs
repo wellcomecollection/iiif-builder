@@ -171,8 +171,13 @@ namespace Wellcome.Dds.Repositories
                 {
                     parent = parent.PartOf.Last();
                 }
-                ddsManifestation.CollectionReferenceNumber = parent.ReferenceNumber;
-                
+                if (work.PartOf.HasItems())
+                {
+                    ddsManifestation.CollectionReferenceNumber = parent.ReferenceNumber;
+                    ddsManifestation.CollectionWorkId = parent.Id;
+                    ddsManifestation.CollectionTitle = parent.Title;
+                }
+
                 ddsManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
                 ddsManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
                 ddsManifestation.PermittedOperations = string.Join(",", metsManifestation.PermittedOperations);
