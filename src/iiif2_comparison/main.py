@@ -1,8 +1,11 @@
 import asyncio
-import traceback
-
 import aiohttp
+import logging
+import logzero
 from logzero import logger
+
+
+logzero.loglevel(logging.INFO)
 
 ORIGINAL_FORMAT = "https://wellcomelibrary.org/iiif/{bnum}/manifest"
 NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
@@ -10,8 +13,9 @@ NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
 rules = {
     "": {
         # metadata + seeAlso massively different
-        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso"],
+        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within"],
         "extra_new": ["thumbnail", "attribution", "within", "description"],
+        "extra_orig": ["service"]  # TODO - this will be fixed in #5034
     },
     "related": {
         "ignore": ["@id"],
@@ -19,6 +23,7 @@ rules = {
     },
     "sequences": {
         "ignore": ["@id"],
+        "version_insensitive": ["label"],
     },
     "sequences-rendering": {
         "ignore": ["@id", "label"],
@@ -31,8 +36,8 @@ rules = {
     },
     "sequences-canvases-thumbnail-service": {
         "version_insensitive": ["@id"],
-        "ignore": ["protocol"],
-        "extra_orig": ["protocol"]  # add to new?
+        "ignore": ["protocol"],  # TODO add to new
+        "extra_orig": ["protocol"]  # TODO add to new
     },
     "sequences-canvases-seeAlso": {
         "ignore": ["@id"],
@@ -62,7 +67,8 @@ rules = {
     },
     "otherContent": {
         "ignore": ["@id"],
-        "order_by": "@id"
+        "order_by": "@id",
+        "bnumber_insensitive": ["label"]  # required for manifests in collections
     },
     "service:search": {
         "ignore": ["@id"],
@@ -89,26 +95,35 @@ rules = {
 
 
 class Comparer:
-    is_authed = False
+    _is_authed = False
+    warnings = []
+    failures = []
 
     def __init__(self, loader):
         self._loader = loader
 
-    async def run_compare(self, identifier, original, new):
-        logger.info(f"Comparing {identifier}")
-        self.is_authed = False
+    async def start_comparison(self, original, new, identifier=None):
+        self._is_authed = False
+        self.warnings = []
+        self.failures = []
 
+        if identifier:
+            logger.info(f"Comparing {identifier}")
+
+        return await self.run_comparison(original, new, identifier)
+
+    async def run_comparison(self, original, new, identifier=None):
         original_type = original["@type"]
         if original_type != new["@type"]:
-            logger.warning(f"Type mismatch {original['@type']} - {new['@type']}")
+            self.failures.append("Mismatching type")
             return False
 
         if original_type == "sc:Manifest":
-            logger.info(f"{identifier} is a manifest..")
+            logger.debug(f"{identifier} is a manifest..")
             return self.compare_manifests(original, new)
 
         elif original_type == "sc:Collection":
-            logger.info(f"{identifier} is a collection..")
+            logger.debug(f"{identifier} is a collection..")
             return await self.compare_collections(original, new)
 
     async def compare_collections(self, original, new):
@@ -116,9 +131,7 @@ class Comparer:
 
         # do a "Contains" check for label
         are_equal = True
-        if original["label"] not in new["label"]:
-            logger.warning(f"Original and new label differ. {original['label']} - {new['label']}")
-            are_equal = False
+        self.compare_label(new, original)
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original.get("service", {}), new.get("service", {})) and are_equal
@@ -126,10 +139,10 @@ class Comparer:
         # default comparison
         are_equal = self.dictionary_comparison(original, new, "") and are_equal
 
+        # find manifest @id and get data and compare
         are_equal = await self.compare_embedded_manifests(original.get("manifests", []),
                                                           new.get("manifests", [])) and are_equal
 
-        # find manifest @id and get data and compare
         return are_equal
 
     async def compare_embedded_manifests(self, original_manifests, new_manifests):
@@ -137,19 +150,22 @@ class Comparer:
         new_len = len(new_manifests)
 
         if original_len != new_len:
-            logger.warning(f"Collection has different number of manifests: {original_len} - {new_len}")
+            self.failures.append("manifest counts differ")
             return False
 
         success = True
+
+        # iterate through manifests[], fetch each manifest and compare
         for i in range(0, original_len):
+            logger.debug(f"Comparing manifest {i}")
             o_id = original_manifests[i].get("@id", None)
             n_id = new_manifests[i].get("@id", None)
 
             o_mani = await self._loader.fetch(o_id)
-            n_mani = await self._loader.fetch(o_id)
+            n_mani = await self._loader.fetch(n_id)
 
-            if not await self.run_compare(f"{o_id}-{n_id}", o_mani, n_mani):
-                logger.warning(f"Collection manifests are not equal: {o_id} - {n_id}")
+            if not await self.run_comparison(o_mani, n_mani):
+                self.failures.append(f"manifest[{i}] are not equal")
                 success = False
 
         return success
@@ -159,14 +175,12 @@ class Comparer:
         for s in original_services:
             if "authService" in s:
                 logger.debug("Manifest is authed.. cleaning up original")
-                self.is_authed = True
+                self._is_authed = True
                 self.clean_auth(original)
 
         # do a "Contains" check for label
         are_equal = True
-        if original["label"] not in new["label"]:
-            logger.warning(f"Original and new label differ. {original['label']} - {new['label']}")
-            are_equal = False
+        self.compare_label(new, original)
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
@@ -175,6 +189,13 @@ class Comparer:
         are_equal = self.dictionary_comparison(original, new, "") and are_equal
 
         return are_equal
+
+    def compare_label(self, new, original):
+        orig_label = original["label"]
+        new_label = new["label"]
+        if orig_label != new_label and orig_label not in new_label:
+            logger.debug(f"'_root_'.'label' mismatch: {orig_label} - {new_label}")
+            self.warnings.append("'_root_'.'label' mismatch")
 
     def clean_auth(self, original):
         # auth services are duplicated in the original in:
@@ -252,22 +273,26 @@ class Comparer:
         are_equal = True
         rules_for_level = rules.get(level, {})
         ignore = rules_for_level.get("ignore", [])
+        level_for_logs = level if level else '_root_'
 
         expected_extra_new = rules_for_level.get("extra_new", [])
         expected_extra_orig = rules_for_level.get("extra_orig", [])
         size_only = rules_for_level.get("size_only", [])
         ignore_length = rules_for_level.get("ignore_length", [])
 
+        # check for the existence of
         orig_keys = orig.keys()
         new_keys = new.keys()
         if orig_extra := orig_keys - new_keys:
-            if unexpected_extra := [e for e in orig_extra if e not in expected_extra_orig]:
-                logger.warning(f"Original has additional keys '{','.join(unexpected_extra)}' at {level}")
+            if unexpected_extra := [e for e in orig_extra if e not in expected_extra_orig and orig[e]]:
+                self.failures.append(f"Original '{level_for_logs}' has unexpected keys '{','.join(unexpected_extra)}'")
+                logger.debug(f"Original '{level_for_logs}' has unexpected keys '{','.join(unexpected_extra)}'")
                 are_equal = False
 
         if new_extra := new_keys - orig_keys:
-            if unexpected_extra := [e for e in new_extra if e not in expected_extra_new]:
-                logger.warning(f"New has additional keys '{','.join(unexpected_extra)}' at {level}")
+            if unexpected_extra := [e for e in new_extra if e not in expected_extra_new and new[e]]:
+                self.failures.append(f"New '{level_for_logs}' has unexpected keys '{','.join(unexpected_extra)}'")
+                logger.debug(f"New '{level_for_logs}' has unexpected keys '{','.join(unexpected_extra)}'")
                 are_equal = False
 
         for key in [k for k in orig_keys if k not in ignore]:
@@ -285,7 +310,8 @@ class Comparer:
                     n = sorted(n, key=lambda item: item[order_by])
 
                 if key not in ignore_length and len(o) != len(n):
-                    logger.warning(f"{key} at {level} are lists of different length")
+                    self.failures.append(f"'{level_for_logs}'.'{key}' lists of different length")
+                    logger.debug(f"'{level_for_logs}'.'{key}' lists of different length: {len(o)} - {len(n)}")
                     are_equal = False
                 elif key not in size_only:  # size check is enough
                     for i in range(0, len(o)):
@@ -302,33 +328,44 @@ class Comparer:
 
     def compare_elements(self, key, level, orig, new):
         rules_for_level = rules.get(level, {})
+        level_for_logs = level if level else '_root_'
         version_insensitive = rules_for_level.get("version_insensitive", [])
         domain_insensitive = rules_for_level.get("domain_insensitive", [])
+        bnumber_insensitive = rules_for_level.get("bnumber_insensitive", [])
 
         if isinstance(orig, dict) and isinstance(new, dict):
             return self.dictionary_comparison(orig, new, self.get_next_level(level, key))
         elif isinstance(orig, dict) or isinstance(new, dict):
-            logger.warning(f"{key} at {level} have mismatching type - one is dict")
+            self.failures.append(f"'{level_for_logs}'.'{key}' type mismatch")
+            logger.debug(f"'{level_for_logs}'.'{key}' type mismatch: {type(orig)} - {type(new)}")
             return False
         else:
             o_v = self.single_or_first(orig)
             n_v = self.single_or_first(new)
             if key in version_insensitive:
                 if not self.version_insensitive_compare(o_v, n_v):
-                    logger.warning(f"{key} at {level} fails version_insensitive_compare: '{o_v}' - '{n_v}'")
+                    self.failures.append(f"'{level_for_logs}'.'{key}' failed version-insensitive compare")
+                    logger.debug(f"'{level_for_logs}'.'{key}' failed version-insensitive comparison: '{o_v}' - '{n_v}'")
                     return False
             elif key in domain_insensitive:
                 if not self.domain_insensitive_compare(o_v, n_v):
-                    logger.warning(f"{key} at {level} fails domain_insensitive_compare: '{o_v}' - '{n_v}'")
+                    self.failures.append(f"'{level_for_logs}'.'{key}' failed domain-insensitive compare")
+                    logger.debug(f"'{level_for_logs}'.'{key}' failed domain-insensitive comparison: '{o_v}' - '{n_v}'")
+                    return False
+            elif key in bnumber_insensitive:
+                if not self.bnumber_insensitive_compare(o_v, n_v):
+                    self.failures.append(f"'{level_for_logs}'.'{key}' failed bnumber-insensitive compare")
+                    logger.debug(f"'{level_for_logs}'.'{key}' failed bnumber-insensitive comparison: '{o_v}' - '{n_v}'")
                     return False
             elif o_v != n_v:
                 # old P2 shows largest Width and Height in "sequences-canvases-images-resource"
                 # however, if auth the new will show the largest available
-                if self.is_authed and level == "sequences-canvases-images-resource" and key in ["width",
-                                                                                                "height"] and o_v > n_v:
-                    logger.debug(f"{key} at {level} don't match due to auth: '{o_v}' - '{n_v}'")
+                if self._is_authed and level == "sequences-canvases-images-resource" and key in ["width",
+                                                                                                 "height"] and o_v > n_v:
+                    logger.debug(f"'{level_for_logs}'.'{key}' don't match due to auth: '{o_v}' - '{n_v}'")
                 else:
-                    logger.warning(f"{key} at {level} don't match: '{o_v}' - '{n_v}'")
+                    logger.debug(f"'{level_for_logs}'.'{key}' failed comparison: '{o_v}' - '{n_v}'")
+                    self.failures.append(f"'{level_for_logs}'.'{key}' failed comparison")
                     return False
         return True
 
@@ -369,6 +406,21 @@ class Comparer:
         # first 3 will be ["https", "", "domain.com"]
         return orig.split("/")[3:] == new.split("/")[3:]
 
+    @staticmethod
+    def bnumber_insensitive_compare(orig, new):
+        # e.g. "All OCR-derived annotations for b24990796-66" and "All OCR-derived annotations for b24990796_0072"
+        # should be deemed as equal
+
+        # split into component parts
+        orig_parts = orig.split(" ")
+        new_parts = new.split(" ")
+
+        if diffs := [d for d in list(set(orig_parts) - set(new_parts)) if not d.startswith("b")]:
+            return len(diffs) == 1
+
+        # if here, no diffs so they are the same
+        return True
+
 
 class Loader:
     async def __aenter__(self):
@@ -388,7 +440,12 @@ class Loader:
     async def fetch(self, uri):
         async with self._session.get(uri) as response:
             if 200 <= response.status < 300:
-                return await response.json(content_type=None)  # collections are coming back as text/plain
+                response_json = await response.json(content_type=None)  # collections are coming back as text/plain
+                if not response_json:
+                    logger.error(f"{uri} returned nothing")
+                    return {}
+                else:
+                    return response_json
 
             logger.error(f"Failed to get {uri} for comparison. Status {response.status}")
             return {}
@@ -405,16 +462,19 @@ async def main(bnums):
             new = await loader.fetch_bnumber(bnumber, False)
 
             if not original or not new:
-                logger.error(f"aborting comparison for {bnumber}")
+                logger.info(f"**{bnumber} failed")
                 failed.append(bnumber)
                 continue
 
-            if await comparer.run_compare(bnumber, original, new):
+            if await comparer.start_comparison(original, new, bnumber):
                 passed.append(bnumber)
                 logger.info(f"**{bnumber} passed")
+                if comparer.warnings:
+                    logger.info("\n-".join(comparer.warnings))
             else:
                 failed.append(bnumber)
                 logger.info(f"**{bnumber} failed")
+                logger.info("\n-".join(comparer.failures))
 
     logger.info("*****************************")
     logger.info(f"passed: {','.join(passed)}")
@@ -423,9 +483,9 @@ async def main(bnums):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    bnums = [
-        "b32497179", "b32497167", "b32497088", "b19348216", "b24990796",
-        "b32496485", "b14584463", "b24967646", "b29182608", "b10727000", "b2178081x", "b22454408", "b2043067x",
-        "b24923333", "b30136155", "b19812292", "b19812413", "b18031511", "b31919996", "b19977335", ]
+    #failed: 'b24990796','b10727000','b32496485','b14584463','b10727000','b2178081x','b24923333','b18031511'
 
-    asyncio.run(main(['b10727000']))
+    bnums = [
+        "b24990796", ]
+
+    asyncio.run(main(bnums))
