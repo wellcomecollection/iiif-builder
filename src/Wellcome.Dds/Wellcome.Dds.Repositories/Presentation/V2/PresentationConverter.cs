@@ -330,6 +330,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         {
                             imageService2.EnsureContext(ImageService2.Image2Context);
                             imageService2.Type = null;
+                            imageService2.Protocol = ImageService2.Image2Protocol;
 
                             if (imageService2.Service.HasItems())
                             {
@@ -446,6 +447,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     .Select(i => DeepCopy(i, service2 =>
                     {
                         service2.EnsureContext(ImageService2.Image2Context);
+                        service2.Protocol = ImageService2.Image2Protocol;
                         service2.Type = null;
                     }))
                     .Cast<IService>()

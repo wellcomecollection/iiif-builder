@@ -11,9 +11,13 @@ namespace IIIF.ImageApi.Service
         public const string Level0Profile = "http://iiif.io/api/image/2/level0.json";
         public const string Level1Profile = "http://iiif.io/api/image/2/level1.json";
         public const string Level2Profile = "http://iiif.io/api/image/2/level2.json";
+        public const string Image2Protocol = "http://iiif.io/api/image";
 
         [JsonProperty(PropertyName = "@type", Order = 3)]
         public override string? Type { get; set; } = nameof(ImageService2);
+        
+        [JsonProperty(PropertyName = "protocol", Order = 10)]
+        public string? Protocol { get; set; }
 
         [JsonProperty(Order = 11)]
         public int Width { get; set; }
