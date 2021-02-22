@@ -81,14 +81,21 @@ rules = {
     "service:auth-authService-service": {
         "version_insensitive": ["profile"]
     },
+    "manifests": {  # collections only
+        "ignore": ["thumbnail", "@id"],
+        "extra_new": ["thumbnail"]
+    }
 }
 
 
 class Comparer:
     is_authed = False
 
-    def run_compare(self, bnumber, original, new):
-        logger.info(f"Comparing {bnumber}")
+    def __init__(self, loader):
+        self._loader = loader
+
+    async def run_compare(self, identifier, original, new):
+        logger.info(f"Comparing {identifier}")
         self.is_authed = False
 
         original_type = original["@type"]
@@ -97,16 +104,58 @@ class Comparer:
             return False
 
         if original_type == "sc:Manifest":
-            logger.info(f"{bnumber} is a manifest..")
-            return self.compare_manifests(bnumber, original, new)
+            logger.info(f"{identifier} is a manifest..")
+            return self.compare_manifests(original, new)
 
         elif original_type == "sc:Collection":
-            logger.info(f"{bnumber} is a collection..")
-            logger.warning("don't handle collections yet.. aborting")
+            logger.info(f"{identifier} is a collection..")
+            return await self.compare_collections(original, new)
+
+    async def compare_collections(self, original, new):
+        # TODO clean auth like manifests?
+
+        # do a "Contains" check for label
+        are_equal = True
+        if original["label"] not in new["label"]:
+            logger.warning(f"Original and new label differ. {original['label']} - {new['label']}")
+            are_equal = False
+
+        # services are finnicky - handle separately
+        are_equal = self.compare_services(original.get("service", {}), new.get("service", {})) and are_equal
+
+        # default comparison
+        are_equal = self.dictionary_comparison(original, new, "") and are_equal
+
+        are_equal = await self.compare_embedded_manifests(original.get("manifests", []),
+                                                          new.get("manifests", [])) and are_equal
+
+        # find manifest @id and get data and compare
+        return are_equal
+
+    async def compare_embedded_manifests(self, original_manifests, new_manifests):
+        original_len = len(original_manifests)
+        new_len = len(new_manifests)
+
+        if original_len != new_len:
+            logger.warning(f"Collection has different number of manifests: {original_len} - {new_len}")
             return False
 
-    def compare_manifests(self, bnumber, original, new):
-        original_services = original["service"]
+        success = True
+        for i in range(0, original_len):
+            o_id = original_manifests[i].get("@id", None)
+            n_id = new_manifests[i].get("@id", None)
+
+            o_mani = await self._loader.fetch(o_id)
+            n_mani = await self._loader.fetch(o_id)
+
+            if not await self.run_compare(f"{o_id}-{n_id}", o_mani, n_mani):
+                logger.warning(f"Collection manifests are not equal: {o_id} - {n_id}")
+                success = False
+
+        return success
+
+    def compare_manifests(self, original, new):
+        original_services = original.get("service", [])
         for s in original_services:
             if "authService" in s:
                 logger.debug("Manifest is authed.. cleaning up original")
@@ -229,7 +278,7 @@ class Comparer:
                 o = [o]
             if isinstance(o, list) and isinstance(n, dict):
                 n = [n]
-            if isinstance(o, list) and isinstance(n, list):q
+            if isinstance(o, list) and isinstance(n, list):
                 # if the 'next' level has an orderBy rule, reorder before compare
                 if order_by := rules.get(self.get_next_level(level, key), {}).get("order_by", ""):
                     o = sorted(o, key=lambda item: item[order_by])
@@ -277,8 +326,7 @@ class Comparer:
                 # however, if auth the new will show the largest available
                 if self.is_authed and level == "sequences-canvases-images-resource" and key in ["width",
                                                                                                 "height"] and o_v > n_v:
-                    # logger.debug(f"{k} at {lvl} don't match: '{o_v}' - '{n_v}' but this is due to auth")
-                    pass
+                    logger.debug(f"{key} at {level} don't match due to auth: '{o_v}' - '{n_v}'")
                 else:
                     logger.warning(f"{key} at {level} don't match: '{o_v}' - '{n_v}'")
                     return False
@@ -322,47 +370,62 @@ class Comparer:
         return orig.split("/")[3:] == new.split("/")[3:]
 
 
-async def run_comparison(bnumbers):
-    comparer = Comparer()
+class Loader:
+    async def __aenter__(self):
+        self._session = aiohttp.ClientSession()
+        return self
+
+    async def __aexit__(self, *err):
+        await self._session.close()
+        self._session = None
+
+    async def fetch_bnumber(self, bnumber, is_original):
+        format = ORIGINAL_FORMAT if is_original else NEW_FORMAT
+        uri = format.replace("{bnum}", bnumber)
+
+        return await self.fetch(uri)
+
+    async def fetch(self, uri):
+        async with self._session.get(uri) as response:
+            if 200 <= response.status < 300:
+                return await response.json(content_type=None)  # collections are coming back as text/plain
+
+            logger.error(f"Failed to get {uri} for comparison. Status {response.status}")
+            return {}
+
+
+async def main(bnums):
     failed = []
     passed = []
-    async with aiohttp.ClientSession(raise_for_status=True) as session:
-        for bnumber in bnumbers:
-            try:
-                original = await load_manifest(session, bnumber, True)
-                new = await load_manifest(session, bnumber, False)
 
-                if comparer.run_compare(bnumber, original, new):
-                    passed.append(bnumber)
-                    logger.info(f"**{bnumber} passed")
-                else:
-                    failed.append(bnumber)
-                    logger.info(f"**{bnumber} failed")
-            except Exception:
-                e = traceback.format_exc()
-                logger.error(f"Error processing {bnumber}: {e}")
+    async with Loader() as loader:
+        comparer = Comparer(loader)
+        for bnumber in bnums:
+            original = await loader.fetch_bnumber(bnumber, True)
+            new = await loader.fetch_bnumber(bnumber, False)
+
+            if not original or not new:
+                logger.error(f"aborting comparison for {bnumber}")
+                failed.append(bnumber)
+                continue
+
+            if await comparer.run_compare(bnumber, original, new):
+                passed.append(bnumber)
+                logger.info(f"**{bnumber} passed")
+            else:
+                failed.append(bnumber)
+                logger.info(f"**{bnumber} failed")
 
     logger.info("*****************************")
-    logger.info(f"{','.join(passed)} passed")
-    logger.info(f"{','.join(failed)} failed")
-
-
-async def load_manifest(session, bnumber, is_original):
-    format = ORIGINAL_FORMAT if is_original else NEW_FORMAT
-    uri = format.replace("{bnum}", bnumber)
-
-    async with session.get(uri) as response:
-        return await response.json(content_type=None)  # collections are coming back as text/plain
+    logger.info(f"passed: {','.join(passed)}")
+    logger.info(f"failed: {','.join(failed)}")
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # "b14583793", "b20641151", "b24963215",
     bnums = [
-         "b32497179", "b32497167", "b32497088", "b19348216", "b24990796",
+        "b32497179", "b32497167", "b32497088", "b19348216", "b24990796",
         "b32496485", "b14584463", "b24967646", "b29182608", "b10727000", "b2178081x", "b22454408", "b2043067x",
         "b24923333", "b30136155", "b19812292", "b19812413", "b18031511", "b31919996", "b19977335", ]
 
-    asyncio.run(run_comparison(bnums))
-    # asyncio.run(run_comparison(['b32497088']))
-    # asyncio.run(run_comparison('b19348216'))
+    asyncio.run(main(['b10727000']))
