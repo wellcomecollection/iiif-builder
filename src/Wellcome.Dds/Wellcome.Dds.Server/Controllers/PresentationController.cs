@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IIIF.Presentation;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
@@ -13,6 +13,7 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Server.Conneg;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Server.Controllers
 {
@@ -100,11 +101,18 @@ namespace Wellcome.Dds.Server.Controllers
                     MakeAggregationCollection("subjects", "Works by subject"),
                     MakeAggregationCollection("genres", "Works by genre"),
                     MakeAggregationCollection("contributors", "Works by contributor"),
-                    // digital collections? Not in WC API yet. E.g., recipe books.
+                    MakeAggregationCollection("digitalcollections", "Works by digital collection"),
                     MakeAggregationCollection("archives", "Archive collections")
                 }
             };
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+
+
+        [HttpGet("collections/archives")]
+        public IActionResult ArchivesTLC()
+        {
+            throw new NotImplementedException();
         }
 
 
@@ -125,7 +133,7 @@ namespace Wellcome.Dds.Server.Controllers
             var aggregation = ddsContext.GetAggregation(apiType);
             foreach (var aggregationMetadata in aggregation)
             {
-                coll.Items.Add(new Collection()
+                coll.Items.Add(new Collection
                 {
                     Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier),
                     Label = new LanguageMap("none", aggregationMetadata.Label)

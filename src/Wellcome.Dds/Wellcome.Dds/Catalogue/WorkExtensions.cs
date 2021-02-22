@@ -40,6 +40,15 @@ namespace Wellcome.Dds.Catalogue
             {
                 metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
             }
+            foreach (var digcode in work.Identifiers.Where(id => id.IdentifierType.Id == "wellcome-digcode"))
+            {
+                var dgLabel = DigitalCollectionsMap.GetFriendlyName(digcode.Value);
+                if (dgLabel == null)
+                {
+                    dgLabel = $"({digcode.Value})";
+                }
+                metadataList.Add(new Metadata(identifier, "Digitalcollection", dgLabel, digcode.Value));
+            }
             var locationOfOriginal = work.Notes.FirstOrDefault(note => note.NoteType.Id == "location-of-original");
             if (locationOfOriginal != null && locationOfOriginal.Contents.HasItems())
             {
