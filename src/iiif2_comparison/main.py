@@ -4,7 +4,6 @@ import logging
 import logzero
 from logzero import logger
 
-
 logzero.loglevel(logging.INFO)
 
 ORIGINAL_FORMAT = "https://wellcomelibrary.org/iiif/{bnum}/manifest"
@@ -13,7 +12,7 @@ NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
 rules = {
     "": {
         # metadata + seeAlso massively different
-        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within"],
+        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license"],
         "extra_new": ["thumbnail", "attribution", "within", "description"],
         "extra_orig": ["service"]  # TODO - this will be fixed in #5034
     },
@@ -36,8 +35,6 @@ rules = {
     },
     "sequences-canvases-thumbnail-service": {
         "version_insensitive": ["@id"],
-        "ignore": ["protocol"],  # TODO add to new
-        "extra_orig": ["protocol"]  # TODO add to new
     },
     "sequences-canvases-seeAlso": {
         "ignore": ["@id"],
@@ -50,7 +47,7 @@ rules = {
     },
     "sequences-canvases-images-resource-service": {
         "version_insensitive": ["@id", "profile"],
-        "extra_new": ["width", "height"],
+        "extra_new": ["width", "height", "protocol"],  # TODO - is protocol too much here?
     },
     "sequences-canvases-images-resource-service-service": {
         "version_insensitive": ["profile"],  # auth
@@ -89,7 +86,8 @@ rules = {
     },
     "manifests": {  # collections only
         "ignore": ["thumbnail", "@id"],
-        "extra_new": ["thumbnail"]
+        "extra_new": ["thumbnail"],
+        "version_insensitive": ["label"]
     }
 }
 
@@ -269,6 +267,13 @@ class Comparer:
         return are_equal
 
     def dictionary_comparison(self, orig, new, level):
+        """
+        Iterate through all keys in provided dictionaries, using predefined rules to determine if they are equal
+        :param orig: dict of original wl.org item at current level
+        :param new: dict of new wl.org item at current level
+        :param level: level of dict being interrogated, used to lookup rules and for logging
+        :return: boolean value representing whether provided dictionaries are equal
+        """
 
         are_equal = True
         rules_for_level = rules.get(level, {})
@@ -278,7 +283,6 @@ class Comparer:
         expected_extra_new = rules_for_level.get("extra_new", [])
         expected_extra_orig = rules_for_level.get("extra_orig", [])
         size_only = rules_for_level.get("size_only", [])
-        ignore_length = rules_for_level.get("ignore_length", [])
 
         # check for the existence of
         orig_keys = orig.keys()
@@ -309,24 +313,28 @@ class Comparer:
                     o = sorted(o, key=lambda item: item[order_by])
                     n = sorted(n, key=lambda item: item[order_by])
 
-                if key not in ignore_length and len(o) != len(n):
+                if len(o) != len(n):
                     self.failures.append(f"'{level_for_logs}'.'{key}' lists of different length")
                     logger.debug(f"'{level_for_logs}'.'{key}' lists of different length: {len(o)} - {len(n)}")
                     are_equal = False
                 elif key not in size_only:  # size check is enough
                     for i in range(0, len(o)):
-                        # if we are ignoring length, check what we can but don't exceed boundaries.
-                        # Assumes orig is longer
-                        if key in ignore_length and len(n) <= i:
-                            continue
-                        else:
-                            are_equal = self.compare_elements(key, level, o[i], n[i]) and are_equal
+                        are_equal = self.compare_elements(key, level, o[i], n[i]) and are_equal
             else:
                 are_equal = self.compare_elements(key, level, o, n) and are_equal
 
         return are_equal
 
     def compare_elements(self, key, level, orig, new):
+        """
+        Compare individual elements in manifest, using predefined rules to determine if they are equal
+        :param key: key of item in dictionary being interrogated
+        :param level: level of dict being interrogated, used to lookup rules and for logging
+        :param orig: item for key at current level from original wl.org manifest
+        :param new: item for key at current level from new manifest
+        :return: boolean value representing whether provided dictionaries are equal
+        """
+
         rules_for_level = rules.get(level, {})
         level_for_logs = level if level else '_root_'
         version_insensitive = rules_for_level.get("version_insensitive", [])
@@ -390,9 +398,11 @@ class Comparer:
         if orig == "http://iiif.io/api/auth/0/login/clickthrough" and new == "http://iiif.io/api/auth/1/clickthrough":
             return True
 
+        separator = "/" if orig.startswith("http") else " "  # hmmm... yeah
+
         # split into component parts
-        orig_parts = orig.split("/")
-        new_parts = new.split("/")
+        orig_parts = orig.split(separator)
+        new_parts = new.split(separator)
 
         # get any diffs, there should be 1 diff
         if diffs := list(set(orig_parts) - set(new_parts)):
@@ -470,11 +480,11 @@ async def main(bnums):
                 passed.append(bnumber)
                 logger.info(f"**{bnumber} passed")
                 if comparer.warnings:
-                    logger.info("\n-".join(comparer.warnings))
+                    logger.info("\n-".join(set(comparer.warnings)))
             else:
                 failed.append(bnumber)
                 logger.info(f"**{bnumber} failed")
-                logger.info("\n-".join(comparer.failures))
+                logger.info("\n-".join(set(comparer.failures)))
 
     logger.info("*****************************")
     logger.info(f"passed: {','.join(passed)}")
