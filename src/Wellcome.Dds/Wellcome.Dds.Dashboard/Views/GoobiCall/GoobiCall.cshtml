@@ -81,7 +81,7 @@ else
             </tr>
             <tr>
                 <td>Job options</td>
-                <td>@String.Join("<br/>",((RunnerOptionsFlags)Model.WorkflowOptions.GetValueOrDefault()).ToString().Split(','))</td>
+                <td>@Html.Raw(String.Join("<br/>",((RunnerOptionsFlags)Model.WorkflowOptions.GetValueOrDefault()).ToString().Split(',')))</td>
             </tr>
             <tr>
                 <td>First DLCS Job ID</td>

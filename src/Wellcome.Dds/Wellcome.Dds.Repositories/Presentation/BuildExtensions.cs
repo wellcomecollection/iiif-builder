@@ -88,6 +88,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 return null;
             }
+            return manifestation.GetThumbnail();
+        }
+
+        public static List<ExternalResource> GetThumbnail(this Manifestation manifestation)
+        {
             var thumbSource = manifestation.CatalogueThumbnail;
             var sizeSource = manifestation.CatalogueThumbnailDimensions;
             if (!thumbSource.HasText())

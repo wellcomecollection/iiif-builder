@@ -85,6 +85,12 @@ namespace Wellcome.Dds.Repositories
                 };
             }
         }
+
+        public IEnumerable<ArchiveCollectionTop> GetTopLevelArchiveCollections()
+        {
+            return Database.MapRawSql(
+                ArchiveCollectionTop.Sql, dr => new ArchiveCollectionTop(dr));
+        }
     }
 
     public record ValueAggregationResult
@@ -127,13 +133,34 @@ namespace Wellcome.Dds.Repositories
         public const string Sql =
             "select distinct identifier, string_value from metadata where label='{0}' order by string_value";
 
-        public string Identifier;
-        public string Label;
+        public readonly string Identifier;
+        public readonly string Label;
         
         public AggregationMetadata(DbDataReader dr)
         {
             Identifier = (string) dr[0];
             Label = (string) dr[1];
+        }
+    }
+
+    public class ArchiveCollectionTop
+    {
+        public const string Sql =
+              "select distinct collection_reference_number, collection_title, " 
+            + "collection_work_id from manifestations where collection_title is not null";
+
+        public readonly string ReferenceNumber;
+        public readonly string Title;
+        public readonly string WorkId;
+
+        public ArchiveCollectionTop(DbDataReader dr)
+        {
+            ReferenceNumber = (string) dr[0];
+            Title = (string) dr[1];
+            if (!dr.IsDBNull(2))
+            {
+                WorkId = (string) dr[2];
+            }
         }
     }
 }

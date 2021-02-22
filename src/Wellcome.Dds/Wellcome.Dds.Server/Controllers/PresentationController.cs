@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
@@ -9,9 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Utils;
 using Utils.Storage;
+using Utils.Web;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Server.Conneg;
 using Version = IIIF.Presentation.Version;
 
@@ -109,10 +112,49 @@ namespace Wellcome.Dds.Server.Controllers
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
         [HttpGet("collections/archives")]
-        public IActionResult ArchivesTLC()
+        public IActionResult ArchivesTopLevelCollection()
         {
-            throw new NotImplementedException();
+            var archiveRoot = CollectionForAggregationId("archives");
+            var coll = new Collection
+            {
+                Id = archiveRoot,
+                Label = new LanguageMap("en", "Archives at Wellcome Collection"),
+                Items = new List<ICollectionItem>()
+            };
+            archiveRoot += "/";
+            ArchiveCollectionTop noCollection = null;
+            foreach (var topLevelArchiveCollection in ddsContext.GetTopLevelArchiveCollections())
+            {
+                if (topLevelArchiveCollection.ReferenceNumber == Manifestation.EmptyTopLevelArchiveReference)
+                {
+                    noCollection = topLevelArchiveCollection;
+                }
+                else
+                {
+                    coll.Items.Add(new Collection
+                    {
+                        Id = archiveRoot + topLevelArchiveCollection.ReferenceNumber,
+                        Label = new LanguageMap("en", topLevelArchiveCollection.Title)
+                    });
+                }
+            }
+
+            if (noCollection != null)
+            {
+                coll.Items.Add(new Collection
+                {
+                    Id = archiveRoot + noCollection.ReferenceNumber,
+                    Label = new LanguageMap("en", noCollection.Title)
+                });
+            }
+            
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
 
 
@@ -150,21 +192,29 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValue(string aggregator, string value)
         {
+            const int maxThumbnails = 50; // to avoid huge collections
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
             {
                 Id = CollectionForAggregationId(aggregator, value),
                 Items = new List<ICollectionItem>()
             };
+            int thumbnailCount = 0;
             foreach (var result in ddsContext.GetAggregation(apiType, value))
             {
-                coll.Items.Add(new Manifest
+                var manifest = new Manifest
                 {
                     Id = uriPatterns.Manifest(result.Manifestation.PackageIdentifier),
                     Label = new LanguageMap("none", result.Manifestation.Label)
-                });
+                };
+                coll.Items.Add(manifest);
                 coll.Label ??= new LanguageMap("none", $"{result.CollectionLabel}: {result.CollectionStringValue}");
+                if (thumbnailCount++ < maxThumbnails)
+                {
+                    manifest.Thumbnail = result.Manifestation.GetThumbnail();
+                }
             }
+            Response.CacheForDays(30);
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         

@@ -151,7 +151,8 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
                 if (ddsManifestation.CalmRef.HasText())
                 {
-                    ddsManifestation.CollectionReferenceNumber = ddsManifestation.CalmRef;
+                    ddsManifestation.CollectionReferenceNumber = Manifestation.EmptyTopLevelArchiveReference;
+                    ddsManifestation.CollectionTitle = Manifestation.EmptyTopLevelArchiveTitle;
                     var parentWorkId = work.GetParentId();
                     if (parentWorkId.HasText())
                     {

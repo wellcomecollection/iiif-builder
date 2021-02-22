@@ -9,6 +9,9 @@ namespace Wellcome.Dds
     /// </summary>
     public class Manifestation
     {
+        public static string EmptyTopLevelArchiveReference = "(no-collection)";
+        public static string EmptyTopLevelArchiveTitle = "Archives that are not part of a collection";
+        
         // FM = FlatManifestation, see https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds.Data/FlatManifestation.cs
         
         public string Id { get; set; } // this is string3, the same as the manifest in S3; bnnn_0003
