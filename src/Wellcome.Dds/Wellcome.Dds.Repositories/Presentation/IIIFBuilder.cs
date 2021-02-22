@@ -86,6 +86,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
+                
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is IDigitisedCollection parentCollection)
@@ -101,6 +102,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
                         buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                     }
+
+                    // For collection, rights are pulled up from child manifests
+                    SetCollectionRights(bNumber, buildResults);
                 }
             }
             catch (Exception e)
@@ -114,38 +118,29 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
+        private static void SetCollectionRights(string bNumber, MultipleBuildResult buildResults)
         {
-            var multipleBuildResult = new MultipleBuildResult();
-            logger.LogDebug("Building LegacyIIIF for Id '{Identifier}'", identifier);
-
-            foreach (var buildResult in buildResults)
+            var iiifCollection = buildResults[bNumber]?.IIIFResource as Collection;
+            if (!string.IsNullOrEmpty(iiifCollection!.Rights)) return;
+            
+            var rights = buildResults
+                .Where(br => br.IIIFResource != iiifCollection)
+                .Select(i => (i.IIIFResource as ResourceBase)!.Rights)
+                .Where(r => r.HasText())
+                .Distinct()
+                .ToList();
+            if (rights.Count > 1)
             {
-                if (buildResult.IIIFVersion == Version.V3 && buildResult.IIIFResource is StructureBase iiif3)
-                {
-                    var result = new BuildResult(buildResult.Id, Version.V2);
-                    try
-                    {
-                        var iiif2 = presentation2Converter.Convert(iiif3, buildResult.Id);
-                        result.IIIFResource = iiif2;
-                        result.Outcome = BuildOutcome.Success;
-                    }
-                    catch (Exception e)
-                    {
-                        result.Message = e.Message;
-                        result.Outcome = BuildOutcome.Failure;
-                    }
-                    multipleBuildResult.Add(result);
-                }
-                else
-                {
-                    logger.LogWarning("BuildLegacyIIIF called with non-IIIF3 BuildResult. Id: '{Identifier}'",
-                        identifier);
-                }
+                // safety check - could be achieved with .Single() above but wouldn't be as clear
+                throw new InvalidOperationException(
+                    $"Collection has manifests with multiple differing rights: {string.Join(",", rights)}");
             }
 
-            return multipleBuildResult;
+            iiifCollection.Rights = rights.Single();
         }
+
+        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
+            => presentation2Converter.ConvertAll(identifier, buildResults);
 
         private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {

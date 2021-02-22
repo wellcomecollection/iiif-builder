@@ -39,13 +39,53 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             this.uriPatterns = uriPatterns;
             this.logger = logger;
         }
-        
+
+        /// <summary>
+        /// Convert all supplied BuildResults to P2 equivalents.
+        /// </summary>
+        public MultipleBuildResult ConvertAll(string identifier, IEnumerable<BuildResult> buildResults)
+        {
+            var multipleBuildResult = new MultipleBuildResult();
+            logger.LogDebug("Building LegacyIIIF for Id '{Identifier}'", identifier);
+
+            int count = 0;
+            foreach (var buildResult in buildResults)
+            {
+                if (buildResult.IIIFVersion == IIIF.Presentation.Version.V3 && buildResult.IIIFResource is Presi3.StructureBase iiif3)
+                {
+                    var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
+                    try
+                    {
+                        var iiif2 = Convert(iiif3, buildResult.Id, count);
+                        result.IIIFResource = iiif2;
+                        result.Outcome = BuildOutcome.Success;
+
+                        if (iiif2 is Manifest) count++;
+                    }
+                    catch (Exception e)
+                    {
+                        result.Message = e.Message;
+                        result.Outcome = BuildOutcome.Failure;
+                    }
+                    multipleBuildResult.Add(result);
+                }
+                else
+                {
+                    logger.LogWarning("BuildLegacyIIIF called with non-IIIF3 BuildResult. Id: '{Identifier}'",
+                        identifier);
+                }
+            }
+
+            return multipleBuildResult;
+        }
+
         /// <summary>
         /// Convert P3 Collection or Manifest to P2 equivalent.
         /// </summary>
         /// <param name="presentation">Collection or Manifest to convert.</param>
         /// <param name="identifier">BNumber of collection/manifest</param>
-        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier? identifier)
+        /// <param name="sequence">Index of this particular manifest in a sequence</param>
+        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier? identifier, int sequence = 0)
         {
             presentation.ThrowIfNull(nameof(presentation));
             identifier.ThrowIfNull(nameof(identifier));
@@ -54,7 +94,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 ResourceBase p2Resource = presentation switch
                 {
-                    Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true),
+                    Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true, sequence),
                     Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier!),
                     _ => throw new ArgumentException(
                         $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
@@ -80,11 +120,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             var collection = GetIIIFPresentationBase<Collection>(p3Collection);
             collection.ViewingHint = p3Collection.Behavior?.FirstOrDefault();
-            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/"); 
-            
+            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/");
+
+            int sequences = 0;
             collection.Manifests = p3Collection.Items
                 !.OfType<Presi3.Manifest>()
-                .Select(m => ConvertManifest(m, identifier, false))
+                .Select(m => ConvertManifest(m, identifier, false, sequences++))
                 .ToList();
             collection.Collections = p3Collection.Items
                 .OfType<Presi3.Collection>()
@@ -94,7 +135,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string? identifier, bool rootResource)
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string? identifier, bool rootResource, int? sequence = 0)
         {
             if (rootResource && p3Manifest.Items.IsNullOrEmpty())
             {
@@ -210,12 +251,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 canvases.Add(canvas);
             }
 
+            var sequenceId = $"s{sequence ?? 0}";
             manifest.Sequences = new List<Sequence>
             {
                 new()
                 {
-                    Id = GetSequenceId(identifier, "s0"),
-                    Label = new MetaDataValue("Sequence s0"),
+                    Id = GetSequenceId(identifier, sequenceId),
+                    Label = new MetaDataValue($"Sequence {sequenceId}"),
                     Rendering = p3Manifest.Rendering?
                         .Select(r => new Presi2.ExternalResource
                             {Format = r.Format, Id = r.Id, Label = MetaDataValue.Create(r.Label, true)})

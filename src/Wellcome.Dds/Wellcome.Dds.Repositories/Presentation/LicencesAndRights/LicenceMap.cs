@@ -27,7 +27,8 @@ namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights
                 ["CC-BY-NC-SA"] = "https://creativecommons.org/licenses/by-nc-sa/4.0/",
                 ["OGL"] = "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/",
                 ["OPL"] = "http://www.parliament.uk/site-information/copyright/open-parliament-licence/",
-                ["ARR"] = "https://en.wikipedia.org/wiki/All_rights_reserved "
+                ["ARR"] = "https://en.wikipedia.org/wiki/All_rights_reserved",
+                ["All Rights Reserved"] = "https://en.wikipedia.org/wiki/All_rights_reserved",
             };
         }
 
