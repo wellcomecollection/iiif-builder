@@ -10,7 +10,7 @@ NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
 rules = {
     "": {
         # metadata + seeAlso massively different
-        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "otherContent"],
+        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso"],
         "extra_new": ["thumbnail", "attribution", "within", "description"],
     },
     "related": {
@@ -61,7 +61,8 @@ rules = {
         "size_only": ["canvases"]
     },
     "otherContent": {
-        "ignore": ["@id"]
+        "ignore": ["@id"],
+        "order_by": "@id"
     },
     "service:search": {
         "ignore": ["@id"],
@@ -120,10 +121,6 @@ class Comparer:
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
-
-        # otherContent can be in different order
-        are_equal = self.compare_other_content(original.get("otherContent", []),
-                                               new.get("otherContent", [])) and are_equal
 
         # fall through
         are_equal = self.dictionary_comparison(original, new, "") and are_equal
@@ -201,24 +198,7 @@ class Comparer:
 
         return are_equal
 
-    def compare_other_content(self, orig, new):
-        # can be in any order
-        orig_sorted = sorted(orig, key=lambda item: item["@id"])
-        new_sorted = sorted(new, key=lambda item: item["@id"])
-
-        if len(orig_sorted) != len(new_sorted):
-            logger.warning(f"otherContent are lists of different length")
-            return False
-
-        are_equal = True
-        for i in range(0, len(orig_sorted)):
-            are_equal = self.compare_elements("", "otherContent", orig_sorted[i], new_sorted[i]) and are_equal
-
-        return are_equal
-
     def dictionary_comparison(self, orig, new, level):
-        orig_keys = orig.keys()
-        new_keys = new.keys()
 
         are_equal = True
         rules_for_level = rules.get(level, {})
@@ -229,6 +209,8 @@ class Comparer:
         size_only = rules_for_level.get("size_only", [])
         ignore_length = rules_for_level.get("ignore_length", [])
 
+        orig_keys = orig.keys()
+        new_keys = new.keys()
         if orig_extra := orig_keys - new_keys:
             if unexpected_extra := [e for e in orig_extra if e not in expected_extra_orig]:
                 logger.warning(f"Original has additional keys '{','.join(unexpected_extra)}' at {level}")
@@ -247,7 +229,12 @@ class Comparer:
                 o = [o]
             if isinstance(o, list) and isinstance(n, dict):
                 n = [n]
-            if isinstance(o, list) and isinstance(n, list):
+            if isinstance(o, list) and isinstance(n, list):q
+                # if the 'next' level has an orderBy rule, reorder before compare
+                if order_by := rules.get(self.get_next_level(level, key), {}).get("order_by", ""):
+                    o = sorted(o, key=lambda item: item[order_by])
+                    n = sorted(n, key=lambda item: item[order_by])
+
                 if key not in ignore_length and len(o) != len(n):
                     logger.warning(f"{key} at {level} are lists of different length")
                     are_equal = False
@@ -347,10 +334,10 @@ async def run_comparison(bnumbers):
 
                 if comparer.run_compare(bnumber, original, new):
                     passed.append(bnumber)
-                    logger.info(f"{bnumber} passed")
+                    logger.info(f"**{bnumber} passed")
                 else:
                     failed.append(bnumber)
-                    logger.info(f"{bnumber} failed")
+                    logger.info(f"**{bnumber} failed")
             except Exception:
                 e = traceback.format_exc()
                 logger.error(f"Error processing {bnumber}: {e}")
