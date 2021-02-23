@@ -383,18 +383,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <exception cref="NotImplementedException"></exception>
         private void AddCommonMetadata(
             StructureBase iiifResource, Work work,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata? manifestationMetadata)
         {
             iiifResource.EnsurePresentation3Context();
             iiifResource.Label = Lang.Map(work.Title);
             build.SeeAlso(iiifResource, work);
             iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);
-            iiifResource.AddOtherProvider(manifestationMetadata, ddsOptions.LinkedDataDomain);
-            build.Aggregations(iiifResource, manifestationMetadata);
+            if (manifestationMetadata != null)
+            {
+                iiifResource.AddOtherProvider(manifestationMetadata, ddsOptions.LinkedDataDomain);
+                build.Aggregations(iiifResource, manifestationMetadata);
+            }
             build.Summary(iiifResource, work);
             build.HomePage(iiifResource, work);
             build.Metadata(iiifResource, work);
-            build.ArchiveCollectionStructure(iiifResource, work);
+            build.ArchiveCollectionStructure(iiifResource, work, 
+                () => dds.GetManifestationsForChildren(work.ReferenceNumber));
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
@@ -773,6 +777,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                 annotationList.Resources.Add(annotation);
             }
             return annotationList;
+        }
+
+        public Collection BuildArchiveNode(Work work)
+        {
+            var collection = new Collection
+            {
+                Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber)
+            };
+            AddCommonMetadata(collection, work, null);
+            return collection;
         }
     }
 }

@@ -63,5 +63,12 @@ namespace Wellcome.Dds.Repositories
             };
             return result;
         }
+
+        public List<Manifestation> GetManifestationsForChildren(string workReferenceNumber)
+        {
+            return ddsContext.Manifestations
+                .Where(m => m.CalmAltRefParent == workReferenceNumber)
+                .ToList();
+        }
     }
 }

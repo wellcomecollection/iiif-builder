@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using IIIF.Presentation.V3;
-using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Utils;
-using Utils.Storage;
 using Utils.Web;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
@@ -31,6 +30,8 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly Helpers helpers;
         private UriPatterns uriPatterns;
         private DdsContext ddsContext;
+        private IIIIFBuilder iiifBuilder;
+        private ICatalogue catalogue;
 
         /// <summary>
         /// 
@@ -38,17 +39,24 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="options"></param>
         /// <param name="helpers"></param>
         /// <param name="uriPatterns"></param>
+        /// <param name="ddsContext"></param>
+        /// <param name="iiifBuilder"></param>
+        /// <param name="catalogue"></param>
         public PresentationController(
             IOptions<DdsOptions> options,
             Helpers helpers,
             UriPatterns uriPatterns,
-            DdsContext ddsContext
+            DdsContext ddsContext,
+            IIIIFBuilder iiifBuilder,
+            ICatalogue catalogue
             )
         {
             ddsOptions = options.Value;
             this.helpers = helpers;
             this.uriPatterns = uriPatterns;
             this.ddsContext = ddsContext;
+            this.iiifBuilder = iiifBuilder;
+            this.catalogue = catalogue;
         }
         
         /// <summary>
@@ -155,6 +163,56 @@ namespace Wellcome.Dds.Server.Controllers
             }
             
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("collections/archives/{*referenceNumber}")]
+        public async Task<IActionResult> ArchivesReference(string referenceNumber)
+        {
+            Collection collection;
+            if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
+            {
+                collection = GetNoCollectionArchive();
+            }
+            else
+            {
+                var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work.HasDigitalLocation())
+                {
+                    var bNumber = work.GetSierraSystemBNumbers().First();
+                    return Redirect(uriPatterns.Manifest(bNumber));
+                }
+
+                collection = iiifBuilder.BuildArchiveNode(work);
+                
+            }
+            return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+
+        private Collection GetNoCollectionArchive()
+        {
+            var collection = new Collection
+            {
+                Id = uriPatterns.CollectionForAggregation("archives", Manifestation.EmptyTopLevelArchiveReference),
+                Label = new LanguageMap("en", Manifestation.EmptyTopLevelArchiveTitle),
+                Items = new List<ICollectionItem>()
+            };
+            foreach (var manifestation in ddsContext.Manifestations.Where(m => m.CollectionTitle == "(no-title)"))
+            {
+                var labels = new string[] {manifestation.Label, manifestation.ReferenceNumber};
+                collection.Items.Add(new Manifest
+                {
+                    
+                    Id = uriPatterns.Manifest(manifestation.PackageIdentifier),
+                    Label = new LanguageMap("en", labels),
+                    Thumbnail = manifestation.GetThumbnail()
+                });
+            }
+
+            return collection;
         }
 
 

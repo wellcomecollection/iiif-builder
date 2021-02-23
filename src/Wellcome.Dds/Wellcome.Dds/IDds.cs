@@ -13,5 +13,6 @@ namespace Wellcome.Dds
         Task RefreshManifestations(string id, Work work = null);
 
         ManifestationMetadata GetManifestationMetadata(string id);
+        List<Manifestation> GetManifestationsForChildren(string workReferenceNumber);
     }
 }

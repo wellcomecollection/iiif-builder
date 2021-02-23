@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using IIIF.Presentation.V2.Annotation;
+using IIIF.Presentation.V3;
 using IIIF.Search.V1;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -66,5 +67,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="v3">A dynamically parsed JSON object</param>
         /// <returns>A V2 (Open Annotation) AnnotatioList</returns>
         AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string assetIdentifier);
+
+        Collection BuildArchiveNode(Work work);
     }
 }

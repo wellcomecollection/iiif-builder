@@ -25,6 +25,9 @@
         public Work[] Parts { get; set; }
         public Work[] PrecededBy { get; set; }
         public Work[] SucceededBy { get; set; }
+        
+        public int TotalParts { get; set; }
+        public int TotalDescendentParts { get; set; }
 
         /// <summary>
         /// Optional extra: works that are matches on the same identifier (b number)
