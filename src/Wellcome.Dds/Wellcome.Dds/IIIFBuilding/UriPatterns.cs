@@ -84,6 +84,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
         private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
         private const string PosterImageFormat =                  "/thumbs/{identifier}";
+        private const string PdfThumbnailFormat =                 "/thumbs/{identifier}"; // make these the same for now
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
@@ -345,6 +346,11 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
         }
+        
+        public string PdfThumbnail(string manifestIdentifier)
+        {
+            return ManifestIdentifier(PdfThumbnailFormat, manifestIdentifier);
+        }
 
         public string GetPath(string format, string manifestIdentifier,
             params (string Token, string Replacement)[] replacements)
@@ -358,5 +364,7 @@ namespace Wellcome.Dds.IIIFBuilding
 
             return path;
         }
+
+        
     }
 }

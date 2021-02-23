@@ -24,6 +24,8 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(string id)
         {
+            // TODO - if it's a BD PDF, return the large thumb or a resize of it or an info.json
+            
             IMetsResource resource = await metsRepository.GetAsync(id);
             if (resource is ICollection multipleManifestation)
             {

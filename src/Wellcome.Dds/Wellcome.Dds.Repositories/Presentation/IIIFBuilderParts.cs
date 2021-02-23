@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2.Strings;
@@ -46,8 +48,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService externalAuthService;
         private readonly IService externalAuthServiceReference;
         
-        public IIIFBuilderParts(
-            UriPatterns uriPatterns,
+        public IIIFBuilderParts(UriPatterns uriPatterns,
             int dlcsDefaultSpace,
             bool referenceV0SearchService)
         {
@@ -409,7 +410,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             if (transcriptPdf != null)
                             {
                                 // A new workflow transcript for this AV file
-                                AddPdfTranscriptToCanvas(manifestIdentifier, canvas, transcriptPdf);
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
                             }
                         }
 
@@ -421,15 +422,33 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
-                        // This might be an AV transcript, in which case we note it down and add it to the AVState
-                        // Or it might just be a PDF, Born Digital - in which case... what? We can't make IIIF3 for it.
-                        // Make an issue for this.
-                        // 
-                        // see b17502792
-                        // If this is a transcript, store in AV state map
-                        // what do we need to tie it to the right vid? Just one of each? Never more complex than that, yet.
-                        state.FileState ??= new FileState();
-                        state.FileState.FoundFiles.Add(physicalFile);
+                        if (metsManifestation.Type == "Monograph")
+                        {
+                            // TODO: is this simple logic OK for every BD PDF? See what comparison tool reveals.
+                            // This is a born digital PDF
+                            var bornDigitalPdf = physicalFile.Files.FirstOrDefault();
+                            if (bornDigitalPdf != null)
+                            {
+                                // A new workflow transcript for this AV file
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
+                                    "pdf", manifest.Label.ToString());
+                                manifest.Behavior = null;
+                                manifest.Thumbnail = new List<ExternalResource>
+                                {
+                                    new Image
+                                    {
+                                        Id = uriPatterns.PdfThumbnail(manifestIdentifier),
+                                        Format = "image/jpeg"
+                                    }
+                                };
+                            }
+                        }
+                        else
+                        {
+                            // An AV transcript. Note it down and add it to the AVState
+                            state.FileState ??= new FileState();
+                            state.FileState.FoundFiles.Add(physicalFile);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -946,7 +965,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (tCounter < avCanvases.Count)
                     {
-                        AddPdfTranscriptToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0]);
+                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0], "transcript", "PDF Transcript");
                     }
                 }
             }
@@ -962,23 +981,24 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private void AddPdfTranscriptToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile storedPdf)
+        private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
+            string annoIdentifier, string label)
         {
             canvas.Annotations ??= new List<AnnotationPage>();
             canvas.Annotations.Add(new AnnotationPage
             {
                 Id = uriPatterns.CanvasSupplementingAnnotationPage(
-                    manifestIdentifier, storedPdf.StorageIdentifier),
+                    manifestIdentifier, pdfFile.StorageIdentifier),
                 Items = new List<IAnnotation>
                 {
                     new SupplementingDocumentAnnotation
                     {
                         Id = uriPatterns.CanvasSupplementingAnnotation(
-                            manifestIdentifier, storedPdf.StorageIdentifier, "transcript"),
+                            manifestIdentifier, pdfFile.StorageIdentifier, annoIdentifier),
                         Body = new ExternalResource("Text")
                         {
-                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),
-                            Label = Lang.Map("PDF Transcript"),
+                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, pdfFile.StorageIdentifier),
+                            Label = Lang.Map(label),
                             Format = "application/pdf"
                         },
                         Target = new Canvas {Id = canvas.Id}
