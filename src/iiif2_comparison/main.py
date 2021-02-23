@@ -75,13 +75,13 @@ rules = {
         "ignore": ["@id", "label"],
         "version_insensitive": ["profile"]
     },
-    "service:auth": {
+    "service:clickthrough": {
         "domain_insensitive": ["@id", "profile"]
     },
-    "service:auth-authService": {
+    "service:clickthrough-authService": {
         "ignore": ["profile"]
     },
-    "service:auth-authService-service": {
+    "service:clickthrough-authService-service": {
         "version_insensitive": ["profile"]
     },
     "manifests": {  # collections only
@@ -238,10 +238,13 @@ class Comparer:
             for s in svcs:
                 profile = s.get("profile", "")
                 if "access-control-hints" in profile:
-                    if s.get("accessHint", "") == "open":  # should this be in new?
+                    access_hint = s.get("accessHint", "")
+                    if access_hint == "open":  # should this be in new?
                         output["open-access"] = s
-                    else:
-                        output["auth"] = s
+                    elif access_hint == "clickthrough":
+                        output["clickthrough"] = s
+                    elif access_hint == "external":
+                        output["external"] = s
                 elif "search" in profile:
                     output["search"] = s
                 elif "tracking" in profile:
@@ -254,6 +257,7 @@ class Comparer:
         new_services = get_svc_list(new)
 
         if len(orig_services) != len(new_services):
+            self.warnings.append(f"service are different lengths: {len(orig_services)} - {len(new_services)}")
             logger.debug(f"service are different lengths: {len(orig_services)} - {len(new_services)}")
 
         for k, o in orig_services.items():
@@ -467,35 +471,42 @@ async def main(bnums):
 
     async with Loader() as loader:
         comparer = Comparer(loader)
-        for bnumber in bnums:
+        count = 0
+        for bnumber in await bnum_generator(bnums):
+            count += 1
             original = await loader.fetch_bnumber(bnumber, True)
             new = await loader.fetch_bnumber(bnumber, False)
 
             if not original or not new:
-                logger.info(f"**{bnumber} failed")
+                logger.info(f"{count}**{bnumber} failed")
                 failed.append(bnumber)
                 continue
 
             if await comparer.start_comparison(original, new, bnumber):
                 passed.append(bnumber)
-                logger.info(f"**{bnumber} passed")
+                logger.info(f"{count}**{bnumber} passed")
                 if comparer.warnings:
                     logger.info("\n-".join(set(comparer.warnings)))
             else:
                 failed.append(bnumber)
-                logger.info(f"**{bnumber} failed")
+                logger.info(f"{count}**{bnumber} failed")
                 logger.info("\n-".join(set(comparer.failures)))
 
     logger.info("*****************************")
-    logger.info(f"passed: {','.join(passed)}")
-    logger.info(f"failed: {','.join(failed)}")
+    logger.info(f"passed ({len(passed)}): {','.join(passed)}")
+    logger.info(f"failed ({len(failed)}): {','.join(failed)}")
+
+
+async def bnum_generator(bnums):
+    # Allows bnums to be a list or a file location
+    # Just because you can, doesn't mean you should
+    return (row.strip("\n") for row in open(bnums)) if isinstance(bnums, str) else bnums
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #failed: 'b24990796','b10727000','b32496485','b14584463','b10727000','b2178081x','b24923333','b18031511'
-
-    bnums = [
-        "b24990796", ]
-
-    asyncio.run(main(bnums))
+    bnums = ['b32497179', 'b32497167', 'b32497088', 'b19348216', 'b24967646', 'b29182608', 'b22454408', 'b2043067x',
+             'b30136155', 'b19812292', 'b19812413', 'b31919996', 'b19977335', 'b24990796', 'b18031511', 'b10727000',
+             'b24923333']
+    file = r"C:\repos\wellcomecollection\iiif-builder\src\Wellcome.Dds\CatalogueClient\examples.txt"
+    asyncio.run(main(['b19818786']))
