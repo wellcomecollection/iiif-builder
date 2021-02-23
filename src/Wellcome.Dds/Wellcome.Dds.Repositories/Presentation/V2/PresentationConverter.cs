@@ -14,11 +14,11 @@ using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Utils;
 using Utils.Guard;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using Presi3 = IIIF.Presentation.V3;
 using Presi2 = IIIF.Presentation.V2;
@@ -281,7 +281,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             var copiedService = DeepCopy(authResourceBase, svc =>
             {
                 svc.Type = null;
-                svc.Context = Constants.IIIFAuthContext;
+                svc.Context = IIIF.Auth.V1.Constants.IIIFAuthContext;
             })!;
 
             // The access hint is the last section of current profile
@@ -297,7 +297,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 foreach (var svc in cookieService.Service.OfType<ResourceBase>())
                 {
                     svc.Type = null;
-                    svc.Context = Constants.IIIFAuthContext;
+                    svc.Context = IIIF.Auth.V1.Constants.IIIFAuthContext;
                     if (svc.Label != null)
                     {
                         svc.Description = svc.Label;
@@ -389,7 +389,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // NOTE - using assignment statements rather than object initialiser to get line numbers for any errors
             var presentationBase = new T();
             presentationBase.Id = resourceBase.Id;
-            presentationBase.Attribution = MetaDataValue.Create(resourceBase.RequiredStatement?.Label, true);
             presentationBase.Description = MetaDataValue.Create(resourceBase.Summary, true);
             presentationBase.Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter);
             presentationBase.License = resourceBase.Rights;
@@ -419,6 +418,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             if (!resourceBase.Provider.IsNullOrEmpty())
             {
+                // Wellcome will always be the first provider
                 presentationBase.Logo = resourceBase.Provider!.First().Logo?.FirstOrDefault()?.Id;
             }
             
@@ -433,8 +433,64 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     .Cast<IAnnotationListReference>()
                     .ToList();
             }
+
+            if (resourceBase.RequiredStatement != null)
+            {
+                AddAttributionAndUsageMetadata(resourceBase, presentationBase);
+            }
             
             return presentationBase;
+        }
+
+        private static void AddAttributionAndUsageMetadata<T>(Presi3.StructureBase resourceBase, T presentationBase)
+            where T : IIIFPresentationBase, new()
+        {
+            presentationBase.Metadata ??= new List<Presi2.Metadata>();
+
+            var requiredStatement = resourceBase.RequiredStatement!.Value.SelectMany(rs => rs.Value).ToList();
+            if (!requiredStatement.HasItems()) return;
+            
+            // more than 1 provider means wellcome + _other_, so use other as attribution
+            bool isNotWellcome = resourceBase.Provider!.Count > 1;
+            var agent = resourceBase.Provider!.Last();
+            
+            // Attribution is the first element of the requiredStatement
+            var attribution = isNotWellcome ? agent.Label!.ToString() : Constants.WellcomeAttribution;
+            
+            // requiredStatement.First();
+            // if (attribution != Constants.WellcomeAttribution)
+            var statement = LicenseMap.GetLicenseAbbreviation(presentationBase.License ?? string.Empty);
+            presentationBase.Metadata.Add(new Presi2.Metadata
+            {
+                Label = new MetaDataValue("Attribution"),
+                Value = new MetaDataValue(string.IsNullOrEmpty(statement)
+                    ? attribution
+                    : $"{attribution}<br/>License: {statement}")
+            });
+
+            // Conditions of use is last section of requiredStatement
+            if (requiredStatement.Count > 1)
+            {
+                presentationBase.Metadata.Add(new Presi2.Metadata
+                {
+                    Label = new MetaDataValue("Full conditions of use"),
+                    Value = new MetaDataValue(requiredStatement.Last())
+                });
+            }
+
+            if (isNotWellcome)
+            {
+                // add repository if ! wellcome
+                var logo = agent.Logo?.FirstOrDefault()?.Id;
+                var licenseText = requiredStatement.First();
+                var repository =
+                    $"<img src='{logo}' alt='{attribution}' /><br/><br/>{licenseText}";
+                presentationBase.Metadata.Add(new Presi2.Metadata
+                {
+                    Label = new MetaDataValue("Repository"),
+                    Value = new MetaDataValue(repository)
+                });
+            }
         }
 
         private static List<Thumbnail>? ConvertThumbnails(List<ExternalResource>? thumbnails)

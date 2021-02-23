@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights
 {
     public class LicenseMap
     {
-        private static readonly LicenseMap Instance = new LicenseMap();
+        private static readonly LicenseMap Instance = new();
         private readonly Dictionary<string, string> dict;
+        private readonly Dictionary<string, string> reverse;
 
         static LicenseMap()
         {
@@ -30,20 +32,16 @@ namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights
                 ["ARR"] = "https://en.wikipedia.org/wiki/All_rights_reserved",
                 ["All Rights Reserved"] = "https://en.wikipedia.org/wiki/All_rights_reserved",
             };
+
+            reverse = dict.Where(kvp => kvp.Key != "ARR").ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
         }
 
-        public static string GetLicenseUri(string licenseAbbreviation)
-        {
-            if (Instance.dict.ContainsKey(licenseAbbreviation))
-            {
-                return Instance.dict[licenseAbbreviation];
-            }
-            return null;
-        }
+        public static string? GetLicenseUri(string licenseAbbreviation) 
+            => Instance.dict.TryGetValue(licenseAbbreviation, out string? uri) ? uri : null;
+        
+        public static string? GetLicenseAbbreviation(string licenseUri) 
+            => Instance.reverse.TryGetValue(licenseUri, out string? abbreviation) ? abbreviation : null;
 
-        public static Dictionary<string, string> GetDictionary()
-        {
-            return Instance.dict;
-        } 
+        public static Dictionary<string, string> GetDictionary() => Instance.dict;
     }
 }
