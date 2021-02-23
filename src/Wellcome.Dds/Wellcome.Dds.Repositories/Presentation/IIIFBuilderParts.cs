@@ -799,13 +799,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-
         // ^^ move to structurehelper?
-        
-        
-        
-        
-        
+
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -813,20 +808,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Annotations = new List<AnnotationPage>
                 {
-                    new AnnotationPage
-                    {
-                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
-                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
-                    },
-                    new AnnotationPage
+                    new()
                     {
                         Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
                     },
+                    new()
+                    {
+                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
+                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
+                    },
                 };
             }
         }
-
 
         public void Metadata(ResourceBase iiifResource, Work work)
         {
