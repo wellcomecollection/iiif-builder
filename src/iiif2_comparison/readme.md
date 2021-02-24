@@ -32,6 +32,7 @@ The rule types are (with the exception of `order_by` all values are `list`):
 * `version_insensitive` - Compare string values but ignore single values. This is for dlcs.io space or iiif.io profiles with different version numbers etc.
 * `domain_insensitive` - Compare uri values but ignore domain.
 * `bnumber_insensitive` - Compare strings, expecting only difference to be a bnumber.
+* `dlcs_comparison` - Compare, coping for different dlc spaces and wc.org equivalents.
 * `size_only` - don't check the actual values of list object, only verify that the size is the same.
 * `order_by` - key to sort `[{}]` object prior to comparison.
 

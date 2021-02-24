@@ -341,8 +341,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (authServiceManager.HasItems)
             {
                 // Get all service references from image-service (will be auth services)
+                // for P3 we will _only_ have svc refs, the main Auth services will be in the manifest.Service element 
                 var authServiceReferences = imageService?.Service?.OfType<ServiceReference>().ToList();
-
                 if (authServiceReferences.HasItems())
                 {
                     // Remove these from imageService.Services
@@ -350,7 +350,20 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                     // Re-add appropriate services. This will be full AuthService if first time it appears,
                     // or serviceReference if it is not the first time
-                    imageService?.Service?.AddRange(authServiceReferences!.Select(r => authServiceManager.Get(r.Id!)));
+                    foreach (var authRef in authServiceReferences!)
+                    {
+                        var service = authServiceManager.Get(authRef.Id!);
+                        if (service is WellcomeAuthService was)
+                        {
+                            // if we have a wellcomeAuthService add the "AuthService" only
+                            imageService?.Service?.AddRange(was.AuthService);
+                        }
+                        else
+                        {
+                            // else just re-add the reference
+                            imageService?.Service?.Add(service);
+                        }
+                    }
                 }
             }
 
@@ -434,34 +447,38 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             var requiredStatement = resourceBase.RequiredStatement!.Value.SelectMany(rs => rs.Value).ToList();
             if (!requiredStatement.HasItems()) return;
-            
+
+            // Conditions of use is last section of requiredStatement
+            var conditionsOfUse = requiredStatement.Count > 1 ? requiredStatement.Last() : string.Empty;
+
             // more than 1 provider means wellcome + _other_, so use other as attribution
             bool isNotWellcome = resourceBase.Provider!.Count > 1;
             var agent = resourceBase.Provider!.Last();
-            
+
             // Attribution is the first element of the requiredStatement
             var attribution = isNotWellcome ? agent.Label!.ToString() : Constants.WellcomeCollection;
-            
-            // requiredStatement.First();
-            // if (attribution != Constants.WellcomeAttribution)
-            var statement = LicenseMap.GetLicenseAbbreviation(presentationBase.License ?? string.Empty);
+
+            // Check to see if we can get license to add to Attribution
+            var license = LicenseMap.GetLicenseAbbreviation(presentationBase.License ?? string.Empty);
+            if (string.IsNullOrEmpty(license) && conditionsOfUse.Contains(Constants.InCopyrightConditionStatement))
+            {
+                // "in copyright" works don't have a .License so need to look at conditions of use to determine value
+                license = Constants.InCopyrightCondition;
+            }
+
             presentationBase.Metadata.Add(new Presi2.Metadata
             {
                 Label = new MetaDataValue("Attribution"),
-                Value = new MetaDataValue(string.IsNullOrEmpty(statement)
+                Value = new MetaDataValue(string.IsNullOrEmpty(license)
                     ? attribution
-                    : $"{attribution}<br/>License: {statement}")
+                    : $"{attribution}<br/>License: {license}")
             });
 
-            // Conditions of use is last section of requiredStatement
-            if (requiredStatement.Count > 1)
+            presentationBase.Metadata.Add(new Presi2.Metadata
             {
-                presentationBase.Metadata.Add(new Presi2.Metadata
-                {
-                    Label = new MetaDataValue("Full conditions of use"),
-                    Value = new MetaDataValue(requiredStatement.Last())
-                });
-            }
+                Label = new MetaDataValue("Full conditions of use"),
+                Value = new MetaDataValue(conditionsOfUse)
+            });
 
             if (isNotWellcome)
             {

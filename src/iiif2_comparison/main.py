@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import logging
 import logzero
+import json
 from logzero import logger
 
 logzero.loglevel(logging.INFO)
@@ -52,6 +53,7 @@ rules = {
     },
     "sequences-canvases-images-resource-service-service": {
         "version_insensitive": ["profile"],  # auth
+        "ignore": ["failureDescription"]  # these differ for restricted due to html tags only
     },
     "sequences-canvases-images-resource-service-service-service": {
         "version_insensitive": ["profile"],  # auth
@@ -76,7 +78,7 @@ rules = {
         "version_insensitive": ["profile"]
     },
     "service:clickthrough": {
-        "domain_insensitive": ["@id", "profile"]
+        "domain_insensitive": ["@id", "profile", "@context"]
     },
     "service:clickthrough-authService": {
         "ignore": ["profile"]
@@ -128,7 +130,7 @@ class Comparer:
         # do a "Contains" check for label
         are_equal = True
         self.compare_label(original["label"], new["label"])
-        are_equal = self.compare_license(original.get("license", None), new.get("license", None)) and are_equal
+        self.compare_license(original.get("license", None), new.get("license", None))
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original.get("service", {}), new.get("service", {})) and are_equal
@@ -175,10 +177,13 @@ class Comparer:
                 self._is_authed = True
                 self.clean_auth(original)
 
+        # with open('./original_no_auth.json', 'w') as f:
+        #     json.dump(original, f)
+
         # do a "Contains" check for label
         are_equal = True
         self.compare_label(original["label"], new["label"])
-        are_equal = self.compare_license(original.get("license", None), new.get("license", None)) and are_equal
+        self.compare_license(original.get("license", ""), new.get("license", ""))
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
@@ -195,7 +200,13 @@ class Comparer:
 
     def compare_license(self, orig, new):
         all_rights = "https://en.wikipedia.org/wiki/All_rights_reserved"
-        return orig == new if orig else new == all_rights
+
+        if orig and orig != new:
+            logger.debug(f"'_root_'.'license' origin has value and doesn't match: {orig} - {new}")
+            self.warnings.append("'_root_'.'license' mismatch")
+        elif new != all_rights:
+            logger.debug(f"'_root_'.'license' origin has no value new isn't ARR: {orig} - {new}")
+            self.warnings.append("'_root_'.'license' mismatch")
 
     def clean_auth(self, original):
         # auth services are duplicated in the original in:
@@ -205,16 +216,17 @@ class Comparer:
         # the duplicated element is not identical, one has missing elements. Remove the more sparse one.
         # missing elements: confirmLabel, header, failureHeader and failureDescription
 
-        def clean_service_element(services):
+        def clean_service_element(services, is_image_service=False):
+            # keep non-duplicates in image-service but don't keep in images.services[] element
             to_keep = []
             for svc in services:
                 if isinstance(svc, str):
-                    if svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
+                    if is_image_service and svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
                         to_keep.append(svc)
                 elif "/image/" in svc["@context"]:  # this is an image service, process it's internal services element
-                    svc["service"] = clean_service_element(svc["service"])
+                    svc["service"] = clean_service_element(svc["service"], True)
                     to_keep.append(svc)
-                elif "auth" in svc["@id"] and "header" in svc:
+                elif "auth" in svc["@id"] and "failureHeader" in svc and is_image_service:
                     to_keep.append(svc)
 
             return to_keep
@@ -521,8 +533,8 @@ async def main(bnums):
             new = await loader.fetch_bnumber(bnumber, False)
 
             if not original or not new:
-                logger.info(f"{count}**{bnumber} failed")
-                failed.append(bnumber)
+                logger.info(f"{count}**{bnumber} failed to load")
+                failed.append(f"{'new' if original else 'original'} failed to load")
                 continue
 
             if await comparer.start_comparison(original, new, bnumber):
@@ -547,8 +559,6 @@ async def bnum_generator(bnums):
 
 
 if __name__ == '__main__':
-    bnums = ['b32497179', 'b32497167', 'b32497088', 'b19348216', 'b24967646', 'b29182608', 'b22454408', 'b2043067x',
-             'b30136155', 'b19812292', 'b19812413', 'b31919996', 'b19977335', 'b24990796', 'b18031511', 'b10727000',
-             'b24923333']
+    bnums = ['b28685520', 'b15701360', 'b20461549', 'b28644475', 'b28545187', 'b20442324']
     file = r"C:\repos\wellcomecollection\iiif-builder\src\Wellcome.Dds\CatalogueClient\examples.txt"
-    asyncio.run(main(['b19818786']))
+    asyncio.run(main(bnums))
