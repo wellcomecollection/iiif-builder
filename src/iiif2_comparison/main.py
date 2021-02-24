@@ -7,13 +7,13 @@ from logzero import logger
 logzero.loglevel(logging.INFO)
 
 ORIGINAL_FORMAT = "https://wellcomelibrary.org/iiif/{bnum}/manifest"
-NEW_FORMAT = "http://localhost:8084/presentation/v2/{bnum}"
+NEW_FORMAT = "https://iiif-test.wellcomecollection.org/presentation/v2/{bnum}"
 
 rules = {
     "": {
         # metadata + seeAlso massively different
-        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license"],
-        "extra_new": ["thumbnail", "attribution", "within", "description"],
+        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license" ],
+        "extra_new": ["thumbnail", "within", "description"],
         "extra_orig": ["service"]  # TODO - this will be fixed in #5034
     },
     "related": {
@@ -64,7 +64,6 @@ rules = {
     },
     "otherContent": {
         "ignore": ["@id"],
-        "order_by": "@id",
         "bnumber_insensitive": ["label"]  # required for manifests in collections
     },
     "service:search": {
@@ -125,11 +124,10 @@ class Comparer:
             return await self.compare_collections(original, new)
 
     async def compare_collections(self, original, new):
-        # TODO clean auth like manifests?
-
         # do a "Contains" check for label
         are_equal = True
-        self.compare_label(new, original)
+        self.compare_label(original["label"], new["label"])
+        are_equal = self.compare_license(original.get("license", None), new.get("license", None)) and are_equal
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original.get("service", {}), new.get("service", {})) and are_equal
@@ -178,7 +176,8 @@ class Comparer:
 
         # do a "Contains" check for label
         are_equal = True
-        self.compare_label(new, original)
+        self.compare_label(original["label"], new["label"])
+        are_equal = self.compare_license(original.get("license", None), new.get("license", None)) and are_equal
 
         # services are finnicky - handle separately
         are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
@@ -188,12 +187,14 @@ class Comparer:
 
         return are_equal
 
-    def compare_label(self, new, original):
-        orig_label = original["label"]
-        new_label = new["label"]
-        if orig_label != new_label and orig_label not in new_label:
-            logger.debug(f"'_root_'.'label' mismatch: {orig_label} - {new_label}")
+    def compare_label(self, orig, new):
+        if orig != new and orig not in new:
+            logger.debug(f"'_root_'.'label' mismatch: {orig} - {new}")
             self.warnings.append("'_root_'.'label' mismatch")
+
+    def compare_license(self, orig, new):
+        all_rights = "https://en.wikipedia.org/wiki/All_rights_reserved"
+        return orig == new if orig else new == all_rights
 
     def clean_auth(self, original):
         # auth services are duplicated in the original in:
@@ -503,7 +504,6 @@ async def bnum_generator(bnums):
     return (row.strip("\n") for row in open(bnums)) if isinstance(bnums, str) else bnums
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     bnums = ['b32497179', 'b32497167', 'b32497088', 'b19348216', 'b24967646', 'b29182608', 'b22454408', 'b2043067x',
              'b30136155', 'b19812292', 'b19812413', 'b31919996', 'b19977335', 'b24990796', 'b18031511', 'b10727000',
