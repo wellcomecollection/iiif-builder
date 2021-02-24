@@ -5,9 +5,8 @@
         public string? Id { get; set; }
         public string? Type { get; set; }
 
-        public ServiceReference(string type)
+        public ServiceReference()
         {
-            Type = type;
         }
 
         public ServiceReference(IService service)

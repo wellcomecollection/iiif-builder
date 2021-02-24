@@ -85,7 +85,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         /// <param name="presentation">Collection or Manifest to convert.</param>
         /// <param name="identifier">BNumber of collection/manifest</param>
         /// <param name="sequence">Index of this particular manifest in a sequence</param>
-        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier? identifier, int sequence = 0)
+        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier identifier, int sequence = 0)
         {
             presentation.ThrowIfNull(nameof(presentation));
             identifier.ThrowIfNull(nameof(identifier));
@@ -122,10 +122,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             collection.ViewingHint = p3Collection.Behavior?.FirstOrDefault();
             collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/");
 
-            int sequences = 0;
             collection.Manifests = p3Collection.Items
                 !.OfType<Presi3.Manifest>()
-                .Select(m => ConvertManifest(m, identifier, false, sequences++))
+                .Select(m => ConvertManifest(m, identifier, false))
                 .ToList();
             collection.Collections = p3Collection.Items
                 .OfType<Presi3.Collection>()
@@ -135,7 +134,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, string? identifier, bool rootResource, int? sequence = 0)
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource, int? sequence = 0)
         {
             if (rootResource && p3Manifest.Items.IsNullOrEmpty())
             {
@@ -150,7 +149,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services
             // but with some values stripped back (ConfirmLabel, Header etc).
             // however - we want the full object to FIRST canvas, and links thereafter
-            WellcomeAuthService? wellcomeAuthService = null;
+            WellcomeAuthServiceManager authServiceManager = new();
 
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
             manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
@@ -158,31 +157,34 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // TODO - will need to handle {"@context": "http://universalviewer.io/context.json"} uihints + tracking
             // services once these are added to IIIF3 manifest. Will be added to p3Manifest.Service
 
-            if (!p3Manifest.Services.IsNullOrEmpty())
+            if (p3Manifest.Services.HasItems())
             {
                 manifest.Service ??= new List<IService>();
 
-                // P3 Services will all be auth-services
+                // P3.Services will all be auth-services
                 foreach (var authService in p3Manifest.Services!)
                 {
-                    wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+                    var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
 
                     // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
                     // null everywhere
-                    manifest.Service.Add(DeepCopy(wellcomeAuthService, authService =>
+                    manifest.Service.Add(DeepCopy(wellcomeAuthService, wellcomeAuth =>
                     {
-                        foreach (var authCookieService in authService.AuthService.OfType<AuthCookieService>())
+                        foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
                         {
                             authCookieService.ConfirmLabel = null;
                             authCookieService.Header = null;
                             authCookieService.FailureHeader = null;
                             authCookieService.FailureDescription = null;
                         }
-                    }));
+                    })!);
+                    
+                    // Add to wellcomeAuthServices collection, keyed by authService.id as we can use this to lookup later 
+                    authServiceManager.Add(wellcomeAuthService);
                 }
             }
 
-            if (!p3Manifest.Structures.IsNullOrEmpty())
+            if (p3Manifest.Structures.HasItems())
             {
                 manifest.Structures = new List<Range>(p3Manifest.Structures!.Count);
                 foreach (var r in p3Manifest!.Structures)
@@ -205,7 +207,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             // NOTE - there will only ever be 1 sequence
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
-            bool firstImage = true;
             foreach (var p3Canvas in p3Manifest.Items)
             {
                 var canvas = GetIIIFPresentationBase<Canvas>(p3Canvas);
@@ -241,8 +242,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                             continue;
                         }
 
-                        images.Add(GetImageAnnotation(image, paintingAnnotation, canvas, wellcomeAuthService, firstImage));
-                        firstImage = false;
+                        images.Add(GetImageAnnotation(image, paintingAnnotation, canvas, authServiceManager));
                     }
 
                     canvas.Images = images;
@@ -270,7 +270,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return manifest;
         }
 
-        private WellcomeAuthService GetWellcomeAuthService(string identifier, IService authService)
+        private WellcomeAuthService GetWellcomeAuthService(DdsIdentifier identifier, IService authService)
         {
             // All auth services are ResourceBase, we need to cast to access Context property to set it correctly
             if (authService is not ResourceBase authResourceBase)
@@ -305,68 +305,53 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }
             }
 
-            // Create a fale WellcomeAuthService to contain the above services
+            // Create a fake WellcomeAuthService to contain the above services
             var wellcomeAuthService = new WellcomeAuthService();
             wellcomeAuthService.Id = GetAuthServiceId(identifier);
             wellcomeAuthService.Profile = GetAuthServiceProfile(identifier);
-            wellcomeAuthService.AuthService = new List<IService> {copiedService as IService};
+            wellcomeAuthService.AuthService = new List<IService> {(IService)copiedService};
             wellcomeAuthService.AccessHint = accessHint;
-            wellcomeAuthService.EnsureContext("http://wellcomelibrary.org/ld/iiif-ext/0/context.json");
+            wellcomeAuthService.EnsureContext($"{Constants.WellcomeCollectionUri}/ld/iiif-ext/0/context.json");
             return wellcomeAuthService;
         }
 
         private ImageAnnotation GetImageAnnotation(Image image, PaintingAnnotation paintingAnnotation, Canvas canvas,
-            WellcomeAuthService? wellcomeAuthService, bool firstImage)
+            WellcomeAuthServiceManager authServiceManager)
         {
             // Copy all services over, these will be ImageService2 and potentially ServiceReference for auth
             ImageService2? imageService = null;
-            List<ServiceReference> serviceReference = new();
+            
+            // Get all non-serviceReference services (service reference will be auth services)
+            // we only want auth in ImageService
             var services = image.Service?
+                .Where(s => s.GetType() != typeof(ServiceReference)).ToList()
                 .Select(i => DeepCopy(i, s =>
                 {
-                    switch (s)
+                    if (s is ImageService2 imageService2)
                     {
-                        case ImageService2 imageService2:
-                        {
-                            imageService2.EnsureContext(ImageService2.Image2Context);
-                            imageService2.Type = null;
-                            imageService2.Protocol = ImageService2.Image2Protocol;
-
-                            if (imageService2.Service.HasItems())
-                            {
-                                foreach (var resourceBaseService in imageService2.Service.OfType<ServiceReference>())
-                                {
-                                    resourceBaseService.Type = null;
-                                }
-                            }
-
-                            imageService = imageService2;
-
-                            break;
-                        }
-                        case ServiceReference svcRef:
-                            svcRef.Type = null;
-
-                            serviceReference.Add(svcRef);
-                            break;
+                        imageService2.EnsureContext(ImageService2.Image2Context);
+                        imageService2.Type = null;
+                        imageService2.Protocol = ImageService2.Image2Protocol;
+                        imageService = imageService2;
                     }
                 }))
                 .ToList();
             
-            // We have an auth service and this is the first image on entire manifest
-            if (wellcomeAuthService != null && firstImage)
+            // If we have auth services..
+            if (authServiceManager.HasItems)
             {
-                // add the full auth service to ImageService.Service 
-                imageService?.Service?.AddRange(wellcomeAuthService.AuthService);
-                
-                // removing serviceReference as this is to cookie service, which we've just embedded 
-                imageService?.Service?.RemoveAll(s => s is ServiceReference);
+                // Get all service references from image-service (will be auth services)
+                var authServiceReferences = imageService?.Service?.OfType<ServiceReference>().ToList();
 
-                // and add it to the main Services collection
-                services?.AddRange(wellcomeAuthService.AuthService);
+                if (authServiceReferences.HasItems())
+                {
+                    // Remove these from imageService.Services
+                    imageService?.Service?.RemoveAll(s => s is ServiceReference);
 
-                // but remove any ServiceReferences to click through
-                services?.RemoveAll(s => serviceReference.Contains(s));
+                    // Re-add appropriate services. This will be full AuthService if first time it appears,
+                    // or serviceReference if it is not the first time
+                    imageService?.Service?.AddRange(authServiceReferences!.Select(r => authServiceManager.Get(r.Id!)));
+                }
             }
 
             var imageAnnotation = new ImageAnnotation();
@@ -455,7 +440,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             var agent = resourceBase.Provider!.Last();
             
             // Attribution is the first element of the requiredStatement
-            var attribution = isNotWellcome ? agent.Label!.ToString() : Constants.WellcomeAttribution;
+            var attribution = isNotWellcome ? agent.Label!.ToString() : Constants.WellcomeCollection;
             
             // requiredStatement.First();
             // if (attribution != Constants.WellcomeAttribution)
