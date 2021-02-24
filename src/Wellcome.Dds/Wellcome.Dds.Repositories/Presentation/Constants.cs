@@ -1,10 +1,17 @@
-﻿namespace Wellcome.Dds.Repositories.Presentation
+﻿using System;
+
+namespace Wellcome.Dds.Repositories.Presentation
 {
-    public class Constants
+    public static class Constants
     {
         /// <summary>
-        /// Default value for Attribution and Usage.
+        /// Default value for Attribution and Usage etc.
         /// </summary>
-        public const string WellcomeAttribution = "Wellcome Collection";
+        public const string WellcomeCollection = "Wellcome Collection";
+
+        /// <summary>
+        /// wellcomecollection.org
+        /// </summary>
+        public const string WellcomeCollectionUri = "https://wellcomecollection.org";
     }
 }

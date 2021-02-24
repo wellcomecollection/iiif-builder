@@ -157,7 +157,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
 
             // NOTE - the PDF uses the first string that is not "Wellcome Collection" for output
-            var attribution = Constants.WellcomeAttribution;
+            var attribution = Constants.WellcomeCollection;
             var locationOfOriginal = manifestationMetadata.Metadata.GetLocationOfOriginal();
             if (locationOfOriginal.HasText())
             {
