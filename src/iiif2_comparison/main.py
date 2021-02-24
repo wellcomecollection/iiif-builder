@@ -31,10 +31,10 @@ rules = {
         "ignore": ["@id"],
     },
     "sequences-canvases-thumbnail": {
-        "version_insensitive": ["@id"],
+        "dlcs_comparison": ["@id"],
     },
     "sequences-canvases-thumbnail-service": {
-        "version_insensitive": ["@id"],
+        "dlcs_comparison": ["@id"],
     },
     "sequences-canvases-seeAlso": {
         "ignore": ["@id"],
@@ -46,8 +46,9 @@ rules = {
         "ignore": ["@id"],
     },
     "sequences-canvases-images-resource-service": {
-        "version_insensitive": ["@id", "profile"],
-        "extra_new": ["width", "height", "protocol"],  # TODO - is protocol too much here?
+        "dlcs_comparison": ["@id"],
+        "version_insensitive": ["profile"],
+        "extra_new": ["width", "height", "protocol"],
     },
     "sequences-canvases-images-resource-service-service": {
         "version_insensitive": ["profile"],  # auth
@@ -345,6 +346,7 @@ class Comparer:
         version_insensitive = rules_for_level.get("version_insensitive", [])
         domain_insensitive = rules_for_level.get("domain_insensitive", [])
         bnumber_insensitive = rules_for_level.get("bnumber_insensitive", [])
+        dlcs_comparison = rules_for_level.get("dlcs_comparison", [])
 
         if isinstance(orig, dict) and isinstance(new, dict):
             return self.dictionary_comparison(orig, new, self.get_next_level(level, key))
@@ -369,6 +371,11 @@ class Comparer:
                 if not self.bnumber_insensitive_compare(o_v, n_v):
                     self.failures.append(f"'{level_for_logs}'.'{key}' failed bnumber-insensitive compare")
                     logger.debug(f"'{level_for_logs}'.'{key}' failed bnumber-insensitive comparison: '{o_v}' - '{n_v}'")
+                    return False
+            elif key in dlcs_comparison:
+                if not self.dlcs_comparison(o_v, n_v):
+                    self.failures.append(f"'{level_for_logs}'.'{key}' failed dlcs compare")
+                    logger.debug(f"'{level_for_logs}'.'{key}' failed dlcs: '{o_v}' - '{n_v}'")
                     return False
             elif o_v != n_v:
                 # old P2 shows largest Width and Height in "sequences-canvases-images-resource"
@@ -420,6 +427,27 @@ class Comparer:
     def domain_insensitive_compare(orig, new):
         # first 3 will be ["https", "", "domain.com"]
         return orig.split("/")[3:] == new.split("/")[3:]
+
+    @staticmethod
+    def dlcs_comparison(orig, new):
+        if "dlcs.io" in new:
+            return Comparer.version_insensitive_compare(orig, new)
+        else:
+            # https://iiif.wellcomecollection.org/image/b28047345_0032.jp2/info.json
+            # https://iiif-test.wellcomecollection.org/thumbs/b28047345_0032.jp2/info.json
+            expected_space = 5 if new.startswith("https://iiif") else 6
+
+            slugs = {
+                "thumbs": "thumbs",
+                "image": "iiif-img",
+                "av": "iiif-av",
+                "pdf": "pdf"
+            }
+
+            elements = new.split('/')
+            dlcs_path = f"https://dlcs.io/{slugs.get(elements[3])}/wellcome/{expected_space}/{'/'.join(elements[4:])}"
+            return Comparer.version_insensitive_compare(orig, dlcs_path)
+
 
     @staticmethod
     def bnumber_insensitive_compare(orig, new):
