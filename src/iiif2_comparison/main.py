@@ -12,7 +12,7 @@ NEW_FORMAT = "https://iiif-test.wellcomecollection.org/presentation/v2/{bnum}"
 rules = {
     "": {
         # metadata + seeAlso massively different
-        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license" ],
+        "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license"],
         "extra_new": ["thumbnail", "within", "description"],
         "extra_orig": ["service"]  # TODO - this will be fixed in #5034
     },
@@ -272,7 +272,7 @@ class Comparer:
 
         return are_equal
 
-    def dictionary_comparison(self, orig, new, level):
+    def dictionary_comparison(self, orig, new, level, ancestors=None):
         """
         Iterate through all keys in provided dictionaries, using predefined rules to determine if they are equal
         :param orig: dict of original wl.org item at current level
@@ -325,19 +325,22 @@ class Comparer:
                     are_equal = False
                 elif key not in size_only:  # size check is enough
                     for i in range(0, len(o)):
-                        are_equal = self.compare_elements(key, level, o[i], n[i]) and are_equal
+                        logger.debug(f"{level}.{key}[{i}]")
+                        are_equal = self.compare_elements(key, level, o[i], n[i],
+                                                          ancestors if ancestors else {}) and are_equal
             else:
-                are_equal = self.compare_elements(key, level, o, n) and are_equal
+                are_equal = self.compare_elements(key, level, o, n, ancestors if ancestors else {}) and are_equal
 
         return are_equal
 
-    def compare_elements(self, key, level, orig, new):
+    def compare_elements(self, key, level, orig, new, ancestors):
         """
         Compare individual elements in manifest, using predefined rules to determine if they are equal
         :param key: key of item in dictionary being interrogated
         :param level: level of dict being interrogated, used to lookup rules and for logging
         :param orig: item for key at current level from original wl.org manifest
         :param new: item for key at current level from new manifest
+        :param ancestors: ancestor lineage for current element. Required to walk 'up' in some instances
         :return: boolean value representing whether provided dictionaries are equal
         """
 
@@ -349,7 +352,9 @@ class Comparer:
         dlcs_comparison = rules_for_level.get("dlcs_comparison", [])
 
         if isinstance(orig, dict) and isinstance(new, dict):
-            return self.dictionary_comparison(orig, new, self.get_next_level(level, key))
+            next_level = self.get_next_level(level, key)
+            ancestors[next_level] = (new, orig)
+            return self.dictionary_comparison(orig, new, next_level, ancestors)
         elif isinstance(orig, dict) or isinstance(new, dict):
             self.failures.append(f"'{level_for_logs}'.'{key}' type mismatch")
             logger.debug(f"'{level_for_logs}'.'{key}' type mismatch: {type(orig)} - {type(new)}")
@@ -382,8 +387,18 @@ class Comparer:
                 # however, if auth the new will show the largest available
                 if self._is_authed and level == "sequences-canvases-images-resource" and key in ["width",
                                                                                                  "height"] and o_v > n_v:
-                    logger.debug(f"'{level_for_logs}'.'{key}' don't match due to auth: '{o_v}' - '{n_v}'")
+                    # logger.debug(f"'{level_for_logs}'.'{key}' don't match due to auth: '{o_v}' - '{n_v}'")
+                    pass
                 else:
+                    if level == "sequences-canvases-images-resource":
+                        # if this is a image-resource, verify that there is a thumbnail - if not then values will differ
+                        # because orig was 1024 thumb (which doesn't exist) but current uses full size image
+                        parent_image = ancestors.get("sequences-canvases-images", ({}, {}))
+                        o_image, n_image = parent_image
+                        if "thumbnail" not in n_image:
+                            logger.debug(f"'{level_for_logs}'.'{key}' don't match due to no-thumb: '{o_v}' - '{n_v}'")
+                            return True
+
                     logger.debug(f"'{level_for_logs}'.'{key}' failed comparison: '{o_v}' - '{n_v}'")
                     self.failures.append(f"'{level_for_logs}'.'{key}' failed comparison")
                     return False
@@ -447,7 +462,6 @@ class Comparer:
             elements = new.split('/')
             dlcs_path = f"https://dlcs.io/{slugs.get(elements[3])}/wellcome/{expected_space}/{'/'.join(elements[4:])}"
             return Comparer.version_insensitive_compare(orig, dlcs_path)
-
 
     @staticmethod
     def bnumber_insensitive_compare(orig, new):
