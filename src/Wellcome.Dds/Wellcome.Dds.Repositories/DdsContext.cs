@@ -56,7 +56,7 @@ namespace Wellcome.Dds.Repositories
             pattern = $"%{query.ToAlphanumericOrWhitespace()}%";
             return Manifestations.Where(m => 
                 m.Index == 0 &&
-                EF.Functions.ILike(m.Label, pattern))
+                EF.Functions.ILike(m.PackageLabel, pattern))
                 .ToList();
         }
 

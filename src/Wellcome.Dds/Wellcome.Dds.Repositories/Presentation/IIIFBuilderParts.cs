@@ -45,6 +45,9 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService loginServiceReference;
         private readonly IService externalAuthService;
         private readonly IService externalAuthServiceReference;
+
+        // omit Digitalcollection and Location
+        private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
@@ -89,6 +92,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 foreach (var md in @group)
                 {
+                    if (!DisplayedAggregations.Contains(md.Label))
+                    {
+                        // don't use Location or DigitalCollection as memebership aggregations
+                        continue;
+                    }
                     var urlFriendlyAggregator = Wellcome.Dds.Metadata.ToUrlFriendlyAggregator(md.Label);
                     iiifResource.PartOf ??= new List<ResourceBase>();
                     iiifResource.PartOf.Add(

@@ -29,7 +29,7 @@ namespace Wellcome.Dds.Server.Controllers
             return Ok(suggestions.Select(fm => new AutoCompleteSuggestion
             {
                 Id = fm.PackageIdentifier,
-                Label = fm.Label
+                Label = fm.PackageLabel
             }));
         }
         

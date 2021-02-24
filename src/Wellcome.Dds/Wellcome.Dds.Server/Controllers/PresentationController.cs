@@ -202,7 +202,7 @@ namespace Wellcome.Dds.Server.Controllers
             };
             foreach (var manifestation in ddsContext.Manifestations.Where(m => m.CollectionTitle == "(no-title)"))
             {
-                var labels = new string[] {manifestation.Label, manifestation.ReferenceNumber};
+                var labels = new[] {manifestation.PackageLabel, manifestation.ReferenceNumber};
                 collection.Items.Add(new Manifest
                 {
                     
@@ -263,7 +263,7 @@ namespace Wellcome.Dds.Server.Controllers
                 var manifest = new Manifest
                 {
                     Id = uriPatterns.Manifest(result.Manifestation.PackageIdentifier),
-                    Label = new LanguageMap("none", result.Manifestation.Label)
+                    Label = new LanguageMap("none", result.Manifestation.PackageLabel)
                 };
                 coll.Items.Add(manifest);
                 coll.Label ??= new LanguageMap("none", $"{result.CollectionLabel}: {result.CollectionStringValue}");
