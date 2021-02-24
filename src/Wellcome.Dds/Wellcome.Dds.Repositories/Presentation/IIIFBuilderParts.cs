@@ -621,26 +621,32 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void AddAuthServiceToMedia(IPaintable paintable, IService service)
+        private void AddAuthServiceToMedia(IPaintable? paintable, IService? service)
         {
             if (paintable == null || service == null)
             {
                 return;
             }
 
-            if (paintable.Service.HasItems())
+            switch (paintable)
             {
-                var iiifImageApi2 = (ImageService2) paintable.Service.First();
-                iiifImageApi2.Service = new List<IService>{service};
-                paintable.Service.Add(service);
+                case Image image:
+                    var iiifImageApi2 = (ImageService2) image.Service.First();
+                    iiifImageApi2.Service = new List<IService>{service};
+                    break;
+                case PaintingChoice choice:
+                    foreach (var item in choice.Items ?? Enumerable.Empty<IPaintable>())
+                    {
+                        item.Service ??= new List<IService>();
+                        item.Service.Add(service);
+                    }
+                    break;
+                default:
+                    paintable.Service ??= new List<IService>();
+                    paintable.Service.Add(service);
+                    break;
             }
-            else
-            {
-                paintable.Service = new List<IService>{service};
-            }
-            
         }
-
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
