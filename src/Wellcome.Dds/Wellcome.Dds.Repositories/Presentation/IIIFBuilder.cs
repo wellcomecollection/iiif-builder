@@ -102,9 +102,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                         var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
                         buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                     }
-
-                    // For collection, rights are pulled up from child manifests
-                    SetCollectionRights(bNumber, buildResults);
                 }
             }
             catch (Exception e)
@@ -116,27 +113,6 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             CheckAndProcessState(buildResults, state);
             return buildResults;
-        }
-
-        private static void SetCollectionRights(string bNumber, MultipleBuildResult buildResults)
-        {
-            var iiifCollection = buildResults[bNumber]?.IIIFResource as Collection;
-            if (!string.IsNullOrEmpty(iiifCollection!.Rights)) return;
-            
-            var rights = buildResults
-                .Where(br => br.IIIFResource != iiifCollection)
-                .Select(i => (i.IIIFResource as ResourceBase)!.Rights)
-                .Where(r => r.HasText())
-                .Distinct()
-                .ToList();
-            if (rights.Count > 1)
-            {
-                // safety check - could be achieved with .Single() above but wouldn't be as clear
-                throw new InvalidOperationException(
-                    $"Collection has manifests with multiple differing rights: {string.Join(",", rights)}");
-            }
-
-            iiifCollection.Rights = rights.Single();
         }
 
         public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
@@ -161,6 +137,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // Fear me...
                 ChemistAndDruggistState.ProcessState(buildResults, state);
+            }
+            
+            if (state.RightsState != null)
+            {
+                RightsState.ProcessState(buildResults);
             }
         }
 
@@ -299,6 +280,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                     });
                 }
             }
+
+            if (state == null)
+            {
+                throw new IIIFBuildStateException("State is required to collection");
+            }
+
+            state.RightsState = new RightsState();
 
             if (digitisedCollection.Manifestations.HasItems())
             {
