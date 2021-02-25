@@ -457,7 +457,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             if (foundAuthServices.HasItems())
             {
-                manifest.Services = foundAuthServices.Values.ToList();
+                manifest.Services ??= new List<IService>();
+                manifest.Services.AddRange(foundAuthServices.Values);
             }
         }
 
@@ -1030,6 +1031,66 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 image.Id = image.Id.Replace(oldId, newId);
             }
+        }
+
+        public void AddTrackingLabel(ResourceBase iiifResource, Work work, ManifestationMetadata manifestationMetadata)
+        {
+            var mdFormat = manifestationMetadata.Manifestations.FirstOrDefault()?.RootSectionType;
+            var format = mdFormat.HasText() ? mdFormat : "n/a";
+
+            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal());
+            var institution = partner != null ? partner.Label : "n/a";
+
+            var mdDigicode = manifestationMetadata.Metadata.GetDigitalCollectionCodes().FirstOrDefault();
+            var digicode = mdDigicode.HasText() ? mdDigicode : "n/a";
+            
+            var mdCalmRef = manifestationMetadata.Manifestations.FirstOrDefault()?.ReferenceNumber;
+            var collectioncode = mdCalmRef.HasText() ? mdCalmRef : "n/a";
+
+            string trackingLabel = "Format: " + format +
+                        ", Institution: " + institution +
+                        ", Identifier: " + manifestationMetadata.Identifier.BNumber +
+                        ", Digicode: " + digicode +
+                        ", Collection code: " + collectioncode;
+
+
+            ((ICollectionItem)iiifResource).Services ??= new List<IService>();
+            ((ICollectionItem)iiifResource).Services?.Add(
+                new ExternalResource("Text")
+                {
+                    Profile = "http://universalviewer.io/tracking-extensions-profile",
+                    Label = Lang.Map(trackingLabel)
+                });
+        }
+
+        public void AddAccessHint(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        {
+            var accessConditions = digitisedManifestation.MetsManifestation.Sequence
+                .Select(pf => pf.AccessCondition);
+            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions);
+            string accessHint;
+            switch (mostSecureAccessCondition)
+            {
+                case null:
+                case AccessCondition.Open:
+                    accessHint = "open";
+                    break;
+                case AccessCondition.RequiresRegistration:
+                case AccessCondition.OpenWithAdvisory:
+                    accessHint = "clickthrough";
+                    break;
+                default:
+                    accessHint = "credentials";
+                    break;
+            }            
+            manifest.Services ??= new List<IService>();
+            manifest.Services?.Add(
+                new ExternalResource("Text")
+                {
+                    Profile = "http://wellcomelibrary.org/ld/iiif-ext/access-control-hints",
+                    Label = Lang.Map(accessHint)
+                });
+
         }
     }
 }
