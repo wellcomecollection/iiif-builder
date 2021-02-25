@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V2
@@ -12,6 +13,7 @@ namespace IIIF.Presentation.V2
         }
 
         [JsonProperty(Order = 28)]
+        [ObjectIfSingle]
         public List<IService>? Service { get; set; }
     }
 }

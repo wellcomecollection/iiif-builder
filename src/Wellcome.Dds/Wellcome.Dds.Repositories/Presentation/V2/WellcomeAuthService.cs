@@ -19,6 +19,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
         [JsonProperty(Order = 15, PropertyName = "authService")]
         [ObjectIfSingle]
-        public IList<IService> AuthService { get; set; }
+        public List<IService> AuthService { get; set; }
     }
 }

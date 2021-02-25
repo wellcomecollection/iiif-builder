@@ -157,7 +157,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
 
             // NOTE - the PDF uses the first string that is not "Wellcome Collection" for output
-            var attribution = "Wellcome Collection";
+            var attribution = Constants.WellcomeCollection;
             var locationOfOriginal = manifestationMetadata.Metadata.GetLocationOfOriginal();
             if (locationOfOriginal.HasText())
             {
@@ -332,7 +332,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 new("Dataset")
                                 {
                                     Id = uriPatterns.MetsAlto(manifestIdentifier, assetIdentifier),
-                                    Format = "text/html",
+                                    Format = "text/xml",
                                     Profile = "http://www.loc.gov/standards/alto/v3/alto.xsd",
                                     Label = Lang.Map("none", "METS-ALTO XML")
                                 }
@@ -621,26 +621,32 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void AddAuthServiceToMedia(IPaintable paintable, IService service)
+        private void AddAuthServiceToMedia(IPaintable? paintable, IService? service)
         {
             if (paintable == null || service == null)
             {
                 return;
             }
 
-            if (paintable.Service.HasItems())
+            switch (paintable)
             {
-                var iiifImageApi2 = (ImageService2) paintable.Service.First();
-                iiifImageApi2.Service = new List<IService>{service};
-                paintable.Service.Add(service);
+                case Image image:
+                    var iiifImageApi2 = (ImageService2) image.Service.First();
+                    iiifImageApi2.Service = new List<IService>{service};
+                    break;
+                case PaintingChoice choice:
+                    foreach (var item in choice.Items ?? Enumerable.Empty<IPaintable>())
+                    {
+                        item.Service ??= new List<IService>();
+                        item.Service.Add(service);
+                    }
+                    break;
+                default:
+                    paintable.Service ??= new List<IService>();
+                    paintable.Service.Add(service);
+                    break;
             }
-            else
-            {
-                paintable.Service = new List<IService>{service};
-            }
-            
         }
-
 
         public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
@@ -799,13 +805,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-
         // ^^ move to structurehelper?
-        
-        
-        
-        
-        
+
         public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
@@ -813,20 +814,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Annotations = new List<AnnotationPage>
                 {
-                    new AnnotationPage
-                    {
-                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
-                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
-                    },
-                    new AnnotationPage
+                    new()
                     {
                         Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
                     },
+                    new()
+                    {
+                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
+                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
+                    },
                 };
             }
         }
-
 
         public void Metadata(ResourceBase iiifResource, Work work)
         {

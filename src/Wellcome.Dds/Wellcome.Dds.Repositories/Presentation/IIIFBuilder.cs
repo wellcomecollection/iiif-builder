@@ -86,6 +86,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
                 var resource = await dashboardRepository.GetDigitisedResource(bNumber);
+                
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is IDigitisedCollection parentCollection)
@@ -115,37 +116,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
         public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
-        {
-            var multipleBuildResult = new MultipleBuildResult();
-            logger.LogDebug("Building LegacyIIIF for Id '{Identifier}'", identifier);
-
-            foreach (var buildResult in buildResults)
-            {
-                if (buildResult.IIIFVersion == Version.V3 && buildResult.IIIFResource is StructureBase iiif3)
-                {
-                    var result = new BuildResult(buildResult.Id, Version.V2);
-                    try
-                    {
-                        var iiif2 = presentation2Converter.Convert(iiif3, buildResult.Id);
-                        result.IIIFResource = iiif2;
-                        result.Outcome = BuildOutcome.Success;
-                    }
-                    catch (Exception e)
-                    {
-                        result.Message = e.Message;
-                        result.Outcome = BuildOutcome.Failure;
-                    }
-                    multipleBuildResult.Add(result);
-                }
-                else
-                {
-                    logger.LogWarning("BuildLegacyIIIF called with non-IIIF3 BuildResult. Id: '{Identifier}'",
-                        identifier);
-                }
-            }
-
-            return multipleBuildResult;
-        }
+            => presentation2Converter.ConvertAll(identifier, buildResults);
 
         private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
@@ -166,6 +137,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // Fear me...
                 ChemistAndDruggistState.ProcessState(buildResults, state);
+            }
+            
+            if (state.RightsState != null)
+            {
+                RightsState.ProcessState(buildResults);
             }
         }
 
@@ -304,6 +280,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                     });
                 }
             }
+
+            if (state == null)
+            {
+                throw new IIIFBuildStateException("State is required to collection");
+            }
+
+            state.RightsState = new RightsState();
 
             if (digitisedCollection.Manifestations.HasItems())
             {

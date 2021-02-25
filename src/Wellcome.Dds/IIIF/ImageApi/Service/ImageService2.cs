@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using IIIF.Presentation.V2;
+using IIIF.Serialisation;
 using Newtonsoft.Json;
 
 namespace IIIF.ImageApi.Service
@@ -10,19 +11,13 @@ namespace IIIF.ImageApi.Service
         public const string Level0Profile = "http://iiif.io/api/image/2/level0.json";
         public const string Level1Profile = "http://iiif.io/api/image/2/level1.json";
         public const string Level2Profile = "http://iiif.io/api/image/2/level2.json";
+        public const string Image2Protocol = "http://iiif.io/api/image";
 
-        private string? type;
-        private bool typeHasBeenSet;
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string? Type
-        {
-            get => typeHasBeenSet ? type : nameof(ImageService2);
-            set
-            {
-                type = value;
-                typeHasBeenSet = true;
-            }
-        }
+        public override string? Type { get; set; } = nameof(ImageService2);
+        
+        [JsonProperty(PropertyName = "protocol", Order = 10)]
+        public string? Protocol { get; set; }
 
         [JsonProperty(Order = 11)]
         public int Width { get; set; }
@@ -42,6 +37,7 @@ namespace IIIF.ImageApi.Service
         
         // TODO - Auth Services
         [JsonProperty(Order = 28)]
+        [ObjectIfSingle]
         public List<IService>? Service { get; set; }
     }
 }

@@ -18,18 +18,8 @@ namespace IIIF.Auth.V1
             Profile = profile;
         }
         
-        private string? type;
-        private bool typeHasBeenSet;
         [JsonProperty(PropertyName = "@type", Order = 3)]
-        public override string? Type
-        {
-            get => typeHasBeenSet ? type : "AuthCookieService1";
-            set
-            {
-                type = value;
-                typeHasBeenSet = true;
-            }
-        }
+        public override string? Type { get; set; } = "AuthCookieService1";
 
         [JsonProperty(Order = 12, PropertyName = "description")]
         public MetaDataValue Description { get; set; }

@@ -26,9 +26,12 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public AVState? AVState { get; set; }
         public FileState? FileState { get; set; }
         public ChemistAndDruggistState? ChemistAndDruggistState { get; set; }
+        public RightsState? RightsState { get; set; } 
 
         // which one of these to use...
         public bool NeedsInfoFromChildren { get; set; }
-        public bool HasState => MultiCopyState != null || AVState != null || ChemistAndDruggistState != null;
+
+        public bool HasState => MultiCopyState != null || AVState != null || ChemistAndDruggistState != null ||
+                                RightsState != null;
     }
 }

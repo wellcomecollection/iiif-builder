@@ -13,19 +13,19 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var agent = new Agent
             {
-                Id = "https://wellcomecollection.org",
+                Id = Constants.WellcomeCollectionUri,
                 Label = Lang.Map("en",
-                    "Wellcome Collection",
+                    Constants.WellcomeCollection,
                     "183 Euston Road",
                     "London NW1 2BE UK",
-                    "T +44(0)2076118722",
-                    "E library@wellcome.ac.uk",
-                    "https://wellcomecollection.org"),
+                    "T +44 (0)20 7611 8722",
+                    "E library@wellcomecollection.org",
+                    Constants.WellcomeCollectionUri),
                 Homepage = new List<ExternalResource>
                 {
                     new("Text")
                     {
-                        Id = "https://wellcomecollection.org/works",
+                        Id = $"{Constants.WellcomeCollectionUri}/works",
                         Label = Lang.Map("Explore our collections"),
                         Format = "text/html"
                     }
