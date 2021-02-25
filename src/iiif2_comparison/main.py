@@ -24,6 +24,7 @@ rules = {
     "sequences": {
         "ignore": ["@id"],
         "version_insensitive": ["label"],
+        "extra_new": ["rendering"]
     },
     "sequences-rendering": {
         "ignore": ["@id", "label"],
@@ -171,7 +172,12 @@ class Comparer:
 
     def compare_manifests(self, original, new):
         original_services = original.get("service", [])
-        for s in original_services:
+        new_services = new.get("service", [])
+        if isinstance(new_services, dict):
+            new_services = [new_services]
+
+        all_services = original_services + new_services
+        for s in all_services:
             if "authService" in s:
                 logger.debug("Manifest is authed.. cleaning up original")
                 self._is_authed = True
@@ -186,7 +192,7 @@ class Comparer:
         self.compare_license(original.get("license", ""), new.get("license", ""))
 
         # services are finnicky - handle separately
-        are_equal = self.compare_services(original_services, new.get("service", {})) and are_equal
+        are_equal = self.compare_services(original_services, new_services) and are_equal
 
         # fall through
         are_equal = self.dictionary_comparison(original, new, "") and are_equal
