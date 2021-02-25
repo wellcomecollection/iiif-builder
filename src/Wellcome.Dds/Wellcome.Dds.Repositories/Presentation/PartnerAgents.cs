@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using IIIF.Presentation;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Content;
 using Utils;
@@ -92,9 +91,16 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         };
 
-        public static Agent GetAgent(string repository, string schemeAndHost)
+        public static Agent? GetAgent(string repository, string schemeAndHost)
         {
-            Partner partner = null;
+            var partner = GetPartner(repository);
+
+            return partner != null ? MakeAgent(partner, schemeAndHost) : null;
+        }
+
+        public static Partner? GetPartner(string repository)
+        {
+            Partner? partner = null;
             if (repository.HasText())
             {
                 repository = repository.ToLowerInvariant();
@@ -128,7 +134,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     partner = Partners["bristol"];
                 }
-                else if (repository.Contains("london") && repository.Contains("hygiene") && repository.Contains("tropical medicine"))
+                else if (repository.Contains("london") && repository.Contains("hygiene") &&
+                         repository.Contains("tropical medicine"))
                 {
                     partner = Partners["lshtm"];
                 }
@@ -158,7 +165,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 }
             }
 
-            return partner != null ? MakeAgent(partner, schemeAndHost) : null;
+            return partner;
         }
 
         private static Agent MakeAgent(Partner partner, string schemeAndHost)
@@ -191,10 +198,10 @@ namespace Wellcome.Dds.Repositories.Presentation
     /// <summary>
     /// Keep this to the minimum number of fields for maintenance.
     /// </summary>
-    class Partner
+    public class Partner
     {
-        public string Logo { get; set; }
-        public string HomePage { get; set; }
-        public string Label { get; set; }
+        public string? Logo { get; set; }
+        public string? HomePage { get; set; }
+        public string? Label { get; set; }
     }
 }

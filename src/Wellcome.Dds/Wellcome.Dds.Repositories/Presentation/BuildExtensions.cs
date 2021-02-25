@@ -162,6 +162,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                 .FirstOrDefault(m => m.Label == "Location");
             return locationOfOriginal?.StringValue;
         }
+        
+        public static IEnumerable<string> GetDigitalCollectionCodes(this List<Metadata> metadata)
+        {
+            return metadata
+                .Where(m => m.Label == "Digitalcollection")
+                .Select(m => m.Identifier);
+        }
 
         public static string WrapSpan(this string s)
         {
