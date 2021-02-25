@@ -394,13 +394,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 iiifResource.AddOtherProvider(manifestationMetadata, ddsOptions.LinkedDataDomain);
                 build.Aggregations(iiifResource, manifestationMetadata);
+                build.AddTrackingLabel(iiifResource, manifestationMetadata);
             }
             build.Summary(iiifResource, work);
             build.HomePage(iiifResource, work);
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work, 
                 () => dds.GetManifestationsForChildren(work.ReferenceNumber));
-            build.AddTrackingLabel(iiifResource, manifestationMetadata);
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
