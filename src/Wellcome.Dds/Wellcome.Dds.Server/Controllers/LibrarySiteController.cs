@@ -48,21 +48,17 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("iiif/{id}/manifest")]
         public IActionResult IIIFManifest(string id)
         {
-            if (id.Contains('-'))
-            {
-                var manifestation = GetManifestationFromTwoPartId(id);
-                if (manifestation == null)
-                {
-                    return NotFound();
-                }
-                return BuilderUrl(uriPatterns.Manifest(manifestation.Id));
-            }
-            // A regular single manifest
-            return BuilderUrl(uriPatterns.Manifest(id));
+            return ManifestIdConversion(id, uriPatterns.Manifest);
         }
 
         [HttpGet("annoservices/search/{id}")]
         public IActionResult SearchService(string id)
+        {
+            return ManifestIdConversion(id, uriPatterns.IIIFContentSearchService0);
+        }
+
+
+        private IActionResult ManifestIdConversion(string id, Func<string, string> converter)
         {
             if (id.Contains('-'))
             {
@@ -71,9 +67,10 @@ namespace Wellcome.Dds.Server.Controllers
                 {
                     return NotFound();
                 }
-                return BuilderUrl(uriPatterns.IIIFContentSearchService0(manifestation.Id));
+                return BuilderUrl(converter(manifestation.Id));
             }
-            return BuilderUrl(uriPatterns.IIIFContentSearchService0(id));
+            return BuilderUrl(converter(id));
+            
         }
 
         private Manifestation GetManifestationFromTwoPartId(string id)
