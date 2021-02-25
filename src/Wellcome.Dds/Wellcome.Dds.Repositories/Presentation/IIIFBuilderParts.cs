@@ -1033,7 +1033,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public void AddTrackingLabel(ResourceBase iiifResource, Work work, ManifestationMetadata manifestationMetadata)
+        public void AddTrackingLabel(ResourceBase iiifResource, ManifestationMetadata manifestationMetadata)
         {
             var mdFormat = manifestationMetadata.Manifestations.FirstOrDefault()?.RootSectionType;
             var format = mdFormat.HasText() ? mdFormat : "n/a";

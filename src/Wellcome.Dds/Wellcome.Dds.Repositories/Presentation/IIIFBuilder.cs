@@ -396,7 +396,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.HomePage(iiifResource, work);
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work);
-            build.AddTrackingLabel(iiifResource, work, manifestationMetadata);
+            build.AddTrackingLabel(iiifResource, manifestationMetadata);
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)
