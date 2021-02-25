@@ -18,8 +18,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Constants.WellcomeCollection,
                     "183 Euston Road",
                     "London NW1 2BE UK",
-                    "T +44(0)2076118722",
-                    "E library@wellcome.ac.uk",
+                    "T +44 (0)20 7611 8722",
+                    "E library@wellcomecollection.org",
                     Constants.WellcomeCollectionUri),
                 Homepage = new List<ExternalResource>
                 {
