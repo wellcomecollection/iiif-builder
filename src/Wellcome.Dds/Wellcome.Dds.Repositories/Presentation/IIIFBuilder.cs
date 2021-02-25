@@ -370,6 +370,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ImprovePagingSequence(manifest);
             build.CheckForCopyAndVolumeStructure(digitisedManifestation, state);
             build.ManifestLevelAnnotations(manifest, digitisedManifestation);
+            build.AddAccessHint(manifest, digitisedManifestation);
         }
         
         
@@ -399,6 +400,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work, 
                 () => dds.GetManifestationsForChildren(work.ReferenceNumber));
+            build.AddTrackingLabel(iiifResource, manifestationMetadata);
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)

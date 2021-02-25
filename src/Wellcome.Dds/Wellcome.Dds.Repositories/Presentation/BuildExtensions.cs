@@ -8,14 +8,16 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
+using Image = IIIF.Presentation.V3.Content.Image;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
     public static class BuildExtensions
     {
-        private static readonly int[] ThumbSizes = { 1024, 400, 200, 100 };
+        public static readonly int[] ThumbSizes = { 1024, 400, 200, 100 };
         
         public static List<Size> GetThumbSizes(this string metadataString)
         {
@@ -164,6 +166,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             var locationOfOriginal = metadata
                 .FirstOrDefault(m => m.Label == "Location");
             return locationOfOriginal?.StringValue;
+        }
+        
+        public static IEnumerable<string> GetDigitalCollectionCodes(this List<Metadata> metadata)
+        {
+            return metadata
+                .Where(m => m.Label == "Digitalcollection")
+                .Select(m => m.Identifier);
         }
 
         public static string WrapSpan(this string s)

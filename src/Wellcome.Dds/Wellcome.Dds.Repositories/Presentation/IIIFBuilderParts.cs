@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using IIIF;
 using IIIF.ImageApi.Service;
 using IIIF.Presentation.V2.Strings;
@@ -49,8 +51,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         // omit Digitalcollection and Location
         private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
-        public IIIFBuilderParts(
-            UriPatterns uriPatterns,
+        public IIIFBuilderParts(UriPatterns uriPatterns,
             int dlcsDefaultSpace,
             bool referenceV0SearchService)
         {
@@ -418,7 +419,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             if (transcriptPdf != null)
                             {
                                 // A new workflow transcript for this AV file
-                                AddPdfTranscriptToCanvas(manifestIdentifier, canvas, transcriptPdf);
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
                             }
                         }
 
@@ -430,15 +431,33 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
-                        // This might be an AV transcript, in which case we note it down and add it to the AVState
-                        // Or it might just be a PDF, Born Digital - in which case... what? We can't make IIIF3 for it.
-                        // Make an issue for this.
-                        // 
-                        // see b17502792
-                        // If this is a transcript, store in AV state map
-                        // what do we need to tie it to the right vid? Just one of each? Never more complex than that, yet.
-                        state.FileState ??= new FileState();
-                        state.FileState.FoundFiles.Add(physicalFile);
+                        if (metsManifestation.Type == "Monograph")
+                        {
+                            // TODO: is this simple logic OK for every BD PDF? See what comparison tool reveals.
+                            // This is a born digital PDF
+                            var bornDigitalPdf = physicalFile.Files.FirstOrDefault();
+                            if (bornDigitalPdf != null)
+                            {
+                                // A new workflow transcript for this AV file
+                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
+                                    "pdf", manifest.Label.ToString());
+                                manifest.Behavior = null;
+                                manifest.Thumbnail = new List<ExternalResource>
+                                {
+                                    new Image
+                                    {
+                                        Id = uriPatterns.PdfThumbnail(manifestIdentifier),
+                                        Format = "image/jpeg"
+                                    }
+                                };
+                            }
+                        }
+                        else
+                        {
+                            // An AV transcript. Note it down and add it to the AVState
+                            state.FileState ??= new FileState();
+                            state.FileState.FoundFiles.Add(physicalFile);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -447,7 +466,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             if (foundAuthServices.HasItems())
             {
-                manifest.Services = foundAuthServices.Values.ToList();
+                manifest.Services ??= new List<IService>();
+                manifest.Services.AddRange(foundAuthServices.Values);
             }
         }
 
@@ -971,7 +991,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (tCounter < avCanvases.Count)
                     {
-                        AddPdfTranscriptToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0]);
+                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0], "transcript", "PDF Transcript");
                     }
                 }
             }
@@ -987,23 +1007,24 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private void AddPdfTranscriptToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile storedPdf)
+        private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
+            string annoIdentifier, string label)
         {
             canvas.Annotations ??= new List<AnnotationPage>();
             canvas.Annotations.Add(new AnnotationPage
             {
                 Id = uriPatterns.CanvasSupplementingAnnotationPage(
-                    manifestIdentifier, storedPdf.StorageIdentifier),
+                    manifestIdentifier, pdfFile.StorageIdentifier),
                 Items = new List<IAnnotation>
                 {
                     new SupplementingDocumentAnnotation
                     {
                         Id = uriPatterns.CanvasSupplementingAnnotation(
-                            manifestIdentifier, storedPdf.StorageIdentifier, "transcript"),
+                            manifestIdentifier, pdfFile.StorageIdentifier, annoIdentifier),
                         Body = new ExternalResource("Text")
                         {
-                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, storedPdf.StorageIdentifier),
-                            Label = Lang.Map("PDF Transcript"),
+                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, pdfFile.StorageIdentifier),
+                            Label = Lang.Map(label),
                             Format = "application/pdf"
                         },
                         Target = new Canvas {Id = canvas.Id}
@@ -1035,6 +1056,66 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 image.Id = image.Id.Replace(oldId, newId);
             }
+        }
+
+        public void AddTrackingLabel(ResourceBase iiifResource, ManifestationMetadata manifestationMetadata)
+        {
+            var mdFormat = manifestationMetadata.Manifestations.FirstOrDefault()?.RootSectionType;
+            var format = mdFormat.HasText() ? mdFormat : "n/a";
+
+            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal());
+            var institution = partner != null ? partner.Label : "n/a";
+
+            var mdDigicode = manifestationMetadata.Metadata.GetDigitalCollectionCodes().FirstOrDefault();
+            var digicode = mdDigicode.HasText() ? mdDigicode : "n/a";
+            
+            var mdCalmRef = manifestationMetadata.Manifestations.FirstOrDefault()?.ReferenceNumber;
+            var collectioncode = mdCalmRef.HasText() ? mdCalmRef : "n/a";
+
+            string trackingLabel = "Format: " + format +
+                        ", Institution: " + institution +
+                        ", Identifier: " + manifestationMetadata.Identifier.BNumber +
+                        ", Digicode: " + digicode +
+                        ", Collection code: " + collectioncode;
+
+
+            ((ICollectionItem)iiifResource).Services ??= new List<IService>();
+            ((ICollectionItem)iiifResource).Services?.Add(
+                new ExternalResource("Text")
+                {
+                    Profile = "http://universalviewer.io/tracking-extensions-profile",
+                    Label = Lang.Map(trackingLabel)
+                });
+        }
+
+        public void AddAccessHint(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        {
+            var accessConditions = digitisedManifestation.MetsManifestation.Sequence
+                .Select(pf => pf.AccessCondition);
+            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions);
+            string accessHint;
+            switch (mostSecureAccessCondition)
+            {
+                case null:
+                case AccessCondition.Open:
+                    accessHint = "open";
+                    break;
+                case AccessCondition.RequiresRegistration:
+                case AccessCondition.OpenWithAdvisory:
+                    accessHint = "clickthrough";
+                    break;
+                default:
+                    accessHint = "credentials";
+                    break;
+            }            
+            manifest.Services ??= new List<IService>();
+            manifest.Services?.Add(
+                new ExternalResource("Text")
+                {
+                    Profile = "http://wellcomelibrary.org/ld/iiif-ext/access-control-hints",
+                    Label = Lang.Map(accessHint)
+                });
+
         }
     }
 }
