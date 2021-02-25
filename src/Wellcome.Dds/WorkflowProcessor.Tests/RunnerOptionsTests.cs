@@ -52,7 +52,7 @@ namespace WorkflowProcessor.Tests
             {
                 allFlags[i] = (RunnerOptionsFlags)i;
                 allOptions[i] = RunnerOptions.FromFlags(allFlags[i]);
-                output.WriteLine(allFlags[i].ToString());
+                output.WriteLine(i + ": " + allFlags[i]);
             }
 
             // Assert

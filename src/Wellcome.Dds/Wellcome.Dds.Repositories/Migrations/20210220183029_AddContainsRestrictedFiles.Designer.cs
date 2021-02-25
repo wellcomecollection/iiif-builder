@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wellcome.Dds.Repositories;
@@ -9,9 +10,10 @@ using Wellcome.Dds.Repositories;
 namespace Wellcome.Dds.Repositories.Migrations
 {
     [DbContext(typeof(DdsContext))]
-    partial class DdsContextModelSnapshot : ModelSnapshot
+    [Migration("20210220183029_AddContainsRestrictedFiles")]
+    partial class AddContainsRestrictedFiles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,14 +58,6 @@ namespace Wellcome.Dds.Repositories.Migrations
                     b.Property<string>("CollectionReferenceNumber")
                         .HasColumnType("text")
                         .HasColumnName("collection_reference_number");
-
-                    b.Property<string>("CollectionTitle")
-                        .HasColumnType("text")
-                        .HasColumnName("collection_title");
-
-                    b.Property<string>("CollectionWorkId")
-                        .HasColumnType("text")
-                        .HasColumnName("collection_work_id");
 
                     b.Property<bool>("ContainsRestrictedFiles")
                         .HasColumnType("boolean")

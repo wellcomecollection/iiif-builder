@@ -9,6 +9,9 @@ namespace Wellcome.Dds
     /// </summary>
     public class Manifestation
     {
+        public static string EmptyTopLevelArchiveReference = "(no-collection)";
+        public static string EmptyTopLevelArchiveTitle = "Archives that are not part of a collection";
+        
         // FM = FlatManifestation, see https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds.Data/FlatManifestation.cs
         
         public string Id { get; set; } // this is string3, the same as the manifest in S3; bnnn_0003
@@ -32,9 +35,19 @@ namespace Wellcome.Dds
         public string CalmAltRefParent { get; set; } // Only for archive items
         
         /// <summary>
-        /// The top level of this item's archive tree
+        /// The top level of this item's archive tree, eg PP/CRI
         /// </summary>
         public string CollectionReferenceNumber { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// The top level of this item's archive tree, as a work Id
+        /// </summary>
+        public string CollectionWorkId { get; set; } // Only for archive items
+        
+        /// <summary>
+        /// The top level of this item's archive tree - its title
+        /// </summary>
+        public string CollectionTitle { get; set; } // Only for archive items
         
         /// <summary>
         /// Eventually, all works will have one of these, but for now it's just archives
@@ -58,8 +71,7 @@ namespace Wellcome.Dds
         public bool SupportsSearch { get; set; }
         public bool IsAllOpen { get; set; }
         
-        // Consider adding
-        //public bool ContainsRestrictedFiles { get; set; }
+        public bool ContainsRestrictedFiles { get; set; }
         
         /// <summary>
         /// Image service for thumbnail obtained from Catalogue Record, which might

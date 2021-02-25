@@ -47,6 +47,9 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService loginServiceReference;
         private readonly IService externalAuthService;
         private readonly IService externalAuthServiceReference;
+
+        // omit Digitalcollection and Location
+        private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
         public IIIFBuilderParts(UriPatterns uriPatterns,
             int dlcsDefaultSpace,
@@ -90,11 +93,17 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 foreach (var md in @group)
                 {
+                    if (!DisplayedAggregations.Contains(md.Label))
+                    {
+                        // don't use Location or DigitalCollection as memebership aggregations
+                        continue;
+                    }
+                    var urlFriendlyAggregator = Wellcome.Dds.Metadata.ToUrlFriendlyAggregator(md.Label);
                     iiifResource.PartOf ??= new List<ResourceBase>();
                     iiifResource.PartOf.Add(
                         new Collection
                         {
-                            Id = uriPatterns.CollectionForAggregation(md.Label, md.Identifier),
+                            Id = uriPatterns.CollectionForAggregation(urlFriendlyAggregator, md.Identifier),
                             Label = new LanguageMap("en", $"{md.Label}: {md.StringValue}")
                         });
                 }
@@ -830,20 +839,34 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// </summary>
         /// <param name="iiifResource"></param>
         /// <param name="work"></param>
-        public void ArchiveCollectionStructure(ResourceBase iiifResource, Work work)
+        /// <param name="childManifestationsSource"></param>
+        public void ArchiveCollectionStructure(ResourceBase iiifResource, Work work,
+            Func<List<Manifestation>> childManifestationsSource)
         {
-            if (work.Parts.Any())
+            // We don't know if the children of this item (work.Parts) are
+            // manifests or collections. We could do this by loading them from the
+            // catalogue API and seeing if they have a digital location, but that
+            // would be expensive. Instead we look at known sibling manifestations in the
+            // DDS Database. This means this will give more accurate results as the DB
+            // fills up - it requires a full DB to be accurate.
+            // This is OK because we should only get here in runtime, navigating DOWN
+            // the archival hierarchy.
+            if (work.Parts.Any() && iiifResource is Collection collection)
             {
-                if (iiifResource is Collection collection)
+                collection.Items = new List<ICollectionItem>();
+                var knownChildManifestations = childManifestationsSource();
+                foreach (var part in work.Parts)
                 {
-                    collection.Items = work.Parts.Select(MakePart).ToList();
+                    var manifestationForPart =
+                        knownChildManifestations.SingleOrDefault(m => m.ReferenceNumber == part.ReferenceNumber);
+                    var iiifPart = MakePart(part, manifestationForPart);
+                    if (iiifPart != null)
+                    {
+                        collection.Items.Add(iiifPart);
+                    }
                 }
-                else
-                {
-                    // what to do here? I have parts, but I'm not a collection.
-                    // Maybe this is OK, but for now I'll throw an exception, so we can see it.
-                    // throw new NotSupportedException("Only collections can have parts");
-                }
+                collection.Label!["en"].Add(
+                    $"({collection.Items.Count} of {work.Parts.Length} child parts are digitised works)");
             }
 
             var currentWork = work;
@@ -853,38 +876,40 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var parentWork = currentWork.PartOf?.LastOrDefault();
                 if (parentWork != null)
                 {
-                    var parentCollection = (Collection) MakePart(parentWork);
-                    currentIiifResource.PartOf ??= new List<ResourceBase>();
-                    currentIiifResource.PartOf.Insert(0, parentCollection);
-                    currentIiifResource = parentCollection;
+                    if (MakePart(parentWork, null) is Collection parentCollection)
+                    {
+                        currentIiifResource.PartOf ??= new List<ResourceBase>();
+                        currentIiifResource.PartOf.Insert(0, parentCollection);
+                        currentIiifResource = parentCollection;
+                    }
                 }
                 currentWork = parentWork;
             }
         }
 
-        private ICollectionItem MakePart(Work work)
+        private ICollectionItem? MakePart(Work work, Manifestation? manifestation)
         {
-            // TODO - this is incomplete, because we currently don't know whether
-            // this is a manifest or collection. we don't know whether it's digitised, either.
-            // https://github.com/wellcomecollection/platform/issues/4782
-            // We could follow the work ID and get the full thing, but that's going to hammer
-            // the API. We could cache the results. 
-            // If we already had a fully populated DdsContext.Manifestations, we could ask that 
-            // whether it has a row (and therefore know whether something is digitised). But
-            // we'd have to do multiple passes, revisit stuff...
-            if (work.WorkType?.Id == "archive-item")
+            if (manifestation != null || work.HasDigitalLocation())
             {
+                // definitely a manifest
                 return new Manifest
                 {
-                    Id = uriPatterns.Manifest($"GB/120/{work.ReferenceNumber}"),
+                    Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
+                    Label = Lang.Map(work.Title),
+                    Thumbnail = manifestation?.GetThumbnail()
+                };
+            }
+            // maybe a manifest, if only it were digitised... but, maybe just an undigitised work, or child structure.
+            if (work.TotalParts > 0)
+            {
+                return new Collection
+                {
+                    Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
                     Label = Lang.Map(work.Title)
                 };
             }
-            return new Collection
-            {
-                Id = uriPatterns.CollectionForWork($"GB/120/{work.ReferenceNumber}"),
-                Label = Lang.Map(work.Title)
-            };
+
+            return null;
         }
 
         public void CheckForCopyAndVolumeStructure(

@@ -606,7 +606,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 return Json(suggestions.Select(fm => new AutoCompleteSuggestion
                 {
                     id = fm.PackageIdentifier,
-                    label = fm.Label
+                    label = fm.PackageLabel
                 }).ToArray());
         }
 

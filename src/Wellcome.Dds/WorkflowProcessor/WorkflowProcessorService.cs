@@ -53,6 +53,9 @@ namespace WorkflowProcessor
         ///
         /// --workflow-options 30
         /// This is (currently) the all-but-DLCS flags value.
+        ///
+        /// --workflow-options 6
+        /// RefreshFlatManifestations and RebuildIIIF (no text or image registration)
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="serviceScopeFactory"></param>

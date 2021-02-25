@@ -56,9 +56,48 @@ namespace Wellcome.Dds.Repositories
             pattern = $"%{query.ToAlphanumericOrWhitespace()}%";
             return Manifestations.Where(m => 
                 m.Index == 0 &&
-                EF.Functions.ILike(m.Label, pattern))
+                EF.Functions.ILike(m.PackageLabel, pattern))
                 .ToList();
         }
+
+        public IEnumerable<AggregationMetadata> GetAggregation(string aggregator)
+        {
+            var query = String.Format(AggregationMetadata.Sql, aggregator.ToAlphanumeric());
+            return Database
+                .MapRawSql<AggregationMetadata>(query, dr => new AggregationMetadata(dr));
+        }
+
+        public IEnumerable<ValueAggregationResult> GetAggregation(string aggregator, string value)
+        {
+            var query =
+                from metadata in Metadata
+                join manifestation in Manifestations
+                    on metadata.ManifestationId equals manifestation.PackageIdentifier
+                where manifestation.Index == 0 && metadata.Label == aggregator && metadata.Identifier == value
+                select new {metadata, manifestation};
+            foreach (var result in query)
+            {
+                yield return new ValueAggregationResult
+                {
+                    Manifestation = result.manifestation,
+                    CollectionStringValue = result.metadata.StringValue,
+                    CollectionLabel = result.metadata.Label
+                };
+            }
+        }
+
+        public IEnumerable<ArchiveCollectionTop> GetTopLevelArchiveCollections()
+        {
+            return Database.MapRawSql(
+                ArchiveCollectionTop.Sql, dr => new ArchiveCollectionTop(dr));
+        }
+    }
+
+    public record ValueAggregationResult
+    {
+        public Manifestation Manifestation;
+        public string CollectionStringValue;
+        public string CollectionLabel;
     }
     
     class AssetTotal
@@ -87,5 +126,41 @@ namespace Wellcome.Dds.Repositories
 
         public string AssetType { get; set; }
         public long AssetCount { get; set; }
+    }
+
+    public class AggregationMetadata
+    {
+        public const string Sql =
+            "select distinct identifier, string_value from metadata where label='{0}' order by string_value";
+
+        public readonly string Identifier;
+        public readonly string Label;
+        
+        public AggregationMetadata(DbDataReader dr)
+        {
+            Identifier = (string) dr[0];
+            Label = (string) dr[1];
+        }
+    }
+
+    public class ArchiveCollectionTop
+    {
+        public const string Sql =
+              "select distinct collection_reference_number, collection_title, " 
+            + "collection_work_id from manifestations where collection_title is not null";
+
+        public readonly string ReferenceNumber;
+        public readonly string Title;
+        public readonly string WorkId;
+
+        public ArchiveCollectionTop(DbDataReader dr)
+        {
+            ReferenceNumber = (string) dr[0];
+            Title = (string) dr[1];
+            if (!dr.IsDBNull(2))
+            {
+                WorkId = (string) dr[2];
+            }
+        }
     }
 }

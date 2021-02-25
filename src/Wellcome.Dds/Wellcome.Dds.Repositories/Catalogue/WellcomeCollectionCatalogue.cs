@@ -20,7 +20,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
         private readonly ILogger<WellcomeCollectionCatalogue> logger;
 
         /// <summary>
-        /// include=identifiers,items,subjects,genres,contributors,production,notes,parts,partOf,precededBy,succeededBy
+        /// include=identifiers,items,subjects,genres,contributors,production,languages,notes,images,parts,partOf,precededBy,succeededBy
         /// </summary>
         private readonly string[] allIncludes = { 
             "identifiers",
@@ -29,7 +29,9 @@ namespace Wellcome.Dds.Repositories.Catalogue
             "genres",
             "contributors",
             "production",
+            "languages",
             "notes",
+            "images",
             "parts",
             "partOf",
             "precededBy",
