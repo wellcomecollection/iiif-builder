@@ -217,6 +217,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 
                 canvas.Height = p3Canvas.Height;
                 canvas.Width = p3Canvas.Width;
+                canvas.ViewingHint = p3Canvas.Behavior?.FirstOrDefault();
 
                 if (p3Canvas.Items.HasItems())
                 {
@@ -244,7 +245,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                         images.Add(GetImageAnnotation(image, paintingAnnotation, canvas, authServiceManager));
                     }
-
+                    
                     canvas.Images = images;
                 }
 

@@ -129,7 +129,7 @@ class Comparer:
     async def compare_collections(self, original, new):
         # do a "Contains" check for label
         are_equal = True
-        self.compare_label(original["label"], new["label"])
+        self.compare_label(original.get("label", ""), new.get("label", ""))
         self.compare_license(original.get("license", None), new.get("license", None))
 
         # services are finnicky - handle separately
@@ -182,7 +182,7 @@ class Comparer:
 
         # do a "Contains" check for label
         are_equal = True
-        self.compare_label(original["label"], new["label"])
+        self.compare_label(original.get("label", ""), new.get("label", ""))
         self.compare_license(original.get("license", ""), new.get("license", ""))
 
         # services are finnicky - handle separately
@@ -194,6 +194,11 @@ class Comparer:
         return are_equal
 
     def compare_label(self, orig, new):
+        if not orig:
+            logger.debug(f"'_root_'.'label' origin has no value")
+            self.warnings.append("'_root_'.'label' origin has no value")
+            return
+
         if orig != new and orig not in new:
             logger.debug(f"'_root_'.'label' mismatch: {orig} - {new}")
             self.warnings.append("'_root_'.'label' mismatch")
@@ -534,7 +539,7 @@ async def main(bnums):
 
             if not original or not new:
                 logger.info(f"{count}**{bnumber} failed to load")
-                failed.append(f"{'new' if original else 'original'} failed to load")
+                failed.append(bnumber)
                 continue
 
             if await comparer.start_comparison(original, new, bnumber):
