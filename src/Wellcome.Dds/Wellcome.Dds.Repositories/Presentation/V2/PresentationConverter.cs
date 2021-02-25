@@ -461,10 +461,17 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             // Check to see if we can get license to add to Attribution
             var license = LicenseMap.GetLicenseAbbreviation(presentationBase.License ?? string.Empty);
-            if (string.IsNullOrEmpty(license) && conditionsOfUse.Contains(Constants.InCopyrightConditionStatement))
+            if (string.IsNullOrEmpty(license))
             {
-                // "in copyright" works don't have a .License so need to look at conditions of use to determine value
-                license = Constants.InCopyrightCondition;
+                if (conditionsOfUse.Contains(Constants.InCopyrightStatement))
+                {
+                    // "in copyright" works don't have a .License so need to look at conditions of use to determine value
+                    license = Constants.InCopyrightCondition;
+                }
+                else if (conditionsOfUse.Contains(Constants.CopyrightNotClearedStatement))
+                {
+                    license = Constants.CopyrightNotClearedCondition;
+                }
             }
 
             presentationBase.Metadata.Add(new Presi2.Metadata

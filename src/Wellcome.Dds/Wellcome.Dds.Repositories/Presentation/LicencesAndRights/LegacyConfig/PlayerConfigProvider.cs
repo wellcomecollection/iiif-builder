@@ -117,8 +117,8 @@ namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig
             dict["OGL"] = "You have permission to make copies of this work under an <a target=\"_top\" href=\"http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/\">Open Government license</a>.<br/><br/>This licence permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited. <br/><br/>Image source should be attributed as specified in the full catalogue record. If no source is given the image should be attributed to Wellcome Library.";
             dict["OPL"] = "You have permission to make copies of this work under an <a target=\"_top\" href=\"http://www.parliament.uk/site-information/copyright/open-parliament-licence/\">Open Parliament license</a>.<br/><br/>This licence permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited. <br/><br/>Image source should be attributed as specified in the full catalogue record. If no source is given the image should be attributed to Wellcome Library.";
             dict["ARR"] = "The work has been made available under an \"all rights reserved licence\". See the full catalogue record for further information about what rights you have to make copies of this work.";
-            dict["Copyright not cleared"] = "The copyright of this item has not been evaluated. Please refer to the original publisher/creator of this item for more information. You are free to use this item in any way that is permitted by the copyright and related rights legislation that applies to your use. <br/>See <a target=\"_top\" href=\"http://rightsstatements.org/page/CNE/1.0/?language=en\">rightsstatements.org</a> for more information.";
-            dict[Constants.InCopyrightCondition] = Constants.InCopyrightConditionStatement;
+            dict[Constants.CopyrightNotClearedCondition] = Constants.CopyrightNotClearedStatement;
+            dict[Constants.InCopyrightCondition] = Constants.InCopyrightStatement;
             return dict;
         }
     }
