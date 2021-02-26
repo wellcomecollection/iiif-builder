@@ -69,7 +69,7 @@ namespace Wellcome.Dds.Server.Controllers
             var work = await catalogue.GetWorkByOtherIdentifier(id);
             if (work != null)
             {
-                return ManifestIdConversion(work.Id, uriPatterns.PersistentPlayerUri);
+                return BuilderUrl(uriPatterns.PersistentPlayerUri(work.Id));
             }
             return NotFound();
         }
