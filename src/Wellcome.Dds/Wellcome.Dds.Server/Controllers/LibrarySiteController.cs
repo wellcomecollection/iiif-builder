@@ -96,7 +96,7 @@ namespace Wellcome.Dds.Server.Controllers
         public IActionResult ManifestFullText(string bNumber, int manifestIndex)
         {
             return ManifestLevelConversion(bNumber, manifestIndex, 
-                uriPatterns.IIIFAutoCompleteService1, string.Empty);
+                uriPatterns.RawText, string.Empty);
         }
         
         [HttpGet("service/alto/{bNumber}/{manifestIndex}")]
