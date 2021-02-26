@@ -82,7 +82,7 @@ namespace Wellcome.Dds.IIIFBuilding
 
         // Other resources
         private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
-        private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // v1 refers to Wellcome API
+        private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // not versioned
         private const string PosterImageFormat =                  "/thumbs/{identifier}";
         private const string PdfThumbnailFormat =                 "/thumbs/{identifier}"; // make these the same for now
         
