@@ -148,39 +148,59 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services
             // but with some values stripped back (ConfirmLabel, Header etc).
-            // however - we want the full object to FIRST canvas, and links thereafter
+            // however - we want the full object to FIRST canvas that uses that auth, and links thereafter
             WellcomeAuthServiceManager authServiceManager = new();
 
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
             manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
             
-            // TODO - will need to handle {"@context": "http://universalviewer.io/context.json"} uihints + tracking
-            // services once these are added to IIIF3 manifest. Will be added to p3Manifest.Service
-
             if (p3Manifest.Services.HasItems())
             {
                 manifest.Service ??= new List<IService>();
 
-                // P3.Services will all be auth-services
-                foreach (var authService in p3Manifest.Services!)
+                // P3.Services will be auth-services or "made up" UV external resource
+                bool haveAuth = false;
+                foreach (var service in p3Manifest.Services!)
                 {
-                    var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
-
-                    // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
-                    // null everywhere
-                    manifest.Service.Add(DeepCopy(wellcomeAuthService, wellcomeAuth =>
+                    switch (service)
                     {
-                        foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
-                        {
-                            authCookieService.ConfirmLabel = null;
-                            authCookieService.Header = null;
-                            authCookieService.FailureHeader = null;
-                            authCookieService.FailureDescription = null;
-                        }
-                    })!);
-                    
-                    // Add to wellcomeAuthServices collection, keyed by authService.id as we can use this to lookup later 
-                    authServiceManager.Add(wellcomeAuthService);
+                        case ResourceBase authService:
+                            var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+
+                            // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
+                            // null everywhere
+                            manifest.Service.Add(DeepCopy(wellcomeAuthService, wellcomeAuth =>
+                            {
+                                foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
+                                {
+                                    authCookieService.ConfirmLabel = null;
+                                    authCookieService.Header = null;
+                                    authCookieService.FailureHeader = null;
+                                    authCookieService.FailureDescription = null;
+                                }
+                            })!);
+
+                            // Add to wellcomeAuthServices collection, keyed by authService.id as we can use this to lookup later 
+                            authServiceManager.Add(wellcomeAuthService);
+                            haveAuth = true;
+                            break;
+                        case ExternalResource externalResource:
+                            var legacyService = LegacyServiceFactory.GetLegacyService(identifier, externalResource);
+                            if (legacyService != null)
+                            {
+                                // Only add AccessControlHints if we don't already have a wellcomeAuthService
+                                if (legacyService is AccessControlHints && haveAuth) continue;
+                                
+                                manifest.Service.Add(legacyService);
+                            }
+
+                            break;
+                        default:
+                            logger.LogWarning(
+                                "Unsure how to handle p3Manifest.Services service of type {Type} for {Identifier}",
+                                service, identifier);
+                            break;
+                    }
                 }
             }
 
@@ -271,14 +291,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return manifest;
         }
 
-        private WellcomeAuthService GetWellcomeAuthService(DdsIdentifier identifier, IService authService)
+        private WellcomeAuthService GetWellcomeAuthService(DdsIdentifier identifier, ResourceBase authResourceBase)
         {
-            // All auth services are ResourceBase, we need to cast to access Context property to set it correctly
-            if (authService is not ResourceBase authResourceBase)
-            {
-                throw new InvalidOperationException("Expected manifest.Services to only contain ResourceBase");
-            }
-
             var copiedService = DeepCopy(authResourceBase, svc =>
             {
                 svc.Type = null;

@@ -1083,7 +1083,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ((ICollectionItem)iiifResource).Services?.Add(
                 new ExternalResource("Text")
                 {
-                    Profile = "http://universalviewer.io/tracking-extensions-profile",
+                    Profile = Constants.Profiles.TrackingExtension,
                     Label = Lang.Map(trackingLabel)
                 });
         }
@@ -1112,7 +1112,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             manifest.Services?.Add(
                 new ExternalResource("Text")
                 {
-                    Profile = "http://wellcomelibrary.org/ld/iiif-ext/access-control-hints",
+                    Profile = Constants.Profiles.AccessControlHints,
                     Label = Lang.Map(accessHint)
                 });
 
