@@ -1,7 +1,9 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Options;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
@@ -20,6 +22,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
         private readonly DdsContext ddsContext;
+        private readonly ICatalogue catalogue;
 
         /// <summary>
         /// 
@@ -30,12 +33,14 @@ namespace Wellcome.Dds.Server.Controllers
         public WlOrgController(
             UriPatterns uriPatterns,
             IOptions<DdsOptions> options,
-            DdsContext ddsContext
+            DdsContext ddsContext,
+            ICatalogue catalogue
             )
         {
             this.uriPatterns = uriPatterns;
             this.ddsOptions = options.Value;
             this.ddsContext = ddsContext;
+            this.catalogue = catalogue;
         }
 
         
@@ -56,7 +61,18 @@ namespace Wellcome.Dds.Server.Controllers
         {
             return ManifestIdConversion(id, uriPatterns.IIIFContentSearchService0);
         }
-
+        
+        [HttpGet("player/{id}")]
+        [HttpGet("item/{id}")]
+        public async Task<IActionResult> ItemPage(string id)
+        {
+            var work = await catalogue.GetWorkByOtherIdentifier(id);
+            if (work != null)
+            {
+                return ManifestIdConversion(work.Id, uriPatterns.PersistentPlayerUri);
+            }
+            return NotFound();
+        }
 
         private IActionResult ManifestIdConversion(string id, Func<string, string> converter)
         {
