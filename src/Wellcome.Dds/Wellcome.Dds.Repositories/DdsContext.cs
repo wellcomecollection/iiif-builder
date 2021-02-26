@@ -91,6 +91,15 @@ namespace Wellcome.Dds.Repositories
             return Database.MapRawSql(
                 ArchiveCollectionTop.Sql, dr => new ArchiveCollectionTop(dr));
         }
+
+
+
+        public Manifestation? GetManifestationByIndex(string identfier, int index)
+        {
+            return Manifestations.SingleOrDefault(
+                m => m.PackageIdentifier == identfier && m.Index == index);
+        }
+        
     }
 
     public record ValueAggregationResult
@@ -163,4 +172,5 @@ namespace Wellcome.Dds.Repositories
             }
         }
     }
+    
 }
