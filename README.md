@@ -80,6 +80,8 @@ Connection strings for the production databases can be found in AWS Secrets Mana
 
 Use port forwarding via the AWS bastion to access RDS instance, and the above connection-strings for credentials.
 
+> Run any migrations as the application user, or remember to grant privs to any new items
+
 ## Running
 
 The [`dotnet cli`](https://docs.microsoft.com/en-us/dotnet/core/tools/) can be used to run the apps outside of an IDE.
