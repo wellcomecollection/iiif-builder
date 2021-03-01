@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DeepCopy;
 using IIIF;
 using IIIF.Auth.V1;
 using IIIF.ImageApi.Service;
@@ -134,7 +133,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource, int? sequence = 0)
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource,
+            int? sequence = 0)
+        {
+            return Presi3.ManifestX.ContainsAV(p3Manifest) // OR is born Digital
+                ? ConvertManifest<MediaManifest>(p3Manifest, identifier, rootResource, sequence)
+                : ConvertManifest<Manifest>(p3Manifest, identifier, rootResource, sequence);
+        }
+
+        private T ConvertManifest<T>(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource, int? sequence = 0)
+            where T : Manifest, new()
         {
             if (rootResource && p3Manifest.Items.IsNullOrEmpty())
             {
@@ -143,8 +151,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             // We only want "Volume X" and "Copy X" labels for Manifests within Collections
             var manifest = rootResource
-                ? GetIIIFPresentationBase<Manifest>(p3Manifest)
-                : GetIIIFPresentationBase<Manifest>(p3Manifest, s => s.StartsWith("Copy") || s.StartsWith("Volume"));
+                ? GetIIIFPresentationBase<T>(p3Manifest)
+                : GetIIIFPresentationBase<T>(p3Manifest, s => s.StartsWith("Copy") || s.StartsWith("Volume"));
 
             // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services
             // but with some values stripped back (ConfirmLabel, Header etc).
@@ -169,7 +177,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                             // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
                             // null everywhere
-                            manifest.Service.Add(DeepCopy(wellcomeAuthService, wellcomeAuth =>
+                            manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, wellcomeAuth =>
                             {
                                 foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
                                 {
@@ -225,16 +233,140 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             if (p3Manifest.Items.IsNullOrEmpty()) return manifest;
 
+            if (manifest is MediaManifest mediaManifest)
+            {
+                SetMediaSequences(p3Manifest, identifier, authServiceManager, mediaManifest);
+            }
+            else
+            {
+                SetImageSequences(p3Manifest, identifier, sequence, authServiceManager, manifest);
+            }
+
+            return manifest;
+        }
+
+        private void SetMediaSequences(Presi3.Manifest p3Manifest, DdsIdentifier identifier,
+            WellcomeAuthServiceManager authServiceManager, MediaManifest manifest)
+        {
+            manifest.Sequences = new List<Sequence>(1) {SequenceForMedia.Instance};
+
+            // TODO - are there any that will have multiple?
+            foreach (var p3Canvas in p3Manifest.Items)
+            {
+                if (p3Canvas.Items!.Count > 1)
+                    logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has more Items than expected",
+                        p3Manifest.Id, p3Canvas.Id);
+
+                var mediaSequence = new MediaSequence
+                {
+                    Id = GetMediaSequenceIdProfile(identifier),
+                    Label = new MetaDataValue("XSequence 0"),
+                };
+
+                // Assumption is 1 item for now
+                // TODO - handle multiple?
+                var item = p3Canvas.Items[0].Items.FirstOrDefault();
+
+                // .. and maybe 1 annotation, if there's a transcription
+                var anno = p3Canvas.Annotations?.FirstOrDefault();
+
+                var elements = new AnnotationListForMedia();
+                elements.Label = manifest.Label;
+                elements.Thumbnail = new List<Thumbnail>
+                {
+                    new() {Id = uriPatterns.PdfThumbnail(identifier), Type = null}
+                };
+
+                if (item is not PaintingAnnotation paintingAnnotation)
+                {
+                    throw new InvalidOperationException("Expected a painting annotation for AV");
+                }
+                
+                // Populate Rendering, Id, Type, Format etc from PaintingAnnotation
+                PopulateFromBody(elements, paintingAnnotation.Body!);
+                mediaSequence.Elements.Add(elements);
+                manifest.MediaSequences.Add(mediaSequence);
+                
+                // TODO auth
+            }
+        }
+
+        private bool PopulateFromBody(AnnotationListForMedia annoListForMedia,
+            IPaintable paintable,
+            bool populated = false)
+        {
+            annoListForMedia.Rendering ??= new List<Presi2.ExternalResource>();
+            
+            switch (paintable)
+            {
+                case Video video:
+                    annoListForMedia.Rendering.Add(new Presi2.ExternalResource
+                    {
+                        Id = video.Id,
+                        Format = video.Format
+                    });
+                    
+                    if (!populated)
+                    {
+                        annoListForMedia.Id = $"{video.Id}#identity";
+                        annoListForMedia.Type = "dctypes:MovingImage";
+                        annoListForMedia.Format = video.Format;
+                        annoListForMedia.Width = video.Width;
+                        annoListForMedia.Height = video.Height;
+                        annoListForMedia.Metadata = new List<Presi2.Metadata>
+                        {
+                            new()
+                            {
+                                Label = new MetaDataValue("length"),
+                                Value = new MetaDataValue($"{video.Duration} s")  // TODO - convert to Xmn Ys
+                            }
+                        };
+                        populated = true;
+                    }
+                    break;
+                case PaintingChoice choice:
+                    foreach (var i in choice.Items?? Enumerable.Empty<IPaintable>())
+                    {
+                        populated = PopulateFromBody(annoListForMedia, i, populated);
+                    }
+                    break;
+                case Audio audio:
+                    annoListForMedia.Rendering.Add(new Presi2.ExternalResource
+                    {
+                        Id = audio.Id,
+                        Format = audio.Format
+                    });
+                    if (!populated)
+                    {
+                        annoListForMedia.Id = $"{audio.Id}#identity";
+                        annoListForMedia.Type = "dctypes:Sound";
+                        annoListForMedia.Format = audio.Format;
+                        annoListForMedia.Metadata = new List<Presi2.Metadata>
+                        {
+                            new()
+                            {
+                                Label = new MetaDataValue("length"),
+                                Value = new MetaDataValue($"{audio.Duration} s")  // TODO - convert to Xmn Ys
+                            }
+                        };
+                        populated = true;
+                    }
+                    
+                    break;
+            }
+
+            return populated;
+        }
+
+        private void SetImageSequences(Presi3.Manifest p3Manifest, DdsIdentifier identifier, int? sequence,
+            WellcomeAuthServiceManager authServiceManager, Manifest manifest)
+        {
             // NOTE - there will only ever be 1 sequence
             var canvases = new List<Canvas>(p3Manifest.Items!.Count);
             foreach (var p3Canvas in p3Manifest.Items)
             {
                 var canvas = GetIIIFPresentationBase<Canvas>(p3Canvas);
-                if (p3Canvas.Duration.HasValue)
-                {
-                    throw new InvalidOperationException("A/V not yet supported!");
-                }
-                
+
                 canvas.Height = p3Canvas.Height;
                 canvas.Width = p3Canvas.Width;
                 canvas.ViewingHint = p3Canvas.Behavior?.FirstOrDefault();
@@ -265,7 +397,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
                         images.Add(GetImageAnnotation(image, paintingAnnotation, canvas, authServiceManager));
                     }
-                    
+
                     canvas.Images = images;
                 }
 
@@ -283,17 +415,15 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         .Select(r => new Presi2.ExternalResource
                             {Format = r.Format, Id = r.Id, Label = MetaDataValue.Create(r.Label, true)})
                         .ToList(),
-                    Canvases = canvases, 
+                    Canvases = canvases,
                     ViewingHint = p3Manifest.Behavior?.FirstOrDefault()
                 }
             };
-
-            return manifest;
         }
 
         private WellcomeAuthService GetWellcomeAuthService(DdsIdentifier identifier, ResourceBase authResourceBase)
         {
-            var copiedService = DeepCopy(authResourceBase, svc =>
+            var copiedService = ObjectCopier.DeepCopy(authResourceBase, svc =>
             {
                 svc.Type = null;
                 svc.Context = IIIF.Auth.V1.Constants.IIIFAuthContext;
@@ -340,7 +470,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // we only want auth in ImageService
             var services = image.Service?
                 .Where(s => s.GetType() != typeof(ServiceReference)).ToList()
-                .Select(i => DeepCopy(i, s =>
+                .Select(i => ObjectCopier.DeepCopy(i, s =>
                 {
                     if (s is ImageService2 imageService2)
                     {
@@ -413,7 +543,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             if (resourceBase.Service.HasItems())
             {
-                presentationBase.Service = resourceBase.Service!.Select(s => DeepCopy(s, service =>
+                presentationBase.Service = resourceBase.Service!.Select(s => ObjectCopier.DeepCopy(s, service =>
                 {
                     if (service is ResourceBase serviceResourceBase)
                         serviceResourceBase.Type = null;
@@ -524,7 +654,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return thumbnails!.Select(t => new Thumbnail
             {
                 Service = t.Service?.OfType<ImageService2>()
-                    .Select(i => DeepCopy(i, service2 =>
+                    .Select(i => ObjectCopier.DeepCopy(i, service2 =>
                     {
                         service2.EnsureContext(ImageService2.Image2Context);
                         service2.Protocol = ImageService2.Image2Protocol;
@@ -543,7 +673,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             resource.Label = MetaDataValue.Create(externalResource.Label, true);
             resource.Format = externalResource.Format;
             resource.Profile = externalResource.Profile;
-            resource.Service = DeepCopy(externalResource.Service);
+            resource.Service = ObjectCopier.DeepCopy(externalResource.Service);
             return resource;
         }
 
@@ -558,13 +688,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Value = MetaDataValue.Create(p.Value, true)!
                 })
                 .ToList();
-        }
-
-        private static T? DeepCopy<T>(T source, Action<T>? postCopyModifier = null)
-        {
-            var copy = DeepCopier.Copy(source);
-            postCopyModifier?.Invoke(copy);
-            return copy;
         }
 
         private string GetSequenceId(DdsIdentifier identifier, string sequenceIdentifier)
@@ -585,6 +708,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             const string authServiceProfileFormat = "/ld/iiif-ext/access-control-hints";
             return uriPatterns.GetPath(authServiceProfileFormat, identifier);
+        }
+        
+        private string GetMediaSequenceIdProfile(DdsIdentifier identifier)
+        {
+            const string mediaSequenceFormat = "/iiif/{identifier}/xsequence/s0";
+            return uriPatterns.GetPath(mediaSequenceFormat, identifier);
         }
     }
 }
