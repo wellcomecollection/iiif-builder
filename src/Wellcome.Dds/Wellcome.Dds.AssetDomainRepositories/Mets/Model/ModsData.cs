@@ -75,11 +75,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             var accessConditions = modsDoc.Root.Elements(XNames.ModsAccessCondition).ToList();
 
-            var statusAccessConditionElement = accessConditions
-                .SingleOrDefault(x => (string)x.Attribute("type") == "status");
-            if (statusAccessConditionElement != null)
+            var statusAccessConditionElements = accessConditions
+                .Where(x => (string)x.Attribute("type") == "status").ToList();
+            if (statusAccessConditionElements.Count > 1)
             {
-                string accessConditionValue = statusAccessConditionElement.Value;
+                throw new NotSupportedException("METS file contains more than one accessCondition of type 'status'");
+            }
+            
+            if (statusAccessConditionElements.Any())
+            {
+                string accessConditionValue = statusAccessConditionElements.First().Value;
                 if (Common.AccessCondition.IsValid(accessConditionValue))
                 {
                     AccessCondition = accessConditionValue;
@@ -90,30 +95,42 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 AccessCondition = Common.AccessCondition.Open;
             }
 
-            var dzAccessConditionElement = accessConditions
-                .SingleOrDefault(x => (string)x.Attribute("type") == "dz");
-            if (dzAccessConditionElement != null)
+            var dzAccessConditionElements = accessConditions
+                .Where(x => (string)x.Attribute("type") == "dz").ToList();
+            if (dzAccessConditionElements.Count > 1)
             {
-                DzLicenseCode = dzAccessConditionElement.Value;
+                throw new NotSupportedException("METS file contains more than one accessCondition of type 'dz' (more than one license code)");
+            }
+            if (dzAccessConditionElements.Any())
+            {
+                DzLicenseCode = dzAccessConditionElements.First().Value;
             }
 
-            var playerOptionsElement = accessConditions
-                .SingleOrDefault(x => (string)x.Attribute("type") == "player");
-            if (playerOptionsElement != null)
+            var playerOptionsElements = accessConditions
+                .Where(x => (string)x.Attribute("type") == "player").ToList();
+            if (playerOptionsElements.Count > 1)
             {
-                PlayerOptions = Convert.ToInt32(playerOptionsElement.Value);
+                throw new NotSupportedException("METS file contains more than one accessCondition of type 'player'");
+            }
+            if (playerOptionsElements.Any())
+            {
+                PlayerOptions = Convert.ToInt32(playerOptionsElements.First().Value);
             }
 
-            var usageElement = accessConditions
-                .SingleOrDefault(x => (string)x.Attribute("type") == "usage");
-            if (usageElement != null)
+            var usageElements = accessConditions
+                .Where(x => (string)x.Attribute("type") == "usage").ToList();
+            if (usageElements.Count > 1)
+            {
+                throw new NotSupportedException("METS file contains more than one accessCondition of type 'usage'");
+            }
+            if (usageElements.Any())
             {
                 // so where does this parse method go?
                 // needs to replace bare license with link
                 // then find its way into the attribution field
                 // Usage = ParseUsage(usageElement.Value);
 
-                Usage = usageElement.Value;
+                Usage = usageElements.First().Value;
             }
 
             SetCopyAndVolumeNumbers(modsDoc, this);
