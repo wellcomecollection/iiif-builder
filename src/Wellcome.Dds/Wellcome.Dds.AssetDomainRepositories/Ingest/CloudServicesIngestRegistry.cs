@@ -159,7 +159,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
-            ddsInstrumentationContext.SaveChanges();
+            try
+            {
+                // Is this problematic?
+                // If called from the dashboard, this is the only SaveChanges() that will happen.
+                // But if called in a workflow job, the job's overall SaveChanges will be called as well
+                ddsInstrumentationContext.SaveChanges();
+            }
+            catch (DbUpdateException e)
+            {
+                throw new DdsInstrumentationDbException("Could not save new DLCS Ingest Jobs: " + e.Message, e);
+            }
         }
     }
 }

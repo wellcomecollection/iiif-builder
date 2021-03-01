@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CatalogueClient.ToolSupport;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -237,7 +238,14 @@ namespace WorkflowProcessor
                     var job = await dbContext.WorkflowJobs.FindAsync(jobId);
                     await runner.ProcessJob(job, stoppingToken);
                     job.Finished = true;
-                    await dbContext.SaveChangesAsync(stoppingToken);
+                    try
+                    {
+                        await dbContext.SaveChangesAsync(stoppingToken);
+                    }
+                    catch (DbUpdateException e)
+                    {
+                        throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                    }
                 }
                 catch (Exception ex)
                 {
