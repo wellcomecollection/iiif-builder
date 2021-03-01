@@ -109,7 +109,10 @@ namespace Wellcome.Dds.Repositories.Catalogue
                     workId.IdentifierType.Id == "sierra-identifier" 
                     && workId.Value == identifier.ToShortBNumber().ToString()))
             {
-                // A Miro item won't have the b number
+                // If we asked the catalogue API to search by b number, then
+                // we can match the b number in the results if there are multiple results.
+                // This is Sierra Identifier - although it appears in the 7 digit integer form
+                // instead of b{7-digits}{checksum}
                 return true;
             }
             if(work.WorkType.Id == "k")
