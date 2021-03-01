@@ -13,12 +13,19 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     {
         public static void ProcessState(MultipleBuildResult buildResults)
         {
-            // We should have ended up with a Collection, comprising more than one Manifest.
-            // Each Manifest will have a copy number.
-            // There might be more than one volume per copy, in which case we have
-            // a nested collection.
-            if (!(buildResults.First().IIIFResource is Collection bNumberCollection))
+            // If processing a collection and it has no Rights, look at child manifests for rights
+            var firstResult = buildResults.First().IIIFResource;
+            
+            // Verify that we have a Collection buildResult..
+            if (firstResult is not Collection bNumberCollection)
             {
+                // Unless it is AV, in which case it's fine as the original Collection is changed to manifest 
+                // containing AV + PDF
+                if (firstResult is Manifest manifest && manifest.ContainsAV())
+                {
+                    return;
+                }
+                
                 throw new IIIFBuildStateException("State is missing the parent collection");
             }
 
@@ -42,7 +49,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     $"Collection has manifests with multiple differing rights: {string.Join(",", rights)}");
             }
 
-            collection.Rights = rights.Single();
+            collection.Rights = rights.SingleOrDefault();
         }
     }
 }
