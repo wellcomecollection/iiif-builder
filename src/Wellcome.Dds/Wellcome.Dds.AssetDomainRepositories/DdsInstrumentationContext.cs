@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Data.Common;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
 
@@ -71,6 +75,24 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.ForceTextRebuild = forceRebuild;
             await SaveChangesAsync();
             return job;
+        }
+
+        public string MarkFirstJobAsTaken(int minAgeInMinutes)
+        {
+            var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
+                + " select identifier from workflow_jobs "
+                + $" where waiting=true and created < now() - interval '{minAgeInMinutes} minutes' "
+                + " order by created "
+                + " limit 1 "
+                + " for update skip locked "
+                + ") returning identifier;";
+            return Database.MapRawSql(sql, MapString).FirstOrDefault();
+        }
+
+        private string MapString(DbDataReader dr)
+        {
+            if (dr.IsDBNull(0)) return null;
+            return (string) dr[0];
         }
 
         public int FinishAllJobs()
