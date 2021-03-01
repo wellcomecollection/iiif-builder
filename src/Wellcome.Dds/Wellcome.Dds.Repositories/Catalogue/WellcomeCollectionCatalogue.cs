@@ -69,7 +69,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                 List<Work> relatedWorks = new List<Work>();
                 foreach(var work in resultPage.Results)
                 {
-                    if(IsMatchedWork(work))
+                    if(IsMatchedWork(work, identifier))
                     {
                         if(matchedWork == null)
                         {
@@ -99,13 +99,17 @@ namespace Wellcome.Dds.Repositories.Catalogue
         /// This is NOT the real implementation yet! Need to try it on all the bnumbers and build these rules out.
         /// </summary>
         /// <param name="work"></param>
+        /// <param name="identifier"></param>
         /// <returns></returns>
-        private bool IsMatchedWork(Work work)
+        private bool IsMatchedWork(Work work, string identifier)
         {
-            if(work.Identifiers.Any(identifier => identifier.IdentifierType.Id == "sierra-system-number")
-            && work.Identifiers.Any(identifier => identifier.IdentifierType.Id == "sierra-identifier"))
+            if (
+                identifier.IsBNumber() 
+                && work.Identifiers.Any(workId => 
+                    workId.IdentifierType.Id == "sierra-identifier" 
+                    && workId.Value == identifier.ToShortBNumber().ToString()))
             {
-                // A Miro item won't have both of these identfiers
+                // A Miro item won't have the b number
                 return true;
             }
             if(work.WorkType.Id == "k")
