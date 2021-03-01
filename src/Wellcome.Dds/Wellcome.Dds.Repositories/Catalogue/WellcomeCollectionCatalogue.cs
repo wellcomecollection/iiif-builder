@@ -102,8 +102,15 @@ namespace Wellcome.Dds.Repositories.Catalogue
         /// <returns></returns>
         private bool IsMatchedWork(Work work)
         {
+            if(work.Identifiers.Any(identifier => identifier.IdentifierType.Id == "sierra-system-number")
+            && work.Identifiers.Any(identifier => identifier.IdentifierType.Id == "sierra-identifier"))
+            {
+                // A Miro item won't have both of these identfiers
+                return true;
+            }
             if(work.WorkType.Id == "k")
             {
+                // This is unlikely to be a Miro item
                 return true;
             }
             return false;
