@@ -267,9 +267,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 // TODO - handle multiple?
                 var item = p3Canvas.Items[0].Items.FirstOrDefault();
 
-                // .. and maybe 1 annotation, if there's a transcription
-                var anno = p3Canvas.Annotations?.FirstOrDefault();
-
                 var elements = new AnnotationListForMedia();
                 elements.Label = manifest.Label;
                 elements.Thumbnail = new List<Thumbnail>
@@ -283,31 +280,62 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }
                 
                 // Populate Rendering, Id, Type, Format etc from PaintingAnnotation
-                PopulateFromBody(elements, paintingAnnotation.Body!);
+                PopulateFromBody(elements, paintingAnnotation.Body!, authServiceManager);
                 mediaSequence.Elements.Add(elements);
                 manifest.MediaSequences.Add(mediaSequence);
                 
-                // TODO auth
+                // .. and maybe 1 annotation, if there's a transcription
+                var anno = p3Canvas.Annotations?.FirstOrDefault();
+
+                if (anno != null)
+                {
+                    var annotation = new Presi2.Annotation.Annotation();
+                    annotation.Id = anno.Id;
+                    annotation.Motivation = "oad:transcribing";
+
+                    if (anno.Items.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
+                        body is ExternalResource extBody)
+                    {
+                        var resource = new ResourceForMedia();
+                        resource.Id = body.Id;
+                        resource.Type = "foaf:Document";
+                        resource.Format = extBody.Format;
+                        resource.Label = manifest.Label;
+                        resource.Thumbnail = uriPatterns.PdfThumbnail(identifier);
+                    }
+                    else
+                    {
+                        // TODO - what do we want to do here?
+                        logger.LogWarning("Unexpected annotation item type");
+                    }
+                }
             }
         }
 
         private bool PopulateFromBody(AnnotationListForMedia annoListForMedia,
             IPaintable paintable,
+            WellcomeAuthServiceManager authServiceManager,
             bool populated = false)
         {
             annoListForMedia.Rendering ??= new List<Presi2.ExternalResource>();
             
             switch (paintable)
             {
+                // TODO - tidy this up to avoid repeated elements
                 case Video video:
-                    annoListForMedia.Rendering.Add(new Presi2.ExternalResource
+                    var videoResource = new ExternalResourceForMedia
                     {
                         Id = video.Id,
-                        Format = video.Format
-                    });
+                        Format = video.Format,
+                        Service = video.Service,
+                    };
+                    PopulateAuthServices(authServiceManager, videoResource.Service, true);
+                    annoListForMedia.Rendering.Add(videoResource);
+                    annoListForMedia.Service = videoResource.Service;
                     
                     if (!populated)
                     {
+                        annoListForMedia.Service = video.Service;
                         annoListForMedia.Id = $"{video.Id}#identity";
                         annoListForMedia.Type = "dctypes:MovingImage";
                         annoListForMedia.Format = video.Format;
@@ -327,17 +355,24 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 case PaintingChoice choice:
                     foreach (var i in choice.Items?? Enumerable.Empty<IPaintable>())
                     {
-                        populated = PopulateFromBody(annoListForMedia, i, populated);
+                        populated = PopulateFromBody(annoListForMedia, i, authServiceManager, populated);
                     }
                     break;
                 case Audio audio:
-                    annoListForMedia.Rendering.Add(new Presi2.ExternalResource
+                    var audioResource = new ExternalResourceForMedia
                     {
                         Id = audio.Id,
-                        Format = audio.Format
-                    });
+                        Format = audio.Format,
+                        Service = audio.Service,
+                    };
+                    PopulateAuthServices(authServiceManager, audioResource.Service, true);
+                    annoListForMedia.Rendering.Add(audioResource);
+                    annoListForMedia.Service = audioResource.Service;
+
                     if (!populated)
                     {
+                        // HACK: This is to surface to calling method for setting auth
+                        annoListForMedia.Service = audio.Service; 
                         annoListForMedia.Id = $"{audio.Id}#identity";
                         annoListForMedia.Type = "dctypes:Sound";
                         annoListForMedia.Format = audio.Format;
@@ -482,35 +517,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }))
                 .ToList();
             
-            // If we have auth services..
-            if (authServiceManager.HasItems)
-            {
-                // Get all service references from image-service (will be auth services)
-                // for P3 we will _only_ have svc refs, the main Auth services will be in the manifest.Service element 
-                var authServiceReferences = imageService?.Service?.OfType<ServiceReference>().ToList();
-                if (authServiceReferences.HasItems())
-                {
-                    // Remove these from imageService.Services
-                    imageService?.Service?.RemoveAll(s => s is ServiceReference);
-
-                    // Re-add appropriate services. This will be full AuthService if first time it appears,
-                    // or serviceReference if it is not the first time
-                    foreach (var authRef in authServiceReferences!)
-                    {
-                        var service = authServiceManager.Get(authRef.Id!);
-                        if (service is WellcomeAuthService was)
-                        {
-                            // if we have a wellcomeAuthService add the "AuthService" only
-                            imageService?.Service?.AddRange(was.AuthService);
-                        }
-                        else
-                        {
-                            // else just re-add the reference
-                            imageService?.Service?.Add(service);
-                        }
-                    }
-                }
-            }
+            PopulateAuthServices(authServiceManager, imageService.Service, false);
 
             var imageAnnotation = new ImageAnnotation();
             imageAnnotation.Id = paintingAnnotation.Id;
@@ -524,6 +531,38 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 Service = services
             };
             return imageAnnotation;
+        }
+
+        private static void PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
+            List<IService>? candidateServices, bool forceFullService)
+        {
+            // If we don't have auth services then bail out..
+            if (!authServiceManager.HasItems) return;
+
+            // Get all service references from candidate-services (these will be auth services)
+            // for P3 we will _only_ have svc refs, the main Auth services will be in the manifest.Service element 
+            var authServiceReferences = candidateServices?.OfType<ServiceReference>().ToList();
+            if (!authServiceReferences.HasItems()) return;
+
+            // Remove these from imageService.Services
+            candidateServices?.RemoveAll(s => s is ServiceReference);
+
+            // Re-add appropriate services. This will be full AuthService if first time it appears,
+            // or serviceReference if it is not the first time
+            foreach (var authRef in authServiceReferences!)
+            {
+                var service = authServiceManager.Get(authRef.Id!, forceFullService);
+                if (service is WellcomeAuthService was)
+                {
+                    // if we have a wellcomeAuthService add the "AuthService" only
+                    candidateServices?.AddRange(was.AuthService);
+                }
+                else
+                {
+                    // else just re-add the reference
+                    candidateServices?.Add(service);
+                }
+            }
         }
 
         private T GetIIIFPresentationBase<T>(Presi3.StructureBase resourceBase, Func<string, bool>? labelFilter = null)

@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace Wellcome.Dds.Repositories.Presentation.V2
 {
     /// <summary>
-    /// <see cref="Sequence"/> object for use in a <<see cref="MediaManifest"/>
+    /// <see cref="Sequence"/> object for use in a <see cref="MediaManifest"/>
     /// </summary>
     public class SequenceForMedia : Sequence
     {
