@@ -6,11 +6,7 @@ namespace IIIF.Presentation.V2
 {
     public class Thumbnail : ResourceBase
     {
-        public override string Type
-        {
-            get => "dctypes:Image";
-            set => throw new System.NotImplementedException();
-        }
+        public override string? Type { get; set; } = "dctypes:Image";
 
         [JsonProperty(Order = 28)]
         [ObjectIfSingle]

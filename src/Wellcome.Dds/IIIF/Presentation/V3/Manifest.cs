@@ -30,6 +30,5 @@ namespace IIIF.Presentation.V3
         /// </summary>
         [JsonProperty(Order = 39)]
         public List<IService>? Services { get; set; }
-        
     }
 }

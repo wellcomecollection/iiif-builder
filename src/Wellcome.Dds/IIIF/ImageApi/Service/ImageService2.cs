@@ -35,7 +35,6 @@ namespace IIIF.ImageApi.Service
         [JsonProperty(Order = 20)]
         public string[] License { get; set; }
         
-        // TODO - Auth Services
         [JsonProperty(Order = 28)]
         [ObjectIfSingle]
         public List<IService>? Service { get; set; }

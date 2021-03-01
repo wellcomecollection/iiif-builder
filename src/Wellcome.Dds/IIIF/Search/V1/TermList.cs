@@ -5,7 +5,7 @@ namespace IIIF.Search.V1
 {
     public class TermList : ResourceBase, IHasIgnorableParameters
     {
-        public override string Type
+        public override string? Type
         {
             get => "search:TermList";
             set => throw new System.NotImplementedException();

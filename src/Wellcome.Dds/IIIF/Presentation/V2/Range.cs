@@ -6,7 +6,7 @@ namespace IIIF.Presentation.V2
 {
     public class Range : IIIFPresentationBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:Range";
             set => throw new NotImplementedException();

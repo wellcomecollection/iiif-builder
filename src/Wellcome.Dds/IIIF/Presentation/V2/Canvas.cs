@@ -6,7 +6,7 @@ namespace IIIF.Presentation.V2
 {
     public class Canvas : IIIFPresentationBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:Canvas";
             set => throw new System.NotImplementedException();

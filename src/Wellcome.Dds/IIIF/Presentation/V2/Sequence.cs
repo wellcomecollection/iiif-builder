@@ -5,7 +5,7 @@ namespace IIIF.Presentation.V2
 {
     public class Sequence : IIIFPresentationBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:Sequence";
             set => throw new System.NotImplementedException();

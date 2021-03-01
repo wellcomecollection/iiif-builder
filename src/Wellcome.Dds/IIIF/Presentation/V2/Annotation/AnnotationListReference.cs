@@ -5,7 +5,7 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class AnnotationListReference : ResourceBase, IAnnotationListReference
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:AnnotationList";
             set => throw new System.NotImplementedException();

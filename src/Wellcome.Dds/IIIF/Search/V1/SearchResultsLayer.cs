@@ -8,7 +8,7 @@ namespace IIIF.Search.V1
     /// </summary>
     public class SearchResultsLayer : ResourceBase, IHasIgnorableParameters
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:Layer";
             set => throw new System.NotImplementedException();

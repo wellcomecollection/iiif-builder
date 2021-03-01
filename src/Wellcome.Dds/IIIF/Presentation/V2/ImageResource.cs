@@ -4,7 +4,7 @@ namespace IIIF.Presentation.V2
 {
     public class ImageResource : Resource
     {
-        public override string Type
+        public override string? Type
         {
             get => "dctypes:Image";
             set => throw new System.NotImplementedException();

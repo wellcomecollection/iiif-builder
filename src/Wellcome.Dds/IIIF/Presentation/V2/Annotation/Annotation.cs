@@ -8,7 +8,7 @@ namespace IIIF.Presentation.V2.Annotation
         [JsonProperty(Order = 10, PropertyName = "motivation")]
         public virtual string Motivation { get; set; }
 
-        public override string Type
+        public override string? Type
         {
             get => "oa:Annotation";
             set => throw new System.NotImplementedException();

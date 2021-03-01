@@ -5,7 +5,7 @@ namespace IIIF.Search.V1
 {
     public class Hit : ResourceBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "search:Hit";
             set => throw new System.NotImplementedException();
