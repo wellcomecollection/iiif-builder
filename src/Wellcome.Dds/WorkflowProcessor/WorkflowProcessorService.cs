@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -7,6 +8,7 @@ using CatalogueClient.ToolSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
@@ -22,49 +24,53 @@ namespace WorkflowProcessor
     {
         private readonly ILogger<WorkflowProcessorService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
+        private readonly DdsOptions ddsOptions;
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
 
         /// <summary>
         /// Usage:
-        ///
+        /// 
         /// (no args)
         /// Process workflow jobs from the table - standard continuous behaviour of this service.
-        ///
+        /// 
         /// --finish-all
         /// Mark all non-taken jobs as finished (reset them)
-        ///
+        /// 
         /// --populate-file {filepath}
         /// Create workflow jobs from the b numbers in a file
-        ///
+        /// 
         /// --populate-slice {skip}
         /// Create workflow jobs from a subset of all possible digitised b numbers.
         /// This will download and unpack the catalogue dump file, take every {skip} lines,
         /// produce a list of unique b numbers that have digital locations, then register jobs for them.
         /// e.g., skip 100 will populate 1% of the total possible jobs, skip 10 will populate 10%, skip 1 will do ALL jobs.
-        ///
+        /// 
         /// --workflow-options {flags-int}
         /// Optional argument for the two populate-*** operations.
         /// This will create a job with a set of processing options that will override the default RunnerOptions, when
         /// the job is picked up by the WorkflowProcessor.
         /// This flags integer can be obtained by creating a new RunnerOptions instance and calling ToInt32().
         /// There is also a helper RunnerOptions.AllButDlcsSync() call for large-scale operations.
-        ///
+        /// 
         /// --workflow-options 30
         /// This is (currently) the all-but-DLCS flags value.
-        ///
+        /// 
         /// --workflow-options 6
         /// RefreshFlatManifestations and RebuildIIIF (no text or image registration)
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="serviceScopeFactory"></param>
+        /// <param name="options"></param>
         public WorkflowProcessorService(
             ILogger<WorkflowProcessorService> logger,
-            IServiceScopeFactory serviceScopeFactory)
+            IServiceScopeFactory serviceScopeFactory,
+            IOptions<DdsOptions> options)
         {
             this.logger = logger;
             this.serviceScopeFactory = serviceScopeFactory;
+            this.ddsOptions = options.Value;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -215,33 +221,20 @@ namespace WorkflowProcessor
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
                     await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
 
-                    // TODO - temp
-                    var cutoff = DateTime.Now; //
-                    // var cutoff = DateTime.Now.AddMinutes(-1);
-
                     using var scope = serviceScopeFactory.CreateScope();
 
                     var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
 
-                    // TODO - have the job returned as Taken, with the transaction in PostgreSQL,
-                    // so there's no chance of two processes picking the same job.
-                    var job = dbContext.WorkflowJobs
-                        .Where(j => j.Waiting && j.Created < cutoff)
-                        .OrderBy(j => j.Created)
-                        .FirstOrDefault();
-
-                    if (job == null)
+                    var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
+                    if (jobId == null)
                     {
                         waitMs = GetWaitMs(waitMs);
                         continue;
                     }
 
-                    job.Waiting = false;
-                    job.Taken = DateTime.Now;
-                    await dbContext.SaveChangesAsync(stoppingToken);
-
                     waitMs = 2;
                     var runner = GetWorkflowRunner(scope);
+                    var job = await dbContext.WorkflowJobs.FindAsync(jobId);
                     await runner.ProcessJob(job, stoppingToken);
                     job.Finished = true;
                     await dbContext.SaveChangesAsync(stoppingToken);
