@@ -69,7 +69,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                 List<Work> relatedWorks = new List<Work>();
                 foreach(var work in resultPage.Results)
                 {
-                    if(IsMatchedWork(work))
+                    if(IsMatchedWork(work, identifier))
                     {
                         if(matchedWork == null)
                         {
@@ -99,11 +99,25 @@ namespace Wellcome.Dds.Repositories.Catalogue
         /// This is NOT the real implementation yet! Need to try it on all the bnumbers and build these rules out.
         /// </summary>
         /// <param name="work"></param>
+        /// <param name="identifier"></param>
         /// <returns></returns>
-        private bool IsMatchedWork(Work work)
+        private bool IsMatchedWork(Work work, string identifier)
         {
+            if (
+                identifier.IsBNumber() 
+                && work.Identifiers.Any(workId => 
+                    workId.IdentifierType.Id == "sierra-identifier" 
+                    && workId.Value == identifier.ToShortBNumber().ToString()))
+            {
+                // If we asked the catalogue API to search by b number, then
+                // we can match the b number in the results if there are multiple results.
+                // This is Sierra Identifier - although it appears in the 7 digit integer form
+                // instead of b{7-digits}{checksum}
+                return true;
+            }
             if(work.WorkType.Id == "k")
             {
+                // This is unlikely to be a Miro item
                 return true;
             }
             return false;
