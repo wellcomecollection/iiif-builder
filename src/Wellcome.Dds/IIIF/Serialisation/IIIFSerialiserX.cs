@@ -14,7 +14,10 @@ namespace IIIF.Serialisation
             ContractResolver = new PrettyIIIFContractResolver(),
             Formatting = Formatting.Indented,
             Converters = new List<JsonConverter>
-                {new SizeConverter(), new StringArrayConverter(), new ServiceReferenceConverter()}
+            {
+                new SizeConverter(), new StringArrayConverter(), new ServiceReferenceConverter(),
+                new ThumbnailConverter()
+            }
         };
         
         /// <summary>
