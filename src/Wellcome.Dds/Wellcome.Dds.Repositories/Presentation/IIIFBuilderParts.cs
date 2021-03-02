@@ -441,6 +441,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 // A new workflow transcript for this AV file
                                 AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
                                     "pdf", manifest.Label.ToString());
+                                var pageCount = physicalFile.AssetMetadata.GetNumberOfPages();
+                                if (pageCount > 0)
+                                {
+                                    manifest.Metadata ??= new List<LabelValuePair>();
+                                    var label = Lang.Map("en", "Number of pages");
+                                    var value = Lang.Map("none", pageCount.ToString());
+                                    manifest.Metadata.Add(new LabelValuePair(label, value));
+                                }
                                 manifest.Behavior = null;
                                 manifest.Thumbnail = new List<ExternalResource>
                                 {
