@@ -20,7 +20,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         {
             AccessHint = accessHint.ToString();
             Id = $"https://wellcomelibrary.org/iiif/{identifier}/access-control-hints-service";
-            Profile = Constants.Profiles.TrackingExtension;
+            Profile = Constants.Profiles.AccessControlHints;
             Context = "http://wellcomelibrary.org/ld/iiif-ext/0/context.json";
         }
     }

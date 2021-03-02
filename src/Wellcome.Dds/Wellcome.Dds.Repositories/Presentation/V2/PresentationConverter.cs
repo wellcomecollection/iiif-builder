@@ -232,6 +232,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (manifest is MediaManifest mediaManifest)
             {
                 SetMediaSequences(p3Manifest, identifier, authServiceManager, mediaManifest);
+                mediaManifest.EnsureContext("http://wellcomelibrary.org/ld/ixif/0/context.json");
             }
             else
             {
@@ -253,8 +254,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 var mediaSequence = new MediaSequence
                 {
-                    Id = GetMediaSequenceIdProfile(identifier, $"s{itemCount++}"),
-                    Label = new MetaDataValue($"XSequence {itemCount}"),
+                    Id = GetMediaSequenceIdProfile(identifier, $"s{itemCount}"),
+                    Label = new MetaDataValue($"XSequence {itemCount++}"),
                 };
 
                 var elements = new AnnotationListForMedia();
@@ -289,6 +290,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var annotation = new Annotation();
                     annotation.Id = anno.Id;
                     annotation.Motivation = "oad:transcribing";
+                    annotation.On = elements.Id;
 
                     if (anno.Items.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
                         body is ExternalResource extBody)

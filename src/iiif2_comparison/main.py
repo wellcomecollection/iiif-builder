@@ -15,7 +15,7 @@ rules = {
         # metadata + seeAlso massively different
         "ignore": ["@id", "label", "metadata", "logo", "service", "seeAlso", "within", "license"],
         "extra_new": ["thumbnail", "within", "description"],
-        "extra_orig": ["service"]  # TODO - this will be fixed in #5034
+        "extra_orig": ["service"],
     },
     "related": {
         "ignore": ["@id"],
@@ -31,6 +31,7 @@ rules = {
     },
     "sequences-canvases": {
         "ignore": ["@id"],
+        "ignore_for_av": ["thumbnail"],
     },
     "sequences-canvases-thumbnail": {
         "dlcs_comparison": ["@id"],
@@ -87,16 +88,52 @@ rules = {
     "service:clickthrough-authService-service": {
         "version_insensitive": ["profile"]
     },
+    "service:tracking": {
+        "ignore": "trackingLabel"
+    },
     "manifests": {  # collections only
         "ignore": ["thumbnail", "@id"],
         "extra_new": ["thumbnail"],
         "version_insensitive": ["label"]
+    },
+    "mediaSequences": {
+        "domain_insensitive": ["@id"]
+    },
+    "mediaSequences-elements": {
+        "dlcs_comparison": ["@id"],
+        "extra_new": ["metadata"],
+        "ignore": ["metadata", "thumbnail", "width", "height", "label"]
+    },
+    "mediaSequences-elements-rendering": {
+        "dlcs_comparison": ["@id"],
+    },
+    "mediaSequences-elements-service": {
+        "ignore": ["failureDescription", "profile"],
+    },
+    "mediaSequences-elements-rendering-service": {
+        "ignore": ["failureDescription", "profile"],
+    },
+    "mediaSequences-elements-service-service": {
+        "version_insensitive": ["profile"],
+    },
+    "mediaSequences-elements-rendering-service-service": {
+        "version_insensitive": ["profile"],
+    },
+    "mediaSequences-elements-resources": {
+        "dlcs_comparison": ["on"],
+        "ignore": ["@id"]
+    },
+    "mediaSequences-elements-resources-resource": {
+        "ignore": ["@id", "thumbnail", "metadata", "label"],
+        "extra_new": ["metadata"],
+        "extra_orig": ["metadata"]
     }
 }
 
 
 class Comparer:
     _is_authed = False
+    _is_av = False
     warnings = []
     failures = []
 
@@ -105,6 +142,7 @@ class Comparer:
 
     async def start_comparison(self, original, new, identifier=None):
         self._is_authed = False
+        self._is_av = False
         self.warnings = []
         self.failures = []
 
@@ -114,6 +152,8 @@ class Comparer:
         return await self.run_comparison(original, new, identifier)
 
     async def run_comparison(self, original, new, identifier=None):
+        self._is_av = "mediaSequences" in original
+
         original_type = original["@type"]
         if original_type != new["@type"]:
             self.failures.append("Mismatching type")
@@ -175,6 +215,8 @@ class Comparer:
         new_services = new.get("service", [])
         if isinstance(new_services, dict):
             new_services = [new_services]
+        if isinstance(original_services, dict):
+            original_services = [original_services]
 
         all_services = original_services + new_services
         for s in all_services:
@@ -227,29 +269,42 @@ class Comparer:
         # the duplicated element is not identical, one has missing elements. Remove the more sparse one.
         # missing elements: confirmLabel, header, failureHeader and failureDescription
 
-        def clean_service_element(services, is_image_service=False):
+        def clean_service_element(services, keep_duplicates=False):
             # keep non-duplicates in image-service but don't keep in images.services[] element
             to_keep = []
             for svc in services:
                 if isinstance(svc, str):
-                    if is_image_service and svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
+                    if keep_duplicates and svc not in to_keep:  # a simple string link to a svc "https://dlcs.io/auth/2/clickthrough",
                         to_keep.append(svc)
                 elif "/image/" in svc["@context"]:  # this is an image service, process it's internal services element
                     svc["service"] = clean_service_element(svc["service"], True)
                     to_keep.append(svc)
-                elif "auth" in svc["@id"] and "failureHeader" in svc and is_image_service:
+                elif "auth" in svc["@id"] and "failureHeader" in svc and keep_duplicates:
                     to_keep.append(svc)
 
             return to_keep
 
-        # for each canvas...
-        for c in original["sequences"][0]["canvases"]:
-            # iterate the images...
-            for i in c["images"]:
-                # get the resource
-                resource = i["resource"]
-                # iterate the services
-                resource["service"] = clean_service_element(resource["service"])
+        if not self._is_av:
+            # for each canvas...
+            for c in original["sequences"][0]["canvases"]:
+                # iterate the images...
+                for i in c["images"]:
+                    # get the resource
+                    resource = i["resource"]
+                    # iterate the services
+                    resource["service"] = clean_service_element(resource["service"])
+        else:
+            # for each mediaSequences
+            for ms in original["mediaSequences"]:
+                # iterate the elements...
+                for e in ms["elements"]:
+                    # iterate the renderings..
+                    rendering = e["rendering"]
+                    if isinstance(rendering, dict):
+                        rendering = [rendering]
+                    for r in rendering:
+                        r["service"] = clean_service_element(r["service"], True)
+                    e["service"] = clean_service_element(e["service"], True)
 
     def compare_services(self, orig, new):
         # build new dict by key as these can be in funny order
@@ -307,6 +362,7 @@ class Comparer:
         are_equal = True
         rules_for_level = rules.get(level, {})
         ignore = rules_for_level.get("ignore", [])
+        ignore_for_av = rules_for_level.get("ignore_for_av", [])
         level_for_logs = level if level else '_root_'
 
         expected_extra_new = rules_for_level.get("extra_new", [])
@@ -329,6 +385,9 @@ class Comparer:
                 are_equal = False
 
         for key in [k for k in orig_keys if k not in ignore]:
+            if self._is_av and key in ignore_for_av:
+                continue
+
             o = orig.get(key, "")
             n = new.get(key, "")
 
@@ -341,6 +400,10 @@ class Comparer:
                 if order_by := rules.get(self.get_next_level(level, key), {}).get("order_by", ""):
                     o = sorted(o, key=lambda item: item[order_by])
                     n = sorted(n, key=lambda item: item[order_by])
+
+                if key == "@context":
+                    o.sort()
+                    n.sort()
 
                 if len(o) != len(n):
                     self.failures.append(f"'{level_for_logs}'.'{key}' lists of different length")
@@ -548,15 +611,20 @@ async def main(bnums):
                 failed.append(bnumber)
                 continue
 
-            if await comparer.start_comparison(original, new, bnumber):
-                passed.append(bnumber)
-                logger.info(f"{count}**{bnumber} passed")
-                if comparer.warnings:
-                    logger.info("\n-".join(set(comparer.warnings)))
-            else:
+            try:
+                if await comparer.start_comparison(original, new, bnumber):
+                    passed.append(bnumber)
+                    logger.info(f"{count}**{bnumber} passed")
+                    if comparer.warnings:
+                        logger.info("\n-".join(set(comparer.warnings)))
+                else:
+                    failed.append(bnumber)
+                    logger.info(f"{count}**{bnumber} failed")
+                    logger.info("\n-".join(set(comparer.failures)))
+            except Exception as e:
                 failed.append(bnumber)
                 logger.info(f"{count}**{bnumber} failed")
-                logger.info("\n-".join(set(comparer.failures)))
+                logger.info(f"\n-{e}")
 
     logger.info("*****************************")
     logger.info(f"passed ({len(passed)}): {','.join(passed)}")
@@ -571,5 +639,6 @@ async def bnum_generator(bnums):
 
 if __name__ == '__main__':
     bnums = ['b28685520', 'b15701360', 'b20461549', 'b28644475', 'b28545187', 'b20442324']
+    av_bd = ['b32496485', 'b17442783', 'b16756654', 'b29236927', 'b21320962']
     file = r"C:\repos\wellcomecollection\iiif-builder\src\Wellcome.Dds\CatalogueClient\examples.txt"
     asyncio.run(main(bnums))
