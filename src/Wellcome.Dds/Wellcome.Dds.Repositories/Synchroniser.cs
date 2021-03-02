@@ -216,6 +216,7 @@ namespace Wellcome.Dds.Repositories
                             case AssetFamily.TimeBased:
                                 ddsManifestation.FirstFileThumbnailDimensions =
                                     asset.AssetMetadata.GetLengthInSeconds();
+                                ddsManifestation.FirstFileDuration = asset.AssetMetadata.GetDuration();
                                 break;
                         }
                     }
