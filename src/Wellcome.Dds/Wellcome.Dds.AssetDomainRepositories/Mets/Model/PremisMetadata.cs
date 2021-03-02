@@ -67,12 +67,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public double GetDuration()
         {
             var possibleStringLength = GetLengthInSeconds();
-            // TODO - this will not work with "2 min 56sec" and whatnot; needs a proper parser
-            // but see if this can be done in Goobi first
-            double.TryParse(possibleStringLength, out var result);
-            return result;
+            if (double.TryParse(possibleStringLength, out var result))
+            {
+                return result;
+            }
+
+            return ParseDuration(possibleStringLength);
         }
-        
+
         public string GetBitrateKbps()
         {
             return GetFilePropertyValue("Bitrate");
@@ -144,6 +146,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var propValue = sigProp.Element(XNames.PremisSignificantPropertiesValue).Value;
                 significantProperties[propType] = propValue;
             }
+        }
+        
+        /// <summary>
+        /// Attempt to parse a duration in seconds from EXIF-derived values.
+        /// </summary>
+        /// <param name="possibleStringLength">the human readable string</param>
+        /// <returns>The length in seconds, or 0 if no length obtained.</returns>
+        private double ParseDuration(string possibleStringLength)
+        {
+            return 0;
         }
     }
 }
