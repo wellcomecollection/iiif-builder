@@ -441,13 +441,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 // A new workflow transcript for this AV file
                                 AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
                                     "pdf", manifest.Label.ToString());
-                                var pageCount = physicalFile.AssetMetadata.GetNumberOfPages();
-                                if (pageCount > 0)
+                                var pageCountMetadata = GetPageCountMetadata(physicalFile);
+                                if (pageCountMetadata != null)
                                 {
                                     manifest.Metadata ??= new List<LabelValuePair>();
-                                    var label = Lang.Map("en", "Number of pages");
-                                    var value = Lang.Map("none", pageCount.ToString());
-                                    manifest.Metadata.Add(new LabelValuePair(label, value));
+                                    manifest.Metadata.Add(pageCountMetadata);
                                 }
                                 manifest.Behavior = null;
                                 manifest.Thumbnail = new List<ExternalResource>
@@ -477,6 +475,19 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
             }
+        }
+
+        private LabelValuePair? GetPageCountMetadata(IPhysicalFile physicalFile)
+        {
+            var pageCount = physicalFile.AssetMetadata.GetNumberOfPages();
+            if (pageCount > 0)
+            {
+                var label = Lang.Map("en", "Number of pages");
+                var value = Lang.Map("none", pageCount.ToString());
+                return new LabelValuePair(label, value);
+            }
+
+            return null;
         }
 
         private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)
@@ -1018,6 +1029,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
             string annoIdentifier, string label)
         {
+            var pageCountMetadata = GetPageCountMetadata(pdfFile.PhysicalFile);
+            List<LabelValuePair>? resourceMetadata = null;
+            if (pageCountMetadata != null)
+            {
+                resourceMetadata = new List<LabelValuePair> {pageCountMetadata};
+            }
             canvas.Annotations ??= new List<AnnotationPage>();
             canvas.Annotations.Add(new AnnotationPage
             {
@@ -1033,7 +1050,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             Id = uriPatterns.DlcsFile(dlcsDefaultSpace, pdfFile.StorageIdentifier),
                             Label = Lang.Map(label),
-                            Format = "application/pdf"
+                            Format = "application/pdf",
+                            Metadata = resourceMetadata
                         },
                         Target = new Canvas {Id = canvas.Id}
                     }
