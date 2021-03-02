@@ -2,7 +2,7 @@
 using System.Linq;
 using IIIF;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
     /// Helper class for managing <see cref="WellcomeAuthService"/> when converting to P2

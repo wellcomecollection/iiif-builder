@@ -18,6 +18,8 @@ using Utils.Guard;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
+using Wellcome.Dds.Repositories.Presentation.V2.IXIF;
+using Annotation = IIIF.Presentation.V2.Annotation.Annotation;
 using ExternalResource = IIIF.Presentation.V3.Content.ExternalResource;
 using Presi3 = IIIF.Presentation.V3;
 using Presi2 = IIIF.Presentation.V2;
@@ -135,11 +137,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
         private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource,
             int? sequence = 0)
-        {
-            return Presi3.ManifestX.ContainsAV(p3Manifest) // OR is born Digital
+            => Presi3.ManifestX.ContainsAV(p3Manifest) || IsBornDigital(p3Manifest)
                 ? ConvertManifest<MediaManifest>(p3Manifest, identifier, rootResource, sequence)
                 : ConvertManifest<Manifest>(p3Manifest, identifier, rootResource, sequence);
-        }
+
+        private bool IsBornDigital(Presi3.Manifest p3Manifest) 
+            => p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
 
         private T ConvertManifest<T>(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource, int? sequence = 0)
             where T : Manifest, new()
@@ -248,24 +251,18 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         private void SetMediaSequences(Presi3.Manifest p3Manifest, DdsIdentifier identifier,
             WellcomeAuthServiceManager authServiceManager, MediaManifest manifest)
         {
+            // add a single Sequence as this is set in stone
             manifest.Sequences = new List<Sequence>(1) {SequenceForMedia.Instance};
 
-            // TODO - are there any that will have multiple?
+            // Add a multipleManifestation per item - this won't necessarily work in UV but replicates current DDS
+            var itemCount = 0; 
             foreach (var p3Canvas in p3Manifest.Items)
             {
-                if (p3Canvas.Items!.Count > 1)
-                    logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has more Items than expected",
-                        p3Manifest.Id, p3Canvas.Id);
-
                 var mediaSequence = new MediaSequence
                 {
-                    Id = GetMediaSequenceIdProfile(identifier),
-                    Label = new MetaDataValue("XSequence 0"),
+                    Id = GetMediaSequenceIdProfile(identifier, $"s{itemCount++}"),
+                    Label = new MetaDataValue($"XSequence {itemCount}"),
                 };
-
-                // Assumption is 1 item for now
-                // TODO - handle multiple?
-                var item = p3Canvas.Items[0].Items.FirstOrDefault();
 
                 var elements = new AnnotationListForMedia();
                 elements.Label = manifest.Label;
@@ -274,34 +271,74 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     new() {Id = uriPatterns.PdfThumbnail(identifier), Type = null}
                 };
 
-                if (item is not PaintingAnnotation paintingAnnotation)
+                // Assumption is always 0 or 1 item (0 for born-digital, 1 for av)
+                var item = p3Canvas.Items?.SingleOrDefault()?.Items?.FirstOrDefault();
+                bool isBornDigital = false;
+                if (item != null)
                 {
-                    throw new InvalidOperationException("Expected a painting annotation for AV");
+                    if (item is not PaintingAnnotation paintingAnnotation)
+                    {
+                        throw new InvalidOperationException("Expected a painting annotation for AV");
+                    }
+
+                    // Populate Rendering, Id, Type, Format etc from PaintingAnnotation body
+                    PopulateFromBody(elements, paintingAnnotation.Body!, authServiceManager);
+                }
+                else
+                {
+                    isBornDigital = true;
                 }
                 
-                // Populate Rendering, Id, Type, Format etc from PaintingAnnotation
-                PopulateFromBody(elements, paintingAnnotation.Body!, authServiceManager);
-                mediaSequence.Elements.Add(elements);
-                manifest.MediaSequences.Add(mediaSequence);
-                
-                // .. and maybe 1 annotation, if there's a transcription
+                // .. and maybe 1 annotation, if there's a transcription or it's a pdf
                 var anno = p3Canvas.Annotations?.FirstOrDefault();
-
                 if (anno != null)
                 {
-                    var annotation = new Presi2.Annotation.Annotation();
+                    var annotation = new Annotation();
                     annotation.Id = anno.Id;
                     annotation.Motivation = "oad:transcribing";
 
                     if (anno.Items.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
                         body is ExternalResource extBody)
                     {
-                        var resource = new ResourceForMedia();
-                        resource.Id = body.Id;
-                        resource.Type = "foaf:Document";
-                        resource.Format = extBody.Format;
-                        resource.Label = manifest.Label;
-                        resource.Thumbnail = uriPatterns.PdfThumbnail(identifier);
+                        var pageCount = manifest.Metadata.GetValueByLabel("Number of pages");
+                        Presi2.Metadata? pageCountMeta = null;
+                        if (!string.IsNullOrEmpty(pageCount))
+                        {
+                            pageCountMeta = new Presi2.Metadata
+                            {
+                                Label = new MetaDataValue("pages"),
+                                Value = new MetaDataValue(pageCount)
+                            };
+                        }
+                        
+                        // if this is a born-digital item we need to use annotation to populate mediaSequences
+                        if (isBornDigital)
+                        {
+                            elements.Id = body.Id;
+                            elements.Type ="foaf:Document";
+                            elements.Format = extBody.Format;
+                           
+                            if (pageCountMeta != null)
+                            {
+                                elements.Metadata ??= new List<Presi2.Metadata>();
+                                elements.Metadata.Add(pageCountMeta);
+                            }
+                        }
+                        else
+                        {
+                            var resource = new ResourceForMedia();
+                            resource.Id = body.Id;
+                            resource.Type = "foaf:Document";
+                            resource.Format = extBody.Format;
+                            resource.Label = manifest.Label;
+                            resource.Thumbnail = uriPatterns.PdfThumbnail(identifier);
+                            annotation.Resource = resource;
+                            elements.Resources.Add(annotation);
+                            if (pageCountMeta != null)
+                            {
+                                resource.Metadata.Add(pageCountMeta);
+                            }
+                        }
                     }
                     else
                     {
@@ -309,6 +346,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         logger.LogWarning("Unexpected annotation item type");
                     }
                 }
+                
+                mediaSequence.Elements.Add(elements);
+                manifest.MediaSequences.Add(mediaSequence);
             }
         }
 
@@ -319,75 +359,52 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             annoListForMedia.Rendering ??= new List<Presi2.ExternalResource>();
             
-            switch (paintable)
+            if (paintable is PaintingChoice choice)
             {
-                // TODO - tidy this up to avoid repeated elements
-                case Video video:
-                    var videoResource = new ExternalResourceForMedia
-                    {
-                        Id = video.Id,
-                        Format = video.Format,
-                        Service = video.Service,
-                    };
-                    PopulateAuthServices(authServiceManager, videoResource.Service, true);
-                    annoListForMedia.Rendering.Add(videoResource);
-                    annoListForMedia.Service = videoResource.Service;
-                    
-                    if (!populated)
-                    {
-                        annoListForMedia.Service = video.Service;
-                        annoListForMedia.Id = $"{video.Id}#identity";
-                        annoListForMedia.Type = "dctypes:MovingImage";
-                        annoListForMedia.Format = video.Format;
-                        annoListForMedia.Width = video.Width;
-                        annoListForMedia.Height = video.Height;
-                        annoListForMedia.Metadata = new List<Presi2.Metadata>
-                        {
-                            new()
-                            {
-                                Label = new MetaDataValue("length"),
-                                Value = new MetaDataValue($"{video.Duration} s")  // TODO - convert to Xmn Ys
-                            }
-                        };
-                        populated = true;
-                    }
-                    break;
-                case PaintingChoice choice:
-                    foreach (var i in choice.Items?? Enumerable.Empty<IPaintable>())
-                    {
-                        populated = PopulateFromBody(annoListForMedia, i, authServiceManager, populated);
-                    }
-                    break;
-                case Audio audio:
-                    var audioResource = new ExternalResourceForMedia
-                    {
-                        Id = audio.Id,
-                        Format = audio.Format,
-                        Service = audio.Service,
-                    };
-                    PopulateAuthServices(authServiceManager, audioResource.Service, true);
-                    annoListForMedia.Rendering.Add(audioResource);
-                    annoListForMedia.Service = audioResource.Service;
+                foreach (var i in choice.Items?? Enumerable.Empty<IPaintable>())
+                {
+                    populated = PopulateFromBody(annoListForMedia, i, authServiceManager, populated);
+                }
+            }
+            else
+            {
+                var externalResource = (ExternalResource)paintable;
+                var avResource = new ExternalResourceForMedia
+                {
+                    Id = externalResource.Id,
+                    Format = externalResource.Format,
+                    Service = externalResource.Service,
+                };
+                PopulateAuthServices(authServiceManager, avResource.Service, true);
+                annoListForMedia.Rendering.Add(avResource);
+                annoListForMedia.Service = avResource.Service;
 
-                    if (!populated)
+                if (populated) return populated;
+                
+                annoListForMedia.Service = avResource.Service;
+                annoListForMedia.Id = $"{avResource.Id}#identity";
+                annoListForMedia.Type = paintable is Video ? "dctypes:MovingImage" : "dctypes:Sound";
+                annoListForMedia.Format = avResource.Format;
+
+                if (paintable is ISpatial spatial)
+                {
+                    annoListForMedia.Width = spatial.Width;
+                    annoListForMedia.Height = spatial.Height;
+                }
+
+                if (paintable is ITemporal temporal)
+                {
+                    annoListForMedia.Metadata = new List<Presi2.Metadata>
                     {
-                        // HACK: This is to surface to calling method for setting auth
-                        annoListForMedia.Service = audio.Service; 
-                        annoListForMedia.Id = $"{audio.Id}#identity";
-                        annoListForMedia.Type = "dctypes:Sound";
-                        annoListForMedia.Format = audio.Format;
-                        annoListForMedia.Metadata = new List<Presi2.Metadata>
+                        new()
                         {
-                            new()
-                            {
-                                Label = new MetaDataValue("length"),
-                                Value = new MetaDataValue($"{audio.Duration} s")  // TODO - convert to Xmn Ys
-                            }
-                        };
-                        populated = true;
-                    }
-                    
-                    break;
+                            Label = new MetaDataValue("length"),
+                            Value = new MetaDataValue($"{temporal.Duration} s") // TODO - convert to Xmn Ys
+                        }
+                    };
+                }
+
+                populated = true;
             }
 
             return populated;
@@ -749,10 +766,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return uriPatterns.GetPath(authServiceProfileFormat, identifier);
         }
         
-        private string GetMediaSequenceIdProfile(DdsIdentifier identifier)
+        private string GetMediaSequenceIdProfile(DdsIdentifier identifier, string sequenceIdentifier)
         {
-            const string mediaSequenceFormat = "/iiif/{identifier}/xsequence/s0";
-            return uriPatterns.GetPath(mediaSequenceFormat, identifier);
+            const string sequenceIdentifierToken = "{sequenceIdentifier}";
+            const string mediaSequenceFormat = "/iiif/{identifier}/xsequence/{sequenceIdentifier}";
+            return uriPatterns.GetPath(mediaSequenceFormat, identifier, (sequenceIdentifierToken, sequenceIdentifier));
         }
     }
 }

@@ -24,7 +24,8 @@ namespace IIIF.Serialisation
             }
             else
             {
-                writer.WriteRawValue(JsonConvert.SerializeObject(value));
+                writer.WriteRawValue(JsonConvert.SerializeObject(value,
+                    new JsonSerializerSettings {NullValueHandling = NullValueHandling.Ignore}));
             }
         }
     }

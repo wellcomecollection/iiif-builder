@@ -2,7 +2,7 @@
 using IIIF.Presentation.V3.Content;
 using Wellcome.Dds.Common;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
     /// Helper class for getting legacy services.

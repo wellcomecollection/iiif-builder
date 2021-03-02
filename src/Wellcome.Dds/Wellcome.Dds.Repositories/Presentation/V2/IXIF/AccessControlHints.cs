@@ -4,7 +4,7 @@ using IIIF.Presentation.V3.Strings;
 using Newtonsoft.Json;
 using Wellcome.Dds.Common;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
     /// Service user to for by UV for legacy P2 manifests.

@@ -4,7 +4,7 @@ using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V2.Strings;
 using Newtonsoft.Json;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
     /// <see cref="Sequence"/> object for use in a <see cref="MediaManifest"/>

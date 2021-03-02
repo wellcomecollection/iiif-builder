@@ -2,7 +2,7 @@
 using IIIF.Presentation.V2;
 using Newtonsoft.Json;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     public class MediaManifest : Manifest
     {

@@ -2,6 +2,7 @@
 using IIIF.Presentation.V3.Content;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.Presentation.V2;
+using Wellcome.Dds.Repositories.Presentation.V2.IXIF;
 using Xunit;
 
 namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
