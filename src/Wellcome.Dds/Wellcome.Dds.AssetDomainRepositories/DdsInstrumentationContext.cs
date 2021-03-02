@@ -2,6 +2,7 @@
 using System;
 using System.Data.Common;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Utils.Database;
@@ -100,5 +101,27 @@ namespace Wellcome.Dds.AssetDomainRepositories
             const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, error='Force-finished before job could be taken' where waiting=true";
             return Database.ExecuteSqlRaw(sql);
         }
+    }
+
+    [Serializable]
+    public class DdsInstrumentationDbException : Exception
+    {
+        public DdsInstrumentationDbException()
+            : base() { }
+
+        public DdsInstrumentationDbException(string message)
+            : base(message) { }
+
+        public DdsInstrumentationDbException(string format, params object[] args)
+            : base(string.Format(format, args)) { }
+
+        public DdsInstrumentationDbException(string message, Exception innerException)
+            : base(message, innerException) { }
+
+        public DdsInstrumentationDbException(string format, Exception innerException, params object[] args)
+            : base(string.Format(format, args), innerException) { }
+
+        protected DdsInstrumentationDbException(SerializationInfo info, StreamingContext context)
+            : base(info, context) { }
     }
 }

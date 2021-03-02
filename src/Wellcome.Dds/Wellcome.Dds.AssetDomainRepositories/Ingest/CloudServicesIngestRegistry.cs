@@ -143,39 +143,32 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         private void AddNewJob(DlcsIngestJob job)
         {
-            // TODO: does this need to be in a transaction?
-            // https://github.com/wellcomecollection/iiif-builder/pull/17#discussion_r453693665
-            using (var trans = ddsInstrumentationContext.Database.BeginTransaction(IsolationLevel.Serializable))
+            // remove any unstarted jobs with the same settings
+            var existingQuery = ddsInstrumentationContext.DlcsIngestJobs.Where(j =>
+                j.StartProcessed == null
+                && j.Identifier == job.Identifier
+                && j.SequenceIndex == job.SequenceIndex);
+            if (job.VolumePart != null)
             {
-                try
-                {
-                    // remove any unstarted jobs with the same settings
-                    var existingQuery = ddsInstrumentationContext.DlcsIngestJobs.Where(j =>
-                        j.StartProcessed == null
-                        && j.Identifier == job.Identifier
-                        && j.SequenceIndex == job.SequenceIndex);
-                    if (job.VolumePart != null)
-                    {
-                        existingQuery = existingQuery.Where(j => j.VolumePart == job.VolumePart);
-                    }
-                    if (job.IssuePart != null)
-                    {
-                        existingQuery = existingQuery.Where(j => j.IssuePart == job.IssuePart);
-                    }
-                    foreach (var dlcsIngestJob in existingQuery)
-                    {
-                        ddsInstrumentationContext.DlcsIngestJobs.Remove(dlcsIngestJob);
-                    }
-                    // now add the new one
-                    ddsInstrumentationContext.DlcsIngestJobs.Add(job);
-                    ddsInstrumentationContext.SaveChanges();
-                    trans.Commit();
-                }
-                catch (Exception)
-                {
-                    trans.Rollback();
-                    throw;
-                }
+                existingQuery = existingQuery.Where(j => j.VolumePart == job.VolumePart);
+            }
+            if (job.IssuePart != null)
+            {
+                existingQuery = existingQuery.Where(j => j.IssuePart == job.IssuePart);
+            }
+            ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
+            // now add the new one
+            ddsInstrumentationContext.DlcsIngestJobs.Add(job);
+            try
+            {
+                // Is this problematic?
+                // If called from the dashboard, this is the only SaveChanges() that will happen.
+                // But if called in a workflow job, the job's overall SaveChanges will be called as well
+                ddsInstrumentationContext.SaveChanges();
+            }
+            catch (DbUpdateException e)
+            {
+                throw new DdsInstrumentationDbException("Could not save new DLCS Ingest Jobs: " + e.Message, e);
             }
         }
     }
