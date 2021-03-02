@@ -96,6 +96,12 @@ namespace Wellcome.Dds
         /// </summary>
         public string FirstFileThumbnailDimensions { get; set; }
         
+        /// <summary>
+        /// The length, in seconds, for time-based media
+        /// Only the first asset in the manifestation is recorded here.
+        /// </summary>
+        public double FirstFileDuration { get; set; }
+        
         public string WorkType { get; set; }
         public string PermittedOperations { get; set; }
         public string RootSectionAccessCondition { get; set; }
