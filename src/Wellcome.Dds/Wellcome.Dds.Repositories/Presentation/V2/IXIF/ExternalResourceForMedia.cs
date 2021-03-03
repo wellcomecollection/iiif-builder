@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
+using IIIF;
+using IIIF.Presentation.V2;
 using IIIF.Serialisation;
 using Newtonsoft.Json;
 
-namespace IIIF.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
-    public class Thumbnail : ResourceBase
+    public class ExternalResourceForMedia : ExternalResource
     {
-        public override string? Type { get; set; } = "dctypes:Image";
-
         [JsonProperty(Order = 28)]
         [ObjectIfSingle]
         public List<IService>? Service { get; set; }

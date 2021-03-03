@@ -27,6 +27,7 @@ The main key in the dictionary is the "level" in the manifest. The sub-key is ty
 The rule types are (with the exception of `order_by` all values are `list`):
 
 * `ignore` - No comparison is done on these properties but their existence is checked.
+* `ignore_for_av` - As above but only for AV/Born-Digital manifests.
 * `extra_new` - Properties that won't cause a failure if in the new manifests but not in the old.
 * `extra_orig` - As above but extra property expected to be in original manifest.
 * `version_insensitive` - Compare string values but ignore single values. This is for dlcs.io space or iiif.io profiles with different version numbers etc.

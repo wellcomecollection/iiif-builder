@@ -5,7 +5,7 @@ namespace IIIF.Search.V1
 {
     public class TextQuoteSelector: ResourceBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "oa:TextQuoteSelector";
             set => throw new System.NotImplementedException();

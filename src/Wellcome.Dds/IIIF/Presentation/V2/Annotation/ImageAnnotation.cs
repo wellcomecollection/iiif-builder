@@ -4,7 +4,7 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class ImageAnnotation : ResourceBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "oa:Annotation";
             set => throw new System.NotImplementedException();

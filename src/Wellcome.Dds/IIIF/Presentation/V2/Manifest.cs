@@ -10,7 +10,7 @@ namespace IIIF.Presentation.V2
     /// <remarks>See https://iiif.io/api/presentation/2.1/#manifest</remarks>
     public class Manifest : IIIFPresentationBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "sc:Manifest";
             set => throw new System.NotImplementedException();

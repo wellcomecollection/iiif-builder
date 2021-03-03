@@ -13,6 +13,6 @@ namespace IIIF.Presentation.V2
         [ObjectIfSingle]
         public List<IService>? Service { get; set; }
 
-        public override string Type { get; set; }
+        public override string? Type { get; set; }
     }
 }

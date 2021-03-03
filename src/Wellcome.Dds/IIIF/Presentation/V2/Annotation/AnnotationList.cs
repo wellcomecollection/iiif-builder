@@ -7,11 +7,7 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class AnnotationList : ResourceBase
     {
-        public override string Type
-        {
-            get => "sc:AnnotationList";
-            set => throw new System.NotImplementedException();
-        }
+        public override string? Type { get; set; } = "sc:AnnotationList";
 
         [JsonProperty(Order = 20, PropertyName = "resources")]
         [RequiredOutput]

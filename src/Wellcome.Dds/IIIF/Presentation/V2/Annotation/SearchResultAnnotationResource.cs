@@ -4,7 +4,7 @@ namespace IIIF.Presentation.V2.Annotation
 {
     public class SearchResultAnnotationResource : ResourceBase
     {
-        public override string Type
+        public override string? Type
         {
             get => "cnt:ContentAsText";
             set => throw new System.NotImplementedException();

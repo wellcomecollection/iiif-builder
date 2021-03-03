@@ -4,7 +4,7 @@ using IIIF.Presentation.V3.Strings;
 using Newtonsoft.Json;
 using Wellcome.Dds.Common;
 
-namespace Wellcome.Dds.Repositories.Presentation.V2
+namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
     /// Service user to for by UV for legacy P2 manifests.
@@ -20,7 +20,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             AccessHint = accessHint.ToString();
             Id = $"https://wellcomelibrary.org/iiif/{identifier}/access-control-hints-service";
-            Profile = Constants.Profiles.TrackingExtension;
+            Profile = Constants.Profiles.AccessControlHints;
             Context = "http://wellcomelibrary.org/ld/iiif-ext/0/context.json";
         }
     }
