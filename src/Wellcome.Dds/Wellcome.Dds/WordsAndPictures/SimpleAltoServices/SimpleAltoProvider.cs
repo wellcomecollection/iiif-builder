@@ -27,29 +27,35 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
             float scaleW = (float)actualWidth / (float)srcW;
             float scaleH = (float)actualHeight / (float)srcH;
             // only get strings in textblocks, not page numbers and headers
-            var printSpace = altoRoot.Descendants(ns + "PrintSpace").First();
-            foreach (var altoTextLine in printSpace.Descendants(ns + "TextLine"))
+            var printSpace = altoRoot.Descendants(ns + "PrintSpace").FirstOrDefault();
+            if (printSpace != null)
             {
-                var textLine = new TextLine();
-                SetScaledDimensions(altoTextLine, textLine, scaleW, scaleH);
-                textLine.Text = string.Join(" ", altoTextLine.Descendants(ns + "String")
-                    .Select(s => s.GetRequiredAttributeValue("CONTENT").Trim()));
-                textLines.Add(textLine);
+                foreach (var altoTextLine in printSpace.Descendants(ns + "TextLine"))
+                {
+                    var textLine = new TextLine();
+                    SetScaledDimensions(altoTextLine, textLine, scaleW, scaleH);
+                    textLine.Text = string.Join(" ", altoTextLine.Descendants(ns + "String")
+                        .Select(s => s.GetRequiredAttributeValue("CONTENT").Trim()));
+                    textLines.Add(textLine);
+                }
+
+                foreach (var altoIllustration in printSpace.Descendants(ns + "Illustration"))
+                {
+                    var illustration = new Illustration();
+                    SetScaledDimensions(altoIllustration, illustration, scaleW, scaleH);
+                    illustration.Type = altoIllustration.GetAttributeValue("TYPE", "Unknown");
+                    illustrations.Add(illustration);
+                }
+
+                foreach (var altoComposedBlock in printSpace.Descendants(ns + "ComposedBlock"))
+                {
+                    var composedBlock = new Illustration();
+                    SetScaledDimensions(altoComposedBlock, composedBlock, scaleW, scaleH);
+                    composedBlock.Type = altoComposedBlock.GetAttributeValue("TYPE", "Unknown");
+                    illustrations.Add(composedBlock);
+                }
             }
-            foreach (var altoIllustration in printSpace.Descendants(ns + "Illustration"))
-            {
-                var illustration = new Illustration();
-                SetScaledDimensions(altoIllustration, illustration, scaleW, scaleH);
-                illustration.Type = altoIllustration.GetAttributeValue("TYPE", "Unknown");
-                illustrations.Add(illustration);
-            }
-            foreach (var altoComposedBlock in printSpace.Descendants(ns + "ComposedBlock"))
-            {
-                var composedBlock = new Illustration();
-                SetScaledDimensions(altoComposedBlock, composedBlock, scaleW, scaleH);
-                composedBlock.Type = altoComposedBlock.GetAttributeValue("TYPE", "Unknown");
-                illustrations.Add(composedBlock);
-            }
+
             return new AnnotationPage
             {
                 TextLines = textLines.ToArray(),

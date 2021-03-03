@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
+using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Version = IIIF.Presentation.Version;
 
 namespace WorkflowProcessor
@@ -80,6 +82,7 @@ namespace WorkflowProcessor
             }
             
             Work work = null;
+            bool logMissingWork = false;
             try
             {
                 if (jobOptions.RegisterImages)
@@ -94,16 +97,35 @@ namespace WorkflowProcessor
                 if (jobOptions.RefreshFlatManifestations)
                 {
                     work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
-                    await dds.RefreshManifestations(job.Identifier, work);
+                    if (work != null)
+                    {
+                        await dds.RefreshManifestations(job.Identifier, work);
+                    }
+                    else
+                    {
+                        logMissingWork = true;
+                    }
                 }
                 if (jobOptions.RebuildIIIF)
                 {
                     work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
-                    await RebuildIIIF(job, work);
+                    if (work != null)
+                    {
+                        await RebuildIIIF(job, work);
+                    }
+                    else
+                    {
+                        logMissingWork = true;
+                    }
                 }
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
                     await RebuildAltoDerivedAssets(job, jobOptions); 
+                }
+
+                if (logMissingWork)
+                {
+                    await SetJobErrorMessage(job);
                 }
 
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
@@ -113,6 +135,34 @@ namespace WorkflowProcessor
                 job.Error = ex.Message.SummariseWithEllipsis(240);
                 logger.LogError(ex, "Error in workflow runner");
             }
+        }
+
+        private async Task SetJobErrorMessage(WorkflowJob job)
+        {
+            IManifestation manifestation = null;
+            // Just look at the first one for now
+            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
+            {
+                if (manifestationInContext.Manifestation.Partial)
+                {
+                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Id);
+                }
+                else
+                {
+                    manifestation = manifestationInContext.Manifestation;
+                }
+
+                break;
+            }
+
+            if (manifestation == null)
+            {
+                throw new NullReferenceException("Manifestation cannot be null");
+            }
+
+            var accessConditions = manifestation.Sequence.Select(pf => pf.AccessCondition);
+            var highest = AccessCondition.GetMostSecureAccessCondition(accessConditions);
+            job.Error = "No work available in Catalogue API; highest access condition is " + highest;
         }
 
         private async Task RebuildIIIF(WorkflowJob job, Work work)

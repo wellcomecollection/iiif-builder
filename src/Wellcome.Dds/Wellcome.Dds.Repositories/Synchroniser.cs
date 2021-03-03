@@ -49,7 +49,7 @@ namespace Wellcome.Dds.Repositories
         }
         
 
-        public async Task RefreshDdsManifestations(string identifier, Work work = null)
+        public async Task RefreshDdsManifestations(string identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
