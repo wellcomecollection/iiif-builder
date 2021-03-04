@@ -1,16 +1,29 @@
 @model string
-
 @{
-    ViewBag.Title = "UV: " + Model;
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mirador: @Model</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
+</head>
+<body>
 
-<div class="row" style="margin-top: 1.5em;">
-    <div class="col-sm-12">
-        <a href="#" onclick="window.history.go(-1); return false;">Back to previous page</a>
-    </div>
-</div>
+<div id="my-mirador"></div> 
 
-<div style="margin-top: 2em;">
-    <div class="uv" data-config="https://wellcomelibrary.org/assets/config/uv-config.json" data-uri=@(Model + "?ts=" + DateTime.Now.Ticks) style="width: 100%; height:700px; background-color: #000"></div>
-    <script type="text/javascript" id="embedUV" src="https://wellcomelibrary.org/spas/uv/top/lib/embed.js"></script>
-</div>
+<script src="https://unpkg.com/mirador@latest/dist/mirador.min.js"></script>
+<script type="text/javascript">
+var mirador = Mirador.viewer({
+  "id": "my-mirador",
+  "windows": [
+    {
+      "loadedManifest": "@Model",
+      "thumbnailNavigationPosition": 'far-bottom'
+    }
+  ]
+});
+</script>
+</body>
+</html>

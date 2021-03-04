@@ -18,17 +18,16 @@ namespace Wellcome.Dds.Common
         // Added for IIIF experiment
         public const string Degraded = "Degraded";
 
-        private static readonly List<ComparableAccessCondition> SecurityOrder
-            = new List<ComparableAccessCondition>
-                  {
-                      new ComparableAccessCondition(Open, 0),
-                      new ComparableAccessCondition(Degraded, 1),
-                      new ComparableAccessCondition(RequiresRegistration, 2),
-                      new ComparableAccessCondition(OpenWithAdvisory, 2),
-                      new ComparableAccessCondition(ClinicalImages, 3),
-                      new ComparableAccessCondition(RestrictedFiles, 4),
-                      new ComparableAccessCondition(Closed, 5)
-                  };
+        private static readonly List<ComparableAccessCondition> SecurityOrder = new()
+            {
+                new(Open, 0),
+                new(Degraded, 1),
+                new(RequiresRegistration, 2),
+                new(OpenWithAdvisory, 2),
+                new(ClinicalImages, 3),
+                new(RestrictedFiles, 4),
+                new(Closed, 5)
+            };
 
         public static bool IsValid(string s)
         {
