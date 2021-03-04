@@ -181,8 +181,11 @@
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.WorkPage">Work page</a></li>
-                        <li>@Html.ActionLink("View in UV", "UV", "Dash", new {id = @Model.DdsIdentifier}, new {}) </li>
-                        <li>@Html.ActionLink("View in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier}, new {}) </li>
+                        <li>@Html.ActionLink("View v2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier, version=2}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View v2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier, version=2}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View v3 in current UV", "UV", "Dash", new {id = @Model.DdsIdentifier, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View v3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">

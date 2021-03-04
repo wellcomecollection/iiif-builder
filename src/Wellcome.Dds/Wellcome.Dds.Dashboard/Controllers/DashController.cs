@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -491,14 +492,31 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("StopStatus");
         }
 
-        public ActionResult UV(string id)
+        public ActionResult UV(string id, int version)
         {
-            return View("UV", id);
+            var manifest = uriPatterns.Manifest(id);
+            if (version == 2)
+            {
+                return View("UV", manifest.Replace("/presentation/", "/presentation/v2/"));
+            }
+            return Redirect("https://universalviewer.io/examples/#?manifest=" + manifest);
         }
         
-        public IActionResult Mirador(string id)
+        public IActionResult Mirador(string id, int version)
         {
-            return View("Mirador", id);
+            var manifest = uriPatterns.Manifest(id);
+            if (version == 2)
+            {
+                return View("Mirador", manifest.Replace("/presentation/", "/presentation/v2/"));
+            } 
+            return View("Mirador", manifest);
+        }
+
+        public IActionResult Validator(string id)
+        {
+            // no point trying to validate a Wellcome V2 manifest
+            var validator = "http://iiif.io/api/presentation/validator/service/validate?format=json&version=3.0&url=";
+            return Redirect(validator + uriPatterns.Manifest(id));
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
