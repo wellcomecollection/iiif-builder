@@ -119,6 +119,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public static Image AsThumbnailWithService(this string thumbSource, List<Size> thumbSizes)
         {
+            // These are in descending size order
             var largest = thumbSizes.First();
             var smallest = thumbSizes.Last();
             return new Image
