@@ -1,6 +1,7 @@
 ﻿using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Serialisation;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace IIIF.Serialisation
 {
@@ -25,7 +26,11 @@ namespace IIIF.Serialisation
             else
             {
                 writer.WriteRawValue(JsonConvert.SerializeObject(value,
-                    new JsonSerializerSettings {NullValueHandling = NullValueHandling.Ignore}));
+                    new JsonSerializerSettings
+                    {
+                        NullValueHandling = NullValueHandling.Ignore,
+                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                    }));
             }
         }
     }
