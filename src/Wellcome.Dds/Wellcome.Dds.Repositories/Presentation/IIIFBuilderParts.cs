@@ -544,7 +544,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             Image thumbImage = null;
             if (thumbSizes.Any())
             {
-                staticSize = thumbSizes.First();
+                staticSize = thumbSizes.Count > 1 ? thumbSizes[1] : thumbSizes.First();
                 thumbImage = thumbService.AsThumbnailWithService(thumbSizes);
             }
             var mainImage = imageService.AsImageWithService(actualSize, staticSize);
