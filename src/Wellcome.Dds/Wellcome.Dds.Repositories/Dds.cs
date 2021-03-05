@@ -70,5 +70,10 @@ namespace Wellcome.Dds.Repositories
                 .Where(m => m.CalmAltRefParent == workReferenceNumber)
                 .ToList();
         }
+
+        public Manifestation GetManifestation(string id)
+        {
+            return ddsContext.Manifestations.Find(id);
+        }
     }
 }

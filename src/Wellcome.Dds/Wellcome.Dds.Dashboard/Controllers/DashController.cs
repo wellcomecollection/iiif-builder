@@ -441,6 +441,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult ManifestationSearch(string q)
         {
+            if (Request.Form["luckydip"] == "true")
+            {
+                var random = dds.AutoComplete("imfeelinglucky").First();
+                return RedirectToAction("Manifestation", new { id = random.Id });
+            }
             try
             {
                 DdsIdentifier ddsId = new DdsIdentifier(q);
@@ -505,11 +510,21 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public IActionResult Mirador(string id, int version)
         {
             var manifest = uriPatterns.Manifest(id);
+            string oldId = id;
+            if (!id.IsBNumber())
+            {
+                var ddsId = new DdsIdentifier(id);
+                var manifestation = dds.GetManifestation(id);
+                oldId = $"{ddsId.BNumber}-{manifestation.Index}";
+            }
+
+            var libraryManifest = $"https://wellcomelibrary.org/iiif/{oldId}/manifest";
+            var model = new[] {manifest, libraryManifest};
             if (version == 2)
             {
-                return View("Mirador", manifest.Replace("/presentation/", "/presentation/v2/"));
+                model[0] = model[0].Replace("/presentation/", "/presentation/v2/");
             } 
-            return View("Mirador", manifest);
+            return View("Mirador", model);
         }
 
         public IActionResult Validator(string id)
