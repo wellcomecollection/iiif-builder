@@ -68,7 +68,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 presentationBase.OtherContent = resourceBase.Annotations?
                     .Select(a => new AnnotationListReference
                     {
-                        Id = a.Id,
+                        Id = ToPresentationV2Id(a.Id),
                         Label = MetaDataValue.Create(a.Label, true),
                     })
                     .Cast<IAnnotationListReference>()
@@ -82,7 +82,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             return presentationBase;
         }
-        
+
+        public static string ToPresentationV2Id(string? id)
+            => id?.Replace("/presentation/", "/presentation/v2/")
+                  .Replace("/annotations/v3/", "/annotations/v2/")
+               ?? string.Empty;
+
         public static bool PopulateFromBody(AnnotationListForMedia annoListForMedia,
             IPaintable paintable,
             WellcomeAuthServiceManager authServiceManager,
@@ -163,7 +168,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }))
                 .ToList();
             
-            ConverterHelpers.PopulateAuthServices(authServiceManager, imageService.Service, false);
+            PopulateAuthServices(authServiceManager, imageService.Service, false);
 
             var imageAnnotation = new ImageAnnotation();
             imageAnnotation.Id = paintingAnnotation.Id;
