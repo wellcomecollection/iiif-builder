@@ -360,3 +360,7 @@ MigrationBackup/
 ConnectedService.json
 
 .env
+
+# Migration output as-per readme
+dds.sql
+dds_instr.sql

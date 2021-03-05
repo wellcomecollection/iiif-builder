@@ -63,7 +63,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             var result = sut.Convert(manifest, "b10727000");
             
             // Assert
-            result.Context.Should().BeOfType<string>().Which.Should().Be(IIIF.Presentation.Context.V2);
+            result.Context.Should().BeOfType<List<string>>().Which.Should().Contain(IIIF.Presentation.Context.V2);
         }
         
         [Fact]
