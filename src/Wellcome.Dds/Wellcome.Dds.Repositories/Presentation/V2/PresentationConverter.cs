@@ -117,7 +117,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             
             var collection = ConverterHelpers.GetIIIFPresentationBase<Collection>(p3Collection);
             collection.ViewingHint = p3Collection.Behavior?.FirstOrDefault();
-            collection.Id = collection.Id!.Replace("/presentation/", "/presentation/v2/");
+            collection.Id = ConverterHelpers.ToPresentationV2Id(collection.Id);
 
             collection.Manifests = p3Collection.Items
                 !.OfType<Presi3.Manifest>()
@@ -156,7 +156,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             WellcomeAuthServiceManager authServiceManager = new();
 
             manifest.ViewingDirection = p3Manifest.ViewingDirection;
-            manifest.Id = manifest.Id!.Replace("/presentation/", "/presentation/v2/");
+            manifest.Id = ConverterHelpers.ToPresentationV2Id(manifest.Id);
             
             if (p3Manifest.Services.HasItems())
             {
