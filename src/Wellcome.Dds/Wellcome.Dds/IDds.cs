@@ -14,5 +14,7 @@ namespace Wellcome.Dds
 
         ManifestationMetadata GetManifestationMetadata(string id);
         List<Manifestation> GetManifestationsForChildren(string workReferenceNumber);
+
+        Manifestation GetManifestation(string id);
     }
 }

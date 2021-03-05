@@ -44,7 +44,7 @@
                     DLCS Queue: @string.Format("{0}{1}", ViewBag.QueueLevels["incoming"], ViewBag.QueueLevels["priority"] > 0 ? string.Format(" priority:{0}", ViewBag.QueueLevels["priority"]) : string.Empty)
                     @if (ViewBag.HeartbeatWarning)
                     {
-                        <text> | @heartBeatDisplay | @Html.ActionLink("Log", "Index", "Log")</text>
+                        <text> | @heartBeatDisplay <!-- | @Html.ActionLink("Log", "Index", "Log") --></text>
                     }
                 </p>
                 @using (Html.BeginForm("ManifestationSearch", "Dash", FormMethod.Post, new { @class = "navbar-form navbar-right", role = "search" }))
@@ -53,6 +53,7 @@
                         <input type="text" class="form-control" placeholder="Search" name="q" value="@ViewBag.DdsId">
                     </div>
                     <button type="submit" class="btn btn-primary">Go</button>
+                    <button type="submit" title="Go to a random manifestation" class="btn btn-primary" name="luckydip" value="true"><span class="glyphicon glyphicon-sunglasses"></span></button>
                 }
             </div>
         </div>

@@ -1,4 +1,4 @@
-@model string
+@model string[]
 @{
     Layout = null;
 }
@@ -6,21 +6,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mirador: @Model</title>
+    <title>Mirador: @Model[0]</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
 </head>
 <body>
 
-<div id="my-mirador"></div> 
+<div id="viewer"></div> 
 
 <script src="https://unpkg.com/mirador@latest/dist/mirador.min.js"></script>
 <script type="text/javascript">
 var mirador = Mirador.viewer({
-  "id": "my-mirador",
+  "id": "viewer",
   "windows": [
     {
-      "loadedManifest": "@Model",
-      "thumbnailNavigationPosition": 'far-bottom'
+      "loadedManifest": "@Model[0]",
+      "thumbnailNavigationPosition": 'far-bottom',
+      "view": "single"
+    },    
+    {
+      "loadedManifest": "@Model[1]",
+      "thumbnailNavigationPosition": 'far-bottom',
+      "view": "single"
     }
   ]
 });
