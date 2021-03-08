@@ -35,6 +35,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFBuilder : IIIIFBuilder
     {
+        private const string DcTypesStillImage = "dctypes:StillImage";
         private readonly IDds dds;
         private readonly IMetsRepository metsRepository;
         private readonly IDashboardRepository dashboardRepository;
@@ -506,7 +507,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
                 Target = new Canvas { Id = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}" },
-                Body = new ClassifyingBody("dctypes:StillImage")
+                Body = new ClassifyingBody(DcTypesStillImage)
                 {
                     Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
                 }
@@ -752,7 +753,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             Format = "text/plain"
                         };
                     }
-                    else if ("Image" == body.Value<string>("id"))
+                    else if (DcTypesStillImage == body.Value<string>("id"))
                     {
                         annotation.Motivation = "oa:classifying";
                         annotation.Resource = new IllustrationAnnotationResource
