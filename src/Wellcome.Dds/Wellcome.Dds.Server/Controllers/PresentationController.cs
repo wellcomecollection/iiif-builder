@@ -307,7 +307,23 @@ namespace Wellcome.Dds.Server.Controllers
 
         private IIIFPresentationBase ConvertArchiveCollectionMemberToV2(ICollectionItem item)
         {
-            throw new NotImplementedException();
+            switch (item)
+            {
+                case Collection collection:
+                    return new IIIF.Presentation.V2.Collection
+                    {
+                        Id = collection.Id.AsV2(),
+                        Label = new MetaDataValue(collection.Label.ToString())
+                    };
+                case Manifest manifest:
+                    return new IIIF.Presentation.V2.Manifest
+                    {
+                        Id = manifest.Id.AsV2(),
+                        Label = new MetaDataValue(manifest.Label.ToString())
+                    };
+            }
+
+            return null;
         }
 
         private Collection GetNoCollectionArchive()
