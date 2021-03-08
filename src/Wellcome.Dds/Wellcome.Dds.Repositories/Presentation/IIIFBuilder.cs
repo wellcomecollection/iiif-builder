@@ -453,6 +453,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 if (allW3CPageAnnotations.FirstOrDefault()?.Target is Canvas firstAnnoCanvas)
                 {
                     // add a partOf to the first anno for this page, to associate the canvas with the manifest. Nice!
+                    // NB this won't have any effect if the TargetConverter Serialiser is in use
                     firstAnnoCanvas.PartOf = new List<ResourceBase>
                     {
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
@@ -734,7 +735,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
                     Id = jItem.Value<string>("id"),
-                    On = jItem["target"]?.Value<string>("id") ?? string.Empty
+                    On = jItem.Value<string>("target") // using the TargetConverter Serializer
+                    // TODO: put this back when better supported in viewers
+                    //On = jItem["target"]?.Value<string>("id") ?? string.Empty
                 };
                 // This will, atm, be either a textual body (line anno) or an image-classifying anno.
                 var body = jItem["body"];
