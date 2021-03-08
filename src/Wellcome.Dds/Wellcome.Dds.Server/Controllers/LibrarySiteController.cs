@@ -127,6 +127,50 @@ namespace Wellcome.Dds.Server.Controllers
                 manifestId, uriPatterns.ManifestAnnotationPageAllWithVersion);
         }
         
+        [HttpGet("service/collections")]
+        public IActionResult TopLevelCollection()
+        {
+            return BuilderUrl(uriPatterns.CollectionForAggregation());
+        }
+        
+        [HttpGet("service/collections/archives/lightweight")]
+        public IActionResult ArchiveCollectionLightweight()
+        {
+            return BuilderUrl(uriPatterns.CollectionForAggregation("archives"));
+        }
+        
+        [HttpGet("service/collections/{aggregator}")]
+        public IActionResult CollectionAggregation(string aggregator)
+        {
+            return BuilderUrl(uriPatterns.CollectionForAggregation(GetNewAggregator(aggregator)));
+        }
+        
+        
+        [HttpGet("service/collections/archives/{*referenceNumber}")]
+        public IActionResult CollectionArchiveRefNumber(string referenceNumber)
+        {
+            return BuilderUrl(uriPatterns.CollectionForAggregation("archives", referenceNumber));
+        }
+
+        
+        [HttpGet("service/collections/{aggregator}/{value}")]
+        public IActionResult CollectionAggregation(string aggregator, string value)
+        {
+            return BuilderUrl(uriPatterns.CollectionForAggregation(GetNewAggregator(aggregator), value));
+        }
+
+        private string GetNewAggregator(string oldAggregator)
+        {
+            return oldAggregator switch
+            {
+                "topics" => "subjects",
+                "authors" => "contributors",
+                "collections" => "digitalcollections",
+                _ => oldAggregator
+            };
+        }
+
+        
         private IActionResult ManifestLevelConversion(string id, Func<string, string> converter)
         {
             var idParts = ManifestIdParts(id);
