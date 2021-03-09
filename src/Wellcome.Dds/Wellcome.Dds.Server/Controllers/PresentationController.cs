@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,7 +9,6 @@ using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualBasic;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
@@ -152,7 +150,7 @@ namespace Wellcome.Dds.Server.Controllers
 
 
         /// <summary>
-        /// 
+        /// IIIF v3 top level collection for archives, replaces the "lightweight" v2 version
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/archives")]
@@ -198,8 +196,8 @@ namespace Wellcome.Dds.Server.Controllers
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
 
-        /// <summary>
-        /// 
+        /// <summary> 
+        /// IIIF v2 top level collection for archives, replaces the "lightweight" v2 version
         /// </summary>
         /// <returns></returns>
         [HttpGet("v2/collections/archives")]
@@ -245,7 +243,8 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         /// <summary>
-        /// 
+        /// IIIF 3 - Handles all archive CALM ref numbers.
+        /// If this is actually a manifest it will redirect to the canonical DDS URL
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/archives/{*referenceNumber}")]
@@ -273,8 +272,9 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         
-        /// <summary>
-        /// 
+        /// <summary> 
+        /// IIIF 2 - Handles all archive CALM ref numbers.
+        /// If this is actually a manifest it will redirect to the canonical DDS URL
         /// </summary>
         /// <returns></returns>
         [HttpGet("v2/collections/archives/{*referenceNumber}")]
@@ -371,7 +371,7 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         /// <summary>
-        /// An aggregation
+        /// An aggregation - subjects, contributors etc
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/{aggregator}")]
@@ -399,7 +399,7 @@ namespace Wellcome.Dds.Server.Controllers
         
         
         /// <summary>
-        /// An aggregation
+        /// An aggregation - subjects, contributors etc
         /// </summary>
         /// <returns></returns>
         [HttpGet("v2/collections/{aggregator}")]
