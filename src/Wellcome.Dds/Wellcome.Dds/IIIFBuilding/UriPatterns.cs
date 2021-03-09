@@ -21,7 +21,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private readonly string schemeAndHostValue;
         //private const string SchemeAndHostToken = "{schemeAndHost}";
         private const string IdentifierToken = "{identifier}";
-        private const string SpaceToken = "{space}";
+        private const string DlcsEntryPointToken = "{dlcsEntryPoint}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
         private const string RangeIdentifierToken = "{rangeIdentifier}";
         private const string AnnoIdentifierToken = "{annoIdentifier}";
@@ -92,12 +92,12 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
         // TODO: these need to change to iiif.wellcomecollection.org/... once DLCS routes to it
-        private const string DlcsPdfTemplate          = "https://dlcs.io/pdf/wellcome/pdf/{space}/{identifier}";
-        private const string DlcsThumbServiceTemplate = "https://dlcs.io/thumbs/wellcome/{space}/{assetIdentifier}";
-        private const string DlcsImageServiceTemplate = "https://dlcs.io/iiif-img/wellcome/{space}/{assetIdentifier}";
-        private const string DlcsVideoTemplate        = "https://dlcs.io/iiif-av/wellcome/{space}/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
-        private const string DlcsAudioTemplate        = "https://dlcs.io/iiif-av/wellcome/{space}/{assetIdentifier}/full/max/default.{fileExt}";
-        private const string DlcsFileTemplate         = "https://dlcs.io/file/wellcome/{space}/{assetIdentifier}";
+        private const string DlcsPdfTemplate          = "{dlcsEntryPoint}/pdf/{identifier}";
+        private const string DlcsThumbServiceTemplate = "{dlcsEntryPoint}/thumbs/{assetIdentifier}";
+        private const string DlcsImageServiceTemplate = "{dlcsEntryPoint}/images/{assetIdentifier}";
+        private const string DlcsVideoTemplate        = "{dlcsEntryPoint}/av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
+        private const string DlcsAudioTemplate        = "{dlcsEntryPoint}/av/{assetIdentifier}/full/max/default.{fileExt}";
+        private const string DlcsFileTemplate         = "{dlcsEntryPoint}/file/{assetIdentifier}";
 
         public UriPatterns(
             IOptions<DdsOptions> ddsOptions,
@@ -227,44 +227,44 @@ namespace Wellcome.Dds.IIIFBuilding
         }
 
 
-        public string DlcsPdf(int space, string identifier)
+        public string DlcsPdf(string dlcsEntryPoint, string identifier)
         {
             return DlcsPdfTemplate
-                .Replace(SpaceToken, space.ToString())
+                .Replace(DlcsEntryPointToken, dlcsEntryPoint)
                 .Replace(IdentifierToken, identifier);
         }
 
-        public string DlcsThumb(int space, string assetIdentifier)
+        public string DlcsThumb(string dlcsEntryPoint, string assetIdentifier)
         {
-            return DlcsIdentifier(DlcsThumbServiceTemplate, space, assetIdentifier);
+            return DlcsIdentifier(DlcsThumbServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsImageService(int space, string assetIdentifier)
+        public string DlcsImageService(string dlcsEntryPoint, string assetIdentifier)
         {
-            return DlcsIdentifier(DlcsImageServiceTemplate, space, assetIdentifier);
+            return DlcsIdentifier(DlcsImageServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
-        public string DlcsVideo(int space, string assetIdentifier, string fileExt)
+        public string DlcsVideo(string dlcsEntryPoint, string assetIdentifier, string fileExt)
         {
-            return DlcsIdentifier(DlcsVideoTemplate, space, assetIdentifier)
+            return DlcsIdentifier(DlcsVideoTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
 
-        public string DlcsAudio(int space, string assetIdentifier, string fileExt)
+        public string DlcsAudio(string dlcsEntryPoint, string assetIdentifier, string fileExt)
         {
-            return DlcsIdentifier(DlcsAudioTemplate, space, assetIdentifier)
+            return DlcsIdentifier(DlcsAudioTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
         
-        public string DlcsFile(int space, string assetIdentifier)
+        public string DlcsFile(string dlcsEntryPoint, string assetIdentifier)
         {
-            return DlcsIdentifier(DlcsFileTemplate, space, assetIdentifier);
+            return DlcsIdentifier(DlcsFileTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
-        private string DlcsIdentifier(string template, int space, string assetIdentifier)
+        private string DlcsIdentifier(string template, string dlcsEntryPointToken, string assetIdentifier)
         {
             return template
-                .Replace(SpaceToken, space.ToString())
+                .Replace(DlcsEntryPointToken, dlcsEntryPointToken)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
 

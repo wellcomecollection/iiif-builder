@@ -31,7 +31,7 @@ namespace Wellcome.Dds.Server.Controllers
             this.uriPatterns = uriPatterns;
         }
         
-        [Route("thumbs/{id}")]
+        [Route("thumb/{id}")]
         [HttpGet]
         public async Task<IActionResult> Index(string id)
         {

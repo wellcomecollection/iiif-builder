@@ -65,7 +65,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.logger = logger;
             build = new IIIFBuilderParts(
                 uriPatterns,
-                dlcsOptions.Value.CustomerDefaultSpace,
+                dlcsOptions.Value.ResourceEntryPoint,
                 ddsOptions.Value.ReferenceV0SearchService);
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }

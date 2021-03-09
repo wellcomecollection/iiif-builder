@@ -289,17 +289,10 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return uriPatterns.DlcsThumb(dlcsOptions.CustomerDefaultSpace, asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint, asset.StorageIdentifier);
         }
         
-        // private string GetDlcsImageServiceForAsset(IPhysicalFile asset)
-        // {
-        //     return ImageServiceTemplate
-        //         .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
-        //         .Replace("{id}", asset.StorageIdentifier);
-        // }
-    
-
+  
         private void CreateErrorManifestation(int shortB, string message, 
             string bNumber, string dipStatus)
         {
