@@ -1,20 +1,25 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation.V2;
+using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Presentation;
+using Wellcome.Dds.Repositories.Presentation.V2;
 using Wellcome.Dds.Server.Conneg;
+using Collection = IIIF.Presentation.V3.Collection;
+using Manifest = IIIF.Presentation.V3.Manifest;
 using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Server.Controllers
@@ -97,10 +102,11 @@ namespace Wellcome.Dds.Server.Controllers
         }
 
         /// <summary>
-        /// The root IIIF collection.
+        /// The root IIIF collection, IIIF 3.
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections")]
+        [HttpGet("v3/collections")]
         public IActionResult TopLevelCollection()
         {
             var tlc = new Collection
@@ -118,14 +124,37 @@ namespace Wellcome.Dds.Server.Controllers
             };
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
+        
+        /// <summary>
+        /// The root IIIF collection, IIIF 2.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections")]
+        public IActionResult TopLevelCollectionV2()
+        {
+            var tlc = new IIIF.Presentation.V2.Collection
+            {
+                Id = uriPatterns.CollectionForAggregation().AsV2(),
+                Label = new MetaDataValue("Wellcome Collection"),
+                Collections = new List<IIIF.Presentation.V2.Collection>
+                {
+                    MakeAggregationCollectionV2("subjects", "Works by subject"),
+                    MakeAggregationCollectionV2("genres", "Works by genre"),
+                    MakeAggregationCollectionV2("contributors", "Works by contributor"),
+                    MakeAggregationCollectionV2("digitalcollections", "Works by digital collection"),
+                    MakeAggregationCollectionV2("archives", "Archive collections")
+                }
+            };
+            return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
 
 
         /// <summary>
-        /// 
+        /// IIIF v3 top level collection for archives, replaces the "lightweight" v2 version
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         [HttpGet("collections/archives")]
+        [HttpGet("v3/collections/archives")]
         public IActionResult ArchivesTopLevelCollection()
         {
             var archiveRoot = CollectionForAggregationId("archives");
@@ -137,7 +166,9 @@ namespace Wellcome.Dds.Server.Controllers
             };
             archiveRoot += "/";
             ArchiveCollectionTop noCollection = null;
-            foreach (var topLevelArchiveCollection in ddsContext.GetTopLevelArchiveCollections())
+            foreach (var topLevelArchiveCollection in ddsContext
+                .GetTopLevelArchiveCollections()
+                .OrderBy(tla => tla.Title))
             {
                 if (topLevelArchiveCollection.ReferenceNumber == Manifestation.EmptyTopLevelArchiveReference)
                 {
@@ -165,11 +196,59 @@ namespace Wellcome.Dds.Server.Controllers
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
 
+        /// <summary> 
+        /// IIIF v2 top level collection for archives, replaces the "lightweight" v2 version
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/archives")]
+        public IActionResult ArchivesTopLevelCollectionV2()
+        {
+            var archiveRoot = CollectionForAggregationId("archives").AsV2();
+            var coll = new IIIF.Presentation.V2.Collection
+            {
+                Id = archiveRoot,
+                Label = new MetaDataValue("Archives at Wellcome Collection"),
+                Members = new List<IIIFPresentationBase>()
+            };
+            archiveRoot += "/";
+            ArchiveCollectionTop noCollection = null;
+            foreach (var topLevelArchiveCollection in ddsContext
+                .GetTopLevelArchiveCollections()
+                .OrderBy(tla => tla.Title))
+            {
+                if (topLevelArchiveCollection.ReferenceNumber == Manifestation.EmptyTopLevelArchiveReference)
+                {
+                    noCollection = topLevelArchiveCollection;
+                }
+                else
+                {
+                    coll.Members.Add(new IIIF.Presentation.V2.Collection
+                    {
+                        Id = archiveRoot + topLevelArchiveCollection.ReferenceNumber,
+                        Label = new MetaDataValue(topLevelArchiveCollection.Title)
+                    });
+                }
+            }
+
+            if (noCollection != null)
+            {
+                coll.Members.Add(new IIIF.Presentation.V2.Collection
+                {
+                    Id = archiveRoot + noCollection.ReferenceNumber,
+                    Label = new MetaDataValue(noCollection.Title)
+                });
+            }
+            
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+        
         /// <summary>
-        /// 
+        /// IIIF 3 - Handles all archive CALM ref numbers.
+        /// If this is actually a manifest it will redirect to the canonical DDS URL
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/archives/{*referenceNumber}")]
+        [HttpGet("v3/collections/archives/{*referenceNumber}")]
         public async Task<IActionResult> ArchivesReference(string referenceNumber)
         {
             Collection collection;
@@ -190,6 +269,61 @@ namespace Wellcome.Dds.Server.Controllers
                 
             }
             return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+        
+        
+        /// <summary> 
+        /// IIIF 2 - Handles all archive CALM ref numbers.
+        /// If this is actually a manifest it will redirect to the canonical DDS URL
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/archives/{*referenceNumber}")]
+        public async Task<IActionResult> ArchivesReferenceV2(string referenceNumber)
+        {
+            IIIF.Presentation.V2.Collection collection;
+            if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
+            {
+                collection = GetNoCollectionArchiveV2();
+            }
+            else
+            {
+                var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work.HasDigitalLocation())
+                {
+                    var bNumber = work.GetSierraSystemBNumbers().First();
+                    return Redirect(uriPatterns.Manifest(bNumber).AsV2());
+                }
+
+                var v3Coll = iiifBuilder.BuildArchiveNode(work);
+                collection = ConverterHelpers.GetIIIFPresentationBase<IIIF.Presentation.V2.Collection>(v3Coll);
+                collection.Id = v3Coll.Id.AsV2();
+                if (v3Coll.Items.HasItems())
+                {
+                    collection.Members = v3Coll.Items.Select(ConvertArchiveCollectionMemberToV2).ToList();
+                }
+            }
+            return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+
+        private IIIFPresentationBase ConvertArchiveCollectionMemberToV2(ICollectionItem item)
+        {
+            switch (item)
+            {
+                case Collection collection:
+                    return new IIIF.Presentation.V2.Collection
+                    {
+                        Id = collection.Id.AsV2(),
+                        Label = new MetaDataValue(collection.Label.ToString())
+                    };
+                case Manifest manifest:
+                    return new IIIF.Presentation.V2.Manifest
+                    {
+                        Id = manifest.Id.AsV2(),
+                        Label = new MetaDataValue(manifest.Label.ToString())
+                    };
+            }
+
+            return null;
         }
 
         private Collection GetNoCollectionArchive()
@@ -214,13 +348,34 @@ namespace Wellcome.Dds.Server.Controllers
 
             return collection;
         }
+        
+        
+        private IIIF.Presentation.V2.Collection GetNoCollectionArchiveV2()
+        {
+            var collection = new IIIF.Presentation.V2.Collection
+            {
+                Id = uriPatterns.CollectionForAggregation("archives", Manifestation.EmptyTopLevelArchiveReference).AsV2(),
+                Label = new MetaDataValue(Manifestation.EmptyTopLevelArchiveTitle),
+                Members = new List<IIIFPresentationBase>()
+            };
+            foreach (var manifestation in ddsContext.Manifestations.Where(m => m.CollectionTitle == "(no-title)"))
+            {
+                collection.Members.Add(new IIIF.Presentation.V2.Manifest
+                {
+                    Id = uriPatterns.Manifest(manifestation.PackageIdentifier).AsV2(),
+                    Label = new MetaDataValue(manifestation.ReferenceNumber + " - " + manifestation.PackageLabel)
+                });
+            }
 
-
+            return collection;
+        }
+        
         /// <summary>
-        /// An aggregation
+        /// An aggregation - subjects, contributors etc
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/{aggregator}")]
+        [HttpGet("v3/collections/{aggregator}")]
         public IActionResult Aggregation(string aggregator)
         {
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
@@ -241,13 +396,42 @@ namespace Wellcome.Dds.Server.Controllers
             }
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
+        
+        
+        /// <summary>
+        /// An aggregation - subjects, contributors etc
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/{aggregator}")]
+        public IActionResult AggregationV2(string aggregator)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new IIIF.Presentation.V2.Collection
+            {
+                Id = CollectionForAggregationId(aggregator).AsV2(),
+                Label = new MetaDataValue("Works by " + apiType),
+                Members = new List<IIIFPresentationBase>()
+            };
+            var aggregation = ddsContext.GetAggregation(apiType);
+            foreach (var aggregationMetadata in aggregation)
+            {
+                coll.Members.Add(new IIIF.Presentation.V2.Collection
+                {
+                    Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier).AsV2(),
+                    Label = new MetaDataValue(aggregationMetadata.Label)
+                });
+            }
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
 
+        
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/{aggregator}/{value}")]
+        [HttpGet("v3/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValue(string aggregator, string value)
         {
             const int maxThumbnails = 50; // to avoid huge collections
@@ -276,6 +460,35 @@ namespace Wellcome.Dds.Server.Controllers
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
+                
+
+        /// <summary>
+        /// A Collection of Manifests with the given metadata
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/{aggregator}/{value}")]
+        public IActionResult ManifestsByAggregationValueV2(string aggregator, string value)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new IIIF.Presentation.V2.Collection
+            {
+                Id = CollectionForAggregationId(aggregator, value).AsV2(),
+                Members = new List<IIIFPresentationBase>()
+            };
+            foreach (var result in ddsContext.GetAggregation(apiType, value))
+            {
+                var manifest = new IIIF.Presentation.V2.Manifest
+                {
+                    Id = uriPatterns.Manifest(result.Manifestation.PackageIdentifier).AsV2(),
+                    Label = new MetaDataValue(result.Manifestation.PackageLabel)
+                };
+                coll.Members.Add(manifest);
+                coll.Label ??= new MetaDataValue($"{result.CollectionLabel}: {result.CollectionStringValue}");
+            }
+            Response.CacheForDays(30);
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+        
         
         private Collection MakeAggregationCollection(string aggregator, string label)
         {
@@ -285,10 +498,21 @@ namespace Wellcome.Dds.Server.Controllers
                 Label = new LanguageMap("en", label)
             };
         }
+        
+        
+        private IIIF.Presentation.V2.Collection MakeAggregationCollectionV2(string aggregator, string label)
+        {
+            return new()
+            {
+                Id = CollectionForAggregationId(aggregator).AsV2(),
+                Label = new MetaDataValue(label)
+            };
+        }
 
         /// <summary>
         /// Allow ID domain to be rewritten for local dev convenience
         /// </summary>
+        /// <param name="version"></param>
         /// <param name="aggregator"></param>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -310,6 +534,14 @@ namespace Wellcome.Dds.Server.Controllers
             }
             return id.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
 
+        }
+    }
+
+    static class PresentationControllerX
+    {
+        public static string AsV2(this string id)
+        {
+            return id.Replace("/presentation/", "/presentation/v2/");
         }
     }
 }
