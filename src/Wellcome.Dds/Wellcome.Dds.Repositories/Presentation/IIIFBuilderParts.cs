@@ -181,6 +181,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             var uri = LicenseMap.GetLicenseUri(code);
             if (uri.HasText())
             {
+                // the machine-readable versions use http IDs 
+                uri = uri.Replace("https://creativecommons.org/", "http://creativecommons.org/");
+                uri = uri.Replace("https://rightsstatements.org/", "http://rightsstatements.org/");
                 manifest.Rights = uri;
             }
         }
