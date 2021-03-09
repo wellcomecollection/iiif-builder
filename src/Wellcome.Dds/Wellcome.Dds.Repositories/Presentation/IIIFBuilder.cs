@@ -35,6 +35,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public class IIIFBuilder : IIIIFBuilder
     {
+        private const string DcTypesStillImage = "dctypes:StillImage";
         private readonly IDds dds;
         private readonly IMetsRepository metsRepository;
         private readonly IDashboardRepository dashboardRepository;
@@ -453,6 +454,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 if (allW3CPageAnnotations.FirstOrDefault()?.Target is Canvas firstAnnoCanvas)
                 {
                     // add a partOf to the first anno for this page, to associate the canvas with the manifest. Nice!
+                    // NB this won't have any effect if the TargetConverter Serialiser is in use
                     firstAnnoCanvas.PartOf = new List<ResourceBase>
                     {
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
@@ -505,7 +507,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Id = uriPatterns.CanvasClassifyingAnnotation(
                     altoPage.ManifestationIdentifier, altoPage.AssetIdentifier, $"i{index}"),
                 Target = new Canvas { Id = $"{canvasId}#xywh={il.X},{il.Y},{il.Width},{il.Height}" },
-                Body = new ClassifyingBody("dctypes:StillImage")
+                Body = new ClassifyingBody(DcTypesStillImage)
                 {
                     Label = Lang.Map(il.Type) // https://github.com/w3c/web-annotation/issues/437
                 }
@@ -734,7 +736,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
                     Id = jItem.Value<string>("id"),
-                    On = jItem["target"]?.Value<string>("id") ?? string.Empty
+                    On = jItem.Value<string>("target") // using the TargetConverter Serializer
+                    // TODO: put this back when better supported in viewers
+                    //On = jItem["target"]?.Value<string>("id") ?? string.Empty
                 };
                 // This will, atm, be either a textual body (line anno) or an image-classifying anno.
                 var body = jItem["body"];
@@ -749,7 +753,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             Format = "text/plain"
                         };
                     }
-                    else if ("Image" == body.Value<string>("id"))
+                    else if (DcTypesStillImage == body.Value<string>("id"))
                     {
                         annotation.Motivation = "oa:classifying";
                         annotation.Resource = new IllustrationAnnotationResource

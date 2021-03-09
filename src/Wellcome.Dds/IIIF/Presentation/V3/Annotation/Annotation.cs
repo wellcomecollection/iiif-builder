@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using IIIF.Serialisation;
+using Newtonsoft.Json;
 
 namespace IIIF.Presentation.V3.Annotation
 {
@@ -20,6 +21,7 @@ namespace IIIF.Presentation.V3.Annotation
         /// Note that this is a IIIF-specific use of target; can be anything in W3C
         /// </summary>
         [JsonProperty(Order = 900)]
+        [JsonConverter(typeof(TargetConverter))]
         public IStructuralLocation? Target { get; set; }
     }
 }
