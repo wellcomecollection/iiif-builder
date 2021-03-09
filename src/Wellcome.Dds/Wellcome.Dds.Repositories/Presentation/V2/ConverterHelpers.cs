@@ -47,9 +47,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         serviceResourceBase.Type = null;
                     if (service is SearchService searchService)
                     {
-                        searchService.EnsureContext(SearchService.Search1Context);
+                        // we need to make it match Wellcome published IIIF 2,
+                        // which uses a precursor v0 Search API
+                        var v0Context = SearchService.Search1Context.Replace("/search/1/", "/search/0/");
+                        searchService.EnsureContext(v0Context);
                         if (searchService.Service != null)
                             searchService.Service.Type = null;
+                        searchService.Id = searchService.Id.Replace("/search/v1/", "/search/v0/");
+                        searchService.Profile = searchService.Profile.Replace("/search/1/", "/search/0/");
+                        searchService.Service.Id = searchService.Service.Id.Replace("/autocomplete/1/", "/autocomplete/0/");
+                        searchService.Service.Profile = searchService.Service.Profile.Replace("/search/1/", "/search/0/");
                     }
                 })!).ToList();
             }
