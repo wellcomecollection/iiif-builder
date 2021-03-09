@@ -31,7 +31,10 @@ namespace Wellcome.Dds.Repositories
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
         private readonly Regex thumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
-
+        // ^^^^^
+        // Don't forget this! Needs to happen in Catalogue API *after* we go live.
+        // ***********************
+        
         public Synchroniser(
             IMetsRepository metsRepository,
             ILogger<Synchroniser> logger,
