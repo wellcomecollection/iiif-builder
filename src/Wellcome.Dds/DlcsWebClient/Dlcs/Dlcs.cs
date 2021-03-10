@@ -346,7 +346,7 @@ namespace DlcsWebClient.Dlcs
         {
             // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
             var uri =
-                $"{options.ResourceEntryPoint}pdf-control/{options.CustomerName}/{options.PdfQueryName}/{options.CustomerDefaultSpace}/{identifier}";
+                $"https://dlcs.io/pdf-control/{options.CustomerName}/{options.PdfQueryName}/{options.CustomerDefaultSpace}/{identifier}";
 
             var response = await httpClient.GetAsync(uri);
             if (!response.IsSuccessStatusCode)

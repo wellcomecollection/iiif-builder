@@ -43,7 +43,7 @@ namespace Wellcome.Dds.Server.Controllers
 
         /// <summary>
         /// DLCS delegated login screen redirects to here. 
-        /// This is hard-coded to redirect to https://dlcs.io/auth/2/fromcas?token=xyz 
+        /// This is hard-coded to redirect to https://iiif.wellcomecollection.org/auth/fromcas?token=xyz 
         /// after authenticating at CAS.
         /// 
         /// All we need for a userSession are:

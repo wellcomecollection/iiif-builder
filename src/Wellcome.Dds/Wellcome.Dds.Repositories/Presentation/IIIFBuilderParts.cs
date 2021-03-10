@@ -36,7 +36,7 @@ namespace Wellcome.Dds.Repositories.Presentation
     public class IIIFBuilderParts
     {
         private readonly UriPatterns uriPatterns;
-        private readonly int dlcsDefaultSpace;
+        private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
         private readonly ManifestStructureHelper manifestStructureHelper;
         private readonly IAuthServiceProvider authServiceProvider;
@@ -52,11 +52,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
         public IIIFBuilderParts(UriPatterns uriPatterns,
-            int dlcsDefaultSpace,
+            string dlcsEntryPoint,
             bool referenceV0SearchService)
         {
             this.uriPatterns = uriPatterns;
-            this.dlcsDefaultSpace = dlcsDefaultSpace;
+            this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new DlcsIIIFAuthServiceProvider();
@@ -225,7 +225,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
                     // TODO - are space and identifier the right way round, in the new query?
-                    Id = uriPatterns.DlcsPdf(dlcsDefaultSpace, digitisedManifestation.Identifier),
+                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, digitisedManifestation.Identifier),
                     Label = Lang.Map("View as PDF"),
                     Format = "application/pdf"
                 });
@@ -538,8 +538,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         private (Image MainImage, Image ThumbImage) GetCanvasImages(IPhysicalFile physicalFile)
         {
             var assetIdentifier = physicalFile.StorageIdentifier;
-            var imageService = uriPatterns.DlcsImageService(dlcsDefaultSpace, assetIdentifier);
-            var thumbService = uriPatterns.DlcsThumb(dlcsDefaultSpace, assetIdentifier);
+            var imageService = uriPatterns.DlcsImageService(dlcsEntryPoint, assetIdentifier);
+            var thumbService = uriPatterns.DlcsThumb(dlcsEntryPoint, assetIdentifier);
             var sizes = physicalFile.GetAvailableSizes();
             var actualSize = sizes.First();
             var thumbSizes = sizes.Skip(1).ToList();
@@ -571,7 +571,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var computedSize = Size.Confine(confineToBox, videoSize);
                 choice.Items.Add(new Video
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsDefaultSpace, physicalFile.StorageIdentifier, "mp4"),
+                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4"),
                     Format = "video/mp4",
                     Label = Lang.Map("MP4"),
                     Duration = duration,
@@ -580,7 +580,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
                 choice.Items.Add(new Video
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsDefaultSpace, physicalFile.StorageIdentifier, "webm"),
+                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "webm"),
                     Format = "video/webm",
                     Label = Lang.Map("WebM"),
                     Duration = duration,
@@ -592,7 +592,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 choice.Items.Add(new Audio
                 {
-                    Id = uriPatterns.DlcsAudio(dlcsDefaultSpace, physicalFile.StorageIdentifier, "mp3"),
+                    Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3"),
                     Format = "audio/mp3",
                     Label = Lang.Map("MP3"),
                     Duration = duration
@@ -1051,7 +1051,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             manifestIdentifier, pdfFile.StorageIdentifier, annoIdentifier),
                         Body = new ExternalResource("Text")
                         {
-                            Id = uriPatterns.DlcsFile(dlcsDefaultSpace, pdfFile.StorageIdentifier),
+                            Id = uriPatterns.DlcsFile(dlcsEntryPoint, pdfFile.StorageIdentifier),
                             Label = Lang.Map(label),
                             Format = "application/pdf",
                             Metadata = resourceMetadata

@@ -328,9 +328,7 @@ namespace Wellcome.Dds.Dashboard.Models
         public string GetIIIFImageService(Image dlcsImage, string imType)
         {
             if (dlcsImage == null) return string.Empty;
-            int? space = dlcsImage.Space ?? DefaultSpace;
-            const string template = "https://dlcs.io/{0}/{1}/{2}/{3}";
-            return string.Format(template, imType, 2, space, dlcsImage.StorageIdentifier);
+            return $"{DlcsOptions.ResourceEntryPoint}{imType}/{dlcsImage.StorageIdentifier}";
         }
 
         public string GetAwsConsoleUri(string fileUri)

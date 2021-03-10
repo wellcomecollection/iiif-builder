@@ -31,7 +31,10 @@ namespace Wellcome.Dds.Repositories
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
         private readonly Regex thumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
-
+        // ^^^^^
+        // Don't forget this! Needs to happen in Catalogue API *after* we go live.
+        // ***********************
+        
         public Synchroniser(
             IMetsRepository metsRepository,
             ILogger<Synchroniser> logger,
@@ -289,17 +292,10 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return uriPatterns.DlcsThumb(dlcsOptions.CustomerDefaultSpace, asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint, asset.StorageIdentifier);
         }
         
-        // private string GetDlcsImageServiceForAsset(IPhysicalFile asset)
-        // {
-        //     return ImageServiceTemplate
-        //         .Replace("{space}", dlcsOptions.CustomerDefaultSpace.ToString())
-        //         .Replace("{id}", asset.StorageIdentifier);
-        // }
-    
-
+  
         private void CreateErrorManifestation(int shortB, string message, 
             string bNumber, string dipStatus)
         {

@@ -2,7 +2,7 @@
 @inject IOptions<DashOptions> DashOptions
 @{
     var heartBeat = (DateTime?) ViewBag.Heartbeat;
-    var heartBeatDisplay = $"Seen: {heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
+    var heartBeatDisplay = $"{heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
 }
 <!DOCTYPE html>
 <html>
