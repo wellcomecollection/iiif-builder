@@ -92,12 +92,12 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
         // TODO: these need to change to iiif.wellcomecollection.org/... once DLCS routes to it
-        private const string DlcsPdfTemplate          = "{dlcsEntryPoint}/pdf/{identifier}";
-        private const string DlcsThumbServiceTemplate = "{dlcsEntryPoint}/thumbs/{assetIdentifier}";
-        private const string DlcsImageServiceTemplate = "{dlcsEntryPoint}/images/{assetIdentifier}";
-        private const string DlcsVideoTemplate        = "{dlcsEntryPoint}/av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
-        private const string DlcsAudioTemplate        = "{dlcsEntryPoint}/av/{assetIdentifier}/full/max/default.{fileExt}";
-        private const string DlcsFileTemplate         = "{dlcsEntryPoint}/file/{assetIdentifier}";
+        private const string DlcsPdfTemplate          = "{dlcsEntryPoint}pdf/{identifier}";
+        private const string DlcsThumbServiceTemplate = "{dlcsEntryPoint}thumbs/{assetIdentifier}";
+        private const string DlcsImageServiceTemplate = "{dlcsEntryPoint}image/{assetIdentifier}";
+        private const string DlcsVideoTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
+        private const string DlcsAudioTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/max/default.{fileExt}";
+        private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
 
         public UriPatterns(
             IOptions<DdsOptions> ddsOptions,
