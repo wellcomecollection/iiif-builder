@@ -15,24 +15,26 @@ using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Server.Controllers
 {
+    [Route("[controller]")]
     public class ThumbController : Controller
     {
         private readonly IMetsRepository metsRepository;
-        private DdsContext ddsContext;
-        private UriPatterns uriPatterns;
+        private readonly DdsContext ddsContext;
         
         public ThumbController(
             IMetsRepository metsRepository,
-            DdsContext ddsContext,
-            UriPatterns uriPatterns)
+            DdsContext ddsContext)
         {
             this.metsRepository = metsRepository;
             this.ddsContext = ddsContext;
-            this.uriPatterns = uriPatterns;
         }
-        
-        [Route("thumb/{id}")]
-        [HttpGet]
+
+        /// <summary>
+        /// Get image representation of specific bnumber id.
+        /// </summary>
+        /// <param name="id">bnumber to get thumbnail image for</param>
+        /// <returns>Http response containing thumbnail image</returns>
+        [HttpGet("{id}")] 
         public async Task<IActionResult> Index(string id)
         {
             // TODO - if it's a BD PDF, return the large thumb or a resize of it or an info.json
