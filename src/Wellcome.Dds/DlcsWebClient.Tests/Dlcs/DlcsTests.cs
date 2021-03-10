@@ -324,7 +324,7 @@ namespace DlcsWebClient.Tests.Dlcs
         public async Task GetPdfDetails_CallsCorrectPath(string identifier)
         {
             // Arrange
-            var expected = $"https://dlcs.test/pdf-control/tester/pdf-q/15/{identifier}";
+            var expected = $"https://dlcs.io/pdf-control/tester/pdf-q/15/{identifier}";
             httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.NotFound));
             HttpRequestMessage message = null;
             httpHandler.RegisterCallback(r => message = r);
@@ -380,7 +380,7 @@ namespace DlcsWebClient.Tests.Dlcs
                 .With(p => p.Url, url)
                 .Build();
             
-            const string expected = "https://dlcs.test/pdf/tester/pdf-q/15/b1234123";
+            const string expected = "https://dlcs.io/pdf/tester/pdf-q/15/b1234123";
 
             var httpResponseMessage = httpHandler.GetResponseMessage(JsonConvert.SerializeObject(pdf),
                 HttpStatusCode.OK);
