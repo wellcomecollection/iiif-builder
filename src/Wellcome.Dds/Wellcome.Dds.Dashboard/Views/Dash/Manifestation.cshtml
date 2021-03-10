@@ -572,7 +572,7 @@
                             {
                                 var thumb24 = Model.GetThumbnail(dlcsImage, 24);
                                 var thumb100 = Model.GetThumbnail(dlcsImage, 100);
-                                var fullIIIF = Model.GetIIIFImageService(dlcsImage, "images");
+                                var fullIIIF = Model.GetIIIFImageService(dlcsImage, "image");
                                 @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
                                 <iiif-thumb class="iiifpreview"
                                 small-thumb="thumb24" large-thumb="thumb100"
