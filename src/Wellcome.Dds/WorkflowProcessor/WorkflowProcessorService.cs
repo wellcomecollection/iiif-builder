@@ -29,6 +29,7 @@ namespace WorkflowProcessor
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
+        private readonly string TraverseChemistAndDruggistParam = "--chem";
 
         /// <summary>
         /// Usage:
@@ -123,6 +124,14 @@ namespace WorkflowProcessor
                 logger.LogInformation($"Force-finished {count} workflow jobs");
                 return;
             }
+
+            if (HasArgument(TraverseChemistAndDruggistParam))
+            {
+                logger.LogInformation("Print Chemist And Druggist Enumeration");
+                TraverseChemistAndDruggist();
+                return;
+            }
+            
             switch (populationOperationWithParameter.operation)
             {
                 // Population operations might be run from a desktop, against an RDS database.
@@ -252,6 +261,14 @@ namespace WorkflowProcessor
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }
+        }
+        
+        
+        private async Task TraverseChemistAndDruggist()
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var runner = GetWorkflowRunner(scope);
+            await runner.TraverseChemistAndDruggist();
         }
 
         private static WorkflowRunner GetWorkflowRunner(IServiceScope scope) =>

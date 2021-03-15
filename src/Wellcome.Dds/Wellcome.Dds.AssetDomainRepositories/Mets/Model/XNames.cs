@@ -38,6 +38,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName ModsAccessCondition = mods + "accessCondition";
         public static readonly XName ModsNote = mods + "note";
         public static readonly XName ModsDateIssued = mods + "dateIssued";
+        public static readonly XName ModsNumber = mods + "number";
+        public static readonly XName ModsPart = mods + "part";
 
         public static readonly XNamespace xlink = "http://www.w3.org/1999/xlink";
         public static readonly XName XLinkFrom = xlink + "from";

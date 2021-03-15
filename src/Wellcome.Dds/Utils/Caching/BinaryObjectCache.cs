@@ -140,6 +140,12 @@ namespace Utils.Caching
             {
                 return;
             }
+
+            if (cacheKey.Contains("b19974760"))
+            {
+                memoryCache.Set(cacheKey, t);
+                return;
+            }
             memoryCache.Set(cacheKey, t, cacheDuration);
         }
     }

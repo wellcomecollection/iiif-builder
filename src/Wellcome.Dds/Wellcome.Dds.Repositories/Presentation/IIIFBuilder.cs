@@ -73,6 +73,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
         {
             var state = new State();
+            if (bNumber == "b19974760")
+            {
+                state.ChemistAndDruggistState = new ChemistAndDruggistState();
+            }
             var buildResults = new MultipleBuildResult {Identifier = bNumber};
             var ddsId = new DdsIdentifier(bNumber);
             if (ddsId.IdentifierType != IdentifierType.BNumber)
@@ -136,7 +140,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             else if (state.ChemistAndDruggistState != null)
             {
-                // Fear me...
+                // Don't fear me...
                 ChemistAndDruggistState.ProcessState(buildResults, state);
             }
             

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Version = IIIF.Presentation.Version;
@@ -382,5 +384,52 @@ namespace WorkflowProcessor
                     "OA manifest image/figure/block annotations");
             }
         }
+
+        public async Task TraverseChemistAndDruggist()
+        {
+            var state = new ChemistAndDruggistState();
+            int counter = 0;
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            {
+                logger.LogInformation($"Counter: {++counter}");
+                var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
+                if (volume == null)
+                {
+                    volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
+                    state.Volumes.Add(volume);
+                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    // populate volume fields
+                    volume.Volume = metsVolume.ModsData.Number;
+                    volume.NavDate = ChemistAndDruggistState.GetNavDate(metsVolume.ModsData.OriginDateDisplay);
+                    volume.Label = metsVolume.ModsData.Title;
+                    logger.LogInformation(" ");
+                    logger.LogInformation("-----VOLUME-----");
+                    logger.LogInformation(volume.ToString());
+                }
+                logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
+                var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
+                volume.Issues.Add(issue);
+                var metsIssue = mic.Manifestation; // is this partial?
+                var mods = metsIssue.ModsData;
+                // populate issue fields
+                issue.Title = mods.Title; // like "2293"
+                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.NavDate = ChemistAndDruggistState.GetNavDate(issue.DisplayDate);
+                issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
+                issue.MonthNum = issue.NavDate.Month;
+                issue.Year = issue.NavDate.Year;
+                issue.Volume = volume.Volume;
+                issue.PartOrder = mods.PartOrder;
+                issue.Number = mods.Number;
+                issue.Label = $"{issue.DisplayDate} (issue {issue.PartOrder})";
+                logger.LogInformation(" ");
+                logger.LogInformation("    -----Issue-----");
+                logger.LogInformation(issue.ToString());
+            }
+            
+            
+        }
+
+        
     }
 }

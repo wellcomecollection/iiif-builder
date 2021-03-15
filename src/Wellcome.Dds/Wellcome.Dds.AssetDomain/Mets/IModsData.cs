@@ -23,6 +23,12 @@
         string RepositoryName { get; set; }
         int VolumeNumber { get; set; }
         int CopyNumber { get; set; }
+        
+        // These two introduced for Periodicals.
+        // They are specific to their observed use in Chemist and Druggist;
+        // the could be generalised.
+        int PartOrder { get; set; }
+        string Number { get; set; }
 
         string GetDisplayTitle();
         IModsData GetDeepCopyForAccessControl();
