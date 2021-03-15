@@ -140,7 +140,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             SetCopyAndVolumeNumbers(modsDoc, this);
             
             // Additions for Chemist and Druggist
-            var part = modsDoc.Elements(XNames.ModsPublisher).FirstOrDefault();
+            var part = modsDoc.Root.Elements(XNames.ModsPart).FirstOrDefault();
             if (part != null)
             {
                 var order = part.GetAttributeValue("order", null);
