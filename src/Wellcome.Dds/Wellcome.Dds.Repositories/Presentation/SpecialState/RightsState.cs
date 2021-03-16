@@ -37,7 +37,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             if (!string.IsNullOrEmpty(collection!.Rights)) return;
             
             var rights = buildResults
-                .Where(br => br.IIIFResource != collection)
+                .Where(br => br.IIIFResource is Manifest)
                 .Select(i => (i.IIIFResource as ResourceBase)!.Rights)
                 .Where(r => r.HasText())
                 .Distinct()
