@@ -51,6 +51,11 @@
             /// Profile for access-control-hints service
             /// </summary>
             public const string AccessControlHints = "http://wellcomelibrary.org/ld/iiif-ext/access-control-hints";
+            
+            /// <summary>
+            /// Profile for build timestamp service
+            /// </summary>
+            public const string BuilderTime = "https://github.com/wellcomecollection/iiif-builder/build-timestamp";
         }
     }
 }

@@ -427,6 +427,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work, 
                 () => dds.GetManifestationsForChildren(work.ReferenceNumber));
+            build.AddTimestampService(iiifResource);
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)

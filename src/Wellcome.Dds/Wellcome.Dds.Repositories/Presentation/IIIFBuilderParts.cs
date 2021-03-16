@@ -1117,6 +1117,17 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
         }
 
+        public void AddTimestampService(ResourceBase iiifResource)
+        {            
+            ((ICollectionItem)iiifResource).Services ??= new List<IService>();
+            ((ICollectionItem)iiifResource).Services?.Add(
+                new ExternalResource("Text")
+                {
+                    Profile = Constants.Profiles.BuilderTime,
+                    Label = Lang.Map("none", DateTime.UtcNow.ToString("O"))
+                });
+        }
+
         public void AddAccessHint(Manifest manifest, IDigitisedManifestation digitisedManifestation)
         {
             var accessConditions = digitisedManifestation.MetsManifestation.Sequence
