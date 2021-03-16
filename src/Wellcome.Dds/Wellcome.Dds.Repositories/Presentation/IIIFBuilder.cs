@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
@@ -75,7 +76,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var state = new State();
             if (bNumber == "b19974760")
             {
-                state.ChemistAndDruggistState = new ChemistAndDruggistState();
+                state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
             var buildResults = new MultipleBuildResult {Identifier = bNumber};
             var ddsId = new DdsIdentifier(bNumber);
@@ -96,10 +97,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is IDigitisedCollection parentCollection)
                 {
-                    // This will need some special treatment to build Chemist and Druggist in the
-                    // Collection structure required for date-based navigation, and handle the two levels.
-                    // Come back to that once we have the basics working.
-                    // C&D needs a special build process.
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                     {
                         var manifestation = manifestationInContext.Manifestation;
@@ -116,14 +113,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return buildResults;
             }
 
-            CheckAndProcessState(buildResults, state);
+            await CheckAndProcessState(buildResults, state);
             return buildResults;
         }
 
         public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
             => presentation2Converter.ConvertAll(identifier, buildResults);
 
-        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        private async Task CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
             if (!state.HasState)
             {
@@ -141,12 +138,52 @@ namespace Wellcome.Dds.Repositories.Presentation
             else if (state.ChemistAndDruggistState != null)
             {
                 // Don't fear me...
-                ChemistAndDruggistState.ProcessState(buildResults, state);
+                await PopulateChemistAndDruggistState(state.ChemistAndDruggistState);
+                state.ChemistAndDruggistState.ProcessState(buildResults);
             }
             
             if (state.RightsState != null)
             {
                 RightsState.ProcessState(buildResults);
+            }
+        }
+
+        private async Task PopulateChemistAndDruggistState(ChemistAndDruggistState state)
+        {
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            {
+                var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
+                if (volume == null)
+                {
+                    volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
+                    state.Volumes.Add(volume);
+                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    // populate volume fields
+                    volume.Volume = metsVolume.ModsData.Number;
+                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.NavDate = state.GetNavDate(volume.DisplayDate);
+                    volume.Label = metsVolume.ModsData.Title;
+                }
+                logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
+                var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
+                volume.Issues.Add(issue);
+                var metsIssue = mic.Manifestation;
+                var mods = metsIssue.ModsData;
+                // populate issue fields
+                issue.Title = mods.Title; // like "2293"
+                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.NavDate = state.GetNavDate(issue.DisplayDate);
+                issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
+                issue.MonthNum = issue.NavDate.Month;
+                issue.Year = issue.NavDate.Year;
+                issue.Volume = volume.Volume;
+                issue.PartOrder = mods.PartOrder;
+                issue.Number = mods.Number;
+                issue.Label = issue.DisplayDate;
+                if (issue.Title.HasText() && issue.Title.Trim() != "-")
+                {
+                    issue.Label += $" (issue {issue.Title})";
+                }
             }
         }
 
@@ -374,7 +411,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             StructureBase iiifResource, Work work,
             ManifestationMetadata? manifestationMetadata)
         {
-            iiifResource.EnsurePresentation3Context();
+            // Do this at serialisation time - but check
+            // iiifResource.EnsurePresentation3Context();
             iiifResource.Label = Lang.Map(work.Title);
             build.SeeAlso(iiifResource, work);
             iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);

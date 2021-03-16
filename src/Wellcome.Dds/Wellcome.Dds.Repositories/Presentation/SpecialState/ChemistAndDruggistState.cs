@@ -1,25 +1,94 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
-using Amazon.Runtime.Internal.Util;
+using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Strings;
 using Wellcome.Dds.IIIFBuilding;
+using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 {
     public class ChemistAndDruggistState
     {
-        private Regex periodicalDateRegex;
+        private readonly Regex periodicalDateRegex;
+        private UriPatterns uriPatterns;
         
-        public ChemistAndDruggistState()
+        public ChemistAndDruggistState(UriPatterns uriPatterns)
         {
+            this.uriPatterns = uriPatterns;
             Volumes = new List<ChemistAndDruggistVolume>();
             periodicalDateRegex =  new Regex("(\\d{1,2})([/\\d]*)\\. (\\w+) (\\d{4})");
         }
 
-        public static void ProcessState(MultipleBuildResult buildResults, State state)
+        public void ProcessState(MultipleBuildResult buildResults)
         {
-            throw new System.NotImplementedException();
+            Volumes.Sort((volume1, volume2) => DateTime.Compare(volume1.NavDate, volume2.NavDate));
+            foreach (var volume in Volumes)
+            {
+                // Ths should not produce a different output
+                volume.Issues.Sort((issue1, issue2) => DateTime.Compare(issue1.NavDate, issue2.NavDate));
+            }
+
+            var topCollection = buildResults.First().IIIFResource as Collection;
+            // ignore any that have accumulated in the build.
+            topCollection.Items = new List<ICollectionItem>();
+            topCollection.Behavior = new List<string> {Behavior.MultiPart};
+
+            foreach (var volume in Volumes)
+            {
+                var volumeCollection = new Collection
+                {
+                    Id = uriPatterns.CollectionForWork(volume.Identifier),
+                    Label = Lang.Map(volume.Label!),
+                    NavDate = volume.NavDate.ToString("O"),
+                    Behavior = new List<string>{Behavior.MultiPart},
+                    Items = new List<ICollectionItem>()
+                };
+                topCollection.Items.Add(volumeCollection);
+                // Add this intermediate collection to the BuildResults so it will also be constructed as IIIF
+                // At this point it does not have its @context, but we don't want to add that until
+                // all of the existing IIIF has been serialised out and saved; we don't want the @context
+                // appearing on nested resources.
+                var pseudoCollectionBuildResult = new BuildResult(volume.Identifier, Version.V3);
+                buildResults.Add(pseudoCollectionBuildResult);
+                foreach (var issue in volume.Issues)
+                {
+                    var issueManifest = new Manifest
+                    {
+                        Id = uriPatterns.Manifest(issue.Identifier),
+                        Label = Lang.Map(issue.Label!),
+                        NavDate = issue.NavDate.ToString("O"),
+                        Metadata = new List<LabelValuePair>()
+                    };
+                    volumeCollection.Items.Add(issueManifest);
+                    issueManifest.Metadata.AddNonlang("Volume", issue.Volume);
+                    issueManifest.Metadata.AddNonlang("Year", issue.Year.ToString());
+                    issueManifest.Metadata.AddEnglish("Month", issue.Month!);
+                    issueManifest.Metadata.AddEnglish("DisplayDate", issue.DisplayDate!);
+
+                    var builtManifest = buildResults[issue.Identifier].IIIFResource as Manifest;
+                    builtManifest.Label = Lang.Map("en", "The chemist and druggist, " + issue.Label);
+                    var parentVolume = new Collection
+                    {
+                        Id = uriPatterns.CollectionForWork(volume.Identifier),
+                        Label = Lang.Map(volume.Label),
+                        Behavior = new List<string> {Behavior.MultiPart},
+                        PartOf = new List<ResourceBase>
+                        {
+                            new Collection
+                            {
+                                Id = uriPatterns.CollectionForWork(buildResults.Identifier),
+                                Label = topCollection.Label,
+                                Behavior = new List<string> {Behavior.MultiPart}
+                            }
+                        }
+                    };
+                    builtManifest.PartOf = new List<ResourceBase> {parentVolume};
+                }
+            }
         }
 
         public List<ChemistAndDruggistVolume> Volumes { get; set; }
@@ -36,7 +105,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             {
                 if (int.TryParse(modsDate, out var year))
                 {
-                    return new DateTime(year, 1, 1);
+                    return new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                 }
             }
             // observed date formats:
@@ -48,9 +117,9 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             {
                 var m = periodicalDateRegex.Match(modsDate);
                 var normalised = $"{m.Groups[1].Value} {m.Groups[3].Value} {m.Groups[4].Value}";
-                return DateTime.ParseExact(normalised, "d MMMM yyyy", CultureInfo.InvariantCulture);
+                return DateTime.ParseExact(normalised, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
             }
-            catch (Exception e)
+            catch
             {
                 return DateTime.MinValue;
             }

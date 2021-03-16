@@ -10,6 +10,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using CsvHelper;
 using IIIF;
+using IIIF.Presentation.V3.Constants;
 using IIIF.Serialisation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -185,6 +186,21 @@ namespace WorkflowProcessor
                 foreach (var buildResult in iiif3BuildResults.Concat(iiif2BuildResults))
                 {
                     saveId = buildResult.Id;
+                    // Moving this here to add at the last minute.
+                    // This allows a buildResult with references to resources in other buildResults to be serialised
+                    // with the @context as long as they are serialised after the referer is serialised.
+                    // The one use case for this is Chemist and Druggist, where collection b19974760 contains nested
+                    // collections in the top level collection (where we don't want them to have @contexts of their own)
+                    // and these nested collections are also serialised to S3 in their own right (when we DO want them
+                    // to have their own @contexts).
+                    if (buildResult.IIIFVersion == Version.V3)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation3Context();
+                    }
+                    else if(buildResult.IIIFVersion == Version.V2)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation2Context();
+                    }
                     await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
                         ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
                         buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
@@ -390,7 +406,7 @@ namespace WorkflowProcessor
 
         public async Task TraverseChemistAndDruggist()
         {
-            var state = new ChemistAndDruggistState();
+            var state = new ChemistAndDruggistState(null!);
             int counter = 0;
             await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
             {

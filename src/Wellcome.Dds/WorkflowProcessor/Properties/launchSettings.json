@@ -3,7 +3,7 @@
     "WorkflowProcessor": {
       "commandName": "Project",
       "launchBrowser": false,
-      "commandLineArgs": "--chem",
+      "commandLineArgs": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
