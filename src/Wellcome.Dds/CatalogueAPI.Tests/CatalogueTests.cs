@@ -92,6 +92,7 @@ namespace CatalogueAPI.Tests
         
         
         [Fact]
+        [Trait("Category", "Manual")]
         public async Task Work_Has_Expected_Subjects_And_Genres()
         {
             // Arrange
