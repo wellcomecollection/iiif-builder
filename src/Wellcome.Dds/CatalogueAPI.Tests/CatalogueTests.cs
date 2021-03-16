@@ -110,7 +110,7 @@ namespace CatalogueAPI.Tests
             lcshChemistry.Concepts.Should().ContainSingle(c => c.Label == "Chemistry");
             
             work.Genres.Should().NotBeEmpty();
-            work.Genres.Should().ContainSingle(g => g.Label == "Oil paintings.");
+            work.Genres.Should().ContainSingle(g => g.Label == "Oil paintings");
         }
     }
 }
