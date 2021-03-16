@@ -98,8 +98,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         nameof(presentation))
                 };
                 
-                // Do this at serialisation time
-                // p2Resource.EnsurePresentation2Context();
+                p2Resource.EnsurePresentation2Context();
                 return p2Resource;
             }
             catch (Exception ex)

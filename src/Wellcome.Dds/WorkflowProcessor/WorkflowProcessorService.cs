@@ -128,7 +128,7 @@ namespace WorkflowProcessor
             if (HasArgument(TraverseChemistAndDruggistParam))
             {
                 logger.LogInformation("Print Chemist And Druggist Enumeration");
-                TraverseChemistAndDruggist();
+                await TraverseChemistAndDruggist();
                 return;
             }
             
