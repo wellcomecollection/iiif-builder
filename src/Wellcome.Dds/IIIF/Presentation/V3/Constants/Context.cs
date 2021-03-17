@@ -39,41 +39,43 @@ namespace IIIF.Presentation.V3.Constants
             }
             
             List<string> newContexts = new();
-            bool hasPresentation3Context = false;
-            bool hasPresentation2Context = false;
+            bool requiresPresentation3Context = contextToEnsure == Presentation3Context;
+            bool requiresPresentation2Context = contextToEnsure == Presentation2Context;
             foreach (string workingContext in workingContexts)
             {
-                if (workingContext == Presentation3Context)
+                switch (workingContext)
                 {
-                    hasPresentation3Context = true;
-                }
-                else if (workingContext == Presentation2Context)
-                {
-                    hasPresentation2Context = true;
-                }
-                else
-                {
-                    newContexts.Add(workingContext);
+                    case Presentation3Context:
+                        requiresPresentation3Context = true;
+                        break;
+                    case Presentation2Context:
+                        requiresPresentation2Context = true;
+                        break;
+                    default:
+                        newContexts.Add(workingContext);
+                        break;
                 }
             }
 
-            if (!newContexts.Contains(contextToEnsure) && 
-                contextToEnsure != Presentation3Context && contextToEnsure != Presentation2Context)
+            // Add the new context to the list but not if it supposed to come last
+            if (!newContexts.Contains(contextToEnsure) 
+                && contextToEnsure != Presentation3Context 
+                && contextToEnsure != Presentation2Context)
             {
                 newContexts.Add(contextToEnsure);
             }
 
-            if (hasPresentation2Context && hasPresentation3Context)
+            if (requiresPresentation2Context && requiresPresentation3Context)
             {
                 throw new InvalidOperationException(
                     "You cannot have Presentation 2 and Presentation 3 contexts in the same resource.");
             }
             // These have to come last
-            if (hasPresentation3Context)
+            if (requiresPresentation3Context)
             {
                 newContexts.Add(Presentation3Context);
             }
-            if (hasPresentation2Context)
+            if (requiresPresentation2Context)
             {
                 newContexts.Add(Presentation2Context);
             }
