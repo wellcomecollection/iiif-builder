@@ -95,7 +95,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var resource = await metsRepository.GetAsync(bNumber);
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
-                if (resource is IDigitisedCollection parentCollection)
+                int debugCounter = 400;
+                if (resource is ICollection parentCollection)
                 {
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                     {
@@ -105,6 +106,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                         //x buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
+                        if (--debugCounter <= 0)
+                        {
+                            break;
+                        }
+                        logger.LogInformation("Build number " + debugCounter);
                     }
                 }
             }
@@ -199,13 +205,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var metsResource = await metsRepository.GetAsync(identifier);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
-                IDigitisedCollection? partOf = null;
+                ICollection? partOf = null;
                 if (ddsId.IdentifierType != IdentifierType.BNumber)
                 {
                     // this identifier has a parent, which we will need to build the resource properly
                     // this parent property smells... need to do some work to make sure this is always an identical
                     // result to BuildAndSaveAllManifestations
-                    partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
+                    partOf = await metsRepository.GetAsync(ddsId.Parent) as ICollection;
                 }
 
                 if (metsResource is ICollection collection)
@@ -234,7 +240,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
 
         private BuildResult BuildInternal(Work work,
-            IMetsResource metsResource, IDigitisedCollection? partOf,
+            IMetsResource metsResource, ICollection? partOf,
             ManifestationMetadata manifestationMetadata, State? state)
         {
             var result = new BuildResult(metsResource.Id, Version.V3);
@@ -262,7 +268,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         private StructureBase MakePresentation3Resource(
             IMetsResource metsResource,
-            IDigitisedCollection? partOf,
+            ICollection? partOf,
             Work work,
             ManifestationMetadata manifestationMetadata,
             State? state)
@@ -288,7 +294,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOf.Identifier),
+                                Id = uriPatterns.CollectionForWork(partOf.Id),
                                 Label = Lang.Map(work.Title),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }

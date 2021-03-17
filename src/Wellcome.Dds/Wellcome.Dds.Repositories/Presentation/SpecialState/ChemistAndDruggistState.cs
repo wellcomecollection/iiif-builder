@@ -25,6 +25,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
         public void ProcessState(MultipleBuildResult buildResults)
         {
+            var pseudoVolumeBuildResults = new List<BuildResult>();
             Volumes.Sort((volume1, volume2) => DateTime.Compare(volume1.NavDate, volume2.NavDate));
             foreach (var volume in Volumes)
             {
@@ -52,8 +53,11 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                 // At this point it does not have its @context, but we don't want to add that until
                 // all of the existing IIIF has been serialised out and saved; we don't want the @context
                 // appearing on nested resources.
-                var pseudoCollectionBuildResult = new BuildResult(volume.Identifier, Version.V3);
-                buildResults.Add(pseudoCollectionBuildResult);
+                var pseudoCollectionBuildResult = new BuildResult(volume.Identifier, Version.V3)
+                {
+                    IIIFResource = volumeCollection
+                };
+                pseudoVolumeBuildResults.Add(pseudoCollectionBuildResult);
                 foreach (var issue in volume.Issues)
                 {
                     var issueManifest = new Manifest
@@ -88,6 +92,11 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     };
                     builtManifest.PartOf = new List<ResourceBase> {parentVolume};
                 }
+            }
+
+            foreach (var buildResult in pseudoVolumeBuildResults)
+            {
+                buildResults.Add(buildResult);
             }
         }
 
