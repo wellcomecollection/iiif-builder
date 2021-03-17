@@ -91,26 +91,18 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
-                //x var resource = await dashboardRepository.GetDigitisedResource(bNumber);
                 var resource = await metsRepository.GetAsync(bNumber);
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
-                // int debugCounter = 400;
                 if (resource is ICollection parentCollection)
                 {
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
-                        //x var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        //x buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
+                        logger.LogInformation("Will now build " + metsManifestation.Id);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
-                        // if (--debugCounter <= 0)
-                        // {
-                        //     break;
-                        // }
-                        // logger.LogInformation("Build number " + debugCounter);
                     }
                 }
             }
