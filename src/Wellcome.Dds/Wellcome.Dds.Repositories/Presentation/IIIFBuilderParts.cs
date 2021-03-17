@@ -137,13 +137,13 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void RequiredStatement(
             Manifest manifest, 
-            IDigitisedManifestation digitisedManifestation,
+            IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata)
         {
-            var usage = LicenceHelpers.GetUsageWithHtmlLinks(digitisedManifestation.MetsManifestation.ModsData.Usage);
+            var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.ModsData.Usage);
             if (!usage.HasText())
             {
-                var code = GetMappedLicenceCode(digitisedManifestation);
+                var code = GetMappedLicenceCode(metsManifestation);
                 if (code.HasText())
                 {
                     var dict = PlayerConfigProvider.BaseConfig.Modules.ConditionsDialogue.Content;
@@ -175,9 +175,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             // var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
         }
 
-        public void Rights(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void Rights(Manifest manifest, IManifestation metsManifestation)
         {
-            var code = GetMappedLicenceCode(digitisedManifestation);
+            var code = GetMappedLicenceCode(metsManifestation);
             var uri = LicenseMap.GetLicenseUri(code);
             if (uri.HasText())
             {
@@ -188,15 +188,15 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private static string GetMappedLicenceCode(IDigitisedManifestation digitisedManifestation)
+        private static string GetMappedLicenceCode(IManifestation metsManifestation)
         {
-            var dzl = digitisedManifestation.MetsManifestation.ModsData.DzLicenseCode;
+            var dzl = metsManifestation.ModsData.DzLicenseCode;
             return LicenceCodes.MapLicenseCode(dzl);
         }
 
-        public void PagedBehavior(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void PagedBehavior(Manifest manifest, IManifestation metsManifestation)
         {
-            var structType = digitisedManifestation.MetsManifestation.RootStructRange.Type;
+            var structType = metsManifestation.RootStructRange.Type;
             if (structType == "Monograph" || structType == "Manuscript")
             {
                 manifest.Behavior ??= new List<string>();
@@ -204,20 +204,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public void ViewingDirection(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void ViewingDirection(Manifest manifest, IManifestation metsManifestation)
         {
             // Old DDS does not ever set this!
             // Not sure we ever have enough data to set it, but is something we can come back to later.
         }
 
-        public void Rendering(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void Rendering(Manifest manifest, IManifestation metsManifestation)
         {
-            var mType = digitisedManifestation.MetsManifestation.Type;
+            var mType = metsManifestation.Type;
             if (mType == "Video" || mType == "Audio")
             {
                 return;
             }
-            var permitted = digitisedManifestation.MetsManifestation.PermittedOperations;
+            var permitted = metsManifestation.PermittedOperations;
             if (permitted.HasItems() && permitted.Contains("entireDocumentAsPdf"))
             {
                 manifest.Rendering ??= new List<ExternalResource>();
@@ -225,34 +225,34 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
                     // TODO - are space and identifier the right way round, in the new query?
-                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, digitisedManifestation.Identifier),
+                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Id),
                     Label = Lang.Map("View as PDF"),
                     Format = "application/pdf"
                 });
             }
 
-            if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence.SupportsSearch())
             {
                 manifest.Rendering ??= new List<ExternalResource>();
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    Id = uriPatterns.RawText(digitisedManifestation.Identifier),
+                    Id = uriPatterns.RawText(metsManifestation.Id),
                     Label = Lang.Map("View raw text"),
                     Format = "text/plain"
                 });
             }
         }
 
-        public void SearchServices(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void SearchServices(Manifest manifest, IManifestation metsManifestation)
         {
-            if (digitisedManifestation.MetsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence.SupportsSearch())
             {
                 manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
                 string searchServiceId;
                 searchServiceId = referenceV0SearchService ? 
-                    uriPatterns.IIIFContentSearchService0(digitisedManifestation.Identifier) : 
-                    uriPatterns.IIIFContentSearchService1(digitisedManifestation.Identifier);
+                    uriPatterns.IIIFContentSearchService0(metsManifestation.Id) : 
+                    uriPatterns.IIIFContentSearchService1(metsManifestation.Id);
                 manifest.Service.Add(new SearchService
                 {
                     Id = searchServiceId,
@@ -260,7 +260,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = new MetaDataValue("Search within this manifest"),
                     Service = new AutoCompleteService
                     {
-                        Id = uriPatterns.IIIFAutoCompleteService1(digitisedManifestation.Identifier),
+                        Id = uriPatterns.IIIFAutoCompleteService1(metsManifestation.Id),
                         Profile = AutoCompleteService.AutoCompleteService1Profile,
                         Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
@@ -268,10 +268,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IDigitisedManifestation digitisedManifestation, State state)
+        public void Canvases(Manifest manifest, IManifestation metsManifestation, State state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
-            var metsManifestation = digitisedManifestation.MetsManifestation;
             var manifestIdentifier = metsManifestation.Id;
             manifest.Items = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence)
@@ -396,7 +395,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             duration = 999.99;
                         }
                         canvas.Duration = duration;
-                        var avChoice = GetAVChoice(digitisedManifestation, physicalFile, videoSize, duration);
+                        var avChoice = GetAVChoice(metsManifestation, physicalFile, videoSize, duration);
                         if (avChoice.Items?.Count > 0)
                         {
                             canvas.Items = new List<AnnotationPage>
@@ -554,9 +553,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             return (mainImage, thumbImage);
         }
 
-        private PaintingChoice GetAVChoice(IDigitisedManifestation digitisedManifestation, IPhysicalFile physicalFile, Size videoSize, double duration)
+        private PaintingChoice GetAVChoice(IManifestation metsManifestation, IPhysicalFile physicalFile, Size videoSize, double duration)
         {
-            var metsManifestation = digitisedManifestation.MetsManifestation;
             // TODO - this needs work later. For now, we're deducing the properties of the output
             // based on inside knowledge of the Elastictranscoder settings.
             // Ideally, we ask the DLCS what it actually produced - including variations in size and duration 
@@ -670,10 +668,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public void Structures(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void Structures(Manifest manifest, IManifestation metsManifestation)
         {
-            var metsManifestation = digitisedManifestation.MetsManifestation;
-            
             var physIdDict = metsManifestation.Sequence.ToDictionary(
                 pf => pf.Id, pf => pf.StorageIdentifier);
             
@@ -829,9 +825,8 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         // ^^ move to structurehelper?
 
-        public void ManifestLevelAnnotations(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void ManifestLevelAnnotations(Manifest manifest, IManifestation metsManifestation)
         {
-            var metsManifestation = digitisedManifestation.MetsManifestation;
             if (metsManifestation.Sequence.SupportsSearch())
             {
                 manifest.Annotations = new List<AnnotationPage>
@@ -935,22 +930,21 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
         public void CheckForCopyAndVolumeStructure(
-            IDigitisedManifestation digitisedManifestation,
+            IManifestation metsManifestation,
             State state)
         {
-            var metsManifestation = digitisedManifestation.MetsManifestation;
             if (metsManifestation.ModsData.CopyNumber > 0)
             {
                 if (state == null)
                 {
                     // TODO - don't control application flow through exceptions, come back to this
                     throw new IIIFBuildStateException(
-                        $"State is required to build {digitisedManifestation.Identifier}");
+                        $"State is required to build {metsManifestation.Id}");
                 }
                 state.MultiCopyState ??= new MultiCopyState();
-                state.MultiCopyState.CopyAndVolumes[digitisedManifestation.Identifier] = new CopyAndVolume
+                state.MultiCopyState.CopyAndVolumes[metsManifestation.Id] = new CopyAndVolume
                 {
-                    Id = digitisedManifestation.Identifier,
+                    Id = metsManifestation.Id,
                     CopyNumber = metsManifestation.ModsData.CopyNumber,
                     VolumeNumber = metsManifestation.ModsData.VolumeNumber
                 };
@@ -1128,9 +1122,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
         }
 
-        public void AddAccessHint(Manifest manifest, IDigitisedManifestation digitisedManifestation)
+        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation)
         {
-            var accessConditions = digitisedManifestation.MetsManifestation.Sequence
+            var accessConditions = metsManifestation.Sequence
                 .Select(pf => pf.AccessCondition);
             var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions);
             string accessHint;
