@@ -57,7 +57,8 @@ namespace IIIF.Presentation.V3.Constants
                 }
             }
 
-            if (!newContexts.Contains(contextToEnsure))
+            if (!newContexts.Contains(contextToEnsure) && 
+                contextToEnsure != Presentation3Context && contextToEnsure != Presentation2Context)
             {
                 newContexts.Add(contextToEnsure);
             }

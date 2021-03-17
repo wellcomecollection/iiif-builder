@@ -44,7 +44,6 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                 {
                     Id = uriPatterns.CollectionForWork(volume.Identifier),
                     Label = Lang.Map(volume.Label!),
-                    NavDate = volume.NavDate.ToString("O"),
                     Behavior = new List<string>{Behavior.MultiPart},
                     Items = new List<ICollectionItem>()
                 };
@@ -68,12 +67,18 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                         Metadata = new List<LabelValuePair>()
                     };
                     volumeCollection.Items.Add(issueManifest);
+                    volumeCollection.NavDate ??= issueManifest.NavDate;
                     issueManifest.Metadata.AddNonlang("Volume", issue.Volume);
                     issueManifest.Metadata.AddNonlang("Year", issue.Year.ToString());
                     issueManifest.Metadata.AddEnglish("Month", issue.Month!);
                     issueManifest.Metadata.AddEnglish("DisplayDate", issue.DisplayDate!);
 
-                    var builtManifest = buildResults[issue.Identifier].IIIFResource as Manifest;
+                    var builtManifest = buildResults[issue.Identifier]?.IIIFResource as Manifest;
+                    if (builtManifest == null)
+                    {
+                        // This should not happen unless we are constraining C&D to a limited set
+                        continue;
+                    }
                     builtManifest.Label = Lang.Map("en", "The chemist and druggist, " + issue.Label);
                     var parentVolume = new Collection
                     {
