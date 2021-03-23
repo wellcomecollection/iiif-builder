@@ -1,16 +1,15 @@
-using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Utils.Storage;
+using Microsoft.FeatureManagement.Mvc;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Server.Conneg;
 
 namespace Wellcome.Dds.Server.Controllers
 {    
+    [FeatureGate(FeatureFlags.PresentationServices)]
     [Route("[controller]")]
     [ApiController]
     public class AnnotationsController : ControllerBase

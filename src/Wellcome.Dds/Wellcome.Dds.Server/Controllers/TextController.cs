@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.FeatureManagement.Mvc;
 using Utils;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -12,6 +13,7 @@ namespace Wellcome.Dds.Server.Controllers
     /// <summary>
     /// Provides raw text from S3, generated from ALTO at workflow processing time.
     /// </summary>
+    [FeatureGate(FeatureFlags.TextServices)]
     [Route("[controller]")]
     [ApiController]
     public class TextController : ControllerBase

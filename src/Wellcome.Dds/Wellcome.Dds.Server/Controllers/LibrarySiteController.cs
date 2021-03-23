@@ -31,13 +31,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly ICatalogue catalogue;
         private readonly IMemoryCache memoryCache;
         private Helpers helpers;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="uriPatterns"></param>
-        /// <param name="options"></param>
-        /// <param name="ddsContext"></param>
+        
         public WlOrgController(
             UriPatterns uriPatterns,
             IOptions<DdsOptions> options,

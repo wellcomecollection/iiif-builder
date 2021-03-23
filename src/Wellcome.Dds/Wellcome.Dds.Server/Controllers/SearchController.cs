@@ -7,6 +7,8 @@ using IIIF.Search;
 using IIIF.Search.V1;
 using IIIF.Serialisation;
 using Microsoft.Extensions.Options;
+using Microsoft.FeatureManagement;
+using Microsoft.FeatureManagement.Mvc;
 using Utils;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -15,23 +17,21 @@ using Wellcome.Dds.WordsAndPictures.Search;
 
 namespace Wellcome.Dds.Server.Controllers
 {
+    [FeatureGate(FeatureFlags.TextServices)]
     [Route("[controller]")]
     [ApiController]
     public class SearchController : ControllerBase
     {
         private CachingAltoSearchTextProvider searchTextProvider;
         private IIIIFBuilder iiifBuilder;
-        private readonly DdsOptions ddsOptions;
 
         private static readonly string[] SearchParameters = { "motivation", "date", "user", "box" };
 
         public SearchController(
-            IOptions<DdsOptions> options,
             CachingAltoSearchTextProvider searchTextProvider,
             IIIIFBuilder iiifBuilder
-            )
+        )
         {
-            ddsOptions = options.Value;
             this.searchTextProvider = searchTextProvider;
             this.iiifBuilder = iiifBuilder;
         }
@@ -49,7 +49,6 @@ namespace Wellcome.Dds.Server.Controllers
             IgnoreParams(termList);
             return Content(termList.AsJson(), "application/json");
         }
-
 
         /// <summary>
         /// http://localhost:8084/search/v0/b28047345?q=more%20robust
@@ -76,8 +75,7 @@ namespace Wellcome.Dds.Server.Controllers
             IgnoreParams(asAnnotations.Within);
             return Content(asAnnotations.AsJson(), "application/json");
         }
-        
-        
+
         /// <summary> 
         /// http://localhost:8084/search/v1/b28047345?q=more%20robust
         /// Hits are properly distributed.

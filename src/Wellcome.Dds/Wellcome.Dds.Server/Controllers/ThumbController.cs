@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.FeatureManagement.Mvc;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using Utils;
@@ -15,6 +16,7 @@ using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Server.Controllers
 {
+    [FeatureGate(FeatureFlags.PresentationServices)]
     [Route("[controller]")]
     public class ThumbController : Controller
     {

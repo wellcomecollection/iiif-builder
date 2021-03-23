@@ -5,9 +5,11 @@ namespace Wellcome.Dds.WordsAndPictures.Search
 {
     public class SearchConverter
     {
+        /// <summary>
+        /// Convert the results to the simplified player format, just page indexes and rectangles
+        /// </summary>
         public static IEnumerable<SearchResult> ConvertToSimplePlayerResults(List<ResultRect> results)
         {
-            // convert the results to the simplified player format, just page indexes and rectangles
             var playerResults = results
                 .GroupBy(rr => rr.Idx)
                 .Select(gp => new SearchResult
