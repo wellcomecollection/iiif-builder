@@ -7,6 +7,10 @@
         <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
       <ProjectReference Include="..\IIIF\IIIF.csproj" />
