@@ -64,11 +64,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             // These still bear lots of traces of previous incarnations
             // We only want one of these but I'm not quite sure which one...
             clickthroughService = authServiceProvider.GetAcceptTermsAuthServices().First();
-            clickthroughServiceReference = new ServiceReference(clickthroughService);
+            clickthroughServiceReference = new V2ServiceReference(clickthroughService);
             loginService = authServiceProvider.GetClinicalLoginServices().First();
-            loginServiceReference = new ServiceReference(loginService);
+            loginServiceReference = new V2ServiceReference(loginService);
             externalAuthService = authServiceProvider.GetRestrictedLoginServices().First();
-            externalAuthServiceReference = new ServiceReference(externalAuthService);
+            externalAuthServiceReference = new V2ServiceReference(externalAuthService);
         }
 
 

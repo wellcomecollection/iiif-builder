@@ -10,7 +10,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
     public class WellcomeAuthServiceManager
     {
         private Dictionary<string, WellcomeAuthService> wellcomeAuthServices = new();
-        private Dictionary<string, ServiceReference>? requested = new();
+        private Dictionary<string, V2ServiceReference>? requested = new();
         
         /// <summary>
         /// Returns true if services have been added, else false
@@ -38,7 +38,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
                 return serviceReference;
 
             // else, create and save a new ServiceReference that will be returned in subsequent calls
-            var newServiceReference = new ServiceReference {Id = id};
+            var newServiceReference = new V2ServiceReference {Id = id};
             requested[id] = newServiceReference;
             
             // Return the full Service element
