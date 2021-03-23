@@ -21,6 +21,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public string BucketName { get; set; }
         public DateTime StorageManifestCreated { get; set; }
         public DateTime Built { get; set; }
+        
+        public string Identifier { get; set; }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)
         {
@@ -31,6 +33,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var bucketName = accessLocation.Value<string>("bucket");
             var archiveStorageMap = new WellcomeBagAwareArchiveStorageMap
             {
+                Identifier = identifier,
                 BucketName = bucketName,
                 StorageManifestCreated = storageManifest.Value<DateTime>("createdDate")
             };

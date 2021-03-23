@@ -36,6 +36,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public int VolumeNumber { get; set; }
         public int CopyNumber { get; set; }
         
+        // Used by Chemist and Druggist (Periodical) for volume and issue numbers
+        public string Number { get; set; }
+        public int PartOrder { get; set; }
+
         public ModsData(XElement dmdSec)
         {
             var modsEl = dmdSec.GetSingleElementWithAttribute(XNames.MetsMdWrap, "MDTYPE", "MODS");
@@ -134,6 +138,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             SetCopyAndVolumeNumbers(modsDoc, this);
+            
+            // Additions for Chemist and Druggist
+            var part = modsDoc.Root.Elements(XNames.ModsPart).FirstOrDefault();
+            if (part != null)
+            {
+                var order = part.GetAttributeValue("order", null);
+                if (order.HasText())
+                {
+                    PartOrder = Convert.ToInt32(order);
+                }
+            }
+            Number = modsDoc.GetDesendantElementValue(XNames.ModsNumber);
         }
 
         private string ExtractSingleModsNoteField(XDocument modsDoc, string noteType)

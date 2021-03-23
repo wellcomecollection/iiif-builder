@@ -19,6 +19,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
 
             var expected = new WellcomeBagAwareArchiveStorageMap
             {
+                Identifier = identifier,
                 BucketName = "main-storage",
                 StorageManifestCreated = new DateTime(2019, 9, 13, 10, 10, 0),
                 VersionSets = new List<KeyValuePair<string, HashSet<string>>>
@@ -47,6 +48,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
 
             var expected = new WellcomeBagAwareArchiveStorageMap
             {
+                Identifier = identifier,
                 BucketName = "main-storage",
                 StorageManifestCreated = new DateTime(2019, 9, 13, 10, 10, 0),
                 VersionSets = new List<KeyValuePair<string, HashSet<string>>>

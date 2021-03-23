@@ -18,62 +18,21 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The labels will always be given an English language property, 
             // because they always are.
             
-            AddEnglish("Description", work.Description);
-            AddNonlang("Reference", work.ReferenceNumber);
-            AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
-            AddEnglish("Physical description", work.PhysicalDescription);
-            AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
-            AddEnglish("Copyright note", work.GetNotes("copyright-note"));
-            AddEnglish("Notes", work.GetNotes("general-note"));
-            AddEnglish("Creator/production credits", work.GetNotes("credits"));
-            AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
-            AddEnglish("Language", work.Language?.Label);
-            AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
-            AddNonlang("Lettering", work.Lettering);
-            AddEnglish("Publications note", work.GetNotes("publication-note"));
-            AddEnglish("Reference", work.GetNotes("reference"));
-            AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
-        }
-
-        private void AddNonlang(string label, IEnumerable<string> values)
-        {
-            Add(label, values.ToList(), "none");
-        }
-        
-        private void AddEnglish(string label, IEnumerable<string> values)
-        {
-            Add(label, values.ToList(), "en");
-        }
-
-        private void AddEnglish(string label, string value)
-        {
-            Add(label, value, "en");
-        }
-        
-        private void AddNonlang(string label, string value)
-        {
-            Add(label, value, "none");
-        }
-
-        private void Add(string label, string value, string valueLanguage)
-        {
-            if (value.HasText())
-            {
-                var labelMap = new LanguageMap("en", label);
-                var valueMap = new LanguageMap(valueLanguage, value);
-                md.Add(new LabelValuePair(labelMap, valueMap));
-            }
-        }
-        
-        
-        private void Add(string label, IList<string> values, string valueLanguage)
-        {
-            if (values.Any())
-            {
-                var labelMap = new LanguageMap("en", label);
-                var valueMap = new LanguageMap(valueLanguage, values);
-                md.Add(new LabelValuePair(labelMap, valueMap));
-            }
+            md.AddEnglish("Description", work.Description);
+            md.AddNonlang("Reference", work.ReferenceNumber);
+            md.AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
+            md.AddEnglish("Physical description", work.PhysicalDescription);
+            md.AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
+            md.AddEnglish("Copyright note", work.GetNotes("copyright-note"));
+            md.AddEnglish("Notes", work.GetNotes("general-note"));
+            md.AddEnglish("Creator/production credits", work.GetNotes("credits"));
+            md.AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
+            md.AddEnglish("Language", work.Language?.Label);
+            md.AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
+            md.AddNonlang("Lettering", work.Lettering);
+            md.AddEnglish("Publications note", work.GetNotes("publication-note"));
+            md.AddEnglish("Reference", work.GetNotes("reference"));
+            md.AddEnglish("Acquisition note", work.GetNotes("acquisition-note"));
         }
 
         public List<LabelValuePair> Metadata => md;

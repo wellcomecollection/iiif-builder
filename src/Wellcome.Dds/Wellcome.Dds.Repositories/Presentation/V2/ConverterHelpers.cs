@@ -192,7 +192,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         }
 
         public static bool IsBornDigital(IIIF.Presentation.V3.Manifest p3Manifest) 
-            => p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
+            => p3Manifest.Items.HasItems() && p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
         
         private static void PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
             List<IService>? candidateServices, bool forceFullService)

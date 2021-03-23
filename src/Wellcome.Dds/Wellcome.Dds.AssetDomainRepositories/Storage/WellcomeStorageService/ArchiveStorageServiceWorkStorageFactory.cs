@@ -69,6 +69,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 return false;
             }
 
+            if (map.Identifier == "b19974760")
+            {
+                // Never rebuild Chemist and Druggist's storage map on demand
+                return false;
+            }
+    
             var age = DateTime.UtcNow - map.Built;
             return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
         }

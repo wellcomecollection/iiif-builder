@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 
 namespace Wellcome.Dds.Dashboard.Controllers
@@ -56,9 +57,18 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> Create(string id)
         {
+            var opts = Request.Query["options"].ToString();
+            int? workflowOptions = null;
+            if (opts.HasText())
+            {
+                if (int.TryParse(opts, out var options))
+                {
+                    workflowOptions = options;
+                }
+            }
             try
             {
-                var workflowJob = await workflowCallRepository.CreateWorkflowJob(id);
+                var workflowJob = await workflowCallRepository.CreateWorkflowJob(id, workflowOptions);
                 TempData["new-workflow-job"] = $"Job Created: {workflowJob.Created}";
                 return RedirectToAction("GoobiCall", new {id});
             }

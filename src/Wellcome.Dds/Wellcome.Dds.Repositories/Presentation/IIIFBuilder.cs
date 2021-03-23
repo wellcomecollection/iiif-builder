@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
@@ -73,6 +74,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
         {
             var state = new State();
+            if (bNumber == "b19974760")
+            {
+                state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
+            }
             var buildResults = new MultipleBuildResult {Identifier = bNumber};
             var ddsId = new DdsIdentifier(bNumber);
             if (ddsId.IdentifierType != IdentifierType.BNumber)
@@ -86,22 +91,18 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
-                var resource = await dashboardRepository.GetDigitisedResource(bNumber);
-                
+                var resource = await metsRepository.GetAsync(bNumber);
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
-                if (resource is IDigitisedCollection parentCollection)
+                if (resource is ICollection parentCollection)
                 {
-                    // This will need some special treatment to build Chemist and Druggist in the
-                    // Collection structure required for date-based navigation, and handle the two levels.
-                    // Come back to that once we have the basics working.
-                    // C&D needs a special build process.
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
-                        var digitisedManifestation = await dashboardRepository.GetDigitisedResource(manifestationId);
-                        buildResults.Add(BuildInternal(work, digitisedManifestation, parentCollection, manifestationMetadata, state));
+                        var metsManifestation = await metsRepository.GetAsync(manifestationId);
+                        logger.LogInformation("Will now build " + metsManifestation.Id);
+                        buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
             }
@@ -112,14 +113,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return buildResults;
             }
 
-            CheckAndProcessState(buildResults, state);
+            await CheckAndProcessState(buildResults, state);
             return buildResults;
         }
 
         public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
             => presentation2Converter.ConvertAll(identifier, buildResults);
 
-        private void CheckAndProcessState(MultipleBuildResult buildResults, State state)
+        private async Task CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
             if (!state.HasState)
             {
@@ -136,13 +137,53 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             else if (state.ChemistAndDruggistState != null)
             {
-                // Fear me...
-                ChemistAndDruggistState.ProcessState(buildResults, state);
+                // Don't fear me...
+                await PopulateChemistAndDruggistState(state.ChemistAndDruggistState);
+                state.ChemistAndDruggistState.ProcessState(buildResults);
             }
             
             if (state.RightsState != null)
             {
                 RightsState.ProcessState(buildResults);
+            }
+        }
+
+        private async Task PopulateChemistAndDruggistState(ChemistAndDruggistState state)
+        {
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            {
+                var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
+                if (volume == null)
+                {
+                    volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
+                    state.Volumes.Add(volume);
+                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    // populate volume fields
+                    volume.Volume = metsVolume.ModsData.Number;
+                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.NavDate = state.GetNavDate(volume.DisplayDate);
+                    volume.Label = metsVolume.ModsData.Title;
+                }
+                logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
+                var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
+                volume.Issues.Add(issue);
+                var metsIssue = mic.Manifestation;
+                var mods = metsIssue.ModsData;
+                // populate issue fields
+                issue.Title = mods.Title; // like "2293"
+                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.NavDate = state.GetNavDate(issue.DisplayDate);
+                issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
+                issue.MonthNum = issue.NavDate.Month;
+                issue.Year = issue.NavDate.Year;
+                issue.Volume = volume.Volume;
+                issue.PartOrder = mods.PartOrder;
+                issue.Number = mods.Number;
+                issue.Label = issue.DisplayDate;
+                if (issue.Title.HasText() && issue.Title.Trim() != "-")
+                {
+                    issue.Label += $" (issue {issue.Title})";
+                }
             }
         }
 
@@ -153,21 +194,21 @@ namespace Wellcome.Dds.Repositories.Presentation
             try
             {
                 var ddsId = new DdsIdentifier(identifier);
-                var digitisedResource = await dashboardRepository.GetDigitisedResource(identifier);
+                var metsResource = await metsRepository.GetAsync(identifier);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
-                IDigitisedCollection? partOf = null;
+                ICollection? partOf = null;
                 if (ddsId.IdentifierType != IdentifierType.BNumber)
                 {
                     // this identifier has a parent, which we will need to build the resource properly
                     // this parent property smells... need to do some work to make sure this is always an identical
                     // result to BuildAndSaveAllManifestations
-                    partOf = await dashboardRepository.GetDigitisedResource(ddsId.Parent) as IDigitisedCollection;
+                    partOf = await metsRepository.GetAsync(ddsId.Parent) as ICollection;
                 }
 
-                if (digitisedResource is IDigitisedCollection collection)
+                if (metsResource is ICollection collection)
                 {
-                    if (collection.Manifestations.Any(m => m.MetsManifestation.IsMultiPart()))
+                    if (collection.Manifestations.Any(m => m.IsMultiPart()))
                     {
                         buildResults.Add(new BuildResult(identifier, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
@@ -179,7 +220,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
                 // (dash preview can go back and rebuild all, then pick out the one asked for, 
                 // or redirect to a single AV manifest).
-                buildResults.Add(BuildInternal(work, digitisedResource, partOf, manifestationMetadata, null));
+                buildResults.Add(BuildInternal(work, metsResource, partOf, manifestationMetadata, null));
             }
             catch (Exception e)
             {
@@ -191,15 +232,15 @@ namespace Wellcome.Dds.Repositories.Presentation
         
 
         private BuildResult BuildInternal(Work work,
-            IDigitisedResource digitisedResource, IDigitisedCollection? partOf,
+            IMetsResource metsResource, ICollection? partOf,
             ManifestationMetadata manifestationMetadata, State? state)
         {
-            var result = new BuildResult(digitisedResource.Identifier, Version.V3);
+            var result = new BuildResult(metsResource.Id, Version.V3);
             try
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
-                    digitisedResource, partOf, work, manifestationMetadata, state);
+                    metsResource, partOf, work, manifestationMetadata, state);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
@@ -218,26 +259,26 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
         private StructureBase MakePresentation3Resource(
-            IDigitisedResource digitisedResource,
-            IDigitisedCollection? partOf,
+            IMetsResource metsResource,
+            ICollection? partOf,
             Work work,
             ManifestationMetadata manifestationMetadata,
             State? state)
         {
-            switch (digitisedResource)
+            switch (metsResource)
             {
-                case IDigitisedCollection digitisedCollection:
+                case ICollection metsCollection:
                     var collection = new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(digitisedCollection.Identifier)
+                        Id = uriPatterns.CollectionForWork(metsCollection.Id)
                     };
                     AddCommonMetadata(collection, work, manifestationMetadata);
-                    BuildCollection(collection, digitisedCollection, work, manifestationMetadata, state);
+                    BuildCollection(collection, metsCollection, work, manifestationMetadata, state);
                     return collection;
-                case IDigitisedManifestation digitisedManifestation:
+                case IManifestation metsManifestation:
                     var manifest = new Manifest
                     {
-                        Id = uriPatterns.Manifest(digitisedManifestation.Identifier)
+                        Id = uriPatterns.Manifest(metsManifestation.Id)
                     };
                     if (partOf != null)
                     {
@@ -245,21 +286,21 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOf.Identifier),
+                                Id = uriPatterns.CollectionForWork(partOf.Id),
                                 Label = Lang.Map(work.Title),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, digitisedManifestation, manifestationMetadata, state);
+                    BuildManifest(manifest, metsManifestation, manifestationMetadata, state);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
         }
 
         private void BuildCollection(Collection collection,
-            IDigitisedCollection digitisedCollection,
+            ICollection metsCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
             State? state)
@@ -270,14 +311,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             collection.Items = new List<ICollectionItem>();
             collection.Behavior ??= new List<string>();
             collection.Behavior.Add(Behavior.MultiPart);
-            if (digitisedCollection.Collections.HasItems())
+            if (metsCollection.Collections.HasItems())
             {
-                foreach (var coll in digitisedCollection.Collections)
+                foreach (var coll in metsCollection.Collections)
                 {
                     collection.Items.Add(new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(coll.Identifier),
-                        Label = Lang.Map(coll.MetsCollection.Label)
+                        Id = uriPatterns.CollectionForWork(coll.Id),
+                        Label = Lang.Map(metsCollection.Label)
                     });
                 }
             }
@@ -289,12 +330,12 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             state.RightsState = new RightsState();
 
-            if (digitisedCollection.Manifestations.HasItems())
+            if (metsCollection.Manifestations.HasItems())
             {
                 int counter = 1;
-                foreach (var mf in digitisedCollection.Manifestations)
+                foreach (var metsManifestation in metsCollection.Manifestations)
                 {
-                    var type = mf.MetsManifestation.Type;
+                    var type = metsManifestation.Type;
                     if (type == "Video" || type == "Audio" || type == "Transcript") // anything else?
                     {
                         if (state == null)
@@ -307,11 +348,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                         state.AVState ??= new AVState();
                         state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
                         {
-                            Id = mf.MetsManifestation.Id,
+                            Id = metsManifestation.Id,
                             Type = type
                         });
                     }
-                    var order = mf.MetsManifestation.Order;
+                    var order = metsManifestation.Order;
                     if (!order.HasValue || order < 1)
                     {
                         order = counter;
@@ -319,7 +360,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                     collection.Items.Add(new Manifest
                     {
-                        Id = uriPatterns.Manifest(mf.Identifier),
+                        Id = uriPatterns.Manifest(metsManifestation.Id),
                         Label = new LanguageMap
                         {
                             ["en"] = new()
@@ -328,7 +369,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 work.Title
                             }
                         },
-                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(mf.Identifier)
+                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id)
                     });
                     counter++;
                 }
@@ -337,24 +378,24 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         private void BuildManifest(
             Manifest manifest, 
-            IDigitisedManifestation digitisedManifestation,
+            IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata,
             State state)
         {
-            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(digitisedManifestation.Identifier);
-            build.RequiredStatement(manifest, digitisedManifestation, manifestationMetadata);
-            build.Rights(manifest, digitisedManifestation);
-            build.PagedBehavior(manifest, digitisedManifestation);
-            build.ViewingDirection(manifest, digitisedManifestation); // do we do this?
-            build.Rendering(manifest, digitisedManifestation);
-            build.SearchServices(manifest, digitisedManifestation);
-            build.Canvases(manifest, digitisedManifestation, state);
+            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
+            build.RequiredStatement(manifest, metsManifestation, manifestationMetadata);
+            build.Rights(manifest, metsManifestation);
+            build.PagedBehavior(manifest, metsManifestation);
+            build.ViewingDirection(manifest, metsManifestation); // do we do this?
+            build.Rendering(manifest, metsManifestation);
+            build.SearchServices(manifest, metsManifestation);
+            build.Canvases(manifest, metsManifestation, state);
             // do this next... both the next two use the manifestStructureHelper
-            build.Structures(manifest, digitisedManifestation); // ranges
+            build.Structures(manifest, metsManifestation); // ranges
             build.ImprovePagingSequence(manifest);
-            build.CheckForCopyAndVolumeStructure(digitisedManifestation, state);
-            build.ManifestLevelAnnotations(manifest, digitisedManifestation);
-            build.AddAccessHint(manifest, digitisedManifestation);
+            build.CheckForCopyAndVolumeStructure(metsManifestation, state);
+            build.ManifestLevelAnnotations(manifest, metsManifestation);
+            build.AddAccessHint(manifest, metsManifestation);
         }
         
         
@@ -370,7 +411,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             StructureBase iiifResource, Work work,
             ManifestationMetadata? manifestationMetadata)
         {
-            iiifResource.EnsurePresentation3Context();
+            // Do this at serialisation time - but check
+            // iiifResource.EnsurePresentation3Context();
             iiifResource.Label = Lang.Map(work.Title);
             build.SeeAlso(iiifResource, work);
             iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);
@@ -385,6 +427,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Metadata(iiifResource, work);
             build.ArchiveCollectionStructure(iiifResource, work, 
                 () => dds.GetManifestationsForChildren(work.ReferenceNumber));
+            build.AddTimestampService(iiifResource);
         }
         
         public AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages)

@@ -68,6 +68,11 @@ namespace Utils.Caching
             }
             else
             {
+                if (cacheKey.Contains("b19974760"))
+                {
+                    memoryCache.Set(cacheKey, cachedObject);
+                    return;
+                }
                 memoryCache.Set(cacheKey, cachedObject, new TimeSpan(0, 0, maxAgeSeconds));
             }
         }

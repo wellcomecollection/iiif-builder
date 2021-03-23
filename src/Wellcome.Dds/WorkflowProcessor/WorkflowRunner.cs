@@ -1,11 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using CsvHelper;
 using IIIF;
+using IIIF.Presentation.V3.Constants;
 using IIIF.Serialisation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,6 +22,7 @@ using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories.Presentation.SpecialState;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Version = IIIF.Presentation.Version;
@@ -180,6 +186,21 @@ namespace WorkflowProcessor
                 foreach (var buildResult in iiif3BuildResults.Concat(iiif2BuildResults))
                 {
                     saveId = buildResult.Id;
+                    // Moving this here to add at the last minute.
+                    // This allows a buildResult with references to resources in other buildResults to be serialised
+                    // with the @context as long as they are serialised after the referer is serialised.
+                    // The one use case for this is Chemist and Druggist, where collection b19974760 contains nested
+                    // collections in the top level collection (where we don't want them to have @contexts of their own)
+                    // and these nested collections are also serialised to S3 in their own right (when we DO want them
+                    // to have their own @contexts).
+                    if (buildResult.IIIFVersion == Version.V3)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation3Context();
+                    }
+                    else if(buildResult.IIIFVersion == Version.V2)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation2Context();
+                    }
                     await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
                         ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
                         buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
@@ -382,5 +403,107 @@ namespace WorkflowProcessor
                     "OA manifest image/figure/block annotations");
             }
         }
+
+        public async Task TraverseChemistAndDruggist()
+        {
+            var state = new ChemistAndDruggistState(null!);
+            int counter = 0;
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            {
+                logger.LogInformation($"Counter: {++counter}");
+                var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
+                if (volume == null)
+                {
+                    volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
+                    state.Volumes.Add(volume);
+                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    // populate volume fields
+                    volume.Volume = metsVolume.ModsData.Number;
+                    logger.LogInformation("Will parse date for VOLUME " + metsVolume.ModsData.OriginDateDisplay);
+                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.NavDate = state.GetNavDate(volume.DisplayDate);
+                    volume.Label = metsVolume.ModsData.Title;
+                    logger.LogInformation(" ");
+                    logger.LogInformation("-----VOLUME-----");
+                    logger.LogInformation(volume.ToString());
+                }
+                logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
+                var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
+                volume.Issues.Add(issue);
+                var metsIssue = mic.Manifestation; // is this partial?
+                var mods = metsIssue.ModsData;
+                // populate issue fields
+                issue.Title = mods.Title; // like "2293"
+                issue.DisplayDate = mods.OriginDateDisplay;
+                logger.LogInformation("Will parse date for ISSUE " + issue.DisplayDate);
+                issue.NavDate = state.GetNavDate(issue.DisplayDate);
+                issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
+                issue.MonthNum = issue.NavDate.Month;
+                issue.Year = issue.NavDate.Year;
+                issue.Volume = volume.Volume;
+                issue.PartOrder = mods.PartOrder;
+                issue.Number = mods.Number;
+                issue.Label = issue.DisplayDate;
+                if (issue.Title.HasText() && issue.Title.Trim() != "-")
+                {
+                    issue.Label += $" (issue {issue.Title})";
+                }
+                // duplicate this info for CSV-isation
+                issue.VolumeIdentifier = volume.Identifier;
+                issue.VolumeLabel = volume.Label;
+                issue.VolumeDisplayDate = volume.DisplayDate;
+                issue.VolumeNavDate = volume.NavDate;
+                logger.LogInformation(" ");
+                logger.LogInformation("    -----Issue-----");
+                logger.LogInformation(issue.ToString());
+            }
+
+            using (var writer = new StreamWriter("/home/tomcrane/git/wellcomecollection/iiif-builder/c-and-d.csv"))
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                var issues = state.Volumes.SelectMany(vol => vol.Issues);
+                csv.WriteRecords(issues);
+            }
+            
+            var partCheck = new Dictionary<int, int>();
+            
+            foreach (var volume in state.Volumes)
+            {
+                foreach (var issue in volume.Issues)
+                {
+                    if (!partCheck.ContainsKey(issue.PartOrder))
+                    {
+                        partCheck[issue.PartOrder] = 0;
+                    }
+
+                    partCheck[issue.PartOrder] = partCheck[issue.PartOrder] + 1;
+                }
+            }
+
+            foreach (var kvp in partCheck)
+            {
+                logger.LogInformation(kvp.Key + ": " + kvp.Value);
+            }
+            
+            
+            logger.LogInformation("########### PARTS");
+
+            logger.LogInformation("Range of parts from " + partCheck.Keys.Count + " values");
+            var min = partCheck.Select(kvp => kvp.Key).Min();
+            var max = partCheck.Select(kvp => kvp.Key).Max();
+            logger.LogInformation("min: " + min + ", max: " + max);
+            
+            logger.LogInformation("parts with more than one entry: ");
+            foreach (var kvp in partCheck.Where(kvp => kvp.Value > 1))
+            {
+                logger.LogInformation(kvp.Key + ": " + kvp.Value);
+            }
+            
+            logger.LogInformation("########### Dates");
+
+
+        }
+
+        
     }
 }

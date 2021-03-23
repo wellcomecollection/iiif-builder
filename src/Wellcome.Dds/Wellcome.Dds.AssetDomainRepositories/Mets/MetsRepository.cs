@@ -98,8 +98,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     IssueIdentifier = issueIdentifier
                 };
             }
-            var rootCollection = rootMets as ICollection;
-            if (rootCollection != null)
+
+            if (rootMets is ICollection rootCollection)
             {
                 if (rootMets.Type == "Periodical")
                 {

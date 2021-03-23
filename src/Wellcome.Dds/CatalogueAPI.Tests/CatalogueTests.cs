@@ -93,6 +93,7 @@ namespace CatalogueAPI.Tests
         
         
         [Fact]
+        [Trait("Category", "Manual")]
         public async Task Work_Has_Expected_Subjects_And_Genres()
         {
             // Arrange
@@ -110,7 +111,7 @@ namespace CatalogueAPI.Tests
             lcshChemistry.Concepts.Should().ContainSingle(c => c.Label == "Chemistry");
             
             work.Genres.Should().NotBeEmpty();
-            work.Genres.Should().ContainSingle(g => g.Label == "Oil paintings.");
+            work.Genres.Should().ContainSingle(g => g.Label == "Oil paintings");
         }
     }
 }
