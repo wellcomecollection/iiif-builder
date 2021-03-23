@@ -131,7 +131,12 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             {
                 var m = periodicalDateRegex.Match(modsDate);
                 var normalised = $"{m.Groups[1].Value} {m.Groups[3].Value} {m.Groups[4].Value}";
-                return DateTime.ParseExact(normalised, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+                var dt =  DateTime.ParseExact(normalised, "d MMMM yyyy", 
+                    CultureInfo.InvariantCulture, 
+                    DateTimeStyles.AdjustToUniversal)
+                    .ToUniversalTime()
+                    .AddHours(12); // set to midday
+                return dt;
             }
             catch
             {
