@@ -15,6 +15,7 @@ using Xunit;
 
 namespace CatalogueAPI.Tests
 {
+    [Trait("Category", "Manual")]
     public class CatalogueTests
     {
         private readonly Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue sut;
