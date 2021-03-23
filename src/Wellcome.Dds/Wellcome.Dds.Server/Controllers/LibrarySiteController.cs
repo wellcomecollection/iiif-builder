@@ -302,6 +302,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="newUrl"></param>
         /// <param name="updatedQueryString"></param>
         /// <returns></returns>
+        [HttpGet]
         public IActionResult BuilderUrl(string newUrl, string updatedQueryString = null)
         {
             if (updatedQueryString != null)
