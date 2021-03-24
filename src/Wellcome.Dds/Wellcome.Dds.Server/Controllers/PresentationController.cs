@@ -9,6 +9,7 @@ using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.FeatureManagement.Mvc;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
@@ -27,6 +28,7 @@ namespace Wellcome.Dds.Server.Controllers
     /// <summary>
     /// Mostly now just a Proxy to S3 resources made by WorkflowProcessor.
     /// </summary>
+    [FeatureGate(FeatureFlags.PresentationServices)]
     [Route("[controller]")]
     [ApiController]
     public class PresentationController : ControllerBase
@@ -38,15 +40,6 @@ namespace Wellcome.Dds.Server.Controllers
         private IIIIFBuilder iiifBuilder;
         private ICatalogue catalogue;
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="options"></param>
-        /// <param name="helpers"></param>
-        /// <param name="uriPatterns"></param>
-        /// <param name="ddsContext"></param>
-        /// <param name="iiifBuilder"></param>
-        /// <param name="catalogue"></param>
         public PresentationController(
             IOptions<DdsOptions> options,
             Helpers helpers,

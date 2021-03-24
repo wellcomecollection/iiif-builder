@@ -31,13 +31,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly ICatalogue catalogue;
         private readonly IMemoryCache memoryCache;
         private Helpers helpers;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="uriPatterns"></param>
-        /// <param name="options"></param>
-        /// <param name="ddsContext"></param>
+        
         public WlOrgController(
             UriPatterns uriPatterns,
             IOptions<DdsOptions> options,
@@ -308,6 +302,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="newUrl"></param>
         /// <param name="updatedQueryString"></param>
         /// <returns></returns>
+        [HttpGet]
         public IActionResult BuilderUrl(string newUrl, string updatedQueryString = null)
         {
             if (updatedQueryString != null)

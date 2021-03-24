@@ -7,6 +7,10 @@
         <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
       <ProjectReference Include="..\IIIF\IIIF.csproj" />
@@ -23,6 +27,7 @@
       <PackageReference Include="EFCore.NamingConventions" Version="5.0.2" />
       <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="5.0.3" />
+      <PackageReference Include="Microsoft.FeatureManagement.AspNetCore" Version="2.2.0" />
       <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="1.0.2" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.0.3" />

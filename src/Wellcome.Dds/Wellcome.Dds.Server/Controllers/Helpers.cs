@@ -62,12 +62,6 @@ namespace Wellcome.Dds.Server.Controllers
             return controller.Content(rewritten, contentType);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="container"></param>
-        /// <param name="path"></param>
-        /// <returns></returns>
         public async Task<JObject?> LoadAsJson(string container, string path)
         {
             var stream = await storage.GetStream(container, path);
