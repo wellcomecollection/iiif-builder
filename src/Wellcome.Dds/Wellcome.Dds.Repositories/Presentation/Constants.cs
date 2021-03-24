@@ -6,6 +6,12 @@
     public static class Constants
     {
         /// <summary>
+        /// The label used for this metadata, which is either in the requiredStatement
+        /// or a regular metadata entry, depending on config
+        /// </summary>
+        public const string AttributionAndUsage = "Attribution and usage";
+        
+        /// <summary>
         /// Default value for Attribution and Usage etc.
         /// </summary>
         public const string WellcomeCollection = "Wellcome Collection";

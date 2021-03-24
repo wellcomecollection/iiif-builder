@@ -36,5 +36,10 @@ namespace Wellcome.Dds.AssetDomain.Workflow
             }
             return ((1000 * TextPages) / TimeSpentOnTextPages).ToString();
         }
+
+        public override string ToString()
+        {
+            return $"{Identifier}: {Created}, options: {WorkflowOptions}";
+        }
     }
 }

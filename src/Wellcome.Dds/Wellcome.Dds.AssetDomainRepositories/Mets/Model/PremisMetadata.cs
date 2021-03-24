@@ -155,17 +155,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns>The length in seconds, or 0 if no length obtained.</returns>
         public static double ParseDuration(string possibleStringLength)
         {
-            // Examples
-            // 22mn 49s
-            // 1mn 41s
-            // 9mn 46s ... this format seems very consistent
-            if (possibleStringLength.Contains("mn"))
+            if (possibleStringLength.HasText())
             {
-                var parts = possibleStringLength.Split(' ');
-                int.TryParse(parts[0].ToNumber(), out var mins);
-                int.TryParse(parts[1].ToNumber(), out var secs);
-                return 60 * mins + secs;
+                // Examples
+                // 22mn 49s
+                // 1mn 41s
+                // 9mn 46s ... this format seems very consistent
+                if (possibleStringLength.Contains("mn"))
+                {
+                    var parts = possibleStringLength.Split(' ');
+                    int.TryParse(parts[0].ToNumber(), out var mins);
+                    int.TryParse(parts[1].ToNumber(), out var secs);
+                    return 60 * mins + secs;
+                }
             }
+
             return 0;
         }
     }

@@ -135,10 +135,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public void RequiredStatement(
-            Manifest manifest, 
+        public void RequiredStatement(Manifest manifest,
             IManifestation metsManifestation,
-            ManifestationMetadata manifestationMetadata)
+            ManifestationMetadata manifestationMetadata,
+            bool useRequiredStatement)
         {
             var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.ModsData.Usage);
             if (!usage.HasText())
@@ -167,10 +167,20 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             if (StringUtils.AnyHaveText(usage, attribution))
             {
-                const string label = "Attribution and usage";
-                manifest.RequiredStatement = new LabelValuePair("en", label, attribution, usage);
+                var attributionAndUsage = new LabelValuePair("en", 
+                    Constants.AttributionAndUsage, attribution, usage);
+                if (useRequiredStatement)
+                {
+                    manifest.RequiredStatement = attributionAndUsage;
+                }
+                else
+                {
+                    manifest.Metadata ??= new List<LabelValuePair>();
+                    manifest.Metadata.Add(attributionAndUsage);
+                }
             }
             // TODO - what do we want to do with this?
+            // Park for now and resurrect later, it all depends on what the wc.org front end wants to do with these things
             // var permittedOps = digitisedManifestation.MetsManifestation.PermittedOperations;
             // var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
         }
