@@ -162,7 +162,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // Get all non-serviceReference services (service reference will be auth services)
             // we only want auth in ImageService
             var services = image.Service?
-                .Where(s => s.GetType() != typeof(ServiceReference)).ToList()
+                .Where(s => s.GetType() != typeof(V2ServiceReference)).ToList()
                 .Select(i => ObjectCopier.DeepCopy(i, s =>
                 {
                     if (s is ImageService2 imageService2)
@@ -202,11 +202,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
             // Get all service references from candidate-services (these will be auth services)
             // for P3 we will _only_ have svc refs, the main Auth services will be in the manifest.Service element 
-            var authServiceReferences = candidateServices?.OfType<ServiceReference>().ToList();
+            var authServiceReferences = candidateServices?.OfType<V2ServiceReference>().ToList();
             if (!authServiceReferences.HasItems()) return;
 
             // Remove these from imageService.Services
-            candidateServices?.RemoveAll(s => s is ServiceReference);
+            candidateServices?.RemoveAll(s => s is V2ServiceReference);
 
             // Re-add appropriate services. This will be full AuthService if first time it appears,
             // or serviceReference if it is not the first time
