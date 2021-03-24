@@ -1106,10 +1106,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             var mdCalmRef = manifestationMetadata.Manifestations.FirstOrDefault()?.ReferenceNumber;
             var collectioncode = mdCalmRef.HasText() ? mdCalmRef : "n/a";
 
-            var bNumber = manifestationMetadata.Identifier.BNumber;
             string trackingLabel = "Format: " + format +
                         ", Institution: " + institution +
-                        ", Identifier: " + bNumber +
+                        ", Identifier: " + manifestationMetadata.Identifier.BNumber +
                         ", Digicode: " + digicode +
                         ", Collection code: " + collectioncode;
 
@@ -1118,7 +1117,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ((ICollectionItem)iiifResource).Services?.Add(
                 new ExternalResource("Text")
                 {
-                    Id = TrackingExtensionsService.IdTemplate + bNumber,
+                    Id = TrackingExtensionsService.IdTemplate + manifestationMetadata.Identifier,
                     Profile = Constants.Profiles.TrackingExtension,
                     Label = Lang.Map(trackingLabel)
                 });
