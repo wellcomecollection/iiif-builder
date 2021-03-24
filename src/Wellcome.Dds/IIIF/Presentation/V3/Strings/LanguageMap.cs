@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using IIIF.Serialisation;
@@ -36,6 +37,11 @@ namespace IIIF.Presentation.V3.Strings
                 }
             }
             return sb.ToString();
+        }
+
+        public string Join(string separator)
+        {
+            return String.Join(separator, Values.SelectMany(s => s.ToList()));
         }
     }
 }

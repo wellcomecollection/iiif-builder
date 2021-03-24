@@ -104,9 +104,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 return null;
             }
 
-            return resourceBase.Metadata.FirstOrDefault(
-                pair => pair.Label.Values.HasItems() 
-                        && pair.Label.Values.First().First() == Constants.AttributionAndUsage);
+            return resourceBase.Metadata.FirstOrDefault(IsAttributionAndUsage);
+        }
+
+        private static bool IsAttributionAndUsage(LabelValuePair pair)
+        {
+            return pair.Label.Values.HasItems() 
+                   && pair.Label.Values.First().First() == Constants.AttributionAndUsage;
         }
 
         public static string ToPresentationV2Id(string? id)
@@ -345,10 +349,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (presi3Metadata.IsNullOrEmpty()) return null;
 
             return presi3Metadata!
+                .Where(pair => !IsAttributionAndUsage(pair))
                 .Select(p => new IIIF.Presentation.V2.Metadata
                 {
-                    Label = MetaDataValue.Create(p.Label, true)!,
-                    Value = MetaDataValue.Create(p.Value, true)!
+                    Label = new MetaDataValue(p.Label.Join("; ")),
+                    Value = new MetaDataValue(p.Value.Join("; "))
                 })
                 .ToList();
         }
