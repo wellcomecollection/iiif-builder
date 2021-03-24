@@ -14,6 +14,10 @@ namespace Wellcome.Dds.Server.Controllers
     [ApiController]
     public class AnnotationsController : ControllerBase
     {
+        // NOTE: the paths here take {*id} to allow for handling the various textGranularity levels 
+        // https://iiif.io/api/extension/text-granularity/#2-text-granularity-levels-and-the-textgranularity-property
+        // e.g. /b28047345/all/line, /b28047345/b28047345_0001.jp2/line, /b28047345/images + more in future
+
         private readonly DdsOptions ddsOptions;
         private Helpers helpers;
         private IIIIFBuilder iiifBuilder;
