@@ -383,7 +383,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             State state)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
-            build.RequiredStatement(manifest, metsManifestation, manifestationMetadata);
+            build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);
             build.Rights(manifest, metsManifestation);
             build.PagedBehavior(manifest, metsManifestation);
             build.ViewingDirection(manifest, metsManifestation); // do we do this?

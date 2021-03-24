@@ -82,12 +82,35 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     .ToList();
             }
 
-            if (resourceBase.RequiredStatement != null)
+            var attributionAndUsage = GetAttributionAndUsageMetadata(resourceBase);
+            
+            if (attributionAndUsage != null)
             {
-                AddAttributionAndUsageMetadata(resourceBase, presentationBase);
+                AddAttributionAndUsageMetadata(resourceBase, presentationBase, attributionAndUsage);
             }
             
             return presentationBase;
+        }
+
+        private static LabelValuePair? GetAttributionAndUsageMetadata(Presi3.StructureBase resourceBase)
+        {
+            if (resourceBase.RequiredStatement != null)
+            {
+                return resourceBase.RequiredStatement;
+            }
+
+            if (resourceBase.Metadata.IsNullOrEmpty())
+            {
+                return null;
+            }
+
+            return resourceBase.Metadata.FirstOrDefault(IsAttributionAndUsage);
+        }
+
+        private static bool IsAttributionAndUsage(LabelValuePair pair)
+        {
+            return pair.Label.Values.HasItems() 
+                   && pair.Label.Values.First().First() == Constants.AttributionAndUsage;
         }
 
         public static string ToPresentationV2Id(string? id)
@@ -226,16 +249,19 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
         }
         
-        private static void AddAttributionAndUsageMetadata<T>(IIIF.Presentation.V3.StructureBase resourceBase, T presentationBase)
+        private static void AddAttributionAndUsageMetadata<T>(
+            IIIF.Presentation.V3.StructureBase resourceBase,
+            T presentationBase,
+            LabelValuePair attributionAndUsage)
             where T : IIIFPresentationBase, new()
         {
             presentationBase.Metadata ??= new List<IIIF.Presentation.V2.Metadata>();
 
-            var requiredStatement = resourceBase.RequiredStatement!.Value.SelectMany(rs => rs.Value).ToList();
-            if (!requiredStatement.HasItems()) return;
+            var attributionAndUsageValue = attributionAndUsage!.Value.SelectMany(rs => rs.Value).ToList();
+            if (!attributionAndUsageValue.HasItems()) return;
 
             // Conditions of use is last section of requiredStatement
-            var conditionsOfUse = requiredStatement.Count > 1 ? requiredStatement.Last() : string.Empty;
+            var conditionsOfUse = attributionAndUsageValue.Count > 1 ? attributionAndUsageValue.Last() : string.Empty;
 
             // more than 1 provider means wellcome + _other_, so use other as attribution
             bool isNotWellcome = resourceBase.Provider!.Count > 1;
@@ -277,7 +303,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             {
                 // add repository if ! wellcome
                 var logo = agent.Logo?.FirstOrDefault()?.Id;
-                var licenseText = requiredStatement.First();
+                var licenseText = attributionAndUsageValue.First();
                 var repository =
                     $"<img src='{logo}' alt='{attribution}' /><br/><br/>{licenseText}";
                 presentationBase.Metadata.Add(new IIIF.Presentation.V2.Metadata
@@ -323,10 +349,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (presi3Metadata.IsNullOrEmpty()) return null;
 
             return presi3Metadata!
+                .Where(pair => !IsAttributionAndUsage(pair))
                 .Select(p => new IIIF.Presentation.V2.Metadata
                 {
-                    Label = MetaDataValue.Create(p.Label, true)!,
-                    Value = MetaDataValue.Create(p.Value, true)!
+                    Label = new MetaDataValue(p.Label.Join("; ")),
+                    Value = new MetaDataValue(p.Value.Join("; "))
                 })
                 .ToList();
         }
