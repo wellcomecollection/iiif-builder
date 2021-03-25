@@ -22,6 +22,7 @@ using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.Repositories.Presentation.V2.IXIF;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
 using StringUtils = Utils.StringUtils;
@@ -1116,6 +1117,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ((ICollectionItem)iiifResource).Services?.Add(
                 new ExternalResource("Text")
                 {
+                    Id = TrackingExtensionsService.IdTemplate + manifestationMetadata.Identifier,
                     Profile = Constants.Profiles.TrackingExtension,
                     Label = Lang.Map(trackingLabel)
                 });
@@ -1127,12 +1129,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             ((ICollectionItem)iiifResource).Services?.Add(
                 new ExternalResource("Text")
                 {
+                    Id = iiifResource.Id + "#timestamp",
                     Profile = Constants.Profiles.BuilderTime,
                     Label = Lang.Map("none", DateTime.UtcNow.ToString("O"))
                 });
         }
 
-        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation)
+        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
         {
             var accessConditions = metsManifestation.Sequence
                 .Select(pf => pf.AccessCondition);
@@ -1156,6 +1159,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             manifest.Services?.Add(
                 new ExternalResource("Text")
                 {
+                    Id = AccessControlHints.IdTemplate.Replace("{identifier}", identifier),
                     Profile = Constants.Profiles.AccessControlHints,
                     Label = Lang.Map(accessHint)
                 });

@@ -395,7 +395,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ImprovePagingSequence(manifest);
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
             build.ManifestLevelAnnotations(manifest, metsManifestation);
-            build.AddAccessHint(manifest, metsManifestation);
+            build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
         }
         
         
