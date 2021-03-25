@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using CatalogueClient.ToolSupport;
@@ -29,6 +31,8 @@ namespace WorkflowProcessor
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
+        private readonly string MopUpParam = "--mopup";
+        private readonly string MopUpCDParam = "--mopupcd";
         private readonly string TraverseChemistAndDruggistParam = "--chem";
 
         /// <summary>
@@ -61,6 +65,10 @@ namespace WorkflowProcessor
         /// 
         /// --workflow-options 6
         /// RefreshFlatManifestations and RebuildIIIF (no text or image registration)
+        ///
+        /// --mopup --workflow-options 6
+        /// --mopupcd
+        /// Reset all the special list of b numbers we use for testing, either with or without Chemist and Druggist
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="serviceScopeFactory"></param>
@@ -117,7 +125,14 @@ namespace WorkflowProcessor
             {
                 workflowOptionsFlags = workflowOptionsValue;
             }
-
+            
+            if (HasArgument(MopUpParam) || HasArgument(MopUpCDParam))
+            {
+                logger.LogInformation($"Making workflow jobs for mop-up task");
+                await PopulateTextFixtures(HasArgument(MopUpCDParam), workflowOptionsFlags, stoppingToken);
+                return;
+            }
+            
             if (HasArgument(FinishAllJobsParam))
             {
                 int count = FinishAllJobs();
@@ -188,13 +203,48 @@ namespace WorkflowProcessor
             var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
             return workflowCallRepository.FinishAllJobs();
         }
+        
+        private async Task PopulateTextFixtures(bool includeChemistAndDruggist, int? workflowOptions, CancellationToken stoppingToken)
+        {
+            var tests = new List<string>
+            {
+                "b2178081x",
+                "b22454408",
+                "b2043067x",
+                "b24923333",
+                "b30136155",
+                "b16641097",
+                "b16759230",
+                "b16675630",
+                "b28462270",
+                "b17307922",
+                "b29524404",
+                "b20641151",
+                "b24963215",
+                "b24990796",
+                "b29236927",
+                "b20298341",
+                "b19291449",
+                "b19192162"
+            };
+            if (includeChemistAndDruggist)
+            {
+                tests.Add("b19974760");
+            }
+            await PopulateJobs(tests, workflowOptions, stoppingToken);
+        }
 
         private async Task PopulateJobsFromFile(string file, int? workflowOptions, CancellationToken stoppingToken)
+        {
+            await PopulateJobs(File.ReadLines(file), workflowOptions, stoppingToken);
+        }
+        
+        private async Task PopulateJobs(IEnumerable<string> bNumbers,  int? workflowOptions, CancellationToken stoppingToken)
         {
             // https://stackoverflow.com/a/48368934
             using var scope = serviceScopeFactory.CreateScope();
             var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
-            foreach (var bNumber in File.ReadLines(file))
+            foreach (var bNumber in bNumbers)
             {
                 if (bNumber.IsBNumber() && !stoppingToken.IsCancellationRequested)
                 {
