@@ -69,6 +69,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wellcome.Dds.Repositories.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfService", "PdfService\PdfService.csproj", "{51F7152E-18F2-42F0-9BA5-2B1D1EB484B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfThumbGenerator", "PdfThumbGenerator\PdfThumbGenerator.csproj", "{B17BDC9A-A75B-484C-9821-503A9C24E01D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -199,6 +201,10 @@ Global
 		{51F7152E-18F2-42F0-9BA5-2B1D1EB484B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51F7152E-18F2-42F0-9BA5-2B1D1EB484B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51F7152E-18F2-42F0-9BA5-2B1D1EB484B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B17BDC9A-A75B-484C-9821-503A9C24E01D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B17BDC9A-A75B-484C-9821-503A9C24E01D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B17BDC9A-A75B-484C-9821-503A9C24E01D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B17BDC9A-A75B-484C-9821-503A9C24E01D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -217,6 +223,7 @@ Global
 		{880DD6A3-7359-472C-831E-2D6BAAF60A7D} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{CCB83FE1-8410-4B1C-ADBA-92FAD62F86FC} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
 		{2A32208E-4DC8-49D9-A592-C5A6AA7692E0} = {0591D781-5C15-454F-9243-FE6536EDFEC1}
+		{B17BDC9A-A75B-484C-9821-503A9C24E01D} = {5D9253C3-38DA-4125-9676-12E43AEBDD1D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2745EEFB-05EA-40E0-BECC-7F24548F7DE7}
