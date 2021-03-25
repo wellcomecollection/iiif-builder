@@ -6,11 +6,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CsvHelper;
-using Ghostscript.NET.Rasterizer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OAuth2;
+using PdfService;
 using ShellProgressBar;
 using Utils.Aws.S3;
 using Utils.Caching;
@@ -19,6 +20,7 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
+using Wellcome.Dds.Common;
 
 namespace PdfThumbGenerator
 {
@@ -36,11 +38,13 @@ namespace PdfThumbGenerator
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                         .AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>))
+                        .AddSingleton<PdfThumbnailUtil>()
                         .AddHostedService<PdfGenerator>(provider =>
-                        {
-                            var metsRepo = provider.GetService<IMetsRepository>();
-                            return new PdfGenerator(metsRepo, file);
-                        });
+                            new PdfGenerator(
+                                provider.GetService<ILogger<PdfGenerator>>(),
+                                provider.GetService<IMetsRepository>(),
+                                provider.GetService<PdfThumbnailUtil>(),
+                                file));
 
                     services.AddHttpClient<OAuth2ApiConsumer>();
                     
@@ -48,6 +52,7 @@ namespace PdfThumbGenerator
                     var awsOptions = configuration.GetAWSOptions("Dds-AWS");
                     services.AddDefaultAWSOptions(awsOptions);
                     
+                    services.Configure<DdsOptions>(configuration.GetSection("Dds"));
                     services.Configure<StorageOptions>(configuration.GetSection("Storage"));
                     services.Configure<BinaryObjectCacheOptionsByType>(configuration.GetSection("BinaryObjectCache"));
                     
@@ -62,16 +67,21 @@ namespace PdfThumbGenerator
     
     public class PdfGenerator : IHostedService
     {
+        private readonly ILogger<PdfGenerator> logger;
         private readonly IMetsRepository metsRepository;
+        private readonly PdfThumbnailUtil pdfThumbnailUtil;
         private readonly string file;
 
-        public PdfGenerator(IMetsRepository metsRepository, string file)
+        public PdfGenerator(ILogger<PdfGenerator> logger, IMetsRepository metsRepository,
+            PdfThumbnailUtil pdfThumbnailUtil, string file)
         {
+            this.logger = logger;
             this.metsRepository = metsRepository;
+            this.pdfThumbnailUtil = pdfThumbnailUtil;
             this.file = file;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             // read csv
             var bornDigitalPdfs = GetBornDigitalPdfs(file);
@@ -79,23 +89,47 @@ namespace PdfThumbGenerator
             using var progressBar = new ProgressBar(bornDigitalPdfs.Count, $"Processing {bornDigitalPdfs.Count} PDFs");
             foreach (var pdf in bornDigitalPdfs)
             {
-                // find PDF
+                await ProcessPdf(pdf);
                 progressBar.Tick();
             }
-            throw new NotImplementedException();
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-        
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
         private static List<BornDigitalPdf> GetBornDigitalPdfs(string file)
         {
             using var reader = new StreamReader(file);
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
             var records = csv.GetRecords<BornDigitalPdf>();
             return records.ToList();
+        }
+
+        private async Task ProcessPdf(BornDigitalPdf pdf)
+        {
+            // find PDFI th
+            try
+            {
+                logger.LogDebug("Processing {Identifier}", pdf.Identifier);
+                IMetsResource resource = await metsRepository.GetAsync(pdf.Identifier);
+                if (resource is ICollection multipleManifestation)
+                {
+                    throw new InvalidOperationException(
+                        $"{pdf.Identifier} is a multiple manifestation - update handling");
+                }
+                var manifestation = resource as IManifestation;
+                var pdfItems = manifestation!.Sequence.Where(s => s.MimeType == "application/pdf");
+                
+                foreach (var pdfItem in pdfItems)
+                {
+                    await pdfThumbnailUtil.EnsurePdfThumbnails(
+                        () => pdfItem.WorkStore.GetStreamForPathAsync(pdfItem.RelativePath),
+                        pdf.Identifier);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing pdf {Identifier}", pdf.Identifier);
+            }
         }
     }
 
