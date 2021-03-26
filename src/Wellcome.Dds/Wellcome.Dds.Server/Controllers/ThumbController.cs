@@ -1,7 +1,9 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement.Mvc;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -10,7 +12,6 @@ using Utils.Web;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
-using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Presentation;
 
@@ -22,33 +23,32 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly IMetsRepository metsRepository;
         private readonly DdsContext ddsContext;
-        
+        private readonly PdfThumbnailUtil pdfThumbnailUtil;
+        private readonly ILogger<ThumbController> logger;
+
         public ThumbController(
             IMetsRepository metsRepository,
-            DdsContext ddsContext)
+            DdsContext ddsContext,
+            PdfThumbnailUtil pdfThumbnailUtil,
+            ILogger<ThumbController> logger)
         {
             this.metsRepository = metsRepository;
             this.ddsContext = ddsContext;
+            this.pdfThumbnailUtil = pdfThumbnailUtil;
+            this.logger = logger;
         }
 
         /// <summary>
         /// Get image representation of specific bnumber id.
         /// </summary>
         /// <param name="id">bnumber to get thumbnail image for</param>
+        /// <param name="width">width of requested thumbnail (optional).</param>
         /// <returns>Http response containing thumbnail image</returns>
-        [HttpGet("{id}")] 
-        public async Task<IActionResult> Index(string id)
+        [HttpGet("{id}/{width?}")]
+        public async Task<IActionResult> Index(string id, int width = 200)
         {
-            // TODO - if it's a BD PDF, return the large thumb or a resize of it or an info.json
             var ddsId = new DdsIdentifier(id);
-            var manifestation = await ddsContext.Manifestations.FindAsync(id);
-            // this will also work for plain b number
-            if (manifestation == null)
-            {
-                manifestation = ddsContext.Manifestations
-                    .FirstOrDefault(m => m.PackageIdentifier == ddsId.BNumber);
-            }
-
+            var manifestation = await GetManifestation(id, ddsId);
             if (manifestation == null)
             {
                 return NotFound($"No thumbnail for {id}");
@@ -60,22 +60,75 @@ namespace Wellcome.Dds.Server.Controllers
                 return RedirectPermanent(iiifThumbs[0].Id);
             }
             
-            // TODO - PDF Cover thumbs - use Cantaloupe!
             if (manifestation.AssetType == "image/jp2")
             {
                 return NotFound($"No thumbnail for {id}");
             }
-            
+
             IMetsResource resource = await metsRepository.GetAsync(id);
+            if (resource is IManifestation {FirstInternetType: "application/pdf"})
+            {
+                // Born digital PDF...
+                return await HandlePdfThumbRequest(id, width);
+            }
+
+            // hand AV request
+            return await HandleAvThumbRequest(id, resource);
+        }
+
+        private async Task<Manifestation> GetManifestation(string id, DdsIdentifier ddsId)
+        {
+            var manifestation = await ddsContext.Manifestations.FindAsync(id);
+
+            // this will also work for plain b number
+            if (manifestation == null)
+            {
+                manifestation = ddsContext.Manifestations
+                    .FirstOrDefault(m => m.PackageIdentifier == ddsId.BNumber);
+            }
+
+            return manifestation;
+        }
+
+        private async Task<IActionResult> HandlePdfThumbRequest(DdsIdentifier identifier, int width)
+        {
+            Stream thumbnailStream = null;
+            try
+            {
+                thumbnailStream = await pdfThumbnailUtil.GetPdfThumbnail(identifier);
+                if (thumbnailStream == null)
+                {
+                    logger.LogInformation("Request for not found PDF thumbnail for '{Identifier}'", identifier);
+                    return NotFound($"No thumbnail image for {identifier}");
+                }
+
+                // fail if not there
+                if (thumbnailStream.CanSeek)
+                {
+                    thumbnailStream.Position = 0;
+                }
+
+                return await ResizeImageToResponseBody(thumbnailStream, width);
+            }
+            finally
+            {
+                thumbnailStream?.Close();
+                thumbnailStream?.Dispose();
+            }
+        }
+
+        private async Task<IActionResult> HandleAvThumbRequest(DdsIdentifier identifier, IMetsResource resource)
+        {
             if (resource is ICollection multipleManifestation)
             {
                 resource = multipleManifestation.Manifestations.FirstOrDefault(
                     mm => mm.Type == "Video" || mm.Type == "Audio");
             }
+
             var avManifestation = resource as IManifestation;
             if (avManifestation == null)
             {
-                return NotFound($"No poster image for {id}");
+                return NotFound($"No poster image for {identifier}");
             }
 
             Response.CacheForDays(1);
@@ -83,15 +136,9 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 avManifestation = (IManifestation) await metsRepository.GetAsync(avManifestation.Id);
             }
+
             var poster = avManifestation.PosterImage;
-            var avFile = avManifestation.Sequence.FirstOrDefault(pf => pf.Family == AssetFamily.TimeBased);
-            var permitted = new []
-            {
-                AccessCondition.Open,
-                AccessCondition.RequiresRegistration,
-                AccessCondition.OpenWithAdvisory
-            };
-            var isPublicPoster = avFile != null && permitted.Contains(avFile.AccessCondition);
+            var isPublicPoster = IsPublicPoster(avManifestation);
             if (poster == null || !isPublicPoster)
             {
                 var placeholder = avManifestation.Type == "Audio"
@@ -100,15 +147,30 @@ namespace Wellcome.Dds.Server.Controllers
                 return Redirect(placeholder);
             }
 
-            Response.ContentType = "image/jpeg";
-            var imgSourceStream = await poster.WorkStore.GetStreamForPathAsync(poster.RelativePath);
-            using (var image = await Image.LoadAsync(imgSourceStream))
-            {
-                image.Mutate(x => x.Resize(600, 0, KnownResamplers.Lanczos3));
-                await image.SaveAsync(Response.Body, new JpegEncoder());
-            }
+            await using var imgSourceStream = await poster.WorkStore.GetStreamForPathAsync(poster.RelativePath);
+            return await ResizeImageToResponseBody(imgSourceStream, 600);
+        }
 
-            return new EmptyResult(); // Is this right?
+        private static bool IsPublicPoster(IManifestation avManifestation)
+        {
+            var avFile = avManifestation.Sequence.FirstOrDefault(pf => pf.Family == AssetFamily.TimeBased);
+            var permitted = new[]
+            {
+                AccessCondition.Open,
+                AccessCondition.RequiresRegistration,
+                AccessCondition.OpenWithAdvisory
+            };
+            var isPublicPoster = avFile != null && permitted.Contains(avFile.AccessCondition);
+            return isPublicPoster;
+        }
+
+        private async Task<IActionResult> ResizeImageToResponseBody(Stream imgSourceStream, int width)
+        {
+            Response.ContentType = "image/jpeg";
+            using var image = await Image.LoadAsync(imgSourceStream);
+            image.Mutate(x => x.Resize(width, 0, KnownResamplers.Lanczos3));
+            await image.SaveAsync(Response.Body, new JpegEncoder());
+            return new EmptyResult();
         }
     }
 }

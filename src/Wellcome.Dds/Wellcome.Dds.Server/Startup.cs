@@ -149,7 +149,8 @@ namespace Wellcome.Dds.Server
                 .AddScoped<IDashboardRepository, DashboardRepository>()
                 .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
-                .AddScoped<AltoSearchTextProvider>(); 
+                .AddScoped<AltoSearchTextProvider>()
+                .AddSingleton<PdfThumbnailUtil>();
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronApi>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();
