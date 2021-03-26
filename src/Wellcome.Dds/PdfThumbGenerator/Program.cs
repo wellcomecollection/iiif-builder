@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OAuth2;
-using PdfService;
 using ShellProgressBar;
 using Utils.Aws.S3;
 using Utils.Caching;

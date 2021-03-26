@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Processing;
 using Utils.Aws.S3;
 using Wellcome.Dds.Common;
 
-namespace PdfService
+namespace PdfThumbGenerator
 {
     public class PdfThumbnailUtil
     {
@@ -33,10 +33,6 @@ namespace PdfService
         public async Task EnsurePdfThumbnails(Func<Task<Stream>> pdfStreamSource, string identifier)
         {
             var folder = Path.Combine(Path.GetTempPath(), "pdf_thumbs");
-            if (!Directory.Exists(folder))
-            {
-                Directory.Delete(folder);
-            }
 
             var inputPdfPath = Path.Combine(folder, $"{identifier}_source.pdf");
             var outputJpgPath = Path.Combine(folder, $"{identifier}_extracted.jpg");
