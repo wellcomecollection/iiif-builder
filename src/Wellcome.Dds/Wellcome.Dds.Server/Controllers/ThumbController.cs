@@ -21,6 +21,7 @@ namespace Wellcome.Dds.Server.Controllers
     [Route("[controller]")]
     public class ThumbController : Controller
     {
+        private const int MaxWidth = 1024; 
         private readonly IMetsRepository metsRepository;
         private readonly DdsContext ddsContext;
         private readonly PdfThumbnailUtil pdfThumbnailUtil;
@@ -45,8 +46,13 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="width">width of requested thumbnail (optional).</param>
         /// <returns>Http response containing thumbnail image</returns>
         [HttpGet("{id}/{width?}")]
-        public async Task<IActionResult> Index(string id, int width = 200)
+        public async Task<IActionResult> Index(string id, int? width = null)
         {
+            if (width > MaxWidth)
+            {
+                return BadRequest($"Requested width exceeds maximum of {MaxWidth}");
+            }
+            
             var ddsId = new DdsIdentifier(id);
             var manifestation = await GetManifestation(id, ddsId);
             if (manifestation == null)
@@ -69,11 +75,11 @@ namespace Wellcome.Dds.Server.Controllers
             if (resource is IManifestation {FirstInternetType: "application/pdf"})
             {
                 // Born digital PDF...
-                return await HandlePdfThumbRequest(id, width);
+                return await HandlePdfThumbRequest(id, width ?? 200);
             }
 
-            // hand AV request
-            return await HandleAvThumbRequest(id, resource);
+            // handle AV request
+            return await HandleAvThumbRequest(id, resource, width ?? 600);
         }
 
         private async Task<Manifestation> GetManifestation(string id, DdsIdentifier ddsId)
@@ -117,7 +123,8 @@ namespace Wellcome.Dds.Server.Controllers
             }
         }
 
-        private async Task<IActionResult> HandleAvThumbRequest(DdsIdentifier identifier, IMetsResource resource)
+        private async Task<IActionResult> HandleAvThumbRequest(DdsIdentifier identifier, IMetsResource resource,
+            int width)
         {
             if (resource is ICollection multipleManifestation)
             {
@@ -125,8 +132,7 @@ namespace Wellcome.Dds.Server.Controllers
                     mm => mm.Type == "Video" || mm.Type == "Audio");
             }
 
-            var avManifestation = resource as IManifestation;
-            if (avManifestation == null)
+            if (resource is not IManifestation avManifestation)
             {
                 return NotFound($"No poster image for {identifier}");
             }
@@ -148,7 +154,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
 
             await using var imgSourceStream = await poster.WorkStore.GetStreamForPathAsync(poster.RelativePath);
-            return await ResizeImageToResponseBody(imgSourceStream, 600);
+            return await ResizeImageToResponseBody(imgSourceStream, width);
         }
 
         private static bool IsPublicPoster(IManifestation avManifestation)
