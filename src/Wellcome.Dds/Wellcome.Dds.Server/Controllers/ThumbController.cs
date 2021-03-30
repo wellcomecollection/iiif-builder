@@ -72,7 +72,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
 
             IMetsResource resource = await metsRepository.GetAsync(id);
-            if (resource is IManifestation {FirstInternetType: "application/pdf"})
+            if (manifestation.AssetType == "application/pdf")
             {
                 // Born digital PDF...
                 return await HandlePdfThumbRequest(id, width ?? 200);
