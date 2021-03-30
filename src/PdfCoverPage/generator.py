@@ -39,7 +39,7 @@ def generate_pdf(identifier: str):
     relevant_fields = extract_required_fields(manifest)
 
     # generate PDF and get bytes
-    pdf_bytes = build_pdf(relevant_fields)
+    pdf_bytes = build_pdf(relevant_fields, identifier)
     pdf_bytes.seek(0)
     print(f"generated PDF cover-page for '{identifier}'")
 
@@ -69,7 +69,7 @@ def extract_required_fields(manifest):
     return relevant_fields
 
 
-def build_pdf(data: dict):
+def build_pdf(data: dict, identifier: str):
     """build pdf and return bytes"""
 
     # configure document
@@ -143,7 +143,7 @@ def build_pdf(data: dict):
     pdf_elements.append(TopPadder(bottom))
 
     pdf_bytes = io.BytesIO()
-    doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, topMargin=30, bottomMargin=30, title=f"{identifier}.pdf")
     doc.build(pdf_elements)
     return pdf_bytes
 
