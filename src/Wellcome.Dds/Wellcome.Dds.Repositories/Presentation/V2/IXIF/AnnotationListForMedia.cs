@@ -20,7 +20,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         public int? Height { get; set; }
 
         [JsonProperty(Order = 28)]
-        [ObjectIfSingle]
         public List<Annotation> Resources { get; set; } = new();
     }
 }

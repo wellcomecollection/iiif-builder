@@ -295,7 +295,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     if (anno.Items.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
                         body is ExternalResource extBody)
                     {
-                        var pageCount = manifest.Metadata.GetValueByLabel("Number of pages");
+                        var pageMetaPair = body.Metadata?.FirstOrDefault(
+                            lvp => lvp.Label.ToString() == "Number of pages");
+                        string? pageCount = null;
+                        if (pageMetaPair != null)
+                        {
+                            pageCount = pageMetaPair.Value.ToString();
+                        }
                         Presi2.Metadata? pageCountMeta = null;
                         if (!string.IsNullOrEmpty(pageCount))
                         {
