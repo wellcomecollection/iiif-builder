@@ -48,7 +48,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             int count = 0;
             foreach (var buildResult in buildResults)
             {
-                if (buildResult.IIIFVersion == IIIF.Presentation.Version.V3 && buildResult.IIIFResource is Presi3.StructureBase iiif3)
+                if (buildResult.IIIFVersion == IIIF.Presentation.Version.V3 &&
+                    buildResult.IIIFResource is Presi3.StructureBase iiif3)
                 {
                     var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
                     try
@@ -64,6 +65,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         result.Message = e.Message;
                         result.Outcome = BuildOutcome.Failure;
                     }
+
                     multipleBuildResult.Add(result);
                 }
                 else

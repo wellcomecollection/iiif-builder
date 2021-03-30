@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
@@ -178,53 +179,27 @@ namespace WorkflowProcessor
             var start = DateTime.Now;
             var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
             var iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
-            
+
             // Now we save them all to S3.
-            string saveId = "-";
-            try
-            {
-                foreach (var buildResult in iiif3BuildResults.Concat(iiif2BuildResults))
-                {
-                    saveId = buildResult.Id;
-                    // Moving this here to add at the last minute.
-                    // This allows a buildResult with references to resources in other buildResults to be serialised
-                    // with the @context as long as they are serialised after the referer is serialised.
-                    // The one use case for this is Chemist and Druggist, where collection b19974760 contains nested
-                    // collections in the top level collection (where we don't want them to have @contexts of their own)
-                    // and these nested collections are also serialised to S3 in their own right (when we DO want them
-                    // to have their own @contexts).
-                    if (buildResult.IIIFVersion == Version.V3)
-                    {
-                        buildResult.IIIFResource.EnsurePresentation3Context();
-                    }
-                    else if(buildResult.IIIFVersion == Version.V2)
-                    {
-                        buildResult.IIIFResource.EnsurePresentation2Context();
-                    }
-                    await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
-                        ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
-                        buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
-                }
-            }
-            catch (Exception e)
-            {
-                iiif3BuildResults.Message = $"Failed at {saveId}, {e.Message}";
-                iiif3BuildResults.Outcome = BuildOutcome.Failure;
-            }
+            await WriteResultToS3(iiif3BuildResults);
+            await WriteResultToS3(iiif2BuildResults);
 
             var packageEnd = DateTime.Now;
             job.PackageBuildTime = (long)(packageEnd - start).TotalMilliseconds;
-            if (iiif3BuildResults.Any(br => br.Outcome != BuildOutcome.Success))
+
+            var failures = iiif2BuildResults.Concat(iiif3BuildResults)
+                .Where(br => br.Outcome == BuildOutcome.Failure)
+                .ToList();
+            if (failures.Count > 0)
             {
-                // TODO
-                // if(result.Outcome == BuildOutcome.HasClosedSection)
-                // {
-                //     return;
-                // }
-                // if(result.Outcome == BuildOutcome.MissingDzLicenseCode)
-                // {
-                //     throw new NotSupportedException("MODS Section does not contain a DZ License Code");
-                // }
+                var builder = new StringBuilder(failures.Count * 2);
+                foreach (var failed in failures)
+                {
+                    builder.Append(failed.Message);
+                    builder.Append(',');
+                }
+
+                job.Error = builder.ToString();
             }
         }
 
@@ -500,10 +475,43 @@ namespace WorkflowProcessor
             }
             
             logger.LogInformation("########### Dates");
-
-
         }
-
         
+        private async Task WriteResultToS3(MultipleBuildResult buildResults)
+        {
+            string saveId = "-";
+            try
+            {
+                foreach (var buildResult in buildResults.Where(r => r.Outcome == BuildOutcome.Success))
+                {
+                    saveId = buildResult.Id;
+
+                    // Moving this here to add at the last minute.
+                    // This allows a buildResult with references to resources in other buildResults to be serialised
+                    // with the @context as long as they are serialised after the referer is serialised.
+                    // The one use case for this is Chemist and Druggist, where collection b19974760 contains nested
+                    // collections in the top level collection (where we don't want them to have @contexts of their own)
+                    // and these nested collections are also serialised to S3 in their own right (when we DO want them
+                    // to have their own @contexts).
+                    if (buildResult.IIIFVersion == Version.V3)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation3Context();
+                    }
+                    else if (buildResult.IIIFVersion == Version.V2)
+                    {
+                        buildResult.IIIFResource.EnsurePresentation2Context();
+                    }
+
+                    await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
+                        ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
+                        buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
+                }
+            }
+            catch (Exception e)
+            {
+                buildResults.Message = $"Failed at {saveId}, {e.Message}";
+                buildResults.Outcome = BuildOutcome.Failure;
+            }
+        }
     }
 }
