@@ -73,15 +73,9 @@ def build_pdf(data: dict):
     """build pdf and return bytes"""
 
     # configure document
-    pdfmetrics.registerFont(TTFont("Inter", "fonts/Inter-Regular.ttf"))
-    pdfmetrics.registerFont(TTFont("Inter-Bold", "fonts/Inter-Bold.ttf"))
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="Heading", fontName="Inter-Bold", fontSize=12, leading=15))
-    styles.add(ParagraphStyle(name="Footer", fontName="Inter", fontSize=11, leading=13))
-    normal = ParagraphStyle("Normal")
-    normal.fontSize = 12
-    normal.leading = 14
-    normal.fontName = "Inter"
+    register_fonts()
+    styles = configure_stylesheet()
+    normal = configure_normal_style()
 
     # build elements
     pdf_elements = []
@@ -89,7 +83,8 @@ def build_pdf(data: dict):
     pdf_elements.append(Paragraph(" - ".join(label_vals), styles["Heading"]))
     pdf_elements.append(Spacer(1, 30))
 
-    def add_metadata(header, value):
+    def add_pdf_metadata(header, value):
+        """Add header + value to pdf_elements, handling spacing etc"""
         pdf_elements.append(Paragraph(header, styles["Heading"]))
         pdf_elements.append(Spacer(1, 6))
         if isinstance(value, list):
@@ -99,19 +94,26 @@ def build_pdf(data: dict):
 
         pdf_elements.append(Spacer(1, 10))
 
+    # prefer requiredStatement for "license + attribution"
+    attribution_statement = data.get("requiredStatement", [])
+
     if metadata := data.get("metadata", {}):
         if contributors := metadata.get("Contributors", []):
-            add_metadata("Contributors", contributors)
+            add_pdf_metadata("Contributors", contributors)
 
         if pub_creation := metadata.get("Publication/creation", []):
-            add_metadata("Publication/Creation", pub_creation)
+            add_pdf_metadata("Publication/Creation", pub_creation)
 
-    add_metadata("Persistent URL", data["homepage"])
+        # fallback to "Attribution and usage" metadata for "license + attribution" if no requiredStatement
+        if not attribution_statement:
+            attribution_statement = metadata.get("Attribution and usage", [])
+
+    add_pdf_metadata("Persistent URL", data["homepage"])
     pdf_elements.append(Spacer(1, 20))
 
-    # take any element that is not "Wellcome Collection"
-    if required_statement := [s for s in data.get("requiredStatement", []) if s != "Wellcome Collection"]:
-        add_metadata("License and attribution", required_statement)
+    # take any element from requiredStatement/"Attribution and Usage" that is not "Wellcome Collection"
+    if required_statement := [s for s in attribution_statement if s != "Wellcome Collection"]:
+        add_pdf_metadata("License and attribution", required_statement)
 
     # bottom section
     provider = data["provider"]
@@ -135,6 +137,26 @@ def build_pdf(data: dict):
     doc = SimpleDocTemplate(pdf_bytes, pagesize=A4, topMargin=30, bottomMargin=30)
     doc.build(pdf_elements)
     return pdf_bytes
+
+
+def configure_normal_style():
+    normal = ParagraphStyle("Normal")
+    normal.fontSize = 12
+    normal.leading = 14
+    normal.fontName = "Inter"
+    return normal
+
+
+def configure_stylesheet():
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="Heading", fontName="Inter-Bold", fontSize=12, leading=15))
+    styles.add(ParagraphStyle(name="Footer", fontName="Inter", fontSize=11, leading=13))
+    return styles
+
+
+def register_fonts():
+    pdfmetrics.registerFont(TTFont("Inter", "fonts/Inter-Regular.ttf"))
+    pdfmetrics.registerFont(TTFont("Inter-Bold", "fonts/Inter-Bold.ttf"))
 
 
 def get_first_lang_value(el):
