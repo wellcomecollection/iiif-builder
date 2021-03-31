@@ -1,5 +1,4 @@
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +49,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v1/{id}")]
         public async Task<IActionResult> RawText(string id)
         {
-            var stream = await GetTextStream(id);
+            var stream = await GetTextObjectStream($"raw/{id}");
             if (stream == null)
             {
                 return NotFound($"No text resource found for {id}");
@@ -68,21 +67,12 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v1/{id}.zip")]
         public async Task<IActionResult> TextZip(string id)
         {
-            var textStream = await GetTextStream(id);
-            if (textStream == null)
+            var zipStream = await GetTextObjectStream($"zip/{id}.zip");
+            if (zipStream == null)
             {
-                return NotFound($"No text resource found for {id}");
+                return NotFound($"No text resource found for {id}.zip");
             }
-
-            var zipStream = new MemoryStream();
-            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
-            {
-                var textEntry = archive.CreateEntry($"{id}.txt");
-                await textStream.CopyToAsync(textEntry.Open());
-            }
-            zipStream.Position = 0;
-
-            Response.CacheForDays(1);
+            
             return File(zipStream, "application/zip", $"{id}-full-text.zip");
         }
 
@@ -104,11 +94,8 @@ namespace Wellcome.Dds.Server.Controllers
             }
             return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
         }
-        
-        private async Task<Stream> GetTextStream(string id)
-        {
-            var stream = await storage.GetStream(ddsOptions.TextContainer, $"raw/{id}");
-            return stream;
-        }
+
+        private async Task<Stream> GetTextObjectStream(string key)
+            => await storage.GetStream(ddsOptions.TextContainer, key);
     }
 }
