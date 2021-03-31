@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,9 +12,13 @@ using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
+using Wellcome.Dds.WordsAndPictures;
 
 namespace WorkflowProcessor
 {
+    /// <summary>
+    /// Builds text-based resources from alto derivatives.
+    /// </summary>
     public class AltoDerivedAssetBuilder
     {
         private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
@@ -22,7 +28,7 @@ namespace WorkflowProcessor
         private readonly BucketWriter bucketWriter;
         private readonly IMetsRepository metsRepository;
         private readonly ILogger<AltoDerivedAssetBuilder> logger;
-        
+
         public AltoDerivedAssetBuilder(
             ILogger<AltoDerivedAssetBuilder> logger,
             IMetsRepository metsRepository,
@@ -57,77 +63,139 @@ namespace WorkflowProcessor
             bool wordCountInvalid = false;
 
             // TODO - this needs a load of error handling etc
-            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
+            try
             {
-                var manifestation = manifestationInContext.Manifestation;
-                if (manifestation.Partial)
+                DeleteZipFileIfExists(job.Identifier);
+                
+                await foreach (var manifestationInContext in metsRepository
+                    .GetAllManifestationsInContext(job.Identifier)
+                    .WithCancellation(cancellationToken))
                 {
-                    manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
-                }
+                    var manifestation = await GetManifestation(manifestationInContext);
 
-                if (manifestation != null && HasAltoFiles(manifestation))
-                {
-                    job.ExpectedTexts++;
-                    var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
-                    if (textFileInfo.Exists && !job.ForceTextRebuild)
+                    if (manifestation != null && HasAltoFiles(manifestation))
                     {
-                        logger.LogInformation("Text already on disk for {ManifestationId}", manifestation.Id);
-                        wordCountInvalid = true;
-                        job.TextsAlreadyOnDisk++;
-                    }
-                    else
-                    {
-                        var startTextTs = DateTime.Now;
-                        var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
-                        await bucketWriter.SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
-                        var wordCount = text.Words.Count;
-                        logger.LogInformation("Rebuilt search text for {ManifestationId}: {WordCount} words",
-                            manifestation.Id, wordCount);
-                        job.TextsBuilt++;
-                        wordsCountedOnThisRun += wordCount;
-                        job.TextPages += text.Images.Length;
-                        job.TimeSpentOnTextPages += (int) (DateTime.Now - startTextTs).TotalMilliseconds;
-                    }
+                        job.ExpectedTexts++;
+                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
 
-                    //  How do the all-annos file and the images file get built?
-                    var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
-                    if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
-                    {
-                        logger.LogInformation("All anno file already on disk for {ManifestationId}", manifestation.Id);
-                        job.AnnosAlreadyOnDisk++;
-                    }
-                    else
-                    {
-                        if (jobOptions.RebuildAllAnnoPageCaches)
+                        if (textFileInfo.Exists && !job.ForceTextRebuild)
                         {
-                            // These are in our internal text model
-                            var annotationPages = await
-                                cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id,
-                                    manifestation.Sequence);
-                            // Now convert them to W3C Web Annotations
-                            var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
-                            await SaveAnnoPagesToS3(result);
-                            logger.LogInformation(
-                                "Rebuilt annotation pages for {ManifestationId}: {PagesCount} pages",
-                                manifestation.Id, annotationPages.Count);
-                            job.AnnosBuilt++;
+                            logger.LogInformation("Text already on disk for {ManifestationId}", manifestation.Id);
+                            wordCountInvalid = true;
+                            job.TextsAlreadyOnDisk++;
                         }
                         else
                         {
-                            logger.LogInformation("Skipping AllAnnoCache rebuild for {ManifestationId}",
+                            var wordCount = await RebuildText(job, manifestation);
+                            wordsCountedOnThisRun += wordCount;
+                        }
+
+                        //  How do the all-annos file and the images file get built?
+                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
+                        if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
+                        {
+                            logger.LogInformation("All anno file already on disk for {ManifestationId}",
                                 manifestation.Id);
+                            job.AnnosAlreadyOnDisk++;
+                        }
+                        else
+                        {
+                            if (jobOptions.RebuildAllAnnoPageCaches)
+                            {
+                                // These are in our internal text model
+                                var annotationPages = await
+                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id,
+                                        manifestation.Sequence);
+                                // Now convert them to W3C Web Annotations
+                                var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
+                                await SaveAnnoPagesToS3(result);
+                                logger.LogInformation(
+                                    "Rebuilt annotation pages for {ManifestationId}: {PagesCount} pages",
+                                    manifestation.Id, annotationPages.Count);
+                                job.AnnosBuilt++;
+                            }
+                            else
+                            {
+                                logger.LogInformation("Skipping AllAnnoCache rebuild for {ManifestationId}",
+                                    manifestation.Id);
+                            }
                         }
                     }
                 }
-            }
 
-            if (!wordCountInvalid)
+                if (ZipFileExists(job.Identifier))
+                {
+                    await bucketWriter.SaveTextZipToS3(GetZipFilePath(job.Identifier), $"zip/{job.Identifier}.zip");
+                }
+
+                if (!wordCountInvalid)
+                {
+                    job.Words = wordsCountedOnThisRun;
+                }
+
+                var end = DateTime.Now;
+                job.TextAndAnnoBuildTime = (long) (end - start).TotalMilliseconds;
+            }
+            catch (Exception ex)
             {
-                job.Words = wordsCountedOnThisRun;
+                logger.LogError(ex, "Error building alto derived assets for {Identifier}", job.Identifier);
+                throw;
+            }
+            finally
+            {
+                DeleteZipFileIfExists(job.Identifier);
+            }
+        }
+
+        private async Task<int> RebuildText(WorkflowJob job, IManifestation manifestation)
+        {
+            var startTextTs = DateTime.Now;
+            var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
+            await bucketWriter.SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
+
+            await AddToZip(job.Identifier, manifestation.Id, text);
+            
+            var wordCount = text.Words.Count;
+            logger.LogInformation("Rebuilt search text for {ManifestationId}: {WordCount} words",
+                manifestation.Id, wordCount);
+            job.TextsBuilt++;
+            job.TextPages += text.Images.Length;
+            job.TimeSpentOnTextPages += (int) (DateTime.Now - startTextTs).TotalMilliseconds;
+            return wordCount;
+        }
+
+        private async Task AddToZip(string identifier, string manifestId, Text text)
+        {
+            var zipFilePath = GetZipFilePath(identifier);
+            logger.LogInformation("Adding text for {ManifestationId} to zip file {ZipFile}", manifestId, zipFilePath);
+            
+            var exists = File.Exists(zipFilePath);
+            await using var zipToOpen = new FileStream(zipFilePath, FileMode.OpenOrCreate);
+            using var zipArchive = new ZipArchive(zipToOpen, exists ? ZipArchiveMode.Update : ZipArchiveMode.Create);
+            var archiveEntry = zipArchive.CreateEntry($"{manifestId}.txt");
+            await using var writer = new StreamWriter(archiveEntry.Open());
+            await writer.WriteAsync(text.RawFullText);
+        }
+
+        private static void DeleteZipFileIfExists(string identifier)
+        {
+            if (ZipFileExists(identifier))
+                File.Delete(GetZipFilePath(identifier));
+        }
+
+        private static bool ZipFileExists(string identifier) => File.Exists(GetZipFilePath(identifier));
+        
+        private static string GetZipFilePath(string identifier) => Path.Join(Path.GetTempPath(), $"{identifier}.zip");
+
+        private async Task<IManifestation> GetManifestation(IManifestationInContext manifestationInContext)
+        {
+            var manifestation = manifestationInContext.Manifestation;
+            if (manifestation.Partial)
+            {
+                manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
             }
 
-            var end = DateTime.Now;
-            job.TextAndAnnoBuildTime = (long) (end - start).TotalMilliseconds;
+            return manifestation;
         }
 
         private bool HasAltoFiles(IManifestation manifestation)
