@@ -14,17 +14,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
     public class MetsRepository : IMetsRepository
     {
-        // private readonly ReaderWriterLockSlim issueCacheLock = new ReaderWriterLockSlim();
-        // private static readonly Dictionary<string, Dictionary<string, int>> IssueCache = new Dictionary<string, Dictionary<string, int>>();
-        // private readonly string issueCacheDirectory;
-
         private readonly IWorkStorageFactory workStorageFactory;
 
-        public MetsRepository(IWorkStorageFactory workStorageFactory) //, string issueCacheDirectory)
+        public MetsRepository(IWorkStorageFactory workStorageFactory)
         {
-            // Ignore Chemist and Druggist for now, come back to this later
             this.workStorageFactory = workStorageFactory;
-            // this.issueCacheDirectory = issueCacheDirectory;
         }
 
         public async Task<IMetsResource> GetAsync(string identifier)

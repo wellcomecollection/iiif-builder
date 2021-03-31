@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
 using Utils;
 using Utils.Storage;
+using Utils.Web;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 
@@ -39,29 +41,47 @@ namespace Wellcome.Dds.Server.Controllers
             this.metsRepository = metsRepository;
         }
 
-
         /// <summary>
         /// Proxies a raw text blob from S3
         /// </summary>
-        /// <param name="id">e.g., b number or manifestation identfier</param>
+        /// <param name="id">e.g., b number or manifestation identifier</param>
         /// <returns>A text/plain response, or 404</returns>
         [HttpGet("v1/{id}")]
         public async Task<IActionResult> RawText(string id)
         {
-            var stream = await storage.GetStream(ddsOptions.TextContainer, $"raw/{id}");
+            var stream = await GetTextObjectStream($"raw/{id}");
             if (stream == null)
             {
                 return NotFound($"No text resource found for {id}");
             }
+            
+            Response.CacheForDays(1);
             return File(stream, "text/plain");
         }
 
         /// <summary>
-        /// 
+        /// Get all text resources in compressed zip file.
         /// </summary>
-        /// <param name="manifestationIdentifier"></param>
-        /// <param name="assetIdentifier"></param>
-        /// <returns></returns>
+        /// <param name="id">b number or manifestation identifier</param>
+        /// <returns>application/zip response, or 404 if not found</returns>
+        [HttpGet("v1/{id}.zip")]
+        public async Task<IActionResult> TextZip(string id)
+        {
+            var zipStream = await GetTextObjectStream($"zip/{id}.zip");
+            if (zipStream == null)
+            {
+                return NotFound($"No text resource found for {id}.zip");
+            }
+            
+            return File(zipStream, "application/zip", $"{id}-full-text.zip");
+        }
+
+        /// <summary>
+        /// Get ALTO xml file for specified identifier.
+        /// </summary>
+        /// <param name="manifestationIdentifier">manifestation identifier</param>
+        /// <param name="assetIdentifier">asset identifier</param>
+        /// <returns>text/xml response, or 404 if not found</returns>
         [HttpGet("alto/{manifestationIdentifier}/{assetIdentifier}")]
         public async Task<IActionResult> Alto(string manifestationIdentifier, string assetIdentifier)
         {
@@ -74,5 +94,8 @@ namespace Wellcome.Dds.Server.Controllers
             }
             return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
         }
+
+        private async Task<Stream> GetTextObjectStream(string key)
+            => await storage.GetStream(ddsOptions.TextContainer, key);
     }
 }
