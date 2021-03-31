@@ -25,7 +25,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             {
                 LinkedDataDomain = "http://test.example/"
             });
-            sut = new PresentationConverter(new UriPatterns(options, null), NullLogger.Instance);
+            sut = new PresentationConverter(new UriPatterns(options), NullLogger.Instance);
         }
         
         [Fact]

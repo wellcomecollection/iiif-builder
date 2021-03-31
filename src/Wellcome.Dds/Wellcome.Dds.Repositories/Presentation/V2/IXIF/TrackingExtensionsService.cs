@@ -12,7 +12,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
     /// </summary>
     public class TrackingExtensionsService : ResourceBase, IService
     {
-        public const string IdTemplate = "http://wellcomelibrary.org/service/trackingLabels/";
+        private const string IdTemplate = "http://wellcomelibrary.org/service/trackingLabels/";
         public override string? Type { get; set; } = null;
         
         [JsonProperty(Order = 5, PropertyName = "trackingLabel")]

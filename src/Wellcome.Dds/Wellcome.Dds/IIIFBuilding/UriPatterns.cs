@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Extensions.Options;
-using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -17,9 +13,10 @@ namespace Wellcome.Dds.IIIFBuilding
     /// </summary>
     public class UriPatterns
     {
-        private readonly ICatalogue catalogue;
         private readonly string schemeAndHostValue;
-        //private const string SchemeAndHostToken = "{schemeAndHost}";
+        private readonly string apiSchemeAndHostValue; // for api.wellcomecollection.org
+        private readonly string workTemplate;
+        
         private const string IdentifierToken = "{identifier}";
         private const string DlcsEntryPointToken = "{dlcsEntryPoint}";
         private const string AssetIdentifierToken = "{assetIdentifier}";
@@ -27,29 +24,8 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string AnnoIdentifierToken = "{annoIdentifier}";
         private const string VersionToken = "{version}";
         private const string FileExtensionToken = "{fileExt}";
-
-        // TODO - these constants should be in the IIIF model
-        private const string IIIF2PreziContext = "http://iiif.io/api/presentation/2/context.json";
-        private const string IIIF2ImageContext = "http://iiif.io/api/image/2/context.json";
-        private const string IIIFAuthContext = "http://iiif.io/api/auth/0/context.json";
-        private const string IIIFSearchContext = "http://iiif.io/api/search/0/context.json";
-
-        private const string ImageServiceProfile = "http://iiif.io/api/image/2/level1.json";
-        private const string ImageServiceLevel0Profile = "http://iiif.io/api/image/2/level0.json";
-        private const string LoginServiceProfile = "http://iiif.io/api/auth/0/login";
-        private const string LoginClickthroughServiceProfile090 = "http://iiif.io/api/auth/0/login/clickthrough";
-        private const string LoginClickthroughServiceProfile093 = "http://iiif.io/api/auth/0/clickthrough";
-        private const string LoginExternalServiceProfile090 = "http://iiif.io/api/auth/0/login/restricted";
-        private const string LoginExternalServiceProfile093 = "http://iiif.io/api/auth/0/external";
-        private const string LogoutServiceProfile = "http://iiif.io/api/auth/0/logout";
-        private const string AuthTokenServiceProfile = "http://iiif.io/api/auth/0/token";
-
-        // These patterns belong with the DDS, here
-        // but they need to change to the suggested forms in
-        // https://github.com/wellcomecollection/platform/issues/4659#issuecomment-686448554
         
         // IIIF Presentation
-        
         // Canonical - negotiable
         private const string ManifestFormat =                     "/presentation/{identifier}";
         private const string CanvasFormat =                       "/presentation/{identifier}/canvases/{assetIdentifier}";
@@ -73,25 +49,28 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string ManifestAnnotationPageImagesFormat = "/annotations/v{version}/{identifier}/images"; // not line, obvs.
 
         // IIIF Content Search
-        private const string IIIFContentSearch0Format = "/search/v0/{identifier}";
+        private const string IIIFContentSearch0Format =   "/search/v0/{identifier}";
         // private const string IIIFAutoComplete0Format = "/search/autocomplete/v0/{identifier}";  // not used - use v1
-        private const string IIIFContentSearch1Format = "/search/v1/{identifier}";
-        private const string IIIFAutoComplete1Format = "/search/autocomplete/v1/{identifier}";
-        private const string IIIFContentSearch2Format = "/search/v2/{identifier}";
-        private const string IIIFAutoComplete2Format = "/search/autocomplete/v2/{identifier}";
+        private const string IIIFContentSearch1Format =   "/search/v1/{identifier}";
+        private const string IIIFAutoComplete1Format =    "/search/autocomplete/v1/{identifier}";
+        private const string IIIFContentSearch2Format =   "/search/v2/{identifier}";
+        private const string IIIFAutoComplete2Format =    "/search/autocomplete/v2/{identifier}";
 
+        // Text resources
+        private const string RawTextFormat =              "/text/v1/{identifier}"; // v1 refers to Wellcome API
+        private const string MetsAltoFormat =             "/text/alto/{identifier}/{assetIdentifier}"; // not versioned
+        private const string WorkTextZipFormat =          "/text/v1/{identifier}.zip";
+        
         // Other resources
-        private const string RawTextFormat =                      "/text/v1/{identifier}"; // v1 refers to Wellcome API
-        private const string MetsAltoFormat =                     "/text/alto/{identifier}/{assetIdentifier}"; // not versioned
-        private const string PosterImageFormat =                  "/thumb/{identifier}";
-        private const string PdfThumbnailFormat =                 "/thumb/{identifier}"; // make these the same for now
+        private const string PosterImageFormat =          "/thumb/{identifier}";
+        private const string PdfThumbnailFormat =         "/thumb/{identifier}"; // make these the same for now
         
         // TODO - rename to WorkPageFormat, once fully ported.
-        private const string PersistentPlayerUriFormat = "https://wellcomecollection.org/works/{identifier}";
+        private const string PersistentPlayerUriFormat =       "https://wellcomecollection.org/works/{identifier}";
         private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
-        private const string EncoreBibliographicDataFormat = "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
+        private const string EncoreBibliographicDataFormat =   "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
-        // TODO: these need to change to iiif.wellcomecollection.org/... once DLCS routes to it
+        // DLCS Paths
         private const string DlcsPdfTemplate          = "{dlcsEntryPoint}pdf/{identifier}";
         private const string DlcsThumbServiceTemplate = "{dlcsEntryPoint}thumbs/{assetIdentifier}";
         private const string DlcsImageServiceTemplate = "{dlcsEntryPoint}image/{assetIdentifier}";
@@ -99,15 +78,11 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string DlcsAudioTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/max/default.{fileExt}";
         private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
 
-        public UriPatterns(
-            IOptions<DdsOptions> ddsOptions,
-            ICatalogue catalogue)
+        public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
             schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            
-            // TODO - it feels odd that to generate IIIF uri's you need a reference to ICatalogue
-            // if you need a Catalogue URI reference ICatalogue directly?
-            this.catalogue = catalogue; 
+            apiSchemeAndHostValue = ddsOptions.Value.WellcomeCollectionApi;
+            workTemplate = ddsOptions.Value.ApiWorkTemplate;
         }
 
         public string Manifest(string identifier)
@@ -221,9 +196,9 @@ namespace Wellcome.Dds.IIIFBuilding
             return EncoreBibliographicDataFormat.Replace(IdentifierToken, identifier.Remove(8));
         }
 
-        public string CatalogueApi(string workIdentifier, string[] includes)
+        public string CatalogueApi(string workIdentifier)
         {
-            return catalogue.GetCatalogueApiUrl(workIdentifier, includes);
+            return $"{workTemplate}/{workIdentifier}";
         }
 
 
@@ -270,18 +245,24 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string RawText(string identifier)
         {
-            return ManifestIdentifier(RawTextFormat, identifier);
+            return ApiManifestIdentifier(RawTextFormat, identifier);
         }
         
         public string MetsAlto(string manifestIdentifier, string assetIdentifier)
         {
-            return ManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
+            return ApiManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
+        }
+
+        public string WorkZippedText(string manifestIdentifier)
+        {
+            return ApiManifestIdentifier(WorkTextZipFormat, manifestIdentifier);
         }
 
         public string IIIFContentSearchService2(string identifier)
         {
             return ManifestIdentifier(IIIFContentSearch2Format, identifier);
         }
+        
         public string IIIFContentSearchService1(string identifier)
         {
             return ManifestIdentifier(IIIFContentSearch1Format, identifier);
@@ -306,6 +287,12 @@ namespace Wellcome.Dds.IIIFBuilding
             return $"{schemeAndHostValue}{path}";
         }
         
+        private string ApiManifestIdentifier(string template, string identifier)
+        {
+            var path = template.Replace(IdentifierToken, identifier);
+            return $"{apiSchemeAndHostValue}{path}";
+        }
+        
         private string ManifestIdentifierWithVersion(string template, string identifier, int version)
         {
             return ManifestIdentifier(template, identifier)
@@ -315,6 +302,12 @@ namespace Wellcome.Dds.IIIFBuilding
         private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
         {
             return ManifestIdentifier(template, manifestIdentifier)
+                .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+        
+        private string ApiManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
+        {
+            return ApiManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         

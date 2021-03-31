@@ -9,6 +9,7 @@ using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Microsoft.Extensions.Logging;
@@ -305,12 +306,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata,
             State? state)
         {
-            // TODO - use of Labels.
             // The work label should be preferred over the METS label,
             // but sometimes there is structural (volume) labelling that the catalogue API won't know about.
             collection.Items = new List<ICollectionItem>();
             collection.Behavior ??= new List<string>();
             collection.Behavior.Add(Behavior.MultiPart);
+            collection.Rendering ??= new List<ExternalResource>()
+            {
+                new("Text")
+                {
+                    Id = uriPatterns.WorkZippedText(manifestationMetadata.Identifier.BNumber),
+                    Label = Lang.Map("en", "Complete text as zip file"),
+                    Format = "application/zip"
+                }
+            };
             if (metsCollection.Collections.HasItems())
             {
                 foreach (var coll in metsCollection.Collections)

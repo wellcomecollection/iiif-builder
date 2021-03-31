@@ -21,6 +21,7 @@
 
         // New, Catalogue
         public string ApiWorkTemplate { get; set; }
+        public string WellcomeCollectionApi { get; set; }
 
         // New, Dds
         public string DlcsOriginUsername { get; set; }
