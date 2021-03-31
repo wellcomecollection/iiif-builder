@@ -51,17 +51,20 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 if (buildResult.IIIFVersion == IIIF.Presentation.Version.V3 &&
                     buildResult.IIIFResource is Presi3.StructureBase iiif3)
                 {
+                    logger.LogDebug("Creating V2 resource " + count);
                     var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
                     try
                     {
                         var iiif2 = Convert(iiif3, buildResult.Id, count);
                         result.IIIFResource = iiif2;
                         result.Outcome = BuildOutcome.Success;
-
+                        
+                        logger.LogDebug("V2 was created successfully: " + count);
                         if (iiif2 is Manifest) count++;
                     }
                     catch (Exception e)
                     {
+                        logger.LogWarning($"Build failure for V2 conversion: count {count}, message: {e.Message}");
                         result.Message = e.Message;
                         result.Outcome = BuildOutcome.Failure;
                     }
