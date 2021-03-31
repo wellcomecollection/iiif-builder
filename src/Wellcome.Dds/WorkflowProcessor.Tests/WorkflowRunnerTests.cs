@@ -1,11 +1,11 @@
-  using System;
-  using System.Threading.Tasks;
-  using FakeItEasy;
-  using FluentAssertions;
-  using Microsoft.Extensions.Logging.Abstractions;
-  using Microsoft.Extensions.Options;
-  using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
-  using Wellcome.Dds.AssetDomain.Workflow;
+using System;
+using System.Threading.Tasks;
+using FakeItEasy;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
 using Xunit;
 
@@ -31,7 +31,7 @@ namespace WorkflowProcessor.Tests
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
             // TODO need to fix this once runnable workflowrunner
             sut = new WorkflowRunner(ingestJobRegistry, runnerOptionsInst, new NullLogger<WorkflowRunner>(),
-                null, null, null, null, null, ddsOptionsInst, null, null);
+                null, null, null, ddsOptionsInst, null, null, null);
         }
         
         [Fact]

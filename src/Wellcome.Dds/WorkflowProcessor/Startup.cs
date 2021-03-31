@@ -67,8 +67,8 @@ namespace WorkflowProcessor
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
                     factory.Get(NamedClient.Dds)));
             services.AddScoped<IIIIFBuilder, IIIFBuilder>();
-            services.AddScoped<WorkflowRunner>(opts =>
-                ActivatorUtilities.CreateInstance<WorkflowRunner>(opts,
+            services.AddScoped<BucketWriter>(opts =>
+                ActivatorUtilities.CreateInstance<BucketWriter>(opts,
                     factory.Get(NamedClient.Dds)));
 
             services.AddMemoryCache();
@@ -89,6 +89,8 @@ namespace WorkflowProcessor
                 .AddScoped<ISearchTextProvider, AltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAllAnnotationProvider>()
+                .AddScoped<AltoDerivedAssetBuilder>()
+                .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddHostedService<WorkflowProcessorService>();
             

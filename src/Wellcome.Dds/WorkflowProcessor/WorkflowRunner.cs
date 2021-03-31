@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Amazon.S3;
-using Amazon.S3.Model;
 using CsvHelper;
-using IIIF;
 using IIIF.Presentation.V3.Constants;
-using IIIF.Serialisation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -24,7 +19,6 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
-using Wellcome.Dds.Repositories.WordsAndPictures;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Version = IIIF.Presentation.Version;
 
@@ -41,11 +35,10 @@ namespace WorkflowProcessor
         private readonly IDds dds;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly IMetsRepository metsRepository;
-        private readonly CachingAllAnnotationProvider cachingAllAnnotationProvider;
-        private readonly CachingAltoSearchTextProvider cachingSearchTextProvider;
         private readonly DdsOptions ddsOptions;
         private readonly ICatalogue catalogue;
-        private readonly IAmazonS3 amazonS3;
+        private readonly BucketWriter bucketWriter;
+        private readonly AltoDerivedAssetBuilder altoBuilder;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -54,11 +47,10 @@ namespace WorkflowProcessor
             IDds dds,
             IIIIFBuilder iiifBuilder,
             IMetsRepository metsRepository,
-            CachingAllAnnotationProvider cachingAllAnnotationProvider,
-            CachingAltoSearchTextProvider cachingSearchTextProvider,
             IOptions<DdsOptions> ddsOptions,
             ICatalogue catalogue,
-            IAmazonS3 amazonS3)
+            BucketWriter bucketWriter,
+            AltoDerivedAssetBuilder altoBuilder)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -66,11 +58,10 @@ namespace WorkflowProcessor
             this.dds = dds;
             this.iiifBuilder = iiifBuilder;
             this.metsRepository = metsRepository;
-            this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
-            this.cachingSearchTextProvider = cachingSearchTextProvider;
             this.ddsOptions = ddsOptions.Value;
             this.catalogue = catalogue;
-            this.amazonS3 = amazonS3;
+            this.bucketWriter = bucketWriter;
+            this.altoBuilder = altoBuilder;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -127,7 +118,7 @@ namespace WorkflowProcessor
                 }
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    await RebuildAltoDerivedAssets(job, jobOptions); 
+                    await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken); 
                 }
 
                 if (logMissingWork)
@@ -200,182 +191,6 @@ namespace WorkflowProcessor
                 }
 
                 job.Error = builder.ToString();
-            }
-        }
-
-        private async Task RebuildAltoDerivedAssets(WorkflowJob job, RunnerOptions jobOptions)
-        {
-            if (jobOptions.RebuildTextCaches)
-            {
-                var start = DateTime.Now;
-                job.ExpectedTexts = 0;
-                job.AnnosAlreadyOnDisk = 0;
-                job.TextsAlreadyOnDisk = 0;
-                job.AnnosBuilt = 0;
-                job.TextsBuilt = 0;
-                job.TextPages = 0;
-                job.TimeSpentOnTextPages = 0;
-                int wordsCountedOnThisRun = 0;
-                bool wordCountInvalid = false;
-
-                // TODO - this needs a load of error handling etc
-                await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
-                {
-                    var manifestation = manifestationInContext.Manifestation;
-                    if(manifestation.Partial)
-                    {
-                        manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
-                    }
-                    if (manifestation != null && HasAltoFiles(manifestation))
-                    {
-                        job.ExpectedTexts++;
-                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
-                        if (textFileInfo.Exists && !job.ForceTextRebuild)
-                        {
-                            logger.LogInformation($"Text already on disk for {manifestation.Id}");
-                            wordCountInvalid = true;
-                            job.TextsAlreadyOnDisk++;
-                        }
-                        else
-                        {
-                            var startTextTs = DateTime.Now;
-                            var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
-                            await SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
-                            var wordCount = text.Words.Count;
-                            logger.LogInformation($"Rebuilt search text for {manifestation.Id}: {wordCount} words.");
-                            job.TextsBuilt++;
-                            wordsCountedOnThisRun += wordCount;
-                            job.TextPages += text.Images.Length;
-                            job.TimeSpentOnTextPages += (int)(DateTime.Now - startTextTs).TotalMilliseconds;
-                        }
-                        
-                        //  How do the all-annos file and the images file get built?
-                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
-                        if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
-                        {
-                            logger.LogInformation($"All anno file already on disk for {manifestation.Id}");
-                            job.AnnosAlreadyOnDisk++;
-                        }
-                        else
-                        {
-                            if (jobOptions.RebuildAllAnnoPageCaches)
-                            {
-                                // These are in our internal text model
-                                var annotationPages = await 
-                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id, manifestation.Sequence);
-                                // Now convert them to W3C Web Annotations
-                                var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
-                                await SaveAnnoPagesToS3(result);
-                                logger.LogInformation(
-                                    $"Rebuilt annotation pages for {manifestation.Id}: {annotationPages.Count} pages.");
-                                job.AnnosBuilt++;
-                            }
-                            else
-                            {
-                                logger.LogInformation($"Skipping AllAnnoCache rebuild for {manifestation.Id}");
-                            }
-                        }
-                    }
-                }
-                if (!wordCountInvalid)
-                {
-                    job.Words = wordsCountedOnThisRun;
-                }
-                var end = DateTime.Now;
-                job.TextAndAnnoBuildTime = (long)(end - start).TotalMilliseconds;
-            }
-        }
-
-        private bool HasAltoFiles(IManifestation manifestation)
-        {
-            return manifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
-        }
-
-        private async Task PutIIIFJsonObjectToS3(JsonLdBase iiifResource, string bucket, string key, string logLabel)
-        {
-            var put = new PutObjectRequest
-            {
-                BucketName = bucket,
-                Key = key,
-                ContentBody = iiifResource.AsJson(),
-                ContentType = "application/json"
-            };
-            logger.LogInformation("Putting {LogLabel} to S3: bucket: {BucketName}, key: {Key}", logLabel,
-                put.BucketName, put.Key);
-            await amazonS3.PutObjectAsync(put);
-        }
-        
-        private async Task SaveRawTextToS3(string content, string key)
-        {
-            if(content.IsNullOrWhiteSpace())
-            {
-                return;
-            }
-            var put = new PutObjectRequest
-            {
-                BucketName = ddsOptions.TextContainer,
-                Key = key,
-                ContentBody = content,
-                ContentType = "text/plain"
-            };
-            logger.LogInformation($"Putting raw text to S3: bucket: {put.BucketName}, key: {put.Key}");
-            await amazonS3.PutObjectAsync(put);
-        }
-
-        private async Task SaveAnnoPagesToS3(AltoAnnotationBuildResult builtAnnotations)
-        {
-            const string annotationsPathSegment = "/annotations/";
-            // Assumption - we save each page individually to S3 (=> 20m pages...)
-            // We save the allcontent single list to S3
-            // and we save the image list to S3.
-            if (builtAnnotations.AllContentAnnotations != null)
-            {
-                await PutIIIFJsonObjectToS3(
-                    builtAnnotations.AllContentAnnotations,
-                    ddsOptions.AnnotationContainer,
-                    builtAnnotations.AllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
-                    "W3C whole manifest annotations");
-            }
-            
-            if (builtAnnotations.ImageAnnotations != null)
-            {
-                await PutIIIFJsonObjectToS3(
-                    builtAnnotations.ImageAnnotations,
-                    ddsOptions.AnnotationContainer,
-                    builtAnnotations.ImageAnnotations.Id.Split(annotationsPathSegment)[^1],
-                    "W3C manifest image/figure/block annotations");
-            }
-
-            if (builtAnnotations.PageAnnotations != null)
-            {
-                for (int i = 0; i < builtAnnotations.PageAnnotations.Length; i++)
-                {
-                    await PutIIIFJsonObjectToS3(
-                        builtAnnotations.PageAnnotations[i],
-                        ddsOptions.AnnotationContainer,
-                        builtAnnotations.PageAnnotations[i].Id.Split(annotationsPathSegment)[^1],
-                        "W3C page annotations");
-                }
-            }
-            
-            // For the Open Annotation versions, we just save the manifest-level all- and image- lists.
-            // We won't save the page level versions (we didn't make them!)
-            if (builtAnnotations.OpenAnnotationAllContentAnnotations != null)
-            {
-                await PutIIIFJsonObjectToS3(
-                    builtAnnotations.OpenAnnotationAllContentAnnotations,
-                    ddsOptions.AnnotationContainer,
-                    builtAnnotations.OpenAnnotationAllContentAnnotations.Id.Split(annotationsPathSegment)[^1],
-                    "OA whole manifest annotations");
-            }
-            
-            if (builtAnnotations.ImageAnnotations != null)
-            {
-                await PutIIIFJsonObjectToS3(
-                    builtAnnotations.OpenAnnotationImageAnnotations,
-                    ddsOptions.AnnotationContainer,
-                    builtAnnotations.OpenAnnotationImageAnnotations.Id.Split(annotationsPathSegment)[^1],
-                    "OA manifest image/figure/block annotations");
             }
         }
 
@@ -502,7 +317,7 @@ namespace WorkflowProcessor
                         buildResult.IIIFResource.EnsurePresentation2Context();
                     }
 
-                    await PutIIIFJsonObjectToS3(buildResult.IIIFResource,
+                    await bucketWriter.PutIIIFJsonObjectToS3(buildResult.IIIFResource,
                         ddsOptions.PresentationContainer, buildResult.GetStorageKey(),
                         buildResult.IIIFVersion == Version.V2 ? "IIIF 2 Resource" : "IIIF 3 Resource");
                 }
