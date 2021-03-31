@@ -47,7 +47,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 LinkedDataDomain = "https://test.com"
             };
             var options = Options.Create(ddsOptions);
-            var uriPatterns = new UriPatterns(options, catalogue);
+            var uriPatterns = new UriPatterns(options);
 
             sut = new DashboardRepository(new NullLogger<DashboardRepository>(), uriPatterns, dlcs, metsRepository,
                 ddsInstrumentationContext);

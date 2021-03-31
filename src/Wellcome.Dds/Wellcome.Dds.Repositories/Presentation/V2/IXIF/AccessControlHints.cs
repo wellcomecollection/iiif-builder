@@ -11,7 +11,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
     /// </summary>
     public class AccessControlHints : ResourceBase, IService
     {
-        public const string IdTemplate = "https://wellcomelibrary.org/iiif/{identifier}/access-control-hints-service";
+        private const string IdTemplate = "https://wellcomelibrary.org/iiif/{identifier}/access-control-hints-service";
         public override string? Type { get; set; } = null;
         
         [JsonProperty(Order = 5, PropertyName = "accessHint")]

@@ -118,7 +118,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new ExternalResource("Dataset")
                 {
-                    Id = uriPatterns.CatalogueApi(work.Id, new string[]{}),
+                    Id = uriPatterns.CatalogueApi(work.Id),
                     Label = Lang.Map("Wellcome Collection Catalogue API"),
                     Format = "application/json",
                     Profile = "https://api.wellcomecollection.org/catalogue/v2/context.json"
@@ -235,7 +235,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // At the moment, "Text" is not really a good Type for the PDF - but what else?
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    // TODO - are space and identifier the right way round, in the new query?
                     Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Id),
                     Label = Lang.Map("View as PDF"),
                     Format = "application/pdf"
@@ -1117,7 +1116,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ((ICollectionItem)iiifResource).Services?.Add(
                 new ExternalResource("Text")
                 {
-                    Id = TrackingExtensionsService.IdTemplate + manifestationMetadata.Identifier,
+                    Id = iiifResource.Id + "#tracking",
                     Profile = Constants.Profiles.TrackingExtension,
                     Label = Lang.Map(trackingLabel)
                 });
@@ -1159,7 +1158,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             manifest.Services?.Add(
                 new ExternalResource("Text")
                 {
-                    Id = AccessControlHints.IdTemplate.Replace("{identifier}", identifier),
+                    Id = manifest.Id + "#accesscontrolhints",
                     Profile = Constants.Profiles.AccessControlHints,
                     Label = Lang.Map(accessHint)
                 });

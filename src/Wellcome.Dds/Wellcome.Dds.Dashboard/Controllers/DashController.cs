@@ -236,7 +236,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
                     // We can't make IIIF for it, though.
-                    model.CatalogueApi = uriPatterns.CatalogueApi(work.Id, null);
+                    model.CatalogueApi = uriPatterns.CatalogueApi(work.Id);
                     model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
                 }
                 model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
