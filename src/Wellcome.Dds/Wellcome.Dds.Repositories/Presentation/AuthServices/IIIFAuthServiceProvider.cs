@@ -29,16 +29,16 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         public const string ClinicalHeader = "Clinical material";
 
         public const string ClinicalLoginDescription =
-            "<p>Online access to clinical content is restricted to healthcare professionals. Please contact the Collections team for further information: <a href='mailto:collections@wellcome.ac.uk'>collections@wellcome.ac.uk</a>.</p> <p>If you are a healthcare professional and already have a Wellcome Library account, please log in.</p>";
+            "<p>Online access to clinical content is restricted to healthcare professionals. Please contact the Collections team for further information: <a href='mailto:collections@wellcome.ac.uk'>collections@wellcome.ac.uk</a>.</p> <p>If you are a healthcare professional and already have a Wellcome Collection account, please log in.</p>";
         public const string ClinicalFailureHeader = "Login failed";
         public const string ClinicalFailureDescription = "Your login attempt did not appear to be successful. Please try again.";
 
         public const string RestrictedHeader = "Restricted material";
 
         public const string RestrictedFailureDescription =
-            "<p>This image cannot be viewed online.</p><p>Wellcome Library members can request access to restricted materials for viewing in the Library.</p>";
+            "<p>This image cannot be viewed online.</p><p>Wellcome Collection members can request access to restricted materials for viewing in the Library.</p>";
 
-        public const string LogoutLabel = "Log out of Wellcome Library";
+        public const string LogoutLabel = "Log out of Wellcome Collection";
 
 
         protected abstract string GetAccessTokenServiceId();
