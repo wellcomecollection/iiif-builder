@@ -1,0 +1,730 @@
+/*
+Theme Name: Wellcome
+Theme URI: http://library.wellcome.org.uk
+Description: Theme for the Wellcome Library blog
+Version: 1.0
+Author: Clearleft
+Author URI: http://clearleft.com
+Tags: wellcome, library
+*/
+
+/* @group Navigation */
+.section.breadcrumb-wrap {
+    padding-bottom: 0;
+}
+
+.section-nav li.current_page_item a {
+    color: #FFF;
+    background-color: #231F20;
+}
+
+.sub-menu li {
+    display: none;
+}
+
+.current-menu-item .sub-menu li, .sub-menu .current-menu-item, .current-menu-parent .sub-menu li {
+    display: block;
+}
+.current-menu-item.current-menu-parent > a, .current-menu-item > a, .current-menu-item:hover > a {
+    color: #FFF;
+    background-color: #333;
+}
+
+.sub-menu .current-menu-item > a, .sub-menu .current-menu-item:hover > a {
+    color: inherit;
+    background-color: inherit;
+}
+
+.children-nav {
+    margin: 0 -8px 0 -8px;
+}
+.children-nav:first-child li:last-of-type a {
+    border-bottom: 2px solid #005870;
+}
+
+.separator{
+    clear: both;
+}
+
+/* @end Navigation */
+
+/* @group Blog Roll */
+.blog-roll {
+    list-style: none;
+    list-style-image: none;
+    margin: 0;
+    padding: 0;
+}
+.blog-roll li {
+    padding-bottom: 0;
+}
+.blog-roll a {
+    display: inline-block;
+    background: url(http://wellcomelibrary.org/assets/css/sprite.png) 0 -1098px no-repeat;
+    text-transform: none;
+    padding: 0 0 0 16px;
+    font-size: 1.1667em;
+}
+
+.column {
+    width:100%;
+}
+
+.section-strip {
+    padding: 0.3em 0.5em 0.35em;
+}
+/* @end Blog Roll */
+
+/* @group Tag Cloud */
+
+.wp-tag-cloud {
+    list-style: none;
+    list-style-image: none;
+    text-align: center;
+    margin: 0.5em 0;
+    padding: 0 0 0.5em 0;
+    border-bottom: 1px solid #CCC;
+}
+.wp-tag-cloud li {
+    display: inline;
+    padding: 0 0.5em 0 0;
+}
+.wp-tag-cloud li a {
+    font-weight: normal;
+    padding: 0 2px;
+}
+.wp-tag-cloud li a:hover,
+.wp-tag-cloud li a:focus {
+    color: #FFF;
+    background-color: #4968A7;
+    text-decoration: none;
+}
+
+/* @end Tag Cloud */
+
+/* @group Blog Posts */
+
+.blog-posts {
+    list-style: none;
+    list-style-image: none;
+    margin: 0;
+    padding: 0;
+}
+.blog-posts li.post {
+    margin: 0 0 1.5em 0;
+    padding: 0 0 0.5em 0;
+    border-bottom: 1px solid #CCC;
+    overflow: hidden;
+}
+.blog-posts li.post .group {
+    clear: none;
+}
+.blog-posts .beside-float {
+    margin-left: 13em;
+}
+.blog-posts h4 {
+    margin: 0;
+}
+.blog-labels {
+    list-style: none;
+    list-style-image: none;
+    text-align: center;
+    margin: 0.5em 0;
+    padding: 0 0 0.5em 0;
+    border-bottom: 1px solid #CCC;
+}
+.blog-labels li {
+    display: inline;
+    padding: 0 0.5em 0 0;
+}
+.blog-labels li a {
+    font-weight: normal;
+    padding: 0 0.1em;
+}
+.blog-labels li a:hover,
+.blog-labels li a:focus {
+    color: #FFF;
+    background-color: #4968A7;
+    text-decoration: none;
+}
+.labels {
+    font-weight: bold;
+    font-size: 0.8333em;
+    text-transform: uppercase;
+}
+.labels a {
+    background-color: #EAEAEB;
+    padding: 0.25em 0.5em;
+}
+.labels a:hover,
+.labels a:focus {
+    color: #FFF;
+    background-color: #4968A7;
+    text-decoration: none;
+}
+
+/* @end Blog Posts */
+
+/* @group Comments */
+
+.comment-list .beside {
+    margin-left: 50px;
+}
+.comment-list ul {
+    list-style: none;
+    list-style-image: none;
+    padding: 0;
+}
+.comment-list ul li {
+    border-top: 1px solid #CCC;
+    border-bottom: none;
+    padding-top: 1.5em;
+    padding-bottom: 0;
+    margin-top: 1.5em;
+    margin-bottom: 0;
+}
+.depth-2 {
+    margin-left: 2em;
+}
+
+.comment-list li ul.children li.bypostauthor {
+    border-top: 2px solid #005870;
+}
+
+#reply-title small {
+    float: right;
+    font-size: 12px;
+    text-transform: none;
+    margin-top: 1em;
+}
+
+.has-js .article-list #commentform,
+.has-js .article-list #reply-title {
+    display: block;
+}
+.show-commentform {
+    display: none;
+}
+.article-list .show-commentform {
+    display: none;
+}
+
+/* @end Comments */
+
+.blog-search-form input[type=search] {
+    width: 100%;
+}
+
+/* @group Caption */
+
+.wp-caption {
+    background-color: #F2F0EE;
+    margin-bottom: 2em;
+    padding: 0.75em;
+    overflow: hidden;
+    /*width: auto !important;*/
+}
+.wp-caption-text {
+    margin: 0.25em 0 0 0;
+}
+.wp-caption.alignleft {
+    margin-right: 2em;
+}
+.wp-caption.alignright {
+    margin-left: 2em;
+}
+
+/* @end Caption */
+
+/* @group Responsive Images */
+
+.entry-content img,
+.comment-content img,
+.widget img,
+.wp-caption,
+.wp-caption img {
+max-width: 100%; /* Fluid images for posts, comments, and widgets */
+}
+img[class*="align"],
+img[class*="wp-image-"] {
+height: auto; /* Make sure images with WordPress-added height and width attributes are scaled correctly */
+}
+img.size-full {
+max-width: 100%;
+width: auto; /* Prevent stretching of full-size images with height and width attributes in IE8 */
+}
+
+/* @end Responsive Images */
+
+
+
+
+
+/* JACKS CSS */
+/*Temporary CSS*/
+
+.section-heading {
+    padding: 0 0 0 0.3em;
+    margin: 0;
+}
+
+.section-secondary-container {
+    padding-top: 0.5em;
+    display: none;
+}
+
+
+@media only screen and (min-width: 800px) {
+    .section-secondary-container {
+        display: block;
+
+    }
+}
+
+li.rss-icon a:before {
+    width: 15px;
+    height: 15px;
+    background: url(http://wellcomelibrary.org/assets/css/sprite.png) 0 -1397px no-repeat;
+    content: "";
+    display: inline-block;
+}
+
+.event-detail.blog-featured img {
+    width: 100%;
+    height: auto;
+}
+@media (min-width: 66em) {
+    .event-detail.blog-featured img {
+        max-width: 490px;
+    }
+}
+
+.blog-featured h2 > a:hover, .blog-featured h2 > a:focus {
+    color: #408294;
+}
+
+.blog-featured .meta {
+    color: #817474;
+    font-size: 0.929em;
+}
+
+.blog-three-column {
+    margin-top: 2em;
+}
+
+.blog-tags {
+    border-bottom: none;
+}
+
+
+/* blog section landing page */
+.blog-posts-list .group {
+    clear: none;
+}
+
+.blog-posts-list li {
+    margin-top: 1.5em;
+}
+
+.blog-posts-list li:last-of-type {
+    border-bottom: none;
+}
+
+.blog-posts-list img {
+    float: none;
+    margin-bottom: 2em;
+    width: 240px;
+}
+
+.blog-featured h2 {
+    margin: 0 0 0.5em 0;
+}
+
+@media only screen and (min-width: 800px) {
+    .blog-featured h2 {
+        margin-top: 0.5em;
+
+    }
+}
+
+.blog-posts-list .beside {
+    margin-left: 0;
+}
+
+@media only screen and (min-width: 700px) {
+    .blog-posts-list .beside {
+        margin-left: 170px;
+
+    }
+
+    .blog-posts-list img {
+        float: left;
+        margin-bottom: 1em;
+    }
+}
+
+
+/* blog posts */
+.blog-post-image {
+    margin: 1.5em 0 1.5em 0;
+}
+
+.player-temp {
+    margin: 1.5em 0 1.5em 0;
+}
+
+.blocktext {
+    border-top: 1px solid #D5D0D0;
+    border-bottom: 1px solid #D5D0D0;
+    color: #333;
+    margin: 1.5em 0 1.5em 0;
+    padding: 0.5em 3em;
+    font-size: 1.071em; /*15px*/
+    display: block;
+}
+
+.blocktext p {
+    margin: 0 0 0.5em;
+}
+
+blockquote {
+    margin: 1.5em 0 1.5em 0;
+
+}
+
+.blog-author {
+    margin: 1.5em 0 1.5em 0;
+
+}
+
+.blog-author p {
+    font-weight: normal;
+    padding: 0;
+}
+
+.blog-author .contents a, .blog-author .contents a:visited {
+    color: #005870;
+    text-decoration: initial;
+}
+
+.blog-author .contents a:hover, .blog-author .contents a:focus {
+    color: #408294;
+}
+
+.blog-author .contents img {
+    margin: 0 1em 1em 0;
+}
+
+.related-posts {
+    margin: 0 0 1em 0;
+}
+
+.related-posts img {
+    margin: 0 1em 0.5em 0;
+}
+
+
+.labels p {
+    margin: 0 0 0.5em 0;
+
+}
+
+.labels a {
+    height:24px;
+    line-height:24px;
+    position:relative;
+    font-size:11px;
+    margin: 0 0 12px 16px ;
+    padding: 0 10px 0 12px;
+    text-decoration:none;
+}
+
+.labels a:before{
+    content:"";
+    float:left;
+    position:absolute;
+    top:0;
+    left:-12px;
+    width:0;
+    height:0;
+    border-color:transparent #EAEAEB transparent transparent;
+    border-style:solid;
+    border-width:12px 12px 12px 0;
+}
+
+.labels a:hover:before {
+    border-color:transparent #4968A7 transparent transparent;
+}
+/* Only display three labels in related post section */
+.related-posts .labels a:nth-last-of-type(n+4){
+    display: none;
+}
+
+.blog-post-container > .labels {
+    border-top: 1px solid #D5D0D0;
+    padding: 1em 0 1em 0;
+
+}
+
+
+/* CUSTOM SOCIAL LINKS */
+
+.custom-social-links  {
+    list-style: none;
+    margin: 0 0 1em 0;
+    padding: 1em 0 1em 0;
+    border-top: 1px solid #D5D0D0;
+}
+
+.custom-social-links .social-link {
+    display: inline-block;
+}
+
+.custom-social-links a {
+    display: inline-block;
+    margin-right: 1em;
+    overflow: hidden;
+    width: 20px;
+    height: 20px;
+    position: relative;
+    padding: 0 !important;
+}
+
+.custom-social-links a img {
+    width: 40px;
+    max-width: 40px;
+    background: #EAEAEB;
+    position: absolute;
+}
+.custom-social-links a img:hover {
+    right: 0px;
+    background-color: #005870;
+}
+
+.custom-social-links p {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8333em;
+}
+.custom-social-links span {
+    padding-right: 1em;
+}
+/* /END SOCIAL LINKS */
+
+
+.comments-container .separator {
+    margin-bottom: 1.5em;
+}
+
+.comment-respond {
+    background-color: #F2F0EE;
+    padding: 1.5em;
+}
+
+.comment-respond {
+    margin-bottom: 1.5em;
+}
+
+.comment-visible label, .comment-form label {
+    float: none;
+    width: 100%;
+    text-align: left;
+}
+
+.comment-visible textarea, .comment-form textarea,
+.comment-visible input, .comment-form input{
+    width: 100%;
+}
+.comment-form .submit {
+    width: auto;
+}
+
+.comment-reply-title {
+    display: block;
+    margin: 0 0 1em 0;
+    font-weight: bold;
+}
+
+@media only screen and (min-width: 500px) {
+    .related-posts img {
+        float: left;
+        margin: 0 1em 0 0;
+        width: 286px;
+    }
+}
+
+.blog-post-container, .comment-visible, .comments-container  {
+    max-width: 700px;
+    display: block;
+}
+
+
+/* Wellcome PLayer & Large images */
+.wellcomePlayer{
+    width: 100%;
+    max-width: none;
+    height: 520px !important;
+    margin-right: 0;
+}
+
+.post .wide {
+    width: 100%;
+    max-width: none;
+    float: left;
+}
+
+
+@media only screen and (min-width: 1325px) {
+    .wellcomePlayer {
+        width: auto !important;
+        margin-right: -175px;
+    }
+    .post .wide{
+        width: 875px;
+    }
+}
+@media only screen and (min-width: 1100px) and (max-width: 1325px) {
+    .wellcomePlayer {
+        margin-right: -100px;
+        width: auto !important;
+    }
+    .post .wide{
+        width: 800px;
+    }
+}
+@media only screen and (min-width: 1050px) and (max-width: 1100px) {
+    .wellcomePlayer{
+        margin-right: -80px;
+        width: auto !important;
+    }
+    .post .wide{
+        width: 780px;
+    }
+}
+/* End Wellcome Player & large images*/
+
+
+
+/* Swiftype search*/
+.swiftype-widget .autocomplete {
+    margin: 50px 0 0 !important;
+    box-shadow: none !important;
+    border: 1px solid #333 !important;
+    border-radius: 0 !important;
+}
+.swiftype-widget .autocomplete ul {
+    list-style: none;
+}
+.swiftype-widget .autocomplete li.active {
+    box-shadow: none !important;
+    background: #333 !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+.swiftype-widget .autocomplete li.active p.title {
+    color: #fff !important;
+    text-shadow: none !important;
+}
+/* End Swifttype search*/
+
+
+/* Popup messages (Popup maker plugin) */
+.popmake {
+    background-image: url(http://wellcomelibrary.org/assets/css/alert-popup-bar.png);
+    background-repeat: no-repeat;
+    background-position: bottom left;
+}
+.popmake > .popmake-close {
+    height: 15px;
+    background-image: url(http://wellcomelibrary.org/assets/css/alert-popup-close.gif);
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+/* End - Popup messages*/
+
+
+
+/* Email sign up - Email Subscribers Plugin */
+.email-signup {
+    margin-top: 2em;
+}
+
+.email-signup {
+    background-image: none!important;
+    padding: 1em;
+}
+
+.email-signup.promo h4 {
+    border: none;
+    padding: 0;
+}
+
+.es_caption {
+    padding-bottom:5px;
+    padding-top:5px;
+    padding-right:5px;
+}
+/* Email signup - Confirmation message*/
+.es_msg {
+    padding-top:5px;
+    padding-bottom:5px;
+}
+.es_msg .error {
+    color: #AF0000;
+}
+.es_msg .success {
+    color: #006870;
+}
+
+.es_textbox {
+    padding-bottom:10px;
+}
+
+.es_textbox input {
+    width: 100%;
+}
+
+.es_button {
+    padding-top:10px;
+    padding-bottom:5px;
+}
+.es_textbox_class {
+    width:200px;
+}
+.es_textbox_button {
+    width:100px;
+    display: inline-block;
+    font-size: 0.857em;
+    margin: 0 0.2em 0 0;
+    padding: 0.5em 1em;
+    background-color: #005870;
+    border: none;
+    color: #FFF;
+    cursor: pointer;
+    text-transform: uppercase;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    -o-border-radius: 0;
+    border-radius: 0;
+}
+
+.es_textbox_button:hover, .es_textbox_button:focus {
+    background-color: #408294;
+    text-decoration: none;
+}
+.es_lablebox {
+    display: none;
+}
+
+.es_modal {
+    display: none;
+    margin-top: 2em;
+}
+.es_modal.show {
+    display: block;
+}
+
+.es_modal  .es_modal_title {
+    display: inline-block;
+    margin-top: 0;
+}

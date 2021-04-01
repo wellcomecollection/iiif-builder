@@ -1,0 +1,59 @@
+#cookieconsent {
+    display:none;
+    clear:both;
+}
+#cookieconsent .wrap {
+    padding-top: 0;
+    max-width: 89em;
+}
+
+#cookierow {
+    font-size: 0.857em;
+    padding: 10px;
+}
+
+#cookietext {
+    font-size:1.2em;
+}
+
+#cookieconsent,
+#cookieconsent a {
+    color:#fff;
+    }
+    #cookieconsent a:hover {
+        cursor: pointer;
+    }
+#cookieaccept {
+    font-size:1.2em;
+    text-align: right;
+}
+#cookieaccept a {
+    display: inline-block;
+    background: #f0f0f0;
+    color: #333;
+    padding: 0.1em 0.5em;
+    text-transform: uppercase;
+    }
+    #cookieaccept a:hover {
+        text-decoration: none;
+        background: #fff;
+        color: #222;
+    }
+#cookieconsent, #cookierow, #cookietext, #cookieaccept {
+      background-color: #414141;
+}
+
+@media all and (min-width: 800px) {
+    #cookierow {
+        padding: 10px 0;
+        float: left;
+        width: 100%;
+    }
+    #cookietext {
+        float: left;
+        max-width: 55em;
+    }
+    #cookieaccept {
+        float: right;
+    }
+}

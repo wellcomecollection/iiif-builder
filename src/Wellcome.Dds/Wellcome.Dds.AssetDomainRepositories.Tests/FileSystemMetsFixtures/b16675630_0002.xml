@@ -111,8 +111,8 @@
         <mets:xmlData>
           <dv:rights>
             <dv:owner>Wellcome Collection</dv:owner>
-            <dv:ownerLogo>http://wellcomelibrary.org/assets/img/wellcome-logo.png</dv:ownerLogo>
-            <dv:ownerSiteURL>http://wellcomelibrary.org</dv:ownerSiteURL>
+            <dv:ownerLogo>http://wellcomecollection.org/assets/img-avoid-hits-in-fixtures/wellcome-logo.png</dv:ownerLogo>
+            <dv:ownerSiteURL>http://wellcomecollection.org</dv:ownerSiteURL>
             <dv:ownerContact>wdl@wellcome.ac.uk</dv:ownerContact>
           </dv:rights>
         </mets:xmlData>

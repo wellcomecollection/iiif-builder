@@ -1,0 +1,56 @@
+﻿.simpleForm {
+    width: 90%;
+}
+.simpleForm fieldset {
+    border: 0;
+}
+
+.simpleForm label {
+    width: 33%;
+}
+
+.simpleForm .wlsf {
+    display: block;
+    width: 55%;
+    margin-left: 40%;    
+}
+
+.simpleForm .fourLine {
+    height: 4em;
+}
+
+.simpleForm .tenLine {
+    height: 10em;
+}
+
+.simpleForm input.error, .simpleForm textarea.error, .simpleForm select.error {
+    border: 1px solid red;
+}
+
+.simpleForm label.error, .simpleForm p.error {
+    color: red;
+}
+
+.simpleForm .submitter {
+    float: right;
+}
+
+.simpleForm .radio label {
+    display: inline;
+    width: auto;
+    float: left;
+    clear: none;
+    text-align: left;
+}
+
+.simpleForm span.radio  {
+    display: block;
+    width: 55%;
+}
+
+.simpleForm span.radio input 
+{
+    margin-top: 0.8em;
+    display: inline;
+    float: left;
+}

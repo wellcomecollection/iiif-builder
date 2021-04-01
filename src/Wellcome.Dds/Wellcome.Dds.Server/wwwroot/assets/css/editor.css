@@ -1,0 +1,148 @@
+body {
+    font-family: sans-serif;
+    font-size: 75%; /* 12px */
+    color: #333;
+    line-height: 1.4;
+}
+a:link,
+a:visited {
+    color: #4968A7;
+    font-weight: bold;
+    text-decoration: none;
+}
+a:hover,
+a:focus {
+    color: #408294;
+    text-decoration: underline;
+}
+a:active {
+    color: #4968A7;
+}
+p {
+    margin:0 0 1em 0; padding: 0;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    margin: 0.75em 0 0.25em 0; padding: 0;
+    line-height: 1;
+}
+h1, h2, h3, h4 {
+    text-transform: uppercase;
+}
+h1 {
+    font-size: 3.3333em; /* 40px */
+}
+h2 {
+    font-size: 2.3333em; /* 28px */
+}
+h3 {
+    font-size: 2em; /* 24px */
+}
+h4, h5 {
+    font-size: 1.6667em; /* 20px */
+}
+h6 {
+    font-size: 1.3333em; /* 16px */
+}
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    border: none;
+    width: 100%;
+}
+table th,
+table td {
+    border: none;
+    border-bottom: 1px solid #CCC;
+    padding: 0.5em;
+    vertical-align: top;
+}
+table th {
+    font-weight: bold;
+}
+table thead th,
+table thead td {
+    background-color: #EAEAEB;
+    color: #231F20;
+    font-weight: bold;
+    border-bottom: none;
+    border-left: 2px solid #FFF;
+}
+table thead th:first-child,
+table thead td:first-child {
+    border-left: none;
+}
+table thead th {
+    text-transform: uppercase;
+}
+ul {
+    list-style: square;
+    padding-left: 1.5em;
+    margin: 0;
+}
+ul p {
+    margin-bottom: 0.5em;
+}
+li {
+    padding-bottom: 0.5em;
+}
+q, blockquote {
+    color: #909;
+}
+q:before, q:after {
+    content: '';
+}
+q {
+    quotes: none;
+}
+blockquote {
+    margin: 0.5em 0 0.5em 0;
+    padding: 0.5em 0;
+    font-size: 1.6667em;
+    border-top: 1px solid #CCC;
+    border-bottom: 1px solid #CCC;
+    overflow: hidden;
+}
+blockquote:before {
+    display: inline-block;
+    content: url(quote-opening.png);
+    margin-right: 0.5em;
+    width: 20px;
+    height: 18px;
+}
+blockquote:after {
+    float: right;
+    content: url(quote-closing.png);
+    margin-left: 0.5em;
+    width: 20px;
+    height: 18px;
+}
+cite {
+    text-transform: uppercase;
+    color: #666;
+    font-style: normal;
+}
+.leading {
+    font-size: 1.6667em;
+    margin: 0 0 1.5em;
+    line-height: 1.2;
+}
+.meta {
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    text-transform: uppercase;
+    margin-top: -0.5em 0 1em 0;
+}
+.separator {
+    border-bottom: 1px solid #333;
+    margin-top: 1.5em;
+    padding-bottom: 5px;
+    padding-bottom: 0.3125rem;
+    margin-bottom: 5px;
+    margin-bottom: 0.3125rem;
+}
+.separated {
+    border-top: 1px solid #333;
+    padding-top: 0.5em;
+}
