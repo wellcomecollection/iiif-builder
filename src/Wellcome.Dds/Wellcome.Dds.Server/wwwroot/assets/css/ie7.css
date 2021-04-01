@@ -1,0 +1,23 @@
+/* ie7.css - Internet Explorer 7 fixes - if (lte IE7) */
+
+.carousel .slide {
+    width: 11.95%;
+}
+.group.half > .column {
+    width: 47%;
+}
+.group.third > .column {
+    width: 31.3%;
+}
+.header .search {
+    right: 10px;
+}
+blockquote {
+    background: url(quote-opening.png) 0.5em 0.5em no-repeat;
+    padding-left: 40px;
+}
+.search input[type=submit],
+.section.search input[type=submit] {
+    top: 0.4em;
+    right: -0.3em;
+}

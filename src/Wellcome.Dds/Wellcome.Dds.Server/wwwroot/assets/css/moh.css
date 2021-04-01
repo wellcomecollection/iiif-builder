@@ -1,0 +1,187 @@
+﻿
+
+
+ul.browse
+{
+  margin-bottom:20px;
+  overflow:hidden;
+  border-top:1px solid #ccc;
+}
+.boroughs {
+    float: left;
+    clear: both;
+  width:450px;
+}
+.decades {
+    float: left;
+  width:150px;
+}
+ul.browse li{
+  line-height:1.5em;
+  border-bottom:1px solid #ccc;
+  float:left;
+  display:inline;
+}
+ul.boroughs li  { width:50%;} /* 2 col */
+ul.decades li  { width:100%;} /* 2 col */
+#triple li  { width:33.333%; } /* 3 col */
+#quad li    { width:25%; }/* 4 col */
+#six li     { width:16.666%; }/* 6 col */
+
+input[type=text], select {
+    width: 300px;
+}
+
+
+.browseReport, .tableSummary {
+    border-top: 1px solid #bbb;
+    margin-top: 1em;
+    clear: both;
+    padding: 1em;
+}
+
+.browseReport img
+{
+    float:left;
+    padding-right: 20px;
+    width: 50px;
+    }
+    
+    .browseReport a {
+        font-size: 1.6em;
+    }
+    
+    .browseReport table, .report-head table
+    {
+        float: right;
+        width: 150px;
+        font-size: 0.8em;
+    }
+    
+    .report-head h1 {
+        font-size: 1.4em;
+    }
+    
+    .playerPlaceholder 
+    {
+        clear: both;
+        margin: 10px 0;
+        padding: 150px;
+        background-color: #000;
+    }
+    
+    .prevNext {
+        float: left;
+        width: 100px;
+        font-size: 2.2em;
+    }
+    
+    .prevNext div {
+        width: 40px;
+        float:left;
+    }
+    
+    .pagePreview {
+        float:left;
+        width: 400px;
+    }
+    
+    .htmlPreview {
+        float: left;
+        margin-left: 20px;
+        border: 1px solid #999;
+        padding: 10px;
+    }
+    
+    .tbInfo {
+        font-size: 11px;
+        background-color: #ffd700;
+        margin-bottom: 10px;
+    }
+    
+    .tbInfo.problem{
+        background-color: #ffb6c1;
+        margin-bottom: 10px;
+    }
+    
+
+.moh .pagethumb {
+    float: left;
+    padding-right: 20px;
+}
+.moh h3 {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.moh #map {
+    width: 400px;
+    height: 400px;
+    border: 1px solid #999;
+}
+
+.moh ul.pageList
+{
+margin: 0;
+    padding: 0;
+list-style-type: none;
+}
+
+.moh ul.pageList li {
+     display: inline;
+padding: 1em;
+    border-left: 1px solid #999;
+}
+
+.moh .mohReport {
+    clear: both;
+    padding-top: 1em;
+    border-top: 2px solid #005870;
+}
+
+.moh .paging {
+    padding-top: 2em;
+    clear: left;
+}
+
+.mohPage {
+    clear: left;
+    padding-top: 1em;
+}
+
+.mohPage table {
+    width: auto;
+}
+
+.mohSearchResults .reportResult {
+    clear: both;
+    border-bottom: 1px solid #bbb;
+    margin: 10px 0;
+}
+
+.mohSearchResults .repBox  {
+    float: left;
+    width: 20%;
+}
+
+.mohSearchResults .mohhit {
+    float: right;
+    width: 75%;
+    clear: right;
+}
+
+.mohhit {
+    margin-bottom: 2em;
+}
+
+.headerSummary, .extract {
+    clear: left;
+}
+
+.reportResult .clear {
+    clear: both;
+}
+
+.snippetmatch {
+    background-color: #ffd700;
+}
