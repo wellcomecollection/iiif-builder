@@ -71,7 +71,7 @@ namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig
             return new SimpleDialogue
             {
                 Title = "Help",
-                Text = "This player has been developed to provide users with access to the all the content - books, archives, manuscripts, audio and video - the Wellcome Collection has digitised. Digitisation is an ongoing activity, and more content will be made available gradually.<br/><br/> Access to some online content is restricted because of copyright or personal data reasons. See the <a href=\"/about-this-site/terms-and-conditions/\">Terms and Conditions</a> for more details.<br/><br/>If you are viewing this item outside of the Wellcome Collection website, please be aware that the Wellcome Trust uses cookies to capture information about website usage. <a href=\"http://www.wellcome.ac.uk/About-this-site/cookies/index.htm\">Read more about the Wellcome Trust cookie policy</a>.<br/><br/>If you have any problems using the player, please email the Library's Digital Services Team at <a href=\"mailto:systemsstrategy@wellcome.ac.uk\">systemsstrategy@wellcome.ac.uk</a><br/><br/>The player software is available under an <a href=\"http://en.wikipedia.org/wiki/MIT_License\" target=\"_blank\">open source licence</a> at <a href=\"https://github.com/wellcomelibrary/player\" target=\"_blank\">github.com/wellcomelibrary/player</a><br/><br/>The player was developed by <a href=\"http://www.digirati.co.uk\">Digirati</a>."
+                Text = "(No longer used)"
             };
         }
 
