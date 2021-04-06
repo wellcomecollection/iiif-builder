@@ -146,7 +146,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var order = part.GetAttributeValue("order", null);
                 if (order.HasText())
                 {
-                    PartOrder = Convert.ToInt32(order);
+                    if (int.TryParse(order, out var orderInt))
+                    {
+                        PartOrder = orderInt;
+                    }
                 }
             }
             Number = modsDoc.GetDesendantElementValue(XNames.ModsNumber);
