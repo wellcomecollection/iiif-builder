@@ -157,6 +157,13 @@ namespace Wellcome.Dds.Server.Controllers
             return BuilderUrl(uriPatterns.CollectionForAggregation(GetNewAggregator(aggregator), value));
         }
 
+        [HttpGet("service/workthumb/{bNumber}/{manifestIndex}")]
+        public IActionResult WorkThumb(string bNumber, int manifestIndex)
+        {
+            return ManifestLevelConversion(bNumber, manifestIndex, 
+                uriPatterns.WorkThumbnail, string.Empty);
+        }
+
         /**
          * #################################### MOH ######################################
          */

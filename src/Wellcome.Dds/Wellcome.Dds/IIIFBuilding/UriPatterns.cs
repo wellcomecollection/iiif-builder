@@ -62,8 +62,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string WorkTextZipFormat =          "/text/v1/{identifier}.zip";
         
         // Other resources
-        private const string PosterImageFormat =          "/thumb/{identifier}";
-        private const string PdfThumbnailFormat =         "/thumb/{identifier}"; // make these the same for now
+        private const string WorkThumbnailFormat =        "/thumb/{identifier}";
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat =       "https://wellcomecollection.org/works/{identifier}";
@@ -337,12 +336,17 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public string PosterImage(string manifestIdentifier)
         {
-            return ManifestIdentifier(PosterImageFormat, manifestIdentifier);
+            return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
+        }
+        
+        public string WorkThumbnail(string manifestIdentifier)
+        {
+            return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
         }
         
         public string PdfThumbnail(string manifestIdentifier)
         {
-            return ManifestIdentifier(PdfThumbnailFormat, manifestIdentifier);
+            return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
         }
 
         public string GetPath(string format, string manifestIdentifier,
