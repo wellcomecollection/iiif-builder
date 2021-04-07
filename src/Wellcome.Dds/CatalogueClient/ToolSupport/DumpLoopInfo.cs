@@ -6,6 +6,7 @@ namespace CatalogueClient.ToolSupport
     {
         public string Filter;
         public int Skip = 1;
+        public int Offset = 0;
         public int TotalCount;
         public int MatchCount;
         public int UsedLines;

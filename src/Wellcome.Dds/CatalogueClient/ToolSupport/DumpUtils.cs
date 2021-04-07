@@ -14,9 +14,25 @@ using Wellcome.Dds.Catalogue;
 
 namespace CatalogueClient.ToolSupport
 {
-    public static class DumpUtils
+    public class DumpUtils
     {
-        public static async Task DownloadDump()
+        private readonly string dumpPath;
+
+        public DumpUtils(string dumpPath)
+        {
+            this.dumpPath = dumpPath;
+            if (!File.Exists(dumpPath))
+            {
+                throw new InvalidOperationException($"Specified dump file {dumpPath} does not exist!");
+            }
+        }
+
+        public DumpUtils()
+        {
+            dumpPath = Settings.LocalExpandedPath;
+        }
+        
+        public async Task DownloadDump()
         {
             const int bufferSize = 81920;
             using var client = new HttpClient();
@@ -31,7 +47,7 @@ namespace CatalogueClient.ToolSupport
             await using Stream destination = File.Open(Settings.LocalDumpPath, FileMode.Create);
             await download.CopyToAsync(destination, bufferSize, progressWrapper, CancellationToken.None);
         }
-        
+
         private static void Report(ProgressBar progressBar, int ticks, long totalBytes, long? contentLength)
         {
             var expectedTick = AsMb(totalBytes);
@@ -48,7 +64,7 @@ namespace CatalogueClient.ToolSupport
         }
         
         
-        public static void UnpackDump()
+        public void UnpackDump()
         {
             var gz = new FileInfo(Settings.LocalDumpPath);
             using var originalFileStream = gz.OpenRead();
@@ -63,9 +79,9 @@ namespace CatalogueClient.ToolSupport
             Console.WriteLine($"Decompressed dump file is {sizeDisplay} GB.");
         }
         
-        public static IEnumerable<string> ReadLines(DumpLoopInfo info)
+        public IEnumerable<string> ReadLines(DumpLoopInfo info)
         {
-            var lines = File.ReadLines(Settings.LocalExpandedPath);
+            var lines = File.ReadLines(dumpPath);
             if (info.Filter.HasText())
             {
                 foreach (var line in lines)
@@ -74,7 +90,10 @@ namespace CatalogueClient.ToolSupport
                     if (line.Contains(info.Filter, StringComparison.Ordinal))
                     {
                         info.MatchCount++;
-                        yield return line;
+                        if (info.MatchCount > info.Offset)
+                        {
+                            yield return line;
+                        }
                     }
                 }
             }
@@ -84,7 +103,10 @@ namespace CatalogueClient.ToolSupport
                 {
                     info.TotalCount++;
                     info.MatchCount++;
-                    yield return line;
+                    if (info.MatchCount > info.Offset)
+                    {
+                        yield return line;
+                    }
                 }
             }
         }
@@ -100,7 +122,7 @@ namespace CatalogueClient.ToolSupport
             return options;
         }
         
-        public static void FindDigitisedBNumbers(DumpLoopInfo info, ICatalogue catalogue)
+        public void FindDigitisedBNumbers(DumpLoopInfo info, ICatalogue catalogue)
         {
             var options = GetSerialiserOptions();
             Console.WriteLine($"dump line| message    | work id  | digitised b numbers            | Sierra system b numbers");

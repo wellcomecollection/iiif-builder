@@ -32,6 +32,8 @@ namespace WorkflowProcessor
         private readonly string MopUpParam = "--mopup";
         private readonly string MopUpCDParam = "--mopupcd";
         private readonly string TraverseChemistAndDruggistParam = "--chem";
+        private readonly string CatalogueDumpParam = "--catalogue-dump";
+        private readonly string OffsetParam = "--offset";
 
         /// <summary>
         /// Usage:
@@ -50,6 +52,11 @@ namespace WorkflowProcessor
         /// This will download and unpack the catalogue dump file, take every {skip} lines,
         /// produce a list of unique b numbers that have digital locations, then register jobs for them.
         /// e.g., skip 100 will populate 1% of the total possible jobs, skip 10 will populate 10%, skip 1 will do ALL jobs.
+        ///
+        /// --offset {offset}
+        /// Create workflow jobs from a subset of all possible digitised b numbers.
+        /// This will produce a list of b numbers that have digital locations, ignoring the first {offset} entries that
+        /// have digitised b numbers (NOT skipping first X lines) 
         /// 
         /// --workflow-options {flags-int}
         /// Optional argument for the two populate-*** operations.
@@ -67,6 +74,10 @@ namespace WorkflowProcessor
         /// --mopup --workflow-options 6
         /// --mopupcd
         /// Reset all the special list of b numbers we use for testing, either with or without Chemist and Druggist
+        ///
+        /// --catalogue-dump {path}
+        /// Specify the catalogue dump file to use, this will NOT download a fresh copy of catalogue
+        /// 
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="serviceScopeFactory"></param>
@@ -119,18 +130,18 @@ namespace WorkflowProcessor
             var populationOperationWithParameter = GetOperationWithParameter(knownPopulationOperations);
             var workflowOptionsString = GetOperationWithParameter(workflowOptionsParam).parameter;
             int? workflowOptionsFlags = null;
-            if(int.TryParse(workflowOptionsString, out var workflowOptionsValue))
+            if (int.TryParse(workflowOptionsString, out var workflowOptionsValue))
             {
                 workflowOptionsFlags = workflowOptionsValue;
             }
-            
+
             if (HasArgument(MopUpParam) || HasArgument(MopUpCDParam))
             {
                 logger.LogInformation($"Making workflow jobs for mop-up task");
                 await PopulateTextFixtures(HasArgument(MopUpCDParam), workflowOptionsFlags, stoppingToken);
                 return;
             }
-            
+
             if (HasArgument(FinishAllJobsParam))
             {
                 int count = FinishAllJobs();
@@ -144,28 +155,49 @@ namespace WorkflowProcessor
                 await TraverseChemistAndDruggist();
                 return;
             }
-            
+
+            string? catalogueDump = null;
+            if (HasArgument(CatalogueDumpParam))
+            {
+                catalogueDump = GetOperationWithParameter(new[] {CatalogueDumpParam}).parameter;
+                logger.LogInformation("Using specified catalogue-dump file: {CatalogueDump}", catalogueDump);
+            }
+
+            int offset = 0;
+            if (HasArgument(OffsetParam))
+            {
+                var offsetString = GetOperationWithParameter(new[] {OffsetParam}).parameter;
+                if (int.TryParse(offsetString, out offset))
+                {
+                    logger.LogInformation("Using offset = {Offset}", offset);
+                }
+            }
+
             switch (populationOperationWithParameter.operation)
             {
                 // Population operations might be run from a desktop, against an RDS database.
                 // Or deployed to a temporary container and run from there.
                 case "--populate-file":
-                    await PopulateJobsFromFile(populationOperationWithParameter.parameter, workflowOptionsFlags, stoppingToken);
+                    await PopulateJobsFromFile(populationOperationWithParameter.parameter, workflowOptionsFlags,
+                        stoppingToken);
                     break;
-                
+
                 case "--populate-slice":
-                    await PopulateJobsFromSlice(populationOperationWithParameter.parameter, workflowOptionsFlags, stoppingToken);
+                    await PopulateJobsFromSlice(populationOperationWithParameter.parameter, workflowOptionsFlags,
+                        catalogueDump, offset, stoppingToken);
                     break;
-                
+
                 default:
                     // This is what the workflowprocessor normally does! Takes jobs rather than creates them.
                     await PollForWorkflowJobs(stoppingToken);
                     break;
             }
+
             logger.LogInformation("Stopping WorkflowProcessorService...");
         }
 
-        private async Task PopulateJobsFromSlice(string parameter, int? workflowOptions, CancellationToken stoppingToken)
+        private async Task PopulateJobsFromSlice(string parameter, int? workflowOptions, string dumpFile, int offset,
+            CancellationToken stoppingToken)
         {
             using var scope = serviceScopeFactory.CreateScope();
             var workflowCallRepository = scope.ServiceProvider.GetRequiredService<IWorkflowCallRepository>();
@@ -174,24 +206,45 @@ namespace WorkflowProcessor
             {
                 throw new ArgumentException("Cannot parse skip integer", nameof(parameter));
             }
+
             var dumpLoopInfo = new DumpLoopInfo
             {
-                Skip = skip, 
+                Skip = skip,
+                Offset = offset,
                 Filter = DumpLoopInfo.IIIFLocationFilter
             };
-            logger.LogInformation("Downloading dump file (will take several minutes");
-            await DumpUtils.DownloadDump();
-            logger.LogInformation("Unpacking dump file");
-            DumpUtils.UnpackDump();
-            DumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
+
+            DumpUtils dumpUtils;
+            if (!string.IsNullOrEmpty(dumpFile))
+            {
+                logger.LogInformation("Using existing dump file '{DumpFile}'", dumpFile);
+                dumpUtils = new DumpUtils(dumpFile);
+            }
+            else
+            {
+                dumpUtils = new DumpUtils();
+                logger.LogInformation("Downloading dump file (will take several minutes");
+                await dumpUtils.DownloadDump();
+                logger.LogInformation("Unpacking dump file");
+                dumpUtils.UnpackDump();
+            }
+
+            dumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
             logger.LogInformation(
                 $"{dumpLoopInfo.UniqueDigitisedBNumbers.Count} unique digitised b numbers found (from skip value of {skip})");
             int counter = 1;
             foreach (string uniqueDigitisedBNumber in dumpLoopInfo.UniqueDigitisedBNumbers)
             {
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    logger.LogInformation("Cancellation requested - aborting");
+                    break;
+                }
+
                 await CreateNewWorkflowJob(workflowOptions, uniqueDigitisedBNumber, workflowCallRepository);
                 logger.LogInformation($"({counter++} of {dumpLoopInfo.UniqueDigitisedBNumbers.Count})");
             }
+
             logger.LogInformation("Finished processing unique b numbers.");
         }
 
