@@ -31,10 +31,11 @@ namespace CatalogueClient
         {
             var sw = new Stopwatch();
             sw.Start();
+            var dumpUtils = new DumpUtils();
             if (update)
             {
-                await DumpUtils.DownloadDump();
-                DumpUtils.UnpackDump();
+                await dumpUtils.DownloadDump();
+                dumpUtils.UnpackDump();
             }
             
             if (id != null)
@@ -63,7 +64,7 @@ namespace CatalogueClient
             switch (bulkop)
             {
                 case "count-digitised-locations":
-                    foreach (var line in DumpUtils.ReadLines(dumpLoopInfo))
+                    foreach (var line in dumpUtils.ReadLines(dumpLoopInfo))
                     {
                         if (dumpLoopInfo.TotalCount % 1000 == 0)
                         {
@@ -74,7 +75,7 @@ namespace CatalogueClient
                     break;
                 case "display-bnumber":
                     var catalogue = GetCatalogue();
-                    DumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
+                    dumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
                     break;
                 default:
                     Console.WriteLine("(No bulk operation specified)");

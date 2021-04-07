@@ -3,7 +3,7 @@
     "WorkflowProcessor": {
       "commandName": "Project",
       "launchBrowser": false,
-      "commandLineArgs": "",
+      "commandLineArgs": "--populate-slice 100 --catalogue-dump C:\\Users\\DonaldGray\\AppData\\Local\\Temp\\dump.txt",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
