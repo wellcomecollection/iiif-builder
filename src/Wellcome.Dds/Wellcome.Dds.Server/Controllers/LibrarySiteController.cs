@@ -136,10 +136,12 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("service/collections/{aggregator}")]
         public IActionResult CollectionAggregation(string aggregator)
         {
+            var statusCodeResult = CheckRetiredAggregators(aggregator);
+            if (statusCodeResult != null) return statusCodeResult;
             return BuilderUrl(uriPatterns.CollectionForAggregation(GetNewAggregator(aggregator)));
         }
-        
-        
+
+
         [HttpGet("service/collections/archives/{*referenceNumber}")]
         public IActionResult CollectionArchiveRefNumber(string referenceNumber)
         {
@@ -150,9 +152,118 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("service/collections/{aggregator}/{value}")]
         public IActionResult CollectionAggregation(string aggregator, string value)
         {
+            var statusCodeResult = CheckRetiredAggregators(aggregator);
+            if (statusCodeResult != null) return statusCodeResult;
             return BuilderUrl(uriPatterns.CollectionForAggregation(GetNewAggregator(aggregator), value));
         }
 
+        [HttpGet("service/workthumb/{bNumber}/{manifestIndex}")]
+        public IActionResult WorkThumb(string bNumber, int manifestIndex)
+        {
+            return ManifestLevelConversion(bNumber, manifestIndex, 
+                uriPatterns.WorkThumbnail, string.Empty);
+        }
+        
+        [HttpGet("service/playerconfig")]
+        public IActionResult PlayerConfig()
+        {
+            return BuilderUrl(uriPatterns.Path("/service/playerconfig"));
+        }
+
+        /**
+         * #################################### MOH ######################################
+         */
+
+        [HttpGet("service/moh/normalisednames")]
+        public IActionResult MoHNormalisedNames()
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/allplacenames")]
+        public IActionResult MoHAllPlaceNames()
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/normalisedmohplacenames ")]
+        public IActionResult MoHNormalisedMoHPlaceNames()
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/browseanyplace")]
+        public IActionResult MoHBrowseAnyPlace(int pageSize = 0)
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/autocompleteplace")]
+        public IActionResult MoHAutoCompletePlace(string fragment)
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/browsenormalised")]
+        public IActionResult MoHBrowseNormalised(
+            string normalisedPlace = null, 
+            int startYear = 1848, int endYear = 2020, 
+            int page = 1, int pageSize = 100) //, 
+            // Ordering ordering = Ordering.Date) TODO - put this back in!
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        
+        [HttpGet("service/moh/browseanyplace")]
+        public IActionResult MoHBrowseAnyPlace(
+            string place = null,
+            int startYear = 1848, int endYear = 2020,
+            int page = 1, int pageSize = 100) //, 
+            // Ordering ordering = Ordering.Date) TODO - put this back in!
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/report/{id}")]
+        public IActionResult MoHReport(string id)
+        {
+            return new StatusCodeResult(501);   
+        }
+        
+                
+        [HttpGet("service/moh/report/{id}/{page}")]
+        public IActionResult MoHReportPage(string id, int page)
+        {
+            return new StatusCodeResult(501);
+        }
+                
+        [HttpGet("service/moh/search")]
+        public IActionResult MoHSearch(            
+            string terms,
+            string constrainedPlaceName = null,
+            int startYear = 1848, int endYear = 2020,
+            int page = 1, int pageSize = 100,
+            bool tablesOnly = false, bool groupIntoReports = true,
+            bool useSpecialGroupingBehaviour = true, int visibleHitsPerReport = 5, int expandoThreshold = 2)
+        {
+            return new StatusCodeResult(501);
+        }
+
+        [HttpGet("service/moh/tables/{tableId}.{fileExt}")]
+        public IActionResult MoHTables(long tableId, string fileExt)
+        {
+            return new StatusCodeResult(501);
+        }
+        
+        [HttpGet("service/moh/zip")]
+        public IActionResult MoHZip(
+            string op, string format, int startYear = 0, int endYear = 2020,
+            bool useNormalisedPlace = false)
+        {
+            return new StatusCodeResult(501);
+        }
+        
         private string GetNewAggregator(string oldAggregator)
         {
             return oldAggregator switch
@@ -162,6 +273,28 @@ namespace Wellcome.Dds.Server.Controllers
                 "collections" => "digitalcollections",
                 _ => oldAggregator
             };
+        }
+        
+        private StatusCodeResult CheckRetiredAggregators(string aggregator)
+        {
+            if (aggregator == "access")
+            {
+                return new StatusCodeResult(501);
+            }
+            if (aggregator == "fulltext")
+            {
+                return new StatusCodeResult(501);
+            }
+            if (aggregator == "recently-digitised")
+            {
+                return new StatusCodeResult(501);
+            }
+            if (aggregator == "lucky-dip")
+            {
+                return new StatusCodeResult(501);
+            }
+
+            return null;
         }
 
         
