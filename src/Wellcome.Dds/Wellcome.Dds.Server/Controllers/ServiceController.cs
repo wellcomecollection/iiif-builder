@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Utils;
 using Utils.Web;
+using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 
 namespace Wellcome.Dds.Server.Controllers
 {   
@@ -30,6 +31,15 @@ namespace Wellcome.Dds.Server.Controllers
                 Id = fm.PackageIdentifier,
                 Label = fm.PackageLabel
             }));
+        }
+
+        [HttpGet("playerconfig")]
+        public IActionResult PlayerConfig(string v = null)
+        {
+            PlayerConfig cfg = "moh".Equals(v)
+                ? PlayerConfigProvider.MoHConfig
+                : PlayerConfigProvider.BaseConfig;
+            return new JsonResult(cfg);
         }
         
     }

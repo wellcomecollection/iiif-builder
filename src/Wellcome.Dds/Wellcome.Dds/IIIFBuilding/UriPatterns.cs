@@ -159,6 +159,11 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestIdentifierWithVersion(ManifestAnnotationPageImagesFormat, identifier, version);
         }
 
+        public string Path(string path)
+        {
+            return $"{schemeAndHostValue}{path}";
+        }
+
         public string CollectionForAggregation()
         {
             return $"{schemeAndHostValue}{AggregationFormat}";

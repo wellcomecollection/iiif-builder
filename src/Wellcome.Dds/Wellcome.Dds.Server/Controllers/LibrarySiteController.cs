@@ -163,6 +163,12 @@ namespace Wellcome.Dds.Server.Controllers
             return ManifestLevelConversion(bNumber, manifestIndex, 
                 uriPatterns.WorkThumbnail, string.Empty);
         }
+        
+        [HttpGet("service/playerconfig")]
+        public IActionResult PlayerConfig()
+        {
+            return BuilderUrl(uriPatterns.Path("/service/playerconfig"));
+        }
 
         /**
          * #################################### MOH ######################################
@@ -244,7 +250,7 @@ namespace Wellcome.Dds.Server.Controllers
             return new StatusCodeResult(501);
         }
 
-        [HttpGet("service/moh/tables")]
+        [HttpGet("service/moh/tables/{tableId}.{fileExt}")]
         public IActionResult MoHTables(long tableId, string fileExt)
         {
             return new StatusCodeResult(501);
