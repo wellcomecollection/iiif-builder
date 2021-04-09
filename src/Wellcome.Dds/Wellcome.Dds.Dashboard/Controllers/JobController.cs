@@ -9,6 +9,9 @@ using Wellcome.Dds.Repositories;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
+    /// <summary>
+    /// Contains operations related to dlcs-jobs
+    /// </summary>
     public class JobController : Controller
     {
         private readonly IIngestJobRegistry jobRegistry;

@@ -33,11 +33,20 @@ namespace Wellcome.Dds.Dashboard.Models
         public IUrlHelper Url { get; set; }
         public DlcsOptions DlcsOptions { get; set; }
 
-        // if we want to use these...
-        // TODO - remove these... or use them to signify last built?
-        public ISimpleStoredFileInfo CachedPackageFileInfo { get; set; }
-        public ISimpleStoredFileInfo CachedTextModelFileInfo { get; set; }
-        public ISimpleStoredFileInfo CachedAltoAnnotationsFileInfo { get; set; }
+        /// <summary>
+        /// DateTime when Manifest was last written to S3
+        /// </summary>
+        public DateTime? ManifestWriteTime { get; set; }
+        
+        /// <summary>
+        /// DateTime when text object was last written to S3
+        /// </summary>
+        public DateTime? TextWriteTime { get; set; }
+        
+        /// <summary>
+        /// DateTime when all annos page was last written to S3
+        /// </summary>
+        public DateTime? AnnotationWriteTime { get; set; }
 
         public string DlcsSkeletonManifest { get; set; }
         

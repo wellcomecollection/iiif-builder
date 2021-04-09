@@ -240,6 +240,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                 model.IngestJobs = jobActivity.UpdatedJobs;
                 model.BatchesForImages = jobActivity.BatchesForCurrentImages;
+                
+                // TODO - set S3 dates on return ManifestationModel
 
                 model.DbJobIdsToActiveBatches = new Dictionary<int, List<Batch>>();
                 foreach (var dlcsIngestJob in model.IngestJobs)
@@ -546,44 +548,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult CacheBust(string id)
         {
-            // TODO - queue job for rebuilding
-            // flush all caches
-            var bNumber = new DdsIdentifier(id).BNumber;
-
-            // we won't clean this up, for now. Sorry.
-            //cachingDipProvider.DeleteDipCacheFile(bNumber);
-            /*bool success = true;
-            string message = null;
-            CacheBustResult cacheBustResult = null;
-            try
-            {
-                cacheBustResult = cacheBuster.BustPackage(bNumber);
-            }
-            catch (Exception ex)
-            {
-                success = false;
-                message = ex.Message;
-            }
-            TempData["CacheBustResult"] = new DeleteResult
-            {
-                Success = success,
-                Message = message,
-                CacheBustResult = cacheBustResult
-            };*/
-            return RedirectToAction("Manifestation", new { id });
-        }
-
-        public ActionResult CacheBustAlto(string id)
-        {
-            // TODO - queue job for rebuilding text only
-            // flush api cache
-            /*var seqIndex = dashboardRepository.FindSequenceIndex(id);
-            var ddsId = new DdsIdentifier(id);
-            var textCbr = cacheBuster.BustAltoSearchText(ddsId.BNumber, seqIndex);
-            cacheBuster.BustAllAnnotations(ddsId.BNumber, seqIndex);
-            TempData["AltoCacheBustResult"] = new DeleteResult { Success = true, CacheBustResult = textCbr };
-            dashboardRepository.LogAction(id, null, User.Identity.Name, "Cache Bust Alto");*/
-            return RedirectToAction("Manifestation", new { id });
+            throw new NotImplementedException("This should be a call to RefreshIIIF or RefreshAll");
         }
 
         public async Task<ActionResult> DeletePdf(string id)
