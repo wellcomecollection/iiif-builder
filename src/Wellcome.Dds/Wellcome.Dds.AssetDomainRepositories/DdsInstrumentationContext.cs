@@ -3,7 +3,6 @@ using System;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -40,7 +39,6 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return await DlcsBatches.CountAsync();
         }
 
-
         public int ClearValidBatches(int from, int to)
         {
             var sql = "UPDATE dlcs_batches SET request_body=null, response_body=null"
@@ -49,7 +47,8 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take, int? workflowOptions)
+        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take, int? workflowOptions,
+            bool expedite, bool flushCache)
         {
             WorkflowJob job = await WorkflowJobs.FindAsync(bNumber);
             if (job == null)
@@ -74,6 +73,8 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.Finished = false;
             job.Error = null;
             job.ForceTextRebuild = forceRebuild;
+            job.FlushCache = flushCache;
+            job.Expedite = expedite;
             await SaveChangesAsync();
             return job;
         }
