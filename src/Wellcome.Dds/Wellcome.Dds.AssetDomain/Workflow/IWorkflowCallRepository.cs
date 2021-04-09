@@ -33,7 +33,6 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <returns></returns>
         Task<WorkflowCallStats> GetStatsModel();
 
-        Task<WorkflowJob> CreateWorkflowJob(string id);
         Task<WorkflowJob> CreateWorkflowJob(string id, int? workflowOptions);
 
         int FinishAllJobs();
