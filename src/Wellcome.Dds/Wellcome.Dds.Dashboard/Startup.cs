@@ -114,7 +114,6 @@ namespace Wellcome.Dds.Dashboard
 
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
-            services.AddSingleton<CacheBuster>(); // Have a think about what this does in the new world - what is it busting?
 
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
 

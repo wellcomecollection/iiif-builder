@@ -34,6 +34,7 @@ namespace Wellcome.Dds.Dashboard.Models
         public DlcsOptions DlcsOptions { get; set; }
 
         // if we want to use these...
+        // TODO - remove these... or use them to signify last built?
         public ISimpleStoredFileInfo CachedPackageFileInfo { get; set; }
         public ISimpleStoredFileInfo CachedTextModelFileInfo { get; set; }
         public ISimpleStoredFileInfo CachedAltoAnnotationsFileInfo { get; set; }

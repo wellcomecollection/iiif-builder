@@ -34,7 +34,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
         private readonly IWorkStorageFactory workStorageFactory;
-        private readonly CacheBuster cacheBuster;
         private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
         private readonly StorageServiceClient storageServiceClient;
@@ -52,7 +51,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IStatusProvider statusProvider,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
             IWorkStorageFactory workStorageFactory,
-            CacheBuster cacheBuster,
             IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
             StorageServiceClient storageServiceClient,
@@ -69,16 +67,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.statusProvider = statusProvider;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
             this.workStorageFactory = workStorageFactory;
-            this.cacheBuster = cacheBuster;
             this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
             this.storageServiceClient = storageServiceClient;
             this.logger = logger;
             this.uriPatterns = uriPatterns;
             this.catalogue = catalogue;
-            //this.cachingPackageProvider = cachingPackageProvider;
-            //this.cachingAltoSearchTextProvider = cachingAltoSearchTextProvider;
-            //this.cachingAllAnnotationProvider = cachingAllAnnotationProvider;
         }
 
         public ActionResult Index()
@@ -278,16 +272,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
 
                 model.IsRunning = syncOperation.DlcsImagesCurrentlyIngesting.Count > 0;
-
-                // TODO - make these client side calls to the same services
-                // will speed up dahboard page generation 
-                jobLogger.Log("Start cacheBuster queries");
-                model.CachedPackageFileInfo = cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber);
-                jobLogger.Log("Finished cacheBuster.GetPackageCacheFileInfo(ddsId.BNumber)");
-                model.CachedTextModelFileInfo = cacheBuster.GetAltoSearchTextCacheFileInfo(ddsId);
-                jobLogger.Log("Finished cacheBuster.GetAltoSearchTextCacheFileInfo(..)");
-                model.CachedAltoAnnotationsFileInfo = cacheBuster.GetAllAnnotationsCacheFileInfo(ddsId);
-                jobLogger.Log("Finished cacheBuster.GetAllAnnotationsCacheFileInfo(..)");
+                
                 ViewBag.Log = LoggingEvent.FromTuples(jobLogger.GetEvents());
                 if (json)
                 {
@@ -561,11 +546,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult CacheBust(string id)
         {
+            // TODO - queue job for rebuilding
+            // flush all caches
             var bNumber = new DdsIdentifier(id).BNumber;
 
             // we won't clean this up, for now. Sorry.
             //cachingDipProvider.DeleteDipCacheFile(bNumber);
-            bool success = true;
+            /*bool success = true;
             string message = null;
             CacheBustResult cacheBustResult = null;
             try
@@ -582,18 +569,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 Success = success,
                 Message = message,
                 CacheBustResult = cacheBustResult
-            };
+            };*/
             return RedirectToAction("Manifestation", new { id });
         }
 
         public ActionResult CacheBustAlto(string id)
         {
-            var seqIndex = dashboardRepository.FindSequenceIndex(id);
+            // TODO - queue job for rebuilding text only
+            // flush api cache
+            /*var seqIndex = dashboardRepository.FindSequenceIndex(id);
             var ddsId = new DdsIdentifier(id);
             var textCbr = cacheBuster.BustAltoSearchText(ddsId.BNumber, seqIndex);
             cacheBuster.BustAllAnnotations(ddsId.BNumber, seqIndex);
             TempData["AltoCacheBustResult"] = new DeleteResult { Success = true, CacheBustResult = textCbr };
-            dashboardRepository.LogAction(id, null, User.Identity.Name, "Cache Bust Alto");
+            dashboardRepository.LogAction(id, null, User.Identity.Name, "Cache Bust Alto");*/
             return RedirectToAction("Manifestation", new { id });
         }
 
@@ -702,6 +691,5 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         public bool Success { get; set; }
         public string Message { get; set; }
-        public CacheBustResult CacheBustResult { get; set; }
     }
 }
