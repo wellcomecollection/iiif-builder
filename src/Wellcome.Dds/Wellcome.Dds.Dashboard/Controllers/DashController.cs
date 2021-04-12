@@ -126,6 +126,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             try
             {
                 ddsId = new DdsIdentifier(id);
+                ViewBag.DdsId = ddsId;
+                throw new Exception();
                 var result = await modelBuilder.Build(id, Url);
 
                 // if we have a model render it
@@ -347,11 +349,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 model.ErrorMessage = ex.Message;
             }
             return View(model);
-        }
-
-        public ActionResult CacheBust(string id)
-        {
-            throw new NotImplementedException("This should be a call to RefreshIIIF or RefreshAll");
         }
 
         public async Task<ActionResult> DeletePdf(string id)

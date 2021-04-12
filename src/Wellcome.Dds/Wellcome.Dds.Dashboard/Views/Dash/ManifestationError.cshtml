@@ -10,10 +10,15 @@
 @if (ViewBag.TryInstead != null)
 {
     <p>Maybe try @Html.ActionLink((string)ViewBag.TryInstead, "Manifestation", "Dash", new { id = ViewBag.TryInstead }, new { })</p>
-    <p>You can still try to @Html.ActionLink("purge caches for this item", "CacheBust", "Dash", new {id = ViewBag.TryInstead}, new {}).</p>
 
+    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = ViewBag.TryInstead}, FormMethod.Post))
+    {
+        <p>You can still try to
+        <button type="submit" class="btn btn-link" title="Rebuild Manifestations and IIIF">rebuild Manifestations and IIIF for this item</button>
+        </p>
+    }
+    
     <h3>Other tools</h3>
     <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", "Peek", new {id = ViewBag.DdsId.BNumber})</p>
     <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
 }
-

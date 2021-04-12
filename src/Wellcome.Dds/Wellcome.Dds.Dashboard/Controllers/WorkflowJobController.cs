@@ -27,7 +27,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         /// <param name="id">work identifier</param>
         [HttpPost]
         public Task<ActionResult> RefreshAll(string id)
-            => QueueWorkflowJob(id, true, "RefreshAllResult");
+            => QueueWorkflowJob(id, false, "RefreshAllResult");
 
         /// <summary>
         /// Create a new workflow job to rebuild manifest and iiif elements of job
@@ -35,7 +35,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         /// <param name="id">work identifier</param>
         [HttpPost]
         public Task<ActionResult> RefreshIIIF(string id)
-            => QueueWorkflowJob(id, false, "RefreshIIIFResult");
+            => QueueWorkflowJob(id, true, "RefreshIIIFResult");
         
         private async Task<ActionResult> QueueWorkflowJob(string id, bool iiifOnly, string tempDataType)
         {
