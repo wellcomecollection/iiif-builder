@@ -167,16 +167,6 @@ namespace WorkflowProcessor
             job.Error = "No work available in Catalogue API; highest access condition is " + highest;
         }
 
-        private async Task PostProcessing(WorkflowJob job)
-        {
-            if (!job.FlushCache) return;
-
-            logger.LogInformation("Flushing cache for {Identifier}", job.Identifier);
-            
-            // get a list of all paths to invalidate
-            // push message onto SNS queue
-        }
-
         private async Task RebuildIIIF(WorkflowJob job, Work work)
         {
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
