@@ -83,8 +83,8 @@ namespace Wellcome.Dds.AssetDomainRepositories
         {
             var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
                 + " select identifier from workflow_jobs "
-                + $" where waiting=true and created < now() - interval '{minAgeInMinutes} minutes' "
-                + " order by created "
+                + $" where waiting=true and (created < now() - interval '{minAgeInMinutes} minutes' or expedite=true) "
+                + " order by expedite desc, created "
                 + " limit 1 "
                 + " for update skip locked "
                 + ") returning identifier;";
