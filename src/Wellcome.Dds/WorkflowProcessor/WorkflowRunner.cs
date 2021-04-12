@@ -198,7 +198,7 @@ namespace WorkflowProcessor
         {
             var state = new ChemistAndDruggistState(null!);
             int counter = 0;
-            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext(KnownIdentifiers.ChemistAndDruggist))
             {
                 logger.LogInformation($"Counter: {++counter}");
                 var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);

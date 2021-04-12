@@ -153,7 +153,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // We only want "Volume X" and "Copy X" labels for Manifests within Collections
             var manifest = rootResource
                 ? ConverterHelpers.GetIIIFPresentationBase<T>(p3Manifest)
-                : ConverterHelpers.GetIIIFPresentationBase<T>(p3Manifest, s => identifier.BNumber == "b19974760" || s.StartsWith("Copy") || s.StartsWith("Volume"));
+                : ConverterHelpers.GetIIIFPresentationBase<T>(p3Manifest,
+                    s => identifier.BNumber == KnownIdentifiers.ChemistAndDruggist || s.StartsWith("Copy") ||
+                         s.StartsWith("Volume"));
 
             // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services
             // but with some values stripped back (ConfirmLabel, Header etc).

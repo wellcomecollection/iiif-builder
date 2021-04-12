@@ -280,7 +280,7 @@ namespace WorkflowProcessor
             };
             if (includeChemistAndDruggist)
             {
-                tests.Add("b19974760");
+                tests.Add(KnownIdentifiers.ChemistAndDruggist);
             }
             await PopulateJobs(tests, workflowOptions, stoppingToken);
         }

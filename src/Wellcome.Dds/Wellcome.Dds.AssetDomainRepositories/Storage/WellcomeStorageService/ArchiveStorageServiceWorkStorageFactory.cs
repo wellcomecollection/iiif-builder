@@ -3,10 +3,12 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Utils;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 {
@@ -69,7 +71,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 return false;
             }
 
-            if (map.Identifier == "b19974760")
+            if (map.Identifier == KnownIdentifiers.ChemistAndDruggist)
             {
                 // Never rebuild Chemist and Druggist's storage map on demand
                 return false;
