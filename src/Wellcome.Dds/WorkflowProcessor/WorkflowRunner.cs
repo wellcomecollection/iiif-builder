@@ -160,7 +160,13 @@ namespace WorkflowProcessor
 
             var accessConditions = manifestation.Sequence.Select(pf => pf.AccessCondition);
             var highest = AccessCondition.GetMostSecureAccessCondition(accessConditions);
-            job.Error = "No work available in Catalogue API; highest access condition is " + highest;
+            if (highest == AccessCondition.Open || 
+                highest == AccessCondition.RequiresRegistration ||
+                highest == AccessCondition.OpenWithAdvisory)
+            {
+                // only set this error if we think we SHOULD be able to get a work back.
+                job.Error = "No work available in Catalogue API; highest access condition is " + highest;
+            }
         }
 
         private async Task RebuildIIIF(WorkflowJob job, Work work)
