@@ -29,6 +29,7 @@ using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
+using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
@@ -111,6 +112,8 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
             services.AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>();
             services.AddScoped<IIIIFBuilder, IIIFBuilder>();
+            services.AddScoped<ManifestationModelBuilder>(opts =>
+                ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds

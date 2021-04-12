@@ -364,7 +364,7 @@
                     }
                     @if (Model.ManifestWriteTime.HasValue)
                     {
-                        <small>S3 cache: @StringUtils.GetFriendlyAge(Model.ManifestWriteTime.Value)</small>
+                        <small>Manifest generated: @StringUtils.GetFriendlyAge(Model.ManifestWriteTime.Value)</small>
                     }
                     else
                     {
@@ -382,7 +382,7 @@
                         }
                         @if (Model.TextWriteTime.HasValue)
                         {
-                            <small>Disk cache: @Model.TextWriteTime</small>
+                            <small>Text generated: @StringUtils.GetFriendlyAge(Model.TextWriteTime.Value)</small>
                         }
                         else
                         {
@@ -391,7 +391,7 @@
                         <br/>
                         @if (Model.AnnotationWriteTime.HasValue)
                         {
-                            <small>Disk cache: @Model.AnnotationWriteTime</small>
+                            <small>Annos generated: @StringUtils.GetFriendlyAge(Model.AnnotationWriteTime.Value)</small>
                         }
                         else
                         {

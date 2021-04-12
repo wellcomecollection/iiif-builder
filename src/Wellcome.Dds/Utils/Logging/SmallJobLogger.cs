@@ -52,6 +52,5 @@ namespace Utils.Logging
             eventList.Add(ev);
             callback?.Invoke($"{callbackPrefix} [{total}|{split}] {message}");
         }
-
     }
 }

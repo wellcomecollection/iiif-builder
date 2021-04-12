@@ -2,15 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils;
-using Utils.Caching;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dashboard;
@@ -19,7 +15,6 @@ using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
-using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
@@ -30,49 +25,40 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IDashboardRepository dashboardRepository;
         private readonly IIngestJobRegistry jobRegistry;
-        private readonly ISimpleCache cache;
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
         private readonly IWorkStorageFactory workStorageFactory;
-        private readonly DlcsOptions dlcsOptions;
         private readonly IDds dds;
         private readonly StorageServiceClient storageServiceClient;
         private readonly ILogger<DashController> logger;
         private readonly UriPatterns uriPatterns;
-        private readonly ICatalogue catalogue;
-
-        private const string CacheKeyPrefix = "dashcontroller_";
-        private const int CacheSeconds = 5;
+        private readonly ManifestationModelBuilder modelBuilder;
 
         public DashController(
             IDashboardRepository dashboardRepository,
-            ISimpleCache cache,
             IIngestJobRegistry jobRegistry,
             IStatusProvider statusProvider,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
             IWorkStorageFactory workStorageFactory,
-            IOptions<DlcsOptions> dlcsOptions,
             IDds dds,
             StorageServiceClient storageServiceClient,
             ILogger<DashController> logger,
             UriPatterns uriPatterns,
-            ICatalogue catalogue
+            ManifestationModelBuilder modelBuilder
         )
         {
             // TODO - we need a review of all these dependencies!
             // too many things going on in this controller
             this.dashboardRepository = dashboardRepository;
-            this.cache = cache;
             this.jobRegistry = jobRegistry;
             this.statusProvider = statusProvider;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
             this.workStorageFactory = workStorageFactory;
-            this.dlcsOptions = dlcsOptions.Value;
             this.dds = dds;
             this.storageServiceClient = storageServiceClient;
             this.logger = logger;
             this.uriPatterns = uriPatterns;
-            this.catalogue = catalogue;
+            this.modelBuilder = modelBuilder;
         }
 
         public ActionResult Index()
@@ -135,23 +121,30 @@ namespace Wellcome.Dds.Dashboard.Controllers
         // GET: Dash
         public async Task<ActionResult> Manifestation(string id)
         {
-            var json = AskedForJson();
-            var jobLogger = new SmallJobLogger(string.Empty, null);
-            jobLogger.Start();
-            IDigitisedResource dgResource;
-            Work work;
             DdsIdentifier ddsId = null;
+
             try
             {
                 ddsId = new DdsIdentifier(id);
-                ViewBag.DdsId = ddsId;
-                jobLogger.Log("Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
-                var workTask = catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-                var ddsTask = dashboardRepository.GetDigitisedResource(id, true);
-                await Task.WhenAll(new List<Task> {ddsTask, workTask});
-                dgResource = ddsTask.Result;
-                work = workTask.Result;
-                jobLogger.Log("Finished dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
+                var result = await modelBuilder.Build(id, Url);
+
+                // if we have a model render it
+                if (result.Model != null)
+                {
+                    ViewBag.Log = LoggingEvent.FromTuples(modelBuilder.GetLoggingEvents());
+                    return View("Manifestation", result.Model);
+                }
+                
+                // we don't have a model so must be a redirect 
+                if (result.RedirectToCollection)
+                {
+                    return RedirectToAction("Collection", "Dash", new {id = result.RedirectId});
+                }
+                
+                if (result.RedirectToManifest)
+                {
+                    return RedirectToAction("Manifestation", "Dash", new {id = result.RedirectId});
+                }
             }
             catch (Exception ex)
             {
@@ -161,199 +154,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     ViewBag.TryInstead = ddsId.BNumber;
                 }
-
-                if (json)
-                {
-                    return NotFound(ViewBag.Message);
-                }
-
-                return View("ManifestationError");
-            }
-
-            if (dgResource is IDigitisedManifestation dgManifestation)
-            {
-                // ***************************************************
-                // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
-                // IT MUST GO AS SOON AS THE IIIF MANIFEST KNOWS String3
-                jobLogger.Log("Start dashboardRepository.FindSequenceIndex(id)");
-                // dgManifestation.SequenceIndex = await dashboardRepository.FindSequenceIndex(id);
-                jobLogger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
-                // represents the set of differences between the METS view of the world and the DLCS view
-                jobLogger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
-                jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
-
-                IDigitisedCollection parent;
-                IDigitisedCollection grandparent;
-                // We need to show the manifestation with information about its parents, it it has any.
-                // this allows navigation through multiple manifs
-                switch (ddsId.IdentifierType)
-                {
-                    case IdentifierType.BNumber:
-                        parent = null;
-                        grandparent = null;
-                        break;
-                    case IdentifierType.Volume:
-                        parent = await GetCachedCollectionAsync(ddsId.BNumber);
-                        grandparent = null;
-                        break;
-                    case IdentifierType.Issue:
-                        parent = await GetCachedCollectionAsync(ddsId.VolumePart);
-                        grandparent = await GetCachedCollectionAsync(ddsId.BNumber);
-                        break;
-                    case IdentifierType.BNumberAndSequenceIndex:
-                        throw new ArgumentException("id", $"Can't use an index-based ID here: {id}");
-                    default:
-                        throw new ArgumentException("id", $"Could not get resource for identifier {id}");
-                }
-
-                var skeletonPreview = string.Format(
-                    dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, id);
-
-                var model = new ManifestationModel
-                {
-                    DefaultSpace = dashboardRepository.DefaultSpace,
-                    Url = Url,
-                    DdsIdentifier = ddsId,
-                    DigitisedManifestation = dgManifestation,
-                    Parent = parent,
-                    GrandParent = grandparent,
-                    SyncOperation = syncOperation,
-                    DlcsOptions = dlcsOptions,
-                    DlcsSkeletonManifest = skeletonPreview,
-                    Work = work,
-                    EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(ddsId.BNumber),
-                    EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(ddsId.BNumber),
-                    ManifestUrl = uriPatterns.Manifest(ddsId)
-                };
-                if (work != null)
-                {
-                    // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
-                    // We can't make IIIF for it, though.
-                    model.CatalogueApi = uriPatterns.CatalogueApi(work.Id);
-                    model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
-                }
-                model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
-                model.MakeManifestationNavData();
-                jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                var jobActivity = await dashboardRepository.GetRationalisedJobActivity(syncOperation);
-                jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                model.IngestJobs = jobActivity.UpdatedJobs;
-                model.BatchesForImages = jobActivity.BatchesForCurrentImages;
-                
-                // TODO - set S3 dates on return ManifestationModel
-
-                model.DbJobIdsToActiveBatches = new Dictionary<int, List<Batch>>();
-                foreach (var dlcsIngestJob in model.IngestJobs)
-                {
-                    if (!model.DbJobIdsToActiveBatches.ContainsKey(dlcsIngestJob.Id))
-                    {
-                        model.DbJobIdsToActiveBatches[dlcsIngestJob.Id] = new List<Batch>();
-                    }
-
-                    jobLogger.Log("Start enumerating job batches");
-                    foreach (var dbBatch in dlcsIngestJob.DlcsBatches)
-                    {
-                        // Move this to the repository
-                        if (dbBatch.ResponseBody.HasText())
-                        {
-                            var reportedBatch = JsonConvert.DeserializeObject<Batch>(dbBatch.ResponseBody);
-                            var activeBatch = model.BatchesForImages.SingleOrDefault(b => b.Id == reportedBatch.Id);
-                            if (activeBatch != null)
-                            {
-                                if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id]
-                                    .Exists(b => b.Id == activeBatch.Id))
-                                {
-                                    model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Add(activeBatch);
-                                }
-                            }
-                        }
-                    }
-
-                    jobLogger.Log("Finished enumerating job batches");
-                }
-
-                model.IsRunning = syncOperation.DlcsImagesCurrentlyIngesting.Count > 0;
-                
-                ViewBag.Log = LoggingEvent.FromTuples(jobLogger.GetEvents());
-                if (json)
-                {
-                    return AsJson(model.GetJsonModel());
-                }
-
-                return View("Manifestation", model);
-            }
-
-            if (dgResource is IDigitisedCollection dgCollection)
-            {
-                // This is the manifestation controller, not the volume or issue controller.
-                // So redirect to the first manifestation that we can find for this collection.
-                // Put this and any intermediary collections in the short term cache,
-                // so that we don't need to build them from scratch after the redirect.
-                string redirectId;
-                PutCollectionInShortTermCache(dgCollection);
-                if (dgCollection.MetsCollection.Manifestations.HasItems())
-                {
-                    // a normal multiple manifestation, or possibly a periodical volume?
-                    if (json)
-                    {
-                        return RedirectToAction("Collection", "Dash", new {id = ddsId.BNumber, json = "json"});
-                    }
-
-                    redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
-                    return RedirectToAction("Manifestation", "Dash", new {id = redirectId});
-                }
-
-                // a periodical, I think - but go to volume controller for this.
-                redirectId = dgCollection.MetsCollection.GetRootId();
-                if (json)
-                {
-                    return RedirectToAction("Collection", "Dash", new {id = redirectId, json = "json"});
-                }
-
-                return RedirectToAction("Collection", "Dash", new {id = redirectId});
-            }
-
-            ViewBag.Message = "Unknown type of resource found for identifier " + id;
-            if (json)
-            {
-                return NotFound(ViewBag.Message);
             }
 
             return View("ManifestationError");
-        }
-
-        private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
-        {
-            // The cache is caching a Task<IDigitisedResource> (from the callback)
-            // this works... but we need to revisit
-            // TODO: 1) SimpleCache handling of tasks
-            // TODO: 2) This should be a request-scoped cache anyway
-            
-            // NOTE - why is this caching in controller? Shouldn't that be in the repo?
-            var coll = await cache.GetCached(
-                CacheSeconds,
-                CacheKeyPrefix + identifier,
-                async () => (await dashboardRepository.GetDigitisedResource(identifier, true)));
-            return (IDigitisedCollection)coll;
-        }
-
-        private void PutCollectionInShortTermCache(IDigitisedCollection collection)
-        {
-            // (in order to PUT this in the cache, we need to retrieve it...
-            var key = CacheKeyPrefix + collection.Identifier;
-            cache.Remove(key);
-            
-            // TODO - should this be .Insert() as we've removed cache? 
-            cache.GetCached(CacheSeconds, key, () => collection); 
-        }
-
-        private ActionResult ShowManifestation(
-            IDigitisedManifestation dgManifestation,
-            IDigitisedCollection parent,
-            IDigitisedCollection grandparent)
-        {
-            return View(dgManifestation);
         }
 
         public async Task<ActionResult> Collection(string id)
@@ -656,5 +459,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         public bool Success { get; set; }
         public string Message { get; set; }
+    }
+
+    public class OverallResult
+    {
+        public ManifestationModel Model { get; set; }
+        public bool RedirectToCollection { get; set; }
+        public bool RedirectToManifest { get; set; }
+        public string RedirectId { get; set; }
     }
 }
