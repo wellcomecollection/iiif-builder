@@ -1,4 +1,5 @@
-﻿using DlcsWebClient.Config;
+﻿using Amazon.SimpleNotificationService;
+using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -50,13 +51,15 @@ namespace WorkflowProcessor
                 .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
+            services.Configure<CacheInvalidationOptions>(Configuration.GetSection("CacheInvalidation"));
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));            
+            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));   
+            services.AddAWSService<IAmazonSimpleNotificationService>(Configuration.GetAWSOptions("Platform-AWS"));
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -92,6 +95,7 @@ namespace WorkflowProcessor
                 .AddScoped<AltoDerivedAssetBuilder>()
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
+                .AddSingleton<IWorkflowJobPostProcessor, WorkflowJobPostProcessor>()
                 .AddHostedService<WorkflowProcessorService>();
             
             services.AddHealthChecks()

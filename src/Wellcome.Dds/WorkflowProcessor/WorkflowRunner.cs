@@ -39,6 +39,7 @@ namespace WorkflowProcessor
         private readonly ICatalogue catalogue;
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
+        private readonly IWorkflowJobPostProcessor postProcessor;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -50,7 +51,8 @@ namespace WorkflowProcessor
             IOptions<DdsOptions> ddsOptions,
             ICatalogue catalogue,
             BucketWriter bucketWriter,
-            AltoDerivedAssetBuilder altoBuilder)
+            AltoDerivedAssetBuilder altoBuilder,
+            IWorkflowJobPostProcessor postProcessor)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -62,6 +64,7 @@ namespace WorkflowProcessor
             this.catalogue = catalogue;
             this.bucketWriter = bucketWriter;
             this.altoBuilder = altoBuilder;
+            this.postProcessor = postProcessor;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -126,6 +129,7 @@ namespace WorkflowProcessor
                     await SetJobErrorMessage(job);
                 }
 
+                await postProcessor.PostProcess(job);
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
             }
             catch (Exception ex)
@@ -161,6 +165,16 @@ namespace WorkflowProcessor
             var accessConditions = manifestation.Sequence.Select(pf => pf.AccessCondition);
             var highest = AccessCondition.GetMostSecureAccessCondition(accessConditions);
             job.Error = "No work available in Catalogue API; highest access condition is " + highest;
+        }
+
+        private async Task PostProcessing(WorkflowJob job)
+        {
+            if (!job.FlushCache) return;
+
+            logger.LogInformation("Flushing cache for {Identifier}", job.Identifier);
+            
+            // get a list of all paths to invalidate
+            // push message onto SNS queue
         }
 
         private async Task RebuildIIIF(WorkflowJob job, Work work)
