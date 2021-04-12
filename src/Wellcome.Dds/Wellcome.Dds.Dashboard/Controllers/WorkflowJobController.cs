@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
 
@@ -38,6 +39,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> QueueWorkflowJob(string id, bool iiifOnly, string tempDataType)
         {
+            if (id.StartsWith(KnownIdentifiers.ChemistAndDruggist))
+            {
+                return RedirectToManifestation(id, tempDataType, false,
+                    "Rebuilding Chemist and Druggist from UI not supported");
+            }
+            
             bool success = true;
             string message = null;
             
@@ -53,6 +60,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 logger.LogError(ex, "QueueWorkflowJob error for {Id}", id);
             }
 
+            return RedirectToManifestation(id, tempDataType, success, message);
+        }
+
+        private ActionResult RedirectToManifestation(string id, string tempDataType, bool success, string message)
+        {
             var deleteResult = new DeleteResult
             {
                 Success = success,
