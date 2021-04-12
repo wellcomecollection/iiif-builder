@@ -64,6 +64,7 @@ namespace Wellcome.Dds.Dashboard.Models
             Work work;
             try
             {
+                jobLogger.Start();
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.BNumber);
@@ -178,6 +179,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     
                     jobLogger.Log("Start S3 file queries");
                     await PopulateLastWriteTimes(model);
+                    jobLogger.Log("Finish S3 file queries");
                     
                     return new OverallResult
                     {
@@ -218,6 +220,10 @@ namespace Wellcome.Dds.Dashboard.Models
                 logger.LogError(ex, "Error getting manifestation for '{id}'", identifier);
                 throw;
             }
+            finally
+            {
+                jobLogger.Stop();
+            }
 
             return null;
         }
@@ -255,7 +261,7 @@ namespace Wellcome.Dds.Dashboard.Models
             var identifier = model.DdsIdentifier;
             var textFileInfo = new S3StoredFileInfo(ddsOptions.TextContainer, $"raw/{identifier}", amazonS3);
             var annosFileInfo = new S3StoredFileInfo(ddsOptions.AnnotationContainer,
-                $"v3/annotations/{identifier}/all/line", amazonS3);
+                $"v3/{identifier}/all/line", amazonS3);
             var manifestFileInfo = new S3StoredFileInfo(ddsOptions.PresentationContainer, $"v3/{identifier}", amazonS3);
 
             await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), annosFileInfo.EnsureObjectMetadata(),
