@@ -77,7 +77,8 @@ namespace WorkflowProcessor
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error sending invalidation request");
+                logger.LogError(ex, "Error sending invalidation request for {Identifier} to {Topic}",
+                    identifier, topic);
             }
         }
     }
