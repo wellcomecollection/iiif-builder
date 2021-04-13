@@ -101,9 +101,7 @@ namespace Wellcome.Dds.Dashboard
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>();
 
-            services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
-                ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
-                    factory.Get(NamedClient.Dds)));
+            services.AddSingleton<IStatusProvider, DatabaseStatusProvider>();
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();
