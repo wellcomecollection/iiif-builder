@@ -45,7 +45,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             {
                 if (ddsOptions.MinimumJobAgeMinutes > 0)
                 {
-                    return DateTime.Now.AddMinutes(0 - ddsOptions.MinimumJobAgeMinutes);
+                    return DateTime.Now.AddMinutes(-ddsOptions.MinimumJobAgeMinutes);
                 }
 
                 return null;
@@ -77,6 +77,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     CreatedOn = DateTime.Now
                 };
                 await ddsInstrumentationContext.ControlFlows.AddAsync(controlFlow, cancellationToken);
+                await ddsInstrumentationContext.SaveChangesAsync(cancellationToken);
                 return true;
             }
             catch (Exception ex)
