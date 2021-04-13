@@ -96,6 +96,7 @@ namespace WorkflowProcessor
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
                 .AddSingleton<IWorkflowJobPostProcessor, WorkflowJobPostProcessor>()
+                .AddScoped<IStatusProvider, DatabaseStatusProvider>()
                 .AddHostedService<WorkflowProcessorService>();
             
             services.AddHealthChecks()

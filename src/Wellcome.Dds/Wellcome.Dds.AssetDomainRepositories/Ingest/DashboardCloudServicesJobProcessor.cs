@@ -58,7 +58,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             if (!await statusProvider.ShouldRunProcesses())
             {
-                logger.LogWarning("DDS status provider returned false; will not process queue");
+                logger.LogWarning("Status provider returned false; will not process queue");
                 return;
             }
 

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
+using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Catalogue;
@@ -79,9 +80,6 @@ namespace WorkflowProcessor
         /// Specify the catalogue dump file to use, this will NOT download a fresh copy of catalogue
         /// 
         /// </summary>
-        /// <param name="logger"></param>
-        /// <param name="serviceScopeFactory"></param>
-        /// <param name="options"></param>
         public WorkflowProcessorService(
             ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory,
@@ -331,30 +329,38 @@ namespace WorkflowProcessor
                 {
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
                     await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
-
+                    
                     using var scope = serviceScopeFactory.CreateScope();
 
-                    var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
-
-                    var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
-                    if (jobId == null)
+                    var statusProvider = scope.ServiceProvider.GetRequiredService<IStatusProvider>();
+                    if (!await statusProvider.ShouldRunProcesses(stoppingToken))
                     {
-                        waitMs = GetWaitMs(waitMs);
-                        continue;
+                        logger.LogWarning("Status provider returned false, will not attempt to process");
                     }
+                    else
+                    {
+                        var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
 
-                    waitMs = 2;
-                    var runner = GetWorkflowRunner(scope);
-                    var job = await dbContext.WorkflowJobs.FindAsync(jobId);
-                    await runner.ProcessJob(job, stoppingToken);
-                    job.Finished = true;
-                    try
-                    {
-                        await dbContext.SaveChangesAsync(stoppingToken);
-                    }
-                    catch (DbUpdateException e)
-                    {
-                        throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                        var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
+                        if (jobId == null)
+                        {
+                            waitMs = GetWaitMs(waitMs);
+                            continue;
+                        }
+
+                        waitMs = 2;
+                        var runner = GetWorkflowRunner(scope);
+                        var job = await dbContext.WorkflowJobs.FindAsync(jobId);
+                        await runner.ProcessJob(job, stoppingToken);
+                        job.Finished = true;
+                        try
+                        {
+                            await dbContext.SaveChangesAsync(stoppingToken);
+                        }
+                        catch (DbUpdateException e)
+                        {
+                            throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                        }
                     }
                 }
                 catch (Exception ex)

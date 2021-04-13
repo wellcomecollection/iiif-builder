@@ -101,7 +101,7 @@ namespace Wellcome.Dds.Dashboard
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>();
 
-            services.AddSingleton<IStatusProvider, DatabaseStatusProvider>();
+            services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDashboardRepository, DashboardRepository>();

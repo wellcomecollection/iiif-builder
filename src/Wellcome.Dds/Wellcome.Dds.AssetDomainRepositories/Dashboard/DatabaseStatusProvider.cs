@@ -33,7 +33,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         
         public async Task<bool> ShouldRunProcesses(CancellationToken cancellationToken = default)
         {
-            var currentControlFlow = await GetLatestControlFlow(cancellationToken);
+            var currentControlFlow = await GetLatestControlFlow(cancellationToken, true);
             return currentControlFlow.StoppedOn == null;
         }
 
@@ -105,15 +105,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<DateTime?> GetHeartbeat(CancellationToken cancellationToken = default)
         {
-            var currentControlFlow = await GetLatestControlFlow(cancellationToken);
+            var currentControlFlow = await GetLatestControlFlow(cancellationToken, true);
             return currentControlFlow.Heartbeat;
         }
         
-        private async Task<ControlFlow> GetLatestControlFlow(CancellationToken cancellationToken)
+        private async Task<ControlFlow> GetLatestControlFlow(CancellationToken cancellationToken, bool reload = false)
         {
-            return await ddsInstrumentationContext.ControlFlows
+            var currentControlFlow = await ddsInstrumentationContext.ControlFlows
                 .OrderByDescending(cf => cf.Id)
                 .FirstAsync(cancellationToken);
+
+            if (reload)
+            {
+                await ddsInstrumentationContext.Entry(currentControlFlow).ReloadAsync(cancellationToken);
+            }
+
+            return currentControlFlow;
         }
     }
 }
