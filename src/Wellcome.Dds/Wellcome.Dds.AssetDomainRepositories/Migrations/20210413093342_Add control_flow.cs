@@ -22,6 +22,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                 {
                     table.PrimaryKey("pk_control_flows", x => x.id);
                 });
+
+            migrationBuilder.Sql("INSERT INTO control_flows (created_on) VALUES (now())");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
