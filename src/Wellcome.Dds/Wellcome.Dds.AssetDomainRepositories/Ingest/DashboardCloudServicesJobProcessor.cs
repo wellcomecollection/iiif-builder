@@ -163,14 +163,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 var message = $"ProcessJob was passed a job but could not find it: {job}";
                 logger.LogWarning(message);
-                statusProvider.LogSpecial(message);
                 return ImageIngestResult.Empty;
             }
             else
             {
                 var message = $"ProcessJob was passed a job and found MORE THAN ONE: {job}";
                 logger.LogWarning(message);
-                statusProvider.LogSpecial(message);
                 logger.LogWarning("Will process most recent");
                 job = jobs.OrderByDescending(j => j.Created).First();
                 job.StartProcessed = DateTime.Now;

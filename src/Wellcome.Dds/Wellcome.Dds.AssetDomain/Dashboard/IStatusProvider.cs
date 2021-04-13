@@ -19,7 +19,5 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         Task<DateTime?> WriteHeartbeat(CancellationToken cancellationToken = default);
         
         Task<DateTime?> GetHeartbeat(CancellationToken cancellationToken = default);
-
-        bool LogSpecial(string message);
     }
 }

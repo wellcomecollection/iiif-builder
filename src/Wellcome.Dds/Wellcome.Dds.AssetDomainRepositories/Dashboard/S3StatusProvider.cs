@@ -175,20 +175,5 @@ It acts as a 'dead man's handle' because if the METS file system is unavailable,
 
             return null;
         }
-
-        public bool LogSpecial(string message)
-        {
-            string key = ddsOptions.StatusProviderLogSpecialFile + DateTime.UtcNow.ToString("s");
-            var req = MakePutTextRequest(key, message);
-            try
-            {
-                var res = amazonS3.PutObjectAsync(req).Result;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 }
