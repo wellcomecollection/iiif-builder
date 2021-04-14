@@ -35,7 +35,7 @@ namespace Wellcome.Dds.Server.Controllers
         {
             try
             {
-                var workflowJob = await instrumentationContext.PutJob(id, forceRebuild, false, -1);
+                var workflowJob = await instrumentationContext.PutJob(id, forceRebuild, false, -1, false, false);
                 return StatusCode(202, workflowJob);
             }
             catch (Exception ex)

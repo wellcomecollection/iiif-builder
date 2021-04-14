@@ -232,11 +232,10 @@ namespace Utils
         /// <returns></returns>
         public static string Chomp(this string str, string separator)
         {
-            if (str == null) return null;
-            if (str == String.Empty) return String.Empty;
+            if (str.IsNullOrEmpty()) return str;
             if (str.EndsWith(separator))
             {
-                return str.Substring(0, str.LastIndexOf(separator, StringComparison.Ordinal));
+                return str[..str.LastIndexOf(separator, StringComparison.Ordinal)];
             }
             return str;
         }

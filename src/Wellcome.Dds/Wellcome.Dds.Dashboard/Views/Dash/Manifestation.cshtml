@@ -1,4 +1,5 @@
 ﻿@using Wellcome.Dds.Dashboard.HtmlHelpers
+@using Newtonsoft.Json
 @model Wellcome.Dds.Dashboard.Models.ManifestationModel
 
 @{
@@ -10,49 +11,57 @@
 <a id="top"></a>
 
 <div class="row" style="padding-top: 15px">
-    @if (TempData["CacheBustResult"] != null && ((DeleteResult)TempData["CacheBustResult"]).Success)
+    @if (TempData["RefreshAllResult"] != null)
     {
-        <div class="alert alert-success alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Success!</strong> Binary caches cleared on disk. Note that cached resources may persist in memory for 10 minutes.
-        </div>
+        var refreshResult = JsonConvert.DeserializeObject<DeleteResult>(TempData["RefreshAllResult"].ToString());
+        if (refreshResult.Success)
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Success!</strong> Priority workflow job to rebuild all assets queued. Caches will be cleared on completion.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Failed to queue workflow job!</strong> @refreshResult.Message
+            </div>
+        }
     }
-    @if (TempData["CacheBustResult"] != null && !((DeleteResult)TempData["CacheBustResult"]).Success)
+    @if (TempData["RefreshIIIFResult"] != null)
     {
-        <div class="alert alert-danger alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Failed to clear cache!</strong> @(((DeleteResult)TempData["CacheBustResult"]).Message)
-        </div>
-    }
-    @if (TempData["AltoCacheBustResult"] != null && ((DeleteResult)TempData["AltoCacheBustResult"]).Success)
-    {
-        <div class="alert alert-success alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Success!</strong> Search data cleared from disk. Note that cached resources may persist in memory for 10 minutes.
-        </div>
-    }
-    @if (TempData["AltoCacheBustResult"] != null && !((DeleteResult)TempData["AltoCacheBustResult"]).Success)
-    {
-        <div class="alert alert-danger alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Failed to clear search cache!</strong> @((DeleteResult)TempData["AltoCacheBustResult"]).Message
-        </div>
+        var refreshResult = JsonConvert.DeserializeObject<DeleteResult>(TempData["RefreshIIIFResult"].ToString());
+        if (refreshResult.Success)
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Success!</strong> Priority workflow job to rebuild manifest + IIIF assets queued. Caches will be cleared on completion.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Failed to queue workflow job!</strong> @refreshResult.Message
+            </div>
+        }
     }
     @if (TempData["remove-old-jobs"] != null)
     {
         <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>@((int)TempData["remove-old-jobs"]) old job(s) removed!</strong>
+            <strong>@((int) TempData["remove-old-jobs"]) old job(s) removed!</strong>
         </div>
     }
     @if (TempData["orphans-deleted"] != null)
     {
         <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>@((int)TempData["orphans-deleted"]) Orphans deleted!</strong>
+            <strong>@((int) TempData["orphans-deleted"]) Orphans deleted!</strong>
         </div>
     }
-    
+
     @if (TempData["no-work-synchronisation"] != null)
     {
         <div class="alert alert-danger alert-dismissible" role="alert">
@@ -69,10 +78,10 @@
             the string3 metadata value @Model.DigitisedManifestation.Identifier that are not present in the METS manifestation.
         </div>
     }
-    
+
     @if (TempData.TryGetValue("delete-pdf", out var pdfDelete))
     {
-        if ((bool)pdfDelete)
+        if ((bool) pdfDelete)
         {
             <div class="alert alert-success alert-dismissible" role="alert">
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">x</span></button>
@@ -105,7 +114,7 @@
                         @foreach (var manif in Model.Siblings)
                         {
                             <li class="@Model.GetDropDownClass(manif)">
-                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Id })
+                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new {id = manif.Id})
                             </li>
                         }
                     </ul>
@@ -347,36 +356,46 @@
 
             <ul class="list-group">
                 <li class="list-group-item">
-                    <a class="wip" href="@Url.Action("CacheBust", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Refresh cache</a><br />
-                    @if (Model.CachedPackageFileInfo.Exists)
+                    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = Model.DdsIdentifier}, FormMethod.Post))
                     {
-                        <small>Disk cache: @Model.CachedPackageFileInfo.LastWriteTime</small>
+                        <button type="submit" class="btn btn-link" title="Refresh Manifestations and IIIF">
+                            <span class="glyphicon glyphicon-refresh"></span> Rebuild IIIF
+                        </button>
+                    }
+                    @if (Model.ManifestWriteTime.HasValue)
+                    {
+                        <small>Manifest generated: @StringUtils.GetFriendlyAge(Model.ManifestWriteTime.Value)</small>
                     }
                     else
                     {
-                        <small><em>No cached package on disk yet</em></small>
+                        <small><em>No manifest on S3 yet</em></small>
                     }
                 </li>
                 @if (metsManifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText()))
                 {
                     <li class="list-group-item">
-                        <a class="wip" href="@Url.Action("CacheBustAlto", "Dash", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-refresh"></span> Rebuild search</a><br />
-                        @if (Model.CachedTextModelFileInfo.Exists)
+                        @using (Html.BeginForm("RefreshAll", "WorkflowJob", new {id = Model.DdsIdentifier}, FormMethod.Post))
                         {
-                            <small>Disk cache: @Model.CachedTextModelFileInfo.LastWriteTime</small>
+                            <button type="submit" class="btn btn-link" title="Refresh All Resources">
+                                <span class="glyphicon glyphicon-refresh"></span> Rebuild All
+                            </button>
+                        }
+                        @if (Model.TextWriteTime.HasValue)
+                        {
+                            <small>Text generated: @StringUtils.GetFriendlyAge(Model.TextWriteTime.Value)</small>
                         }
                         else
                         {
-                            <small><em>No cached text model on disk yet</em></small>
+                            <small><em>No text on S3 yet</em></small>
                         }
-                        <br />
-                        @if (Model.CachedAltoAnnotationsFileInfo.Exists)
+                        <br/>
+                        @if (Model.AnnotationWriteTime.HasValue)
                         {
-                            <small>Disk cache: @Model.CachedAltoAnnotationsFileInfo.LastWriteTime</small>
+                            <small>Annos generated: @StringUtils.GetFriendlyAge(Model.AnnotationWriteTime.Value)</small>
                         }
                         else
                         {
-                            <small><em>No cached all annos on disk yet</em></small>
+                            <small><em>No annos on S3 yet</em></small>
                         }
                     </li>
                 }

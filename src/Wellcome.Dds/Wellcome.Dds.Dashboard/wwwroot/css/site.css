@@ -63,3 +63,7 @@ td.adjunct {
 td.adjunct span {
     font-size:larger;
 }
+
+button.btn-link{
+    padding: 0;
+}

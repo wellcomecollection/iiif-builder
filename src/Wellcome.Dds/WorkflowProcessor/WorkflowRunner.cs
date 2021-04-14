@@ -39,6 +39,7 @@ namespace WorkflowProcessor
         private readonly ICatalogue catalogue;
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
+        private readonly IWorkflowJobPostProcessor postProcessor;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -50,7 +51,8 @@ namespace WorkflowProcessor
             IOptions<DdsOptions> ddsOptions,
             ICatalogue catalogue,
             BucketWriter bucketWriter,
-            AltoDerivedAssetBuilder altoBuilder)
+            AltoDerivedAssetBuilder altoBuilder,
+            IWorkflowJobPostProcessor postProcessor)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -62,6 +64,7 @@ namespace WorkflowProcessor
             this.catalogue = catalogue;
             this.bucketWriter = bucketWriter;
             this.altoBuilder = altoBuilder;
+            this.postProcessor = postProcessor;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -126,6 +129,7 @@ namespace WorkflowProcessor
                     await SetJobErrorMessage(job);
                 }
 
+                await postProcessor.PostProcess(job);
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
             }
             catch (Exception ex)
@@ -204,7 +208,7 @@ namespace WorkflowProcessor
         {
             var state = new ChemistAndDruggistState(null!);
             int counter = 0;
-            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext(KnownIdentifiers.ChemistAndDruggist))
             {
                 logger.LogInformation($"Counter: {++counter}");
                 var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);

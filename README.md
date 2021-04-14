@@ -137,3 +137,44 @@ The following categories are used for tests:
 * `Manual` - for manual verification with multiple external dependencies (e.g. AWS creds, s3 objects) and not expected to be routinely ran.
 
 Unit tests are ran as part of building the Docker image. `Database` and `Manual` categories are ignored when running in the Dockerfile (`RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"`). _Depending on requirements it may make sense to ignore these in IDE for standard test runs_.
+
+## AWS Profiles
+
+For local development there are 3 different AWS profiles that are required. These are setup in the appsettings as a configSection with profile + region properties, e.g.:
+
+```json
+"Storage-AWS": {
+  "Profile": "wcstorage",
+  "Region": "eu-west-1"
+},
+"Dds-AWS": {
+  "Profile": "wcdev",
+  "Region": "eu-west-1"
+},
+"Platform-AWS": {
+  "Profile": "wcplatform",
+  "Region": "eu-west-1"
+},
+```
+
+They are:
+
+* `Storage-AWS` - contains name of profile that can access Wellcome's internal storage buckets for reading METS files etc.
+* `Dds-AWS` - profile that can access iiif-builder buckets for presentation, annotations and text.
+* `Platform-AWS` - profile that has rights to publish to SNS topic for CloudFront invalidation.
+
+These configSection names are used locally only, e.g. `services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));`
+
+As the specified AWS options configSection name is not present in deployed config, the SDK will fallback to the default credential provider chain and use ECS container credentials.
+
+### Named AWS Clients
+
+`Storage-AWS` and `Dds-AWS` profiles are used to access S3. To help with this the `NamedAmazonS3ClientFactory` is used, with an extension method to help configure it:
+
+```cs
+// register in INamedAmazonS3ClientFactory singleton with into IServiceCollection
+services.AddNamedS3Clients(Configuration, NamedClient.All);
+
+// get required IAmazonS3 client
+IAmazonS3 ddsClient = factory.Get(NamedClient.Dds);
+```

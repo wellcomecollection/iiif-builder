@@ -12,7 +12,7 @@ namespace Utils.Storage.FileSystem
             this.fileInfo = fileInfo;
         }
 
-        public DateTime LastWriteTime => fileInfo.LastWriteTime;
+        public DateTime? LastWriteTime => fileInfo.LastWriteTime;
 
         public string Uri => fileInfo.FullName;
 

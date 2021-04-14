@@ -27,6 +27,16 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public int TextPages { get; set; }
         public int TimeSpentOnTextPages { get; set; }
         public int? WorkflowOptions { get; set; }
+        
+        /// <summary>
+        /// Signifies job should be processed asap, without need to wait until it is X age.
+        /// </summary>
+        public bool Expedite { get; set; }
+        
+        /// <summary>
+        /// If true, caches should be flushed after processing.
+        /// </summary>
+        public bool FlushCache { get; set; }
 
         public string GetAltoRate()
         {

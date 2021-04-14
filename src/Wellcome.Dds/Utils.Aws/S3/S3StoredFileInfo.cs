@@ -29,7 +29,20 @@ namespace Utils.Aws.S3
             Uri = $"s3://{bucket}/{key}";
         }
 
-        private void EnsureObjectMetadata()
+        private void EnsureObjectMetadataInternal()
+        {
+            try
+            {
+                EnsureObjectMetadata().Wait();
+            }
+            catch
+            {
+                // ignored - mark as a failure
+                exists = false;
+            }
+        }
+
+        public async Task EnsureObjectMetadata()
         {
             if (exists.HasValue)
             {
@@ -44,7 +57,7 @@ namespace Utils.Aws.S3
 
             try
             {
-                var metadataResult = amazonS3.GetObjectMetadataAsync(bucket, key).Result;
+                var metadataResult = await amazonS3.GetObjectMetadataAsync(bucket, key);
                 if (metadataResult.HttpStatusCode == HttpStatusCode.OK)
                 {
                     exists = true;
@@ -59,12 +72,12 @@ namespace Utils.Aws.S3
             exists = false;
         }
 
-        public DateTime LastWriteTime
+        public DateTime? LastWriteTime
         {
             get
             {
-                EnsureObjectMetadata();
-                return lastWriteTime ?? DateTime.MinValue;
+                EnsureObjectMetadataInternal();
+                return lastWriteTime;
             }
         }
 
@@ -72,7 +85,7 @@ namespace Utils.Aws.S3
         {
             get
             {
-                EnsureObjectMetadata();
+                EnsureObjectMetadataInternal();
                 return exists != null && exists.Value;
             }
         }

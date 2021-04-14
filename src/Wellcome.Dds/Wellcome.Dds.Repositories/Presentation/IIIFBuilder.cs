@@ -75,7 +75,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
         {
             var state = new State();
-            if (bNumber == "b19974760")
+            if (bNumber == KnownIdentifiers.ChemistAndDruggist)
             {
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
@@ -151,7 +151,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private async Task PopulateChemistAndDruggistState(ChemistAndDruggistState state)
         {
-            await foreach (var mic in metsRepository.GetAllManifestationsInContext("b19974760"))
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext(KnownIdentifiers.ChemistAndDruggist))
             {
                 var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
                 if (volume == null)

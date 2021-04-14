@@ -102,5 +102,47 @@ namespace Utils.Tests
             // Assert
             result.Should().Be(expected);
         }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void Chomp_ReturnsProvided_IfNullOrEmpty(string toChomp)
+        {
+            // Act
+            var actual = toChomp.Chomp("foo");
+            
+            // Assert
+            actual.Should().Be(toChomp);
+        }
+
+        [Fact]
+        public void Chomp_ReturnsProvidedString_IfDoesntEndWithSeparator()
+        {
+            // Arrange
+            const string toChomp = "something";
+            const string separator = "some";
+            const string expected = "something";
+
+            // Act
+            var actual = toChomp.Chomp(separator);
+
+            // Assert
+            actual.Should().Be(expected);
+        }
+        
+        [Fact]
+        public void Chomp_RemovesEndOfString()
+        {
+            // Arrange
+            const string toChomp = "something";
+            const string separator = "thing";
+            const string expected = "some";
+
+            // Act
+            var actual = toChomp.Chomp(separator);
+
+            // Assert
+            actual.Should().Be(expected);
+        }
     }
 }

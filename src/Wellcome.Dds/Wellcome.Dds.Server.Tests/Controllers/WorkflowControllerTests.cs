@@ -37,7 +37,10 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 Waiting = true,
                 Finished = false,
                 Error = null,
-                ForceTextRebuild = true
+                ForceTextRebuild = true,
+                WorkflowOptions = null,
+                Expedite = false,
+                FlushCache = false
             };
             
             // Act
@@ -51,14 +54,20 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 opts.Including(job => job.Identifier)
                     .Including(job => job.Waiting)
                     .Including(job => job.Finished)
-                    .Including(job => job.ForceTextRebuild));
+                    .Including(job => job.ForceTextRebuild)
+                    .Including(job => job.WorkflowOptions)
+                    .Including(job => job.Expedite)
+                    .Including(job => job.FlushCache));
 
             var fromDatabase = await dbFixture.DdsInstrumentationContext.WorkflowJobs.FindAsync(bnumber);
             fromDatabase.Should().BeEquivalentTo(expected, opts => 
                 opts.Including(job => job.Identifier)
                     .Including(job => job.Waiting)
                     .Including(job => job.Finished)
-                    .Including(job => job.ForceTextRebuild));
+                    .Including(job => job.ForceTextRebuild)
+                    .Including(job => job.WorkflowOptions)
+                    .Including(job => job.Expedite)
+                    .Including(job => job.FlushCache));
         }
         
         [Fact]
@@ -75,7 +84,10 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 Waiting = true,
                 Finished = false,
                 Error = null,
-                ForceTextRebuild = true
+                ForceTextRebuild = true,
+                WorkflowOptions = null,
+                Expedite = false,
+                FlushCache = false
             };
 
             await dbFixture.DdsInstrumentationContext.WorkflowJobs.AddAsync(new WorkflowJob
@@ -97,7 +109,10 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 opts.Including(job => job.Identifier)
                     .Including(job => job.Waiting)
                     .Including(job => job.Finished)
-                    .Including(job => job.ForceTextRebuild));
+                    .Including(job => job.ForceTextRebuild)
+                    .Including(job => job.WorkflowOptions)
+                    .Including(job => job.Expedite)
+                    .Including(job => job.FlushCache));
 
             var fromDatabase =
                 await dbFixture.DdsInstrumentationContext.WorkflowJobs.SingleOrDefaultAsync(
@@ -106,7 +121,10 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 opts.Including(job => job.Identifier)
                     .Including(job => job.Waiting)
                     .Including(job => job.Finished)
-                    .Including(job => job.ForceTextRebuild));
+                    .Including(job => job.ForceTextRebuild)
+                    .Including(job => job.WorkflowOptions)
+                    .Including(job => job.Expedite)
+                    .Including(job => job.FlushCache));
             fromDatabase.Created.Should().BeCloseTo(DateTime.Now, 5000);
         }
     }

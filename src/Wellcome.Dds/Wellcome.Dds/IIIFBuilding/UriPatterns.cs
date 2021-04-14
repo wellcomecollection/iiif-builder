@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Microsoft.Extensions.Options;
+using Utils;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -367,6 +369,60 @@ namespace Wellcome.Dds.IIIFBuilding
             return path;
         }
 
+        public string[] GetCacheInvalidationPaths(string identifier, InvalidationPathType pathTypes)
+        {
+            var wildcardIdentifier = $"{identifier}*";
+            if (pathTypes == InvalidationPathType.Text)
+            {
+                return new[]
+                {
+                    RawTextFormat.Replace(IdentifierToken, wildcardIdentifier),
+                    MetsAltoFormat.Replace(IdentifierToken, wildcardIdentifier).Chomp("/{assetIdentifier}"),
+                };
+            }
+
+            if (pathTypes == InvalidationPathType.IIIF)
+            {
+                const string annosFormat = "/annotations/v{version}/{identifier}";
+                const string presFormat = "/presentation/v{version}/{identifier}";
+                return new[]
+                {
+                    WorkThumbnailFormat.Replace(IdentifierToken, wildcardIdentifier),
+                    IIIFContentSearch0Format.Replace(IdentifierToken, wildcardIdentifier),
+                    IIIFContentSearch1Format.Replace(IdentifierToken, wildcardIdentifier),
+                    IIIFContentSearch2Format.Replace(IdentifierToken, wildcardIdentifier),
+                    IIIFAutoComplete1Format.Replace(IdentifierToken, wildcardIdentifier),
+                    IIIFAutoComplete2Format.Replace(IdentifierToken, wildcardIdentifier),
+                    ManifestFormat.Replace(IdentifierToken, wildcardIdentifier),
+                    annosFormat.Replace(IdentifierToken, wildcardIdentifier)
+                        .Replace(VersionToken, "2"),
+                    annosFormat.Replace(IdentifierToken, wildcardIdentifier)
+                        .Replace(VersionToken, "3"),
+                    presFormat.Replace(IdentifierToken, wildcardIdentifier)
+                        .Replace(VersionToken, "2"),
+                    presFormat.Replace(IdentifierToken, wildcardIdentifier)
+                        .Replace(VersionToken, "3"),
+                };
+            }
+
+            throw new InvalidOperationException(
+                "This should never be reached - has a new InvalidationPathType been added?");
+        }
+    }
+    
+    /// <summary>
+    /// Enum representing various groups of invalidation paths available.
+    /// </summary>
+    public enum InvalidationPathType
+    {
+        /// <summary>
+        /// Paths that will be available on iiif.wc.org/*
+        /// </summary>
+        IIIF,
         
+        /// <summary>
+        /// Paths that will be available on api.wc.org/text/*
+        /// </summary>
+        Text
     }
 }

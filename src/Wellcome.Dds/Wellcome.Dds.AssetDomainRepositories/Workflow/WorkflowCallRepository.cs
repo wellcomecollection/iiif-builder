@@ -25,15 +25,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 
         private const int RecentSampleHours = 2;
 
-        public async Task<WorkflowJob> CreateWorkflowJob(string id)
-        {
-            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, -1);
-            return workflowJob;
-        }
-        
         public async Task<WorkflowJob> CreateWorkflowJob(string id, int? workflowOptions)
         {
-            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions);
+            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions, false, false);
+            return workflowJob;
+        }
+
+        public async Task<WorkflowJob> CreateExpeditedWorkflowJob(string id, int? workflowOptions, bool invalidateCache)
+        {
+            var workflowJob =
+                await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions, true, invalidateCache);
             return workflowJob;
         }
 

@@ -141,7 +141,7 @@ namespace Utils.Caching
                 return;
             }
 
-            if (cacheKey.Contains("b19974760"))
+            if (cacheKey.Contains(KnownIdentifiers.ChemistAndDruggist))
             {
                 memoryCache.Set(cacheKey, t);
                 return;
