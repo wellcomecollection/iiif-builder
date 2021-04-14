@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.AssetDomainRepositories.Control;
 
 namespace Wellcome.Dds.AssetDomainRepositories
 {
@@ -33,6 +34,8 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         // from WorkflowContext:
         public DbSet<WorkflowJob> WorkflowJobs { get; set; }
+        
+        public DbSet<ControlFlow> ControlFlows { get; set; }
 
         public async Task<int> CountBatchesAsync()
         {

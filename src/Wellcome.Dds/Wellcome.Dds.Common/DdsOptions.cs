@@ -3,11 +3,6 @@
     // Which class Library does this class live in?
     public class DdsOptions
     {
-        public string StatusContainer { get; set; }
-        public string GoFile { get; set; }
-        public string StatusProviderHeartbeat { get; set; }
-        public string StatusProviderLogSpecialFile { get; set; }
-        
         // TODO - leave this with the name "LinkedDataDomain" for now, for ease of migration,
         // but later, refactor to "SchemeAndHost"
         public string LinkedDataDomain { get; set; }

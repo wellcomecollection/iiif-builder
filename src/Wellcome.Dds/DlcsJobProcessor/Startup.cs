@@ -50,9 +50,7 @@ namespace DlcsJobProcessor
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
 
-            services.AddSingleton<IStatusProvider, S3StatusProvider>(opts =>
-                ActivatorUtilities.CreateInstance<S3StatusProvider>(opts,
-                    factory.Get(NamedClient.Dds)));
+            services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
             
             services.AddSingleton<IStorage, S3Storage>(opts =>
                 ActivatorUtilities.CreateInstance<S3Storage>(opts, 
