@@ -127,7 +127,6 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                throw new Exception();
                 var result = await modelBuilder.Build(id, Url);
 
                 // if we have a model render it
