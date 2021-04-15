@@ -129,7 +129,7 @@ namespace WorkflowProcessor
                     await SetJobErrorMessage(job);
                 }
 
-                await postProcessor.PostProcess(job);
+                await postProcessor.PostProcess(job, jobOptions);
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
             }
             catch (Exception ex)

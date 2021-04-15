@@ -13,7 +13,7 @@ namespace WorkflowProcessor
 {
     public interface IWorkflowJobPostProcessor
     {
-        Task PostProcess(WorkflowJob job);
+        Task PostProcess(WorkflowJob job, RunnerOptions runnerOptions);
     }
 
     public class WorkflowJobPostProcessor : IWorkflowJobPostProcessor
@@ -35,15 +35,13 @@ namespace WorkflowProcessor
             this.logger = logger;
         }
 
-        public async Task PostProcess(WorkflowJob job)
+        public async Task PostProcess(WorkflowJob job, RunnerOptions runnerOptions)
         {
             if (!job.FlushCache) return;
             
             logger.LogInformation("Flushing cache for {Identifier}", job.Identifier);
 
             var cacheInvalidationOptions = options.Value;
-
-            var runnerOptions = RunnerOptions.FromInt32(job.WorkflowOptions ?? 0);
 
             // api.wc.org cache is only invalidated if text has been rebuilt 
             if (runnerOptions.RebuildTextCaches)
