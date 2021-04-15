@@ -29,7 +29,8 @@ namespace IIIF.Serialisation
                     new JsonSerializerSettings
                     {
                         NullValueHandling = NullValueHandling.Ignore,
-                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                        ContractResolver = new PrettyIIIFContractResolver(),
+                        Formatting = Formatting.Indented,
                     }));
             }
         }
