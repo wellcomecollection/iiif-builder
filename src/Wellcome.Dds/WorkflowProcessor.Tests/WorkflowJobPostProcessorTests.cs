@@ -41,7 +41,7 @@ namespace WorkflowProcessor.Tests
             var workflowJob = new WorkflowJob {FlushCache = false};
             
             // Act
-            await sut.PostProcess(workflowJob);
+            await sut.PostProcess(workflowJob, new RunnerOptions());
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._)).MustNotHaveHappened();
@@ -57,14 +57,14 @@ namespace WorkflowProcessor.Tests
             // Arrange
             var workflowJob = new WorkflowJob
             {
-                FlushCache = true, Identifier = "b1231231", WorkflowOptions = options
+                FlushCache = true, Identifier = "b1231231"
             };
             PublishRequest request = null;
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))
                 .Invokes((PublishRequest pr, CancellationToken ct) => request = pr);
 
             // Act
-            await sut.PostProcess(workflowJob);
+            await sut.PostProcess(workflowJob, RunnerOptions.FromInt32(options));
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -84,7 +84,7 @@ namespace WorkflowProcessor.Tests
             // Arrange
             var workflowJob = new WorkflowJob
             {
-                FlushCache = true, Identifier = "b1231231", WorkflowOptions = options
+                FlushCache = true, Identifier = "b1231231"
             };
             PublishRequest requestIiif = null;
             PublishRequest requestApi = null;
@@ -102,7 +102,7 @@ namespace WorkflowProcessor.Tests
                 });
 
             // Act
-            await sut.PostProcess(workflowJob);
+            await sut.PostProcess(workflowJob, RunnerOptions.FromInt32(options));
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))
