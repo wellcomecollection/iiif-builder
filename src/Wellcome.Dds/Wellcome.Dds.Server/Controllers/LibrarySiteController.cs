@@ -48,18 +48,29 @@ namespace Wellcome.Dds.Server.Controllers
             this.memoryCache = memoryCache;
             this.helpers = helpers;
         }
+        
+        private string Normalise(string bNumber)
+        {
+            // don't normalise b000-000 forms
+            if (bNumber.Contains('-'))
+            {
+                return bNumber;
+            }
 
+            return WellcomeLibraryIdentifiers.GetNormalisedBNumber(bNumber, false);
+        }
         
         [HttpGet("iiif/collection/{id}")]
         public IActionResult IIIFCollection(string id)
         {
-            return BuilderUrl(uriPatterns.CollectionForWork(id));
+            return BuilderUrl(uriPatterns.CollectionForWork(Normalise(id)));
         }
-        
+
+     
         [HttpGet("iiif/{id}/manifest")]
         public IActionResult IIIFManifest(string id)
         {
-            return ManifestLevelConversion(id, uriPatterns.Manifest);
+            return ManifestLevelConversion(Normalise(id), uriPatterns.Manifest);
         }
 
         [HttpGet("annoservices/search/{id}")]
@@ -78,7 +89,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("item/{id}")]
         public async Task<IActionResult> ItemPage(string id)
         {
-            var work = await catalogue.GetWorkByOtherIdentifier(id);
+            var work = await catalogue.GetWorkByOtherIdentifier(Normalise(id));
             if (work != null)
             {
                 return BuilderUrl(uriPatterns.PersistentPlayerUri(work.Id));

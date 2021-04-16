@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -56,7 +57,7 @@ namespace Wellcome.Dds.Server.Controllers
             this.iiifBuilder = iiifBuilder;
             this.catalogue = catalogue;
         }
-        
+
         /// <summary>
         /// The canonical route for IIIF resources.
         /// Supports content negotiation.
@@ -68,6 +69,11 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("{id}")] 
         public Task<IActionResult> Index(string id)
         {
+            var redirect = RequiredRedirect(id, uriPatterns.Manifest);
+            if (redirect != null)
+            {
+                return Task.FromResult<IActionResult>(redirect);
+            }
             // Return requested version if headers present, or fallback to known version
             var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
             return iiifVersion == Version.V2 ? V2(id) : V3(id);
@@ -528,7 +534,40 @@ namespace Wellcome.Dds.Server.Controllers
             return id.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
 
         }
+        
+        private RedirectResult RequiredRedirect(string bNumberLikeString, Func<string, string> transformer)
+        {
+            // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
+            if (bNumberLikeString.Contains('_'))
+            {
+                // Likely a manifestation identifier, proceed
+                return null;
+            }
+
+            if (bNumberLikeString.StartsWith('b') && bNumberLikeString.Length == 9)
+            {
+                // looks like a normal b-number
+                char checkDigit = bNumberLikeString[8];
+                if (Char.IsDigit(checkDigit) || 'x' == checkDigit)
+                {
+                    // still looks like a normal b number. In the new DDS, where we don't expect 
+                    // Sierra links directly, we WON'T normalise these. An incorrect check digit is a 404,
+                    // rather than something we correct. However, if the check digit is `a` we will correct it.
+                    return null;
+                }
+            }
+
+            var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(bNumberLikeString, false);
+            if (normalised != bNumberLikeString)
+            {
+                return RedirectPermanent(transformer(normalised));
+            }
+
+            return null;
+        }
     }
+    
+    
 
     static class PresentationControllerX
     {
