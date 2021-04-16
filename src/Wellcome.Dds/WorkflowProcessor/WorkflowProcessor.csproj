@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.5.1.49" />
-    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.5.1.51" />
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.1" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.0.12" />
     <PackageReference Include="CsvHelper" Version="26.0.1" />
     <PackageReference Include="EFCore.NamingConventions" Version="5.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="5.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="5.0.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
