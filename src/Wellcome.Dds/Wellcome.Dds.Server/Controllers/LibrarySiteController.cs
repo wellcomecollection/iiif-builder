@@ -70,19 +70,23 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("iiif/{id}/manifest")]
         public IActionResult IIIFManifest(string id)
         {
-            return ManifestLevelConversion(Normalise(id), uriPatterns.Manifest);
+            // We want this to give us the collection URL if it's a collection, not the first manifest.
+            // This is because people will ask for this when they don't know in advance it's a collection.
+            return ManifestLevelConversion(false, Normalise(id), uriPatterns.Manifest);
         }
 
         [HttpGet("annoservices/search/{id}")]
         public IActionResult SearchService(string id)
         {
-            return ManifestLevelConversion(id, uriPatterns.IIIFContentSearchService0);
+            // This can only work for a manifest, not a collection
+            return ManifestLevelConversion(true, id, uriPatterns.IIIFContentSearchService0);
         }
         
         [HttpGet("annoservices/autocomplete/{id}")]
         public IActionResult AutoCompleteService(string id)
         {
-            return ManifestLevelConversion(id, uriPatterns.IIIFAutoCompleteService1);
+            // This can only work for a manifest, not a collection
+            return ManifestLevelConversion(true, id, uriPatterns.IIIFAutoCompleteService1);
         }
         
         [HttpGet("player/{id}")]
@@ -309,9 +313,19 @@ namespace Wellcome.Dds.Server.Controllers
         }
 
         
-        private IActionResult ManifestLevelConversion(string id, Func<string, string> converter)
+        private IActionResult ManifestLevelConversion(bool useFirstManifestation, string id, Func<string, string> converter)
         {
-            var idParts = ManifestIdParts(id);
+            var idParts = ManifestIdParts(id, -1);
+            if (idParts.index == -1)
+            {
+                if (useFirstManifestation == false)
+                {
+                    // Use the b number as-is, don't try to deduce a manifest ID
+                    return BuilderUrl(converter(idParts.bNumber));
+                }
+
+                idParts.index = 0;
+            }
             var manifestation = ddsContext.GetManifestationByIndex(idParts.bNumber, idParts.index);
             if (manifestation == null)
             {
@@ -322,7 +336,7 @@ namespace Wellcome.Dds.Server.Controllers
         
         private IActionResult ManifestLevelConversionWithVersion(string id, Func<string, int, string> converter)
         {
-            var idParts = ManifestIdParts(id);
+            var idParts = ManifestIdParts(id, 0);
             var manifestation = ddsContext.GetManifestationByIndex(idParts.bNumber, idParts.index);
             if (manifestation == null)
             {
@@ -357,7 +371,7 @@ namespace Wellcome.Dds.Server.Controllers
         private async Task<IActionResult> CanvasLevelConversion(string manifestId, int canvasIndex,
             Func<string, string, string> converter, string newQueryString)
         {
-            var idParts = ManifestIdParts(manifestId);
+            var idParts = ManifestIdParts(manifestId, 0);
             var manifestation = ddsContext.GetManifestationByIndex(idParts.bNumber, idParts.index);
             if (manifestation == null)
             {
@@ -370,7 +384,7 @@ namespace Wellcome.Dds.Server.Controllers
         private async Task<IActionResult> CanvasLevelConversionWithVersion(string manifestId, int canvasIndex,
             Func<string, string, int, string> converter, string newQueryString)
         {
-            var idParts = ManifestIdParts(manifestId);
+            var idParts = ManifestIdParts(manifestId, 0);
             var manifestation = ddsContext.GetManifestationByIndex(idParts.bNumber, idParts.index);
             if (manifestation == null)
             {
@@ -418,7 +432,7 @@ namespace Wellcome.Dds.Server.Controllers
         }
 
 
-        private (string bNumber, int index) ManifestIdParts(string id)
+        private (string bNumber, int index) ManifestIdParts(string id, int defaultIndex)
         {
             string bNumber;
             int index;
@@ -432,7 +446,7 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 bNumber = id;
-                index = 0;
+                index = defaultIndex; // You'll need to do further work to know whether bNumber is a Collection
             }
 
             return (bNumber, index);
