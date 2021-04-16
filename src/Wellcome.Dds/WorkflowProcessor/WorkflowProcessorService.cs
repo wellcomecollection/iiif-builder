@@ -35,6 +35,7 @@ namespace WorkflowProcessor
         private readonly string TraverseChemistAndDruggistParam = "--chem";
         private readonly string CatalogueDumpParam = "--catalogue-dump";
         private readonly string OffsetParam = "--offset";
+        private readonly string ProcessParam = "--process";
 
         /// <summary>
         /// Usage:
@@ -78,6 +79,9 @@ namespace WorkflowProcessor
         ///
         /// --catalogue-dump {path}
         /// Specify the catalogue dump file to use, this will NOT download a fresh copy of catalogue
+        ///
+        /// --process {bnum}
+        /// Creates workflow record and immediately processes specified bnumber
         /// 
         /// </summary>
         public WorkflowProcessorService(
@@ -152,6 +156,13 @@ namespace WorkflowProcessor
                 logger.LogInformation("Print Chemist And Druggist Enumeration");
                 await TraverseChemistAndDruggist();
                 return;
+            }
+
+            if (HasArgument(ProcessParam))
+            {
+                var processParam = GetOperationWithParameter(new[] {ProcessParam}).parameter;
+                logger.LogInformation($"Creating workflow record and processing {processParam}");
+                await ProcessBNumber(processParam, workflowOptionsFlags, stoppingToken);
             }
 
             string? catalogueDump = null;
@@ -288,7 +299,7 @@ namespace WorkflowProcessor
             await PopulateJobs(File.ReadLines(file), workflowOptions, stoppingToken);
         }
         
-        private async Task PopulateJobs(IEnumerable<string> bNumbers,  int? workflowOptions, CancellationToken stoppingToken)
+        private async Task PopulateJobs(IEnumerable<string> bNumbers, int? workflowOptions, CancellationToken stoppingToken)
         {
             // https://stackoverflow.com/a/48368934
             using var scope = serviceScopeFactory.CreateScope();
@@ -369,8 +380,35 @@ namespace WorkflowProcessor
                 }
             }
         }
-        
-        
+
+        private async Task ProcessBNumber(string bnumber, int? workflowOptions, CancellationToken stoppingToken)
+        {
+            try
+            {
+                using var scope = serviceScopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
+                
+                var workflowJob = await dbContext.PutJob(bnumber, true, true, workflowOptions, false, false);
+                
+                var runner = GetWorkflowRunner(scope);
+                await runner.ProcessJob(workflowJob, stoppingToken);
+                
+                workflowJob.Finished = true;
+                try
+                {
+                    await dbContext.SaveChangesAsync(stoppingToken);
+                }
+                catch (DbUpdateException e)
+                {
+                    throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error Processing BNumber {BNumber}", bnumber);
+            }
+        }
+
         private async Task TraverseChemistAndDruggist()
         {
             using var scope = serviceScopeFactory.CreateScope();

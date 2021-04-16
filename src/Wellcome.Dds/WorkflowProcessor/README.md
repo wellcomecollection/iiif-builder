@@ -44,3 +44,7 @@ Used alongside `--populate-slice`
 Specify the catalogue dump file to use, this will NOT download a fresh copy of catalogue.
 If specified file is not found, program will throw an exception.
 Used alongside `--populate-slice`
+
+`--process {bnumber}`
+
+Create a new workflow-job and immediately process. Can be used with `--workflow-options {flags-int}`
