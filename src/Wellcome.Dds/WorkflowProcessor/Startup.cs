@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OAuth2;
+using Utils.Aws.Options;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -57,6 +58,7 @@ namespace WorkflowProcessor
             services.Configure<RunnerOptions>(Configuration.GetSection("WorkflowProcessor"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
+            services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
             
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));   
             services.AddAWSService<IAmazonSimpleNotificationService>(Configuration.GetAWSOptions("Platform-AWS"));
@@ -66,8 +68,8 @@ namespace WorkflowProcessor
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
 
-            services.AddSingleton<IStorage, S3Storage>(opts =>
-                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
+            services.AddSingleton<IStorage, S3CacheAwareStorage>(opts =>
+                ActivatorUtilities.CreateInstance<S3CacheAwareStorage>(opts, 
                     factory.Get(NamedClient.Dds)));
             services.AddScoped<IIIIFBuilder, IIIFBuilder>();
             services.AddScoped<BucketWriter>(opts =>

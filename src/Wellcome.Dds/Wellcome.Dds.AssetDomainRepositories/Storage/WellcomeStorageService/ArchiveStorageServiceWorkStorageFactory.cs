@@ -42,7 +42,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         public async Task<IWorkStore> GetWorkStore(string identifier)
         {
             Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => BuildStorageMap(identifier);
-            logger.LogInformation("Getting IWorkStore for {identifier}", identifier);
+            logger.LogInformation("Getting IWorkStore for {Identifier}", identifier);
             WellcomeBagAwareArchiveStorageMap storageMap =
                 await storageMapCache.GetCachedObject(identifier, getFromSource, NeedsRebuilding);
             return new ArchiveStorageServiceWorkStore(identifier, storageMap, storageServiceClient, xmlElementCache,
@@ -51,7 +51,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         
         private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string identifier)
         {
-            logger.LogInformation("Requires new build of storage map for {identifier}", identifier);
+            logger.LogInformation("Requires new build of storage map for {Identifier}", identifier);
             var storageManifest = await storageServiceClient.LoadStorageManifest(identifier);
             return WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, identifier);
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using ProtoBuf;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
@@ -10,6 +11,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     /// </summary>
     /// <remarks>See https://gist.github.com/tomcrane/441f82c635292c737323e98d6340f8df</remarks>
     [Serializable]
+    [ProtoContract]
     public class WellcomeBagAwareArchiveStorageMap
     {
         /// <summary>
@@ -17,11 +19,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// in increasing order of size of set 
         /// </summary>
         /// <remarks>This is a List, as opposed to Dict as ordering is important.</remarks>
+        [ProtoMember(1)]
         public List<KeyValuePair<string, HashSet<string>>> VersionSets { get; set; }
+        
+        [ProtoMember(2)]
         public string BucketName { get; set; }
+        
+        [ProtoMember(3)]
         public DateTime StorageManifestCreated { get; set; }
+        
+        [ProtoMember(4)]
         public DateTime Built { get; set; }
         
+        [ProtoMember(5)]
         public string Identifier { get; set; }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -37,55 +35,36 @@ namespace Utils.Aws.S3
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
-            T t = default;
             try
             {
                 await using var stream = await GetStream(fileInfo.Container, fileInfo.Path);
                 if (stream != null)
                 {
-                    IFormatter formatter = new BinaryFormatter();
-                    var obj = formatter.Deserialize(stream);
+                    var obj = ProtoBuf.Serializer.Deserialize<T>(stream);
                     stream.Close();
-                    switch (obj)
-                    {
-                        case T tObj:
-                            // The object from S3 is a T as expected, so we're good.
-                            t = tObj;
-                            break;
-                        case null:
-                            // not sure if this actually ever happens...
-                            logger.LogError(
-                                $"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, stream didn't result in object");
-                            break;
-                        default:
-                            // Something else wrote to the bucket? Not a T
-                            logger.LogError(
-                                $"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
-                            break;
-                    }
+                    return obj;
                 }
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Attempt to deserialize '{Uri}' from S3 failed.", fileInfo.Uri);
+                logger.LogError(e, "Attempt to deserialize '{Uri}' from S3 failed", fileInfo.Uri);
             }
-            return t;
+            return default;
         }
 
         public async Task Write<T>(T t, ISimpleStoredFileInfo fileInfo, bool writeFailThrowsException) where T : class
         {
             logger.LogInformation("Writing cache file '{Uri}' to S3", fileInfo.Uri);
-            var request = new PutObjectRequest()
+            var request = new PutObjectRequest
             {
                 BucketName = fileInfo.Container, Key = fileInfo.Path
             };
             
             try
             {
-                IFormatter formatter = new BinaryFormatter();
                 await using (request.InputStream = new MemoryStream())
                 {
-                    formatter.Serialize(request.InputStream, t);
+                    ProtoBuf.Serializer.Serialize(request.InputStream, t);
                     await amazonS3.PutObjectAsync(request);
                 }
             }
@@ -113,7 +92,7 @@ namespace Utils.Aws.S3
             }
             catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
-                logger.LogInformation(e, "Could not find S3 object {Bucket}/{Key}", container, fileName);
+                logger.LogDebug("Could not find S3 object {Bucket}/{Key}", container, fileName);
                 return null;
             }
             catch (AmazonS3Exception e)

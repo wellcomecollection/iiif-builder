@@ -63,7 +63,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     if (!IsProtocolError(ex))
                     {
-                        logger.LogError("Could not get storage manifest", ex);
+                        logger.LogError(ex, "Could not get storage manifest");
                         throw;
                     }
 
