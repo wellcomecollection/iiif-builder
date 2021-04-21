@@ -163,6 +163,7 @@ namespace WorkflowProcessor
                 var processParam = GetOperationWithParameter(new[] {ProcessParam}).parameter;
                 logger.LogInformation($"Creating workflow record and processing {processParam}");
                 await ProcessBNumber(processParam, workflowOptionsFlags, stoppingToken);
+                return;
             }
 
             string? catalogueDump = null;

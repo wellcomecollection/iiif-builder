@@ -10,16 +10,12 @@ namespace Wellcome.Dds.AssetDomain
     /// </summary>
     public interface IWorkStore
     {
-        string Identifier { get; set; }
-        string FileUri(string relativePath);
+        string Identifier { get; }
         Task<XmlSource> LoadXmlForPath(string relativePath);
         Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache);
         Task<XmlSource> LoadXmlForIdentifier(string identifier);
-        IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier);
         IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath);
         Task<Stream> GetStreamForPathAsync(string relativePath);
-        Task WriteFileAsync(string relativePath, string destination);
-        bool IsKnownFile(string relativePath); // TODO: Get rid of this method
 
         /// <summary>
         /// Factory method for asset metadata, which depends on the XML structure
