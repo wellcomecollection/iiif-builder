@@ -131,6 +131,7 @@ namespace WorkflowProcessor
 
                 await postProcessor.PostProcess(job, jobOptions);
                 job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
+                logger.LogInformation("Processed {JobId} in {TotalTime}ms", job.Identifier, job.TotalTime);
             }
             catch (Exception ex)
             {

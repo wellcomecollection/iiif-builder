@@ -80,7 +80,7 @@ namespace Utils.Caching
 
             bool memoryCacheMiss = false;
             var cachedFile = GetCachedFile(key);
-            using (var processLock = await asyncLocker.LockAsync(string.Intern(key)))
+            using (var processLock = await asyncLocker.LockAsync(string.Intern(key)).TimeoutAfter(10000, true))
             {
                 // check in memoryCache cache again
                 if (memoryCache != null)
