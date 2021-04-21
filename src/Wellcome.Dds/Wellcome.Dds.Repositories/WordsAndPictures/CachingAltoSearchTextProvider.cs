@@ -20,22 +20,16 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             this.searchTextCache = searchTextCache;
         }
 
-        public Task<Text> GetSearchText(string identifier)
+        public Task<Text?> GetSearchText(string identifier)
         {
-            return GetSearchTextInternal(identifier, t => false);
+            return searchTextCache.GetCachedObject(identifier, null, t => false);
         }
 
         public Task<Text> ForceSearchTextRebuild(string identifier)
         {
-            return GetSearchTextInternal(identifier, t => true);
-        }
-
-        private async Task<Text> GetSearchTextInternal(string identifier, Predicate<Text> diskVersionIsStale)
-        {
             Func<Task<Text>> getFromSource = () => altoSearchTextProvider.GetSearchText(identifier);
-            return await searchTextCache.GetCachedObject(identifier, getFromSource, diskVersionIsStale);
+            return searchTextCache.GetCachedObject(identifier, getFromSource, t => true);
         }
-
 
         public ISimpleStoredFileInfo GetFileInfo(string identifier)
         {
