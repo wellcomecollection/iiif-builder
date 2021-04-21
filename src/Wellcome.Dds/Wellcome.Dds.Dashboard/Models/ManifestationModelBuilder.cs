@@ -267,9 +267,9 @@ namespace Wellcome.Dds.Dashboard.Models
             await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), annosFileInfo.EnsureObjectMetadata(),
                 manifestFileInfo.EnsureObjectMetadata());
 
-            model.TextWriteTime = textFileInfo.LastWriteTime;
-            model.AnnotationWriteTime = annosFileInfo.LastWriteTime;
-            model.ManifestWriteTime = manifestFileInfo.LastWriteTime;
+            model.TextWriteTime = textFileInfo.GetLastWriteTime().Result;
+            model.AnnotationWriteTime = annosFileInfo.GetLastWriteTime().Result;
+            model.ManifestWriteTime = manifestFileInfo.GetLastWriteTime().Result;
         }
     }
 }

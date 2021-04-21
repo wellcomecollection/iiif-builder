@@ -78,7 +78,7 @@ namespace WorkflowProcessor
                         job.ExpectedTexts++;
                         var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
 
-                        if (textFileInfo.Exists && !job.ForceTextRebuild)
+                        if (await textFileInfo.DoesExist() && !job.ForceTextRebuild)
                         {
                             logger.LogInformation("Text already on disk for {ManifestationId}", manifestation.Id);
                             wordCountInvalid = true;
@@ -92,7 +92,7 @@ namespace WorkflowProcessor
 
                         //  How do the all-annos file and the images file get built?
                         var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
-                        if (allAnnoFileInfo.Exists && !job.ForceTextRebuild)
+                        if (await allAnnoFileInfo.DoesExist() && !job.ForceTextRebuild)
                         {
                             logger.LogInformation("All anno file already on disk for {ManifestationId}",
                                 manifestation.Id);

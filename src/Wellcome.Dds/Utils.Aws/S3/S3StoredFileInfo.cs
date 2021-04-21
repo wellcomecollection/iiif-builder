@@ -3,7 +3,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
-using Amazon.S3.Model;
 using Utils.Storage;
 
 namespace Utils.Aws.S3
@@ -27,19 +26,6 @@ namespace Utils.Aws.S3
             this.key = key;
             this.amazonS3 = amazonS3;
             Uri = $"s3://{bucket}/{key}";
-        }
-
-        private void EnsureObjectMetadataInternal()
-        {
-            try
-            {
-                EnsureObjectMetadata().Wait();
-            }
-            catch
-            {
-                // ignored - mark as a failure
-                exists = false;
-            }
         }
 
         public async Task EnsureObjectMetadata()
@@ -72,24 +58,18 @@ namespace Utils.Aws.S3
             exists = false;
         }
 
-        public DateTime? LastWriteTime
+        public async Task<bool> DoesExist()
         {
-            get
-            {
-                EnsureObjectMetadataInternal();
-                return lastWriteTime;
-            }
+            await EnsureObjectMetadata();
+            return exists != null && exists.Value;
         }
 
-        public bool Exists
+        public async Task<DateTime?> GetLastWriteTime()
         {
-            get
-            {
-                EnsureObjectMetadataInternal();
-                return exists != null && exists.Value;
-            }
+            await EnsureObjectMetadata();
+            return lastWriteTime;
         }
-        
+
         public string Uri { get; }
 
         public string Container => bucket;

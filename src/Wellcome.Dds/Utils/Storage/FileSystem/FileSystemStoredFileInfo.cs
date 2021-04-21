@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Utils.Storage.FileSystem
 {
@@ -12,12 +13,11 @@ namespace Utils.Storage.FileSystem
             this.fileInfo = fileInfo;
         }
 
-        public DateTime? LastWriteTime => fileInfo.LastWriteTime;
-
         public string Uri => fileInfo.FullName;
+        public Task<bool> DoesExist() => Task.FromResult(fileInfo.Exists);
 
-        public bool Exists => fileInfo.Exists;
-
+        public Task<DateTime?> GetLastWriteTime() => Task.FromResult<DateTime?>(fileInfo.LastWriteTime);
+        
         public string Container => fileInfo.DirectoryName;
 
         public string Path => fileInfo.Name;

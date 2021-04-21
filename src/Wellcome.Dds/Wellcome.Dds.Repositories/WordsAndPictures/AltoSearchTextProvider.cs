@@ -191,7 +191,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError("Cannot read or parse ALTO", ex);
+                        logger.LogError(ex, "Cannot read or parse ALTO");
                     }
                 }
             }
