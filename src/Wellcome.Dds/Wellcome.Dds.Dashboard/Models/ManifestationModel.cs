@@ -404,7 +404,6 @@ namespace Wellcome.Dds.Dashboard.Models
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
         public string EncoreRecordUrl { get; set; }
-        public string EncoreBiblioRecordUrl { get; set; }
         public string ManifestUrl { get; set; }
 
         /// <summary>

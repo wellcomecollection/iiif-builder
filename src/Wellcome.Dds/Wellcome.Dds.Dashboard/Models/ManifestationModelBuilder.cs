@@ -126,7 +126,6 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
                         EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.BNumber),
-                        EncoreBiblioRecordUrl = uriPatterns.EncoreBibliographicData(identifier.BNumber),
                         ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)
