@@ -2,7 +2,9 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Utils;
 using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
 {
@@ -28,11 +30,20 @@ namespace Wellcome.Dds.Server.Controllers
         /// </remarks>
         /// <param name="id">bNumber to create job for.</param>
         /// <param name="forceRebuild">if true, forces text resources to be rebuilt.</param>
-        /// <returns>201 if accepted, else error.</returns>
+        /// <returns>202 if accepted, else error.</returns>
         [HttpGet]
         [ProducesResponseType(202)]
         public async Task<ActionResult> Process(string id, bool forceRebuild = true)
         {
+            if (!id.IsBNumber())
+            {
+                return StatusCode(500, $"{id} is not a b number.");
+            }
+
+            if (id.Equals(KnownIdentifiers.ChemistAndDruggist, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return StatusCode(403, "You can't rebuild Chemist and Druggist this way.");
+            }
             try
             {
                 var workflowJob = await instrumentationContext.PutJob(id, forceRebuild, false, -1, false, false);
