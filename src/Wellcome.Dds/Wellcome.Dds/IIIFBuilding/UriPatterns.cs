@@ -69,7 +69,6 @@ namespace Wellcome.Dds.IIIFBuilding
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat =       "https://wellcomecollection.org/works/{identifier}";
         private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
-        private const string EncoreBibliographicDataFormat =   "https://search.wellcomelibrary.org/iii/queryapi/collection/bib/{identifier}?profiles=b(full)i(brief)&amp;format=xml";
         
         // DLCS Paths
         private const string DlcsPdfTemplate          = "{dlcsEntryPoint}pdf/{identifier}";
@@ -195,11 +194,6 @@ namespace Wellcome.Dds.IIIFBuilding
         public string PersistentCatalogueRecord(string identifier)
         {
             return PersistentCatalogueRecordFormat.Replace(IdentifierToken, identifier.Remove(8));
-        }
-
-        public string EncoreBibliographicData(string identifier)
-        {
-            return EncoreBibliographicDataFormat.Replace(IdentifierToken, identifier.Remove(8));
         }
 
         public string CatalogueApi(string workIdentifier)
