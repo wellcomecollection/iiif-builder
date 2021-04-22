@@ -111,6 +111,12 @@ namespace WorkflowProcessor
             return base.StartAsync(cancellationToken);
         }
 
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            logger.LogInformation("WorkflowProcessorService is shutting down");
+            return base.StopAsync(cancellationToken);
+        }
+
         private (string operation, string parameter) GetOperationWithParameter(string[] lookingFor)
         {
             var arguments = Environment.GetCommandLineArgs();
@@ -125,84 +131,92 @@ namespace WorkflowProcessor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // if using launchSettings.json, you'll need to add something like
-            // "commandLineArgs": "-- --populate-file /home/iiif-builder/src/Wellcome.Dds/WorkflowProcessor.Tests/examples.txt"
-            // ...to run an examples file rather than default to job processing mode. 
-            logger.LogInformation("Hosted service ExecuteAsync");
-            var populationOperationWithParameter = GetOperationWithParameter(knownPopulationOperations);
-            var workflowOptionsString = GetOperationWithParameter(workflowOptionsParam).parameter;
-            int? workflowOptionsFlags = null;
-            if (int.TryParse(workflowOptionsString, out var workflowOptionsValue))
+            try
             {
-                workflowOptionsFlags = workflowOptionsValue;
-            }
-
-            if (HasArgument(MopUpParam) || HasArgument(MopUpCDParam))
-            {
-                logger.LogInformation($"Making workflow jobs for mop-up task");
-                await PopulateTextFixtures(HasArgument(MopUpCDParam), workflowOptionsFlags, stoppingToken);
-                return;
-            }
-
-            if (HasArgument(FinishAllJobsParam))
-            {
-                int count = FinishAllJobs();
-                logger.LogInformation($"Force-finished {count} workflow jobs");
-                return;
-            }
-
-            if (HasArgument(TraverseChemistAndDruggistParam))
-            {
-                logger.LogInformation("Print Chemist And Druggist Enumeration");
-                await TraverseChemistAndDruggist();
-                return;
-            }
-
-            if (HasArgument(ProcessParam))
-            {
-                var processParam = GetOperationWithParameter(new[] {ProcessParam}).parameter;
-                logger.LogInformation($"Creating workflow record and processing {processParam}");
-                await ProcessBNumber(processParam, workflowOptionsFlags, stoppingToken);
-            }
-
-            string? catalogueDump = null;
-            if (HasArgument(CatalogueDumpParam))
-            {
-                catalogueDump = GetOperationWithParameter(new[] {CatalogueDumpParam}).parameter;
-                logger.LogInformation("Using specified catalogue-dump file: {CatalogueDump}", catalogueDump);
-            }
-
-            int offset = 0;
-            if (HasArgument(OffsetParam))
-            {
-                var offsetString = GetOperationWithParameter(new[] {OffsetParam}).parameter;
-                if (int.TryParse(offsetString, out offset))
+                // if using launchSettings.json, you'll need to add something like
+                // "commandLineArgs": "-- --populate-file /home/iiif-builder/src/Wellcome.Dds/WorkflowProcessor.Tests/examples.txt"
+                // ...to run an examples file rather than default to job processing mode. 
+                logger.LogInformation("Hosted service ExecuteAsync");
+                var populationOperationWithParameter = GetOperationWithParameter(knownPopulationOperations);
+                var workflowOptionsString = GetOperationWithParameter(workflowOptionsParam).parameter;
+                int? workflowOptionsFlags = null;
+                if (int.TryParse(workflowOptionsString, out var workflowOptionsValue))
                 {
-                    logger.LogInformation("Using offset = {Offset}", offset);
+                    workflowOptionsFlags = workflowOptionsValue;
                 }
-            }
 
-            switch (populationOperationWithParameter.operation)
+                if (HasArgument(MopUpParam) || HasArgument(MopUpCDParam))
+                {
+                    logger.LogInformation($"Making workflow jobs for mop-up task");
+                    await PopulateTextFixtures(HasArgument(MopUpCDParam), workflowOptionsFlags, stoppingToken);
+                    return;
+                }
+
+                if (HasArgument(FinishAllJobsParam))
+                {
+                    int count = FinishAllJobs();
+                    logger.LogInformation($"Force-finished {count} workflow jobs");
+                    return;
+                }
+
+                if (HasArgument(TraverseChemistAndDruggistParam))
+                {
+                    logger.LogInformation("Print Chemist And Druggist Enumeration");
+                    await TraverseChemistAndDruggist();
+                    return;
+                }
+
+                if (HasArgument(ProcessParam))
+                {
+                    var processParam = GetOperationWithParameter(new[] {ProcessParam}).parameter;
+                    logger.LogInformation($"Creating workflow record and processing {processParam}");
+                    await ProcessBNumber(processParam, workflowOptionsFlags, stoppingToken);
+                    return;
+                }
+
+                string? catalogueDump = null;
+                if (HasArgument(CatalogueDumpParam))
+                {
+                    catalogueDump = GetOperationWithParameter(new[] {CatalogueDumpParam}).parameter;
+                    logger.LogInformation("Using specified catalogue-dump file: {CatalogueDump}", catalogueDump);
+                }
+
+                int offset = 0;
+                if (HasArgument(OffsetParam))
+                {
+                    var offsetString = GetOperationWithParameter(new[] {OffsetParam}).parameter;
+                    if (int.TryParse(offsetString, out offset))
+                    {
+                        logger.LogInformation("Using offset = {Offset}", offset);
+                    }
+                }
+
+                switch (populationOperationWithParameter.operation)
+                {
+                    // Population operations might be run from a desktop, against an RDS database.
+                    // Or deployed to a temporary container and run from there.
+                    case "--populate-file":
+                        await PopulateJobsFromFile(populationOperationWithParameter.parameter, workflowOptionsFlags,
+                            stoppingToken);
+                        break;
+
+                    case "--populate-slice":
+                        await PopulateJobsFromSlice(populationOperationWithParameter.parameter, workflowOptionsFlags,
+                            catalogueDump, offset, stoppingToken);
+                        break;
+
+                    default:
+                        // This is what the workflowprocessor normally does! Takes jobs rather than creates them.
+                        await PollForWorkflowJobs(stoppingToken);
+                        break;
+                }
+
+                logger.LogInformation("Stopping WorkflowProcessorService...");
+            }
+            catch (Exception ex)
             {
-                // Population operations might be run from a desktop, against an RDS database.
-                // Or deployed to a temporary container and run from there.
-                case "--populate-file":
-                    await PopulateJobsFromFile(populationOperationWithParameter.parameter, workflowOptionsFlags,
-                        stoppingToken);
-                    break;
-
-                case "--populate-slice":
-                    await PopulateJobsFromSlice(populationOperationWithParameter.parameter, workflowOptionsFlags,
-                        catalogueDump, offset, stoppingToken);
-                    break;
-
-                default:
-                    // This is what the workflowprocessor normally does! Takes jobs rather than creates them.
-                    await PollForWorkflowJobs(stoppingToken);
-                    break;
+                logger.LogCritical(ex, "Exception in WorkflowProcessor.ExecuteAsync");
             }
-
-            logger.LogInformation("Stopping WorkflowProcessorService...");
         }
 
         private async Task PopulateJobsFromSlice(string parameter, int? workflowOptions, string dumpFile, int offset,
@@ -379,6 +393,8 @@ namespace WorkflowProcessor
                     logger.LogError(ex, "Error running WorkflowProcessor");
                 }
             }
+
+            logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
         }
 
         private async Task ProcessBNumber(string bnumber, int? workflowOptions, CancellationToken stoppingToken)

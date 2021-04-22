@@ -70,8 +70,6 @@ namespace Utils.Caching
             }
 
             var memoryCacheKey = GetMemoryCacheKey(key);
-            var cachedFile = GetCachedFile(key);
-            bool memoryCacheMiss = false;
 
             if (memoryCache != null)
             {
@@ -80,7 +78,9 @@ namespace Utils.Caching
 
             if (t != null) return t;
 
-            using (var processLock = await asyncLocker.LockAsync(string.Intern(key)))
+            bool memoryCacheMiss = false;
+            var cachedFile = GetCachedFile(key);
+            using (var processLock = await asyncLocker.LockAsync(string.Intern(key)).TimeoutAfter(10000, true))
             {
                 // check in memoryCache cache again
                 if (memoryCache != null)
@@ -93,7 +93,7 @@ namespace Utils.Caching
                     memoryCacheMiss = true;
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogDebug("Cache MISS for {0}, will attempt read from disk", memoryCacheKey);
+                        logger.LogDebug("Cache MISS for {MemoryCacheKey}, will attempt read from disk", memoryCacheKey);
                     }
 
                     t = await storage.Read<T>(cachedFile);
@@ -108,7 +108,7 @@ namespace Utils.Caching
                 {
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogDebug("Disk MISS for {0}, will attempt read from source", memoryCacheKey);
+                        logger.LogDebug("Disk MISS for {MemoryCacheKey}, will attempt read from source", memoryCacheKey);
                     }
 
                     if (getFromSource != null)
@@ -130,6 +130,7 @@ namespace Utils.Caching
             return t;
         }
 
+        // NOTE(DG) - this should be .bin when we move everything to protobuf
         private static string GetFileName(string key) => $"{key}.ser";
 
         private string GetMemoryCacheKey(string key) => string.Concat(options.Prefix, key);

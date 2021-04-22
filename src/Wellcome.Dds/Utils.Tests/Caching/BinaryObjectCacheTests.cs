@@ -202,9 +202,17 @@ namespace Utils.Tests.Caching
     
     public class FakeStoredFileInfo : ISimpleStoredFileInfo
     {
-        public DateTime? LastWriteTime { get; }
         public string Uri { get; }
-        public bool Exists { get; }
+        public Task<bool> DoesExist()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<DateTime?> GetLastWriteTime()
+        {
+            throw new NotImplementedException();
+        }
+
         public string Container { get; }
         public string Path { get; }
 

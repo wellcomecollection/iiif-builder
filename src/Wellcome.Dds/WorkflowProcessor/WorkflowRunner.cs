@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CsvHelper;
 using IIIF.Presentation.V3.Constants;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -40,6 +41,7 @@ namespace WorkflowProcessor
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
         private readonly IWorkflowJobPostProcessor postProcessor;
+        private readonly IMemoryCache memoryCache;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -52,7 +54,8 @@ namespace WorkflowProcessor
             ICatalogue catalogue,
             BucketWriter bucketWriter,
             AltoDerivedAssetBuilder altoBuilder,
-            IWorkflowJobPostProcessor postProcessor)
+            IWorkflowJobPostProcessor postProcessor,
+            IMemoryCache memoryCache)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -65,6 +68,7 @@ namespace WorkflowProcessor
             this.bucketWriter = bucketWriter;
             this.altoBuilder = altoBuilder;
             this.postProcessor = postProcessor;
+            this.memoryCache = memoryCache;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -95,6 +99,7 @@ namespace WorkflowProcessor
                         job.DlcsJobCount = batchResponse.Length;
                     }
                 }
+
                 if (jobOptions.RefreshFlatManifestations)
                 {
                     work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
@@ -107,6 +112,7 @@ namespace WorkflowProcessor
                         logMissingWork = true;
                     }
                 }
+
                 if (jobOptions.RebuildIIIF)
                 {
                     work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
@@ -119,9 +125,10 @@ namespace WorkflowProcessor
                         logMissingWork = true;
                     }
                 }
+
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken); 
+                    await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
                 }
 
                 if (logMissingWork)
@@ -130,12 +137,23 @@ namespace WorkflowProcessor
                 }
 
                 await postProcessor.PostProcess(job, jobOptions);
-                job.TotalTime = (long)(DateTime.Now - job.Taken.Value).TotalMilliseconds;
+                job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
+                logger.LogInformation("Processed {JobId} in {TotalTime}ms", job.Identifier, job.TotalTime);
             }
             catch (Exception ex)
             {
                 job.Error = ex.Message.SummariseWithEllipsis(240);
                 logger.LogError(ex, "Error in workflow runner");
+            }
+            finally
+            {
+                if (memoryCache is MemoryCache {Count: > 0} cache)
+                {
+                    logger.LogInformation("Compacting memory cache with {MemoryCount} items after processing {JobId}",
+                        cache.Count,
+                        job.Identifier);
+                    cache.Compact(100);
+                }
             }
         }
 

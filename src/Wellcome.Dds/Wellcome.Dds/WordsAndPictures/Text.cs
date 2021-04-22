@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoBuf;
 using Utils;
 using Wellcome.Dds.WordsAndPictures.TextArtefacts;
 
@@ -24,22 +25,30 @@ namespace Wellcome.Dds.WordsAndPictures
     /// the Text class also allows us to recover the text for a single image, because we store information that tells us
     /// how the text is split across the images.
     /// </summary>
+    [ProtoContract]
     [Serializable]
     public class Text
     {
+        [ProtoMember(1)]
         public string NormalisedFullText { get; set; }
+        
+        [ProtoMember(2)]
         public string RawFullText { get; set; }
 
         // the int is the indexOf the Word in the NormalisedFullText
+        [ProtoMember(3)]
         public Dictionary<int, Word> Words { get; set; }
 
         // TODO - not sure this is serializing properly
+        [ProtoMember(4)]
         public Dictionary<string, HashSet<string>> AutoCompleteBuckets { get; set; }
 
         // keeps track of the individual source images in the text
+        [ProtoMember(5)]
         public Image[] Images { get; set; }
 
         // identifies composed block elements in the text, used for tables
+        [ProtoMember(6)]
         public ComposedBlock[] ComposedBlocks { get; set; }
 
         // for both the above we will want to reconstruct a page from the flow of words. From an image we can get the start character,

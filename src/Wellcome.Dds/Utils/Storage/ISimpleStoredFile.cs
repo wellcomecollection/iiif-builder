@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Utils.Storage
 {
     public interface ISimpleStoredFileInfo
     {
-        DateTime? LastWriteTime { get; }
-        
         string Uri { get; }
         
-        bool Exists { get; }
+        Task<bool> DoesExist();
+
+        Task<DateTime?> GetLastWriteTime();
         
         // add folder/key idea here...
         public string Container { get; }

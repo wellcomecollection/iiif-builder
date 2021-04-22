@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OAuth2;
+using Utils.Aws.Options;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -44,6 +45,7 @@ namespace DlcsJobProcessor
             services.Configure<DlcsOptions>(Configuration.GetSection("Dlcs"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
+            services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
 
             services.AddDlcsClient(Configuration);
             
@@ -52,8 +54,8 @@ namespace DlcsJobProcessor
 
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
             
-            services.AddSingleton<IStorage, S3Storage>(opts =>
-                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
+            services.AddSingleton<IStorage, S3CacheAwareStorage>(opts =>
+                ActivatorUtilities.CreateInstance<S3CacheAwareStorage>(opts, 
                     factory.Get(NamedClient.Dds)));
             
             services.AddMemoryCache();

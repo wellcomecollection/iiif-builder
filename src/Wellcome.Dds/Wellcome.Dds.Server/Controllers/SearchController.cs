@@ -1,16 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using IIIF.Search;
-using IIIF.Search.V1;
 using IIIF.Serialisation;
-using Microsoft.Extensions.Options;
-using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
 using Utils;
-using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures.Search;
@@ -43,6 +38,10 @@ namespace Wellcome.Dds.Server.Controllers
             if (q.HasText() && q.Trim().Length > 2)
             {
                 var text = await searchTextProvider.GetSearchText(manifestationIdentifier);
+                if (text == null)
+                {
+                    return NotFound($"No text found for {manifestationIdentifier}");
+                }
                 suggestions = text.GetSuggestions(q);
             }
             var termList = iiifBuilder.BuildTermListV1(manifestationIdentifier, q, suggestions);
@@ -61,6 +60,11 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> SearchV0(string manifestationIdentifier, string q)
         {
             var text = await searchTextProvider.GetSearchText(manifestationIdentifier);
+            if (text == null)
+            {
+                return NotFound($"No searchable text found for {manifestationIdentifier}");
+            }
+            
             IEnumerable<SearchResult> results;
             if (q.HasText())
             {
@@ -90,6 +94,10 @@ namespace Wellcome.Dds.Server.Controllers
         {
             // https://github.com/wellcomecollection/platform/issues/4740#issuecomment-775035270
             var text = await searchTextProvider.GetSearchText(manifestationIdentifier);
+            if (text == null)
+            {
+                return NotFound($"No searchable text found for {manifestationIdentifier}");
+            }
             var asAnnotations = iiifBuilder.BuildSearchResultsV1(text, manifestationIdentifier, q);
             IgnoreParams(asAnnotations.Within);
             return Content(asAnnotations.AsJson(), "application/json");

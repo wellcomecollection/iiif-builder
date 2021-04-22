@@ -33,7 +33,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         {
             var sw = new Stopwatch();
             sw.Start();
-            logger.LogInformation($"Getting search text from ALTO files for {identifier}");
+            logger.LogInformation("Getting search text from ALTO files for {Identifier}", identifier);
             //string bNumberHomeDirectory;
             //MetsBibNumberProvider.GetBNumberFilePath(bNumber, out bNumberHomeDirectory);
             //Log.InfoFormat("METS Home directory for {0} is {1}", bNumber, bNumberHomeDirectory);
@@ -57,14 +57,12 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                 var physicalFile = manifestation.Sequence[assetIndex];
                 images.Add(new Image
                     {
-                        Index = assetIndex,
-                        OrderLabel = physicalFile.OrderLabel,
                         StartCharacter = positionNorm,
                         ImageIdentifier = physicalFile.StorageIdentifier
                     });
                 if (physicalFile.RelativeAltoPath.HasText())
                 {
-                    logger.LogInformation($"Attempting to load ALTO: {physicalFile.RelativeAltoPath}");
+                    logger.LogInformation("Attempting to load ALTO: {RelativeAltoPath}", physicalFile.RelativeAltoPath);
                     try
                     {
                         var pathXml = await physicalFile.WorkStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
@@ -191,7 +189,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError("Cannot read or parse ALTO", ex);
+                        logger.LogError(ex, "Cannot read or parse ALTO");
                     }
                 }
             }
@@ -230,16 +228,9 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                 {
                     currentCb = new ComposedBlock
                         {
-                            AltoId = cbId,
-                            UniqueId = dictKey,
-                            Type = composedBlockElement.GetRequiredAttributeValue("TYPE"),
                             ImageIndex = fileIndex,
                             StartCharacter = word.PosNorm,
                             EndCharacter = word.PosNorm,
-                            X = (int) (Convert.ToInt32(composedBlockElement.GetRequiredAttributeValue("HPOS"))*scaleW),
-                            Y = (int) (Convert.ToInt32(composedBlockElement.GetRequiredAttributeValue("VPOS"))*scaleH),
-                            W = (int) (Convert.ToInt32(composedBlockElement.GetRequiredAttributeValue("WIDTH"))*scaleW),
-                            H = (int) (Convert.ToInt32(composedBlockElement.GetRequiredAttributeValue("HEIGHT"))*scaleH),
                             ComposedBlockIndex = composedBlockCounter++
                         };
                     composedBlocks.Add(dictKey, currentCb);

@@ -4,6 +4,7 @@ using System.IO;
 using FluentAssertions;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Tests.Samples;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
@@ -14,7 +15,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         public void FromJObject_ReturnsExpected_SingleVersion()
         {
             // Arrange
-            var json = GetJson("single_version.json");
+            var json = SampleHelpers.GetJson("single_version.json");
             const string identifier = "b12345678";
 
             var expected = new WellcomeBagAwareArchiveStorageMap
@@ -43,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         public void FromJObject_ReturnsExpected_MultipleVersion()
         {
             // Arrange
-            var json = GetJson("multi_version.json");
+            var json = SampleHelpers.GetJson("multi_version.json");
             const string identifier = "b12345678";
 
             var expected = new WellcomeBagAwareArchiveStorageMap
@@ -80,7 +81,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         public void FromJObject_ReturnsVersionSets_InIncreasingOrderOfSize()
         {
             // Arrange
-            var json = GetJson("ordering_test.json");
+            var json = SampleHelpers.GetJson("ordering_test.json");
             const string identifier = "b12345678";
 
             // Act
@@ -89,13 +90,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // Assert
             actual.VersionSets[0].Key.Should().Be("v1");
             actual.VersionSets[1].Key.Should().Be("v2");
-        }
-
-        private static JObject GetJson(string fileName)
-        {
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Samples", fileName);
-            var json = File.ReadAllText(filePath);
-            return JObject.Parse(json);
         }
     }
 }

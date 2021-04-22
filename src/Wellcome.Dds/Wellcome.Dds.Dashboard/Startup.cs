@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OAuth2;
+using Utils.Aws.Options;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
@@ -72,14 +73,15 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<DashOptions>(Configuration.GetSection("Dash"));
+            services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
 
             // This will require an S3 implementation in production
             //services.AddSingleton<IStorage, FileSystemStorage>();
-            services.AddSingleton<IStorage, S3Storage>(opts =>
-                ActivatorUtilities.CreateInstance<S3Storage>(opts, 
+            services.AddSingleton<IStorage, S3CacheAwareStorage>(opts =>
+                ActivatorUtilities.CreateInstance<S3CacheAwareStorage>(opts, 
                     factory.Get(NamedClient.Dds)));
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();

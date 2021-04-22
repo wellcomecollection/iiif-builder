@@ -34,7 +34,7 @@ namespace Utils.Storage.FileSystem
 
         public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
-            if (!fileInfo.Exists) return null;
+            if (!await fileInfo.DoesExist()) return null;
             T t = default(T);
             try
             {

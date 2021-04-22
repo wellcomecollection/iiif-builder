@@ -1,12 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
-using Utils.Caching;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
@@ -20,46 +19,31 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
     public class ArchiveStorageServiceWorkStore : IWorkStore
     {
         private readonly IAmazonS3 storageServiceS3;
-        private readonly ISimpleCache cache;
         private readonly StorageServiceClient storageServiceClient;
+        private readonly Dictionary<string, XElement> xmlElementCache; 
 
         public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; }
         
-        public ArchiveStorageServiceWorkStore(
-            string identifier,
+        public ArchiveStorageServiceWorkStore(string identifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
             StorageServiceClient storageServiceClient,
-            IAmazonS3 storageServiceS3,
-            ISimpleCache cache)
+            Dictionary<string, XElement> elementCache,
+            IAmazonS3 storageServiceS3)
         {
             if (archiveStorageMap == null)
             {
                 throw new InvalidOperationException(
                     "Cannot create a WorkStore without an ArchiveStorageMap");
             }
+
+            xmlElementCache = elementCache;
             Identifier = identifier;
             this.storageServiceClient = storageServiceClient;
             ArchiveStorageMap = archiveStorageMap;
             this.storageServiceS3 = storageServiceS3;
-            this.cache = cache;
         }
-               
 
-        public string Identifier { get; set; }
-
-        public bool IsKnownFile(string relativePath)
-        {
-            var minRelativePath = relativePath.Replace(Identifier, "#");
-            foreach (var versionSet in ArchiveStorageMap.VersionSets)
-            {
-                // version keys are in descending order of the number of files at that version
-                if (versionSet.Value.Contains(minRelativePath))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        public string Identifier { get; }
 
         public string GetAwsKey(string relativePath)
         {
@@ -87,16 +71,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         public async Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache)
         {
-            const int cacheTimeSeconds = 60;
-            XElement metsXml;
-            if (useCache)
+            if (useCache && xmlElementCache.TryGetValue(relativePath, out var metsXml)) 
             {
-                metsXml = await cache.GetCached(cacheTimeSeconds, relativePath, () => LoadXElementAsync(relativePath));
+                return new XmlSource
+                {
+                    XElement = metsXml,
+                    RelativeXmlFilePath = relativePath
+                };
             }
-            else
-            {
-                metsXml = await LoadXElementAsync(relativePath);
-            }
+            
+            metsXml = await LoadXElementAsync(relativePath);
+            xmlElementCache[relativePath] = metsXml;
+            
             return new XmlSource
             {
                 XElement = metsXml,
@@ -108,12 +94,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         {
             string relativePath = $"{identifier}.xml";
             return await LoadXmlForPath(relativePath);
-        }
-
-        public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)
-        {
-            var relativePath = $"{identifier}.xml";
-            return GetFileInfoForPath(relativePath);
         }
 
         public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
@@ -162,15 +142,5 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         }
 
         public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(Identifier);
-
-        public async Task WriteFileAsync(string relativePath, string destination)
-        {
-            var req = MakeGetObjectRequest(relativePath);
-            using (GetObjectResponse response = await storageServiceS3.GetObjectAsync(req))
-            {
-                // TODO: What should the cancellation token be?
-                await response.WriteResponseStreamToFileAsync(destination, false, CancellationToken.None);
-            }
-        }
     }
 }

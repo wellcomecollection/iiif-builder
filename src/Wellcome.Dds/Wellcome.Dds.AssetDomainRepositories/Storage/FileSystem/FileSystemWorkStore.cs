@@ -19,7 +19,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
         }
 
         public string Identifier { get; set; }
-        public string FileUri(string relativePath)
+        private string FileUri(string relativePath)
         {
             return Path.Combine(rootDirectory, relativePath);
         }
@@ -55,12 +55,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             return await LoadXmlForPath(relativePath);
         }
 
-        public IArchiveStorageStoredFileInfo GetFileInfoForIdentifier(string identifier)
-        {
-            var relativePath = $"{identifier}.xml";
-            return GetFileInfoForPath(relativePath);
-        }
-
         public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
         {
             var fullPath = FileUri(relativePath);
@@ -76,17 +70,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             var fs = new FileStream(FileUri(relativePath), FileMode.Open);
             return Task.FromResult<Stream>(fs);
         }
-
-        public Task WriteFileAsync(string relativePath, string destination)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool IsKnownFile(string relativePath)
-        {
-            throw new System.NotImplementedException();
-        }
-
+        
         public IAssetMetadata MakeAssetMetadata(XElement metsRoot, string admId)
         {
             // TODO - when we refactor the interface, move this out - it's not tied to the STORAGE impl any more.

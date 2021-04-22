@@ -31,7 +31,7 @@ namespace WorkflowProcessor.Tests
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
             // TODO need to fix this once runnable workflowrunner
             sut = new WorkflowRunner(ingestJobRegistry, runnerOptionsInst, new NullLogger<WorkflowRunner>(),
-                null, null, null, ddsOptionsInst, null, null, null, A.Fake<IWorkflowJobPostProcessor>());
+                null, null, null, ddsOptionsInst, null, null, null, A.Fake<IWorkflowJobPostProcessor>(), null);
         }
         
         [Fact]
