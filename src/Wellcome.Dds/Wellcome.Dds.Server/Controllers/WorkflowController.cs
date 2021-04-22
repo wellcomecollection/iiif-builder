@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Utils;
+using Utils.Web;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Common;
 
@@ -35,18 +36,25 @@ namespace Wellcome.Dds.Server.Controllers
         [ProducesResponseType(202)]
         public async Task<ActionResult> Process(string id, bool forceRebuild = true)
         {
+            logger.LogInformation($"Received workflow/process instruction for {id}");
             if (!id.IsBNumber())
             {
-                return StatusCode(500, $"{id} is not a b number.");
+                var message = $"{id} is not a b number.";
+                logger.LogError(message);
+                return StatusCode(500, message);
             }
 
             if (id.Equals(KnownIdentifiers.ChemistAndDruggist, StringComparison.InvariantCultureIgnoreCase))
             {
-                return StatusCode(403, "You can't rebuild Chemist and Druggist this way.");
+                const string message = "You can't rebuild Chemist and Druggist this way.";
+                logger.LogWarning(message);
+                return StatusCode(403, message);
             }
             try
             {
                 var workflowJob = await instrumentationContext.PutJob(id, forceRebuild, false, -1, false, false);
+                Response.AppendStandardNoCacheHeaders();
+                logger.LogInformation($"Accepted workflow/process instruction for {id}");
                 return StatusCode(202, workflowJob);
             }
             catch (Exception ex)
@@ -57,7 +65,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Message = ex.Message,
                     StackTrace = ex.StackTrace
                 };
-
+                logger.LogError(errorResponse.Message, ex);
                 return StatusCode(500, errorResponse);
             }
         }
