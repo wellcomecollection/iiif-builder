@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization;
@@ -50,10 +51,18 @@ namespace Utils.Aws.S3
             var path = options.ReadProtobuf ? GetProtobufKey(fileInfo.Path) : fileInfo.Path;
             try
             {
+                var sw = Stopwatch.StartNew();
                 await using var stream = await GetStream(fileInfo.Container, path);
+                logger.LogDebug("Read stream from '{Bucket}/{Path}' in {Elapsed}ms", fileInfo.Container, path,
+                    sw.ElapsedMilliseconds);
                 if (stream != null)
                 {
+                    sw.Reset();
                     var obj = Deserialize<T>(stream, fileInfo);
+                    logger.LogDebug("Deserialized stream from '{Bucket}/{Path}' in {Elapsed}ms", fileInfo.Container,
+                        path,
+                        sw.ElapsedMilliseconds);
+                    sw.Stop();
                     stream.Close();
                     return obj;
                 }
@@ -70,6 +79,7 @@ namespace Utils.Aws.S3
         {
             try
             {
+                var sw = Stopwatch.StartNew();
                 if (options.WriteBinary)
                 {
                     var request = new PutObjectRequest
@@ -81,11 +91,17 @@ namespace Utils.Aws.S3
                     IFormatter formatter = new BinaryFormatter();
                     await using (request.InputStream = new MemoryStream())
                     {
+                        sw.Restart();
+                        
                         formatter.Serialize(request.InputStream, t);
                         await amazonS3.PutObjectAsync(request);
+                        
+                        logger.LogDebug("Wrote stream for '{Bucket}/{Path}' in {Elapsed}ms", request.BucketName,
+                            request.Key,
+                            sw.ElapsedMilliseconds);
                     }
                 }
-                
+
                 if (options.WriteProtobuf)
                 {
                     var request = new PutObjectRequest
@@ -97,10 +113,18 @@ namespace Utils.Aws.S3
 
                     await using (request.InputStream = new MemoryStream())
                     {
+                        sw.Restart();
+                        
                         ProtoBuf.Serializer.Serialize(request.InputStream, t);
                         await amazonS3.PutObjectAsync(request);
+                        
+                        logger.LogDebug("Wrote stream for '{Bucket}/{Path}' in {Elapsed}ms", request.BucketName,
+                            request.Key,
+                            sw.ElapsedMilliseconds);
                     }
                 }
+                
+                sw.Stop();
             }
             catch (Exception ex)
             {
