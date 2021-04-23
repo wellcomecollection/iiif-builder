@@ -147,7 +147,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Format = externalResource.Format,
                     Service = copiedServices,
                 };
-                PopulateAuthServices(authServiceManager, avResource.Service, true, true);
+                PopulateAuthServices(authServiceManager, avResource.Service, true, DuplicateAuthServices);
                 annoListForMedia.Rendering.Add(avResource);
                 annoListForMedia.Service = avResource.Service;
 
