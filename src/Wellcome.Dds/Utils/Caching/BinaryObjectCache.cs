@@ -17,7 +17,7 @@ namespace Utils.Caching
         private readonly IMemoryCache memoryCache;
         private readonly TimeSpan cacheDuration;
 
-        private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
+        private readonly AsyncKeyedLock asyncLocker = new();
 
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
@@ -80,7 +80,8 @@ namespace Utils.Caching
 
             bool memoryCacheMiss = false;
             var cachedFile = GetCachedFile(key);
-            using (var processLock = await asyncLocker.LockAsync(string.Intern(key)).TimeoutAfter(10000, true))
+            
+            using (var processLock = await GetLock(key))
             {
                 // check in memoryCache cache again
                 if (memoryCache != null)
@@ -149,5 +150,11 @@ namespace Utils.Caching
             }
             memoryCache.Set(cacheKey, t, cacheDuration);
         }
+
+        private Task<IDisposable> GetLock(string key)
+            => asyncLocker.LockAsync(
+                string.Intern(key), 
+                TimeSpan.FromMilliseconds(options.CriticalPathTimeout),
+                options.ThrowOnCriticalPathTimeout);
     }
 }
