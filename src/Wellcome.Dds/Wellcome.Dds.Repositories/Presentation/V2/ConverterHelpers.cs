@@ -24,6 +24,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     /// </summary>
     public class ConverterHelpers
     {
+        // Remove this as soon as we can!
+        const bool DuplicateAuthServices = true;
+        
         public static T GetIIIFPresentationBase<T>(Presi3.StructureBase resourceBase, Func<string, bool>? labelFilter = null)
             where T : IIIFPresentationBase, new()
         {
@@ -37,7 +40,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             presentationBase.NavDate = resourceBase.NavDate;
             presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
             presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
-            presentationBase.Within = resourceBase.PartOf?.FirstOrDefault()?.Id;
+            presentationBase.Within = ToPresentationV2Id(resourceBase.PartOf?.FirstOrDefault()?.Id);
 
             if (resourceBase.Service.HasItems())
             {
@@ -135,13 +138,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             else
             {
                 var externalResource = (ExternalResource)paintable;
+                var copiedServices = externalResource.Service?
+                    .Select(i => ObjectCopier.DeepCopy(i))
+                    .ToList();
                 var avResource = new ExternalResourceForMedia
                 {
                     Id = externalResource.Id,
                     Format = externalResource.Format,
-                    Service = externalResource.Service,
+                    Service = copiedServices,
                 };
-                PopulateAuthServices(authServiceManager, avResource.Service, true);
+                PopulateAuthServices(authServiceManager, avResource.Service, true, DuplicateAuthServices);
                 annoListForMedia.Rendering.Add(avResource);
                 annoListForMedia.Service = avResource.Service;
 
@@ -197,8 +203,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     }
                 }))
                 .ToList();
-            
-            PopulateAuthServices(authServiceManager, imageService.Service, false);
+
+            var addedAuthServices = PopulateAuthServices(authServiceManager, imageService.Service, false, DuplicateAuthServices);
+            // in wl.org manifests, if the image resource's image service has auth services,
+            // then so does the image itself.
+            if (addedAuthServices != null)
+            {
+                services?.AddRange(addedAuthServices);
+            }
 
             var imageAnnotation = new ImageAnnotation();
             imageAnnotation.Id = paintingAnnotation.Id;
@@ -217,36 +229,51 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         public static bool IsBornDigital(IIIF.Presentation.V3.Manifest p3Manifest) 
             => p3Manifest.Items.HasItems() && p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
         
-        private static void PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
-            List<IService>? candidateServices, bool forceFullService)
+        private static List<IService>? PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
+            List<IService>? candidateServices, bool forceFullService, bool duplicateAuthServices)
         {
             // If we don't have auth services then bail out..
-            if (!authServiceManager.HasItems) return;
+            if (!authServiceManager.HasItems) return null;
 
             // Get all service references from candidate-services (these will be auth services)
             // for P3 we will _only_ have svc refs, the main Auth services will be in the manifest.Service element 
             var authServiceReferences = candidateServices?.OfType<V2ServiceReference>().ToList();
-            if (!authServiceReferences.HasItems()) return;
+            if (!authServiceReferences.HasItems()) return null;
 
             // Remove these from imageService.Services
             candidateServices?.RemoveAll(s => s is V2ServiceReference);
 
             // Re-add appropriate services. This will be full AuthService if first time it appears,
             // or serviceReference if it is not the first time
+            List<IService> addedAuthServices = new();
             foreach (var authRef in authServiceReferences!)
             {
                 var service = authServiceManager.Get(authRef.Id!, forceFullService);
-                if (service is WellcomeAuthService was)
+                if (service is WellcomeAccessControlHintService was)
                 {
                     // if we have a wellcomeAuthService add the "AuthService" only
                     candidateServices?.AddRange(was.AuthService);
+                    addedAuthServices.AddRange(was.AuthService);
+                    if (duplicateAuthServices)
+                    {
+                        candidateServices?.AddRange(was.AuthService);
+                        addedAuthServices.AddRange(was.AuthService);
+                    }
                 }
                 else
                 {
                     // else just re-add the reference
                     candidateServices?.Add(service);
+                    addedAuthServices.Add(service);
+                    if (duplicateAuthServices)
+                    {
+                        candidateServices?.Add(service);
+                        addedAuthServices.Add(service);
+                    }
                 }
             }
+
+            return addedAuthServices;
         }
         
         private static void AddAttributionAndUsageMetadata<T>(

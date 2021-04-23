@@ -10,7 +10,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
     /// This is a service that is used by wl.org UV for rendering iiif p2.
     /// This is not valid IIIF service but is required for backward compatibility.
     /// </summary>
-    public class WellcomeAuthService : ResourceBase, IService
+    public class WellcomeAccessControlHintService : ResourceBase, IService
     {
         public override string? Type { get; set; }
 
