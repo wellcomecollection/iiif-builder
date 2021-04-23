@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Utils.Tests.Threading
 {
+    [Trait("Category", "Manual")]
     public class AsyncKeyedLockTests
     {
         private readonly AsyncKeyedLock sut;
