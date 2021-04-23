@@ -5,11 +5,11 @@ using IIIF;
 namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
     /// <summary>
-    /// Helper class for managing <see cref="WellcomeAuthService"/> when converting to P2
+    /// Helper class for managing <see cref="WellcomeAccessControlHintService"/> when converting to P2
     /// </summary>
     public class WellcomeAuthServiceManager
     {
-        private Dictionary<string, WellcomeAuthService> wellcomeAuthServices = new();
+        private Dictionary<string, WellcomeAccessControlHintService> wellcomeAuthServices = new();
         private Dictionary<string, V2ServiceReference>? requested = new();
         
         /// <summary>
@@ -20,10 +20,10 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         /// <summary>
         /// Add authService to internal collection.
         /// </summary>
-        public void Add(WellcomeAuthService authService)
+        public void Add(WellcomeAccessControlHintService accessControlHintService)
         {
             HasItems = true;
-            wellcomeAuthServices.Add(authService.AuthService!.First().Id, authService);
+            wellcomeAuthServices.Add(accessControlHintService.AuthService!.First().Id, accessControlHintService);
         }
         
         /// <summary>

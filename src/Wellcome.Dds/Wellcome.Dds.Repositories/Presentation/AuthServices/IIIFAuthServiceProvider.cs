@@ -109,6 +109,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             external093Service.Id = GetRestrictedLoginServiceId093();
             external093Service.Label = new MetaDataValue(RestrictedHeader);
             external093Service.FailureHeader = new MetaDataValue(RestrictedHeader);
+            external093Service.Description = new MetaDataValue(RestrictedFailureDescription);
             external093Service.FailureDescription = new MetaDataValue(RestrictedFailureDescription);
             external093Service.Service = GetCommonChildAuthServices(tokenServiceId);
             // confirmLabel? Not really appropriate; the client needs to provide the text for "cancel"...

@@ -177,19 +177,22 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     {
                         case ResourceBase authService:
                             var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
-
+                            
+                            // I think it's OK to leave the extra labels on
+                            manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, null)!);
+                            
                             // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
                             // null all references
-                            manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, wellcomeAuth =>
-                            {
-                                foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
-                                {
-                                    authCookieService.ConfirmLabel = null;
-                                    authCookieService.Header = null;
-                                    authCookieService.FailureHeader = null;
-                                    authCookieService.FailureDescription = null;
-                                }
-                            })!);
+                            // manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, wellcomeAuth =>
+                            // {
+                            //     foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
+                            //     {
+                            //         authCookieService.ConfirmLabel = null;
+                            //         authCookieService.Header = null;
+                            //         authCookieService.FailureHeader = null;
+                            //         authCookieService.FailureDescription = null;
+                            //     }
+                            // })!);
 
                             // Add to wellcomeAuthServices collection
                             authServiceManager.Add(wellcomeAuthService);
@@ -424,12 +427,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             };
         }
 
-        private WellcomeAuthService GetWellcomeAuthService(DdsIdentifier identifier, ResourceBase authResourceBase)
+        private WellcomeAccessControlHintService GetWellcomeAuthService(DdsIdentifier identifier, ResourceBase authResourceBase)
         {
             var copiedService = ObjectCopier.DeepCopy(authResourceBase, svc =>
             {
                 svc.Type = null;
                 svc.Context = IIIF.Auth.V1.Constants.IIIFAuthContext;
+                // match what wl.org manifests previously claimed
+                svc.Profile = authResourceBase.Profile?.Replace("/auth/1/", "/auth/0/");
             })!;
 
             // The access hint is the last section of current profile
@@ -446,6 +451,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 {
                     svc.Type = null;
                     svc.Context = IIIF.Auth.V1.Constants.IIIFAuthContext;
+                    // match what wl.org manifests previously claimed
+                    svc.Profile = svc.Profile?.Replace("/auth/1/", "/auth/0/");
                     if (svc.Label != null)
                     {
                         svc.Description = svc.Label;
@@ -454,9 +461,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
 
             // Create a fake WellcomeAuthService to contain the above services
-            var wellcomeAuthService = new WellcomeAuthService();
-            wellcomeAuthService.Id = GetAuthServiceId(identifier);
-            wellcomeAuthService.Profile = GetAuthServiceProfile(identifier);
+            var wellcomeAuthService = new WellcomeAccessControlHintService();
+            wellcomeAuthService.Id = GetAccessControlHintServiceId(identifier);
+            wellcomeAuthService.Profile = GetAccessControlHintServiceProfile(identifier);
             wellcomeAuthService.AuthService = new List<IService> {(IService)copiedService};
             wellcomeAuthService.AccessHint = accessHint;
             wellcomeAuthService.EnsureContext($"{Constants.WellcomeCollectionUri}/ld/iiif-ext/0/context.json");
@@ -471,16 +478,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return uriPatterns.GetPath(sequenceFormat, identifier, (sequenceIdentifierToken, sequenceIdentifier));
         } 
         
-        private string GetAuthServiceId(DdsIdentifier identifier)
+        private string GetAccessControlHintServiceId(DdsIdentifier identifier)
         {
-            const string authServiceIdFormat = "/iiif/{identifier}-0/access-control-hints-service";
-            return uriPatterns.GetPath(authServiceIdFormat, identifier);
+            const string idFormat = "/iiif/{identifier}-0/access-control-hints-service";
+            return uriPatterns.GetPath(idFormat, identifier);
         }
         
-        private string GetAuthServiceProfile(DdsIdentifier identifier)
+        private string GetAccessControlHintServiceProfile(DdsIdentifier identifier)
         {
-            const string authServiceProfileFormat = "/ld/iiif-ext/access-control-hints";
-            return uriPatterns.GetPath(authServiceProfileFormat, identifier);
+            const string profileFormat = "/ld/iiif-ext/access-control-hints";
+            return uriPatterns.GetPath(profileFormat, identifier);
         }
         
         private string GetMediaSequenceIdProfile(DdsIdentifier identifier, string sequenceIdentifier)
