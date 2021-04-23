@@ -52,7 +52,14 @@ namespace Utils.Caching
         public Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource) 
             => GetCachedObject(key, getFromSource, null);
 
-        public async Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource, Predicate<T> storedVersionIsStale)
+        public Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource, Predicate<T> storedVersionIsStale)
+            => GetCachedObject(key, getFromSource, storedVersionIsStale, true);
+        
+        public Task<T> GetCachedObjectFromLocal(string key, Func<Task<T>> getFromSource)
+            => GetCachedObject(key, getFromSource, null, false);
+
+        private async Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource,
+            Predicate<T> storedVersionIsStale, bool readFromStorage)
         {
             T t = default;
             if (options.AvoidCaching)
@@ -80,7 +87,7 @@ namespace Utils.Caching
 
             bool memoryCacheMiss = false;
             var cachedFile = GetCachedFile(key);
-            
+
             using (var processLock = await GetLock(key))
             {
                 // check in memoryCache cache again
@@ -92,12 +99,16 @@ namespace Utils.Caching
                 if (t == null)
                 {
                     memoryCacheMiss = true;
-                    if (logger.IsEnabled(LogLevel.Debug))
+                    if (readFromStorage)
                     {
-                        logger.LogDebug("Cache MISS for {MemoryCacheKey}, will attempt read from disk", memoryCacheKey);
-                    }
+                        if (logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug("Cache MISS for {MemoryCacheKey}, will attempt read from disk",
+                                memoryCacheKey);
+                        }
 
-                    t = await storage.Read<T>(cachedFile);
+                        t = await storage.Read<T>(cachedFile);
+                    }
                 }
 
                 if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
@@ -109,7 +120,8 @@ namespace Utils.Caching
                 {
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogDebug("Disk MISS for {MemoryCacheKey}, will attempt read from source", memoryCacheKey);
+                        logger.LogDebug("Disk MISS for {MemoryCacheKey}, will attempt read from source",
+                            memoryCacheKey);
                     }
 
                     if (getFromSource != null)
