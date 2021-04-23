@@ -138,13 +138,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             else
             {
                 var externalResource = (ExternalResource)paintable;
+                var copiedServices = externalResource.Service?
+                    .Select(i => ObjectCopier.DeepCopy(i))
+                    .ToList();
                 var avResource = new ExternalResourceForMedia
                 {
                     Id = externalResource.Id,
                     Format = externalResource.Format,
-                    Service = externalResource.Service,
+                    Service = copiedServices,
                 };
-                PopulateAuthServices(authServiceManager, avResource.Service, true, DuplicateAuthServices);
+                PopulateAuthServices(authServiceManager, avResource.Service, true, true);
                 annoListForMedia.Rendering.Add(avResource);
                 annoListForMedia.Service = avResource.Service;
 
