@@ -610,7 +610,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Terms = suggestions.Select(suggestion => new Term
                 {
                         Match = suggestion,
-                        Search = searchUri + "?q=" + q
+                        Search = searchUri + "?q=" + suggestion
                 }).ToArray()
             };
         }
