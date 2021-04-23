@@ -181,19 +181,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                             // I think it's OK to leave the extra labels on
                             manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, null)!);
                             
-                            // Add a copy of the wellcomeAuthService to .Service - copy to ensure nulling fields doesn't
-                            // null all references
-                            // manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, wellcomeAuth =>
-                            // {
-                            //     foreach (var authCookieService in wellcomeAuth.AuthService.OfType<AuthCookieService>())
-                            //     {
-                            //         authCookieService.ConfirmLabel = null;
-                            //         authCookieService.Header = null;
-                            //         authCookieService.FailureHeader = null;
-                            //         authCookieService.FailureDescription = null;
-                            //     }
-                            // })!);
-
                             // Add to wellcomeAuthServices collection
                             authServiceManager.Add(wellcomeAuthService);
                             haveAuth = true;
