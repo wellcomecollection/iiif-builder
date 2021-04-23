@@ -40,7 +40,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             presentationBase.NavDate = resourceBase.NavDate;
             presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
             presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
-            presentationBase.Within = resourceBase.PartOf?.FirstOrDefault()?.Id;
+            presentationBase.Within = ToPresentationV2Id(resourceBase.PartOf?.FirstOrDefault()?.Id);
 
             if (resourceBase.Service.HasItems())
             {
