@@ -1,6 +1,7 @@
 #nullable enable
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -58,8 +59,23 @@ namespace Wellcome.Dds.Server.Controllers
             // This is an inefficient method but allows us to manipulate the response.
             using var reader = new StreamReader(stream, Encoding.UTF8);
             string raw = await reader.ReadToEndAsync();
-            string rewritten = raw.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            
+            // This is OK but we want to leave the DLCS links intact!
+            // string rewritten = raw.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            // https://iiif-test\.wellcomecollection\.org/(?<!image|thumbs|pdf|av|auth)/(.*)
+            var pattern = GetRegexPattern(ddsOptions.LinkedDataDomain);
+            var placeholder = "__PLACEHOLDER__";
+            var pass1 = Regex.Replace(raw, pattern, $"\"{placeholder}/$1/$2\"");
+            var pass2 = pass1.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            var rewritten = pass2.Replace(placeholder, ddsOptions.LinkedDataDomain);
             return controller.Content(rewritten, contentType);
+        }
+
+        private string GetRegexPattern(string domainPart)
+        {
+            var pattern = "\\\"" + domainPart.Replace(".", "\\.");
+            pattern += "/(image|thumbs|pdf|av|auth)/([^\"]*)\\\"";
+            return pattern;
         }
 
         public async Task<JObject?> LoadAsJson(string container, string path)
