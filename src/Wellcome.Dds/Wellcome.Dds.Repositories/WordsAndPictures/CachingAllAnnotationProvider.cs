@@ -42,7 +42,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
-            return cache.GetCachedObject(identifier, () => GetPagesInternal(identifier, physicalFiles), x => true);
+            return cache.GetCachedObjectFromLocal(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
         private async Task<AnnotationPageList> GetPagesInternal(

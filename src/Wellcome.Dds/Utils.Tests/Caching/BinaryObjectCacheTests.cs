@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FluentAssertions;
@@ -45,8 +44,6 @@ namespace Utils.Tests.Caching
                 options, storage, hasMemoryCache ? memoryCache : null);
         }
 
-
-
         [Fact]
         public void GetCachedFile_GetsExpectedFileFromStorage()
         {
@@ -61,7 +58,6 @@ namespace Utils.Tests.Caching
             // Assert
             A.CallTo(() => storage.GetCachedFileInfo(ContainerName, expected)).MustHaveHappened();
         }
-
 
         [Fact]
         public void GetCachedFile_ReturnsFileFromStorage()
@@ -196,6 +192,50 @@ namespace Utils.Tests.Caching
             // Assert
             result.Should().Be(expected);
             A.CallTo(() => memoryCache.TryGetValue(expectedMemoryCache, out output))
+                .MustHaveHappened();
+        }
+        
+        [Fact]
+        public async Task GetCachedObjectFromLocal_ReturnsObjectFromMemoryCache_IfFound()
+        {
+            // Arrange
+            const string key = nameof(GetCachedObjectFromLocal_ReturnsObjectFromMemoryCache_IfFound);
+            var sut = GetSut();
+            object expectedMemoryCache = $"tst-{key}";
+            var expected = new FakeStoredFileInfo();
+            
+            object output;
+            A.CallTo(() => memoryCache.TryGetValue(expectedMemoryCache, out output))
+                .Returns(true)
+                .AssignsOutAndRefParameters(expected);
+            
+            // Act
+            var result = await sut.GetCachedObjectFromLocal(key, () => Task.FromResult(expected));
+
+            // Assert
+            result.Should().Be(expected);
+            A.CallTo(() => memoryCache.TryGetValue(expectedMemoryCache, out output))
+                .MustHaveHappened();
+        }
+        
+        [Fact]
+        public async Task GetCachedObjectFromLocal_ReturnsAndSavesResultOfDelegate()
+        {
+            // Arrange
+            const string key = nameof(GetCachedObjectFromLocal_ReturnsAndSavesResultOfDelegate);
+            var sut = GetSut();
+            var expected = new FakeStoredFileInfo();
+            
+            // Act
+            var result = await sut.GetCachedObjectFromLocal(key, () => Task.FromResult(expected));
+
+            // Assert
+            result.Should().Be(expected);
+            A.CallTo(() => memoryCache.CreateEntry(A<object>._))
+                .MustHaveHappened();
+            A.CallTo(() => storage.Read<FakeStoredFileInfo>(A<ISimpleStoredFileInfo>._))
+                .MustNotHaveHappened();
+            A.CallTo(() => storage.Write(expected, A<ISimpleStoredFileInfo>._, A<bool>._))
                 .MustHaveHappened();
         }
     }

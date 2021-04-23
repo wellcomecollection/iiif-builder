@@ -12,5 +12,15 @@ namespace Utils.Caching
         public string Container { get; set; }
         public string Prefix { get; set; }
         public int MemoryCacheSeconds { get; set; }
+
+        /// <summary>
+        /// How long to wait to get critical path lock (ms)
+        /// </summary>
+        public int CriticalPathTimeout { get; set; } = 1000;
+
+        /// <summary>
+        /// Whether to throw an exception if critical path lock times out
+        /// </summary>
+        public bool ThrowOnCriticalPathTimeout { get; set; } = false;
     }
 }

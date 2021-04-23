@@ -10,7 +10,6 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
     {
         private readonly AltoSearchTextProvider altoSearchTextProvider;
         private readonly IBinaryObjectCache<Text> searchTextCache; 
-        // needs options altoCache and httpRuntimeSeconds, prefix "alto_"
         
         public CachingAltoSearchTextProvider(
             AltoSearchTextProvider altoSearchTextProvider,
@@ -28,7 +27,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         public Task<Text> ForceSearchTextRebuild(string identifier)
         {
             Func<Task<Text>> getFromSource = () => altoSearchTextProvider.GetSearchText(identifier);
-            return searchTextCache.GetCachedObject(identifier, getFromSource, t => true);
+            return searchTextCache.GetCachedObjectFromLocal(identifier, getFromSource);
         }
 
         public ISimpleStoredFileInfo GetFileInfo(string identifier)

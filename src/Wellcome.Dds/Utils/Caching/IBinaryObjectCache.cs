@@ -10,6 +10,11 @@ namespace Utils.Caching
 
         Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource, Predicate<T> storedVersionIsStale);
 
+        /// <summary>
+        /// Get cached object from local cache only, do not attempt to read from backing store.
+        /// </summary> 
+        Task<T> GetCachedObjectFromLocal(string key, Func<Task<T>> getFromSource);
+
         ISimpleStoredFileInfo GetCachedFile(string key);
 
         Task DeleteCacheFile(string key);
