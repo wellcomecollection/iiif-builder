@@ -53,6 +53,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <returns></returns>
         public async Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false)
         {
+            logger.LogInformation($"GetDigitisedResource will get MetsResource for {identifier}", identifier);
             IDigitisedResource digResource;
             var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation resource)

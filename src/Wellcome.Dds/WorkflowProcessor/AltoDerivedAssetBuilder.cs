@@ -66,7 +66,7 @@ namespace WorkflowProcessor
             try
             {
                 DeleteZipFileIfExists(job.Identifier);
-                
+                logger.LogInformation("Getting all manifestations in context for rebuilding Alto-derived assets for {identifier}", job.Identifier);
                 await foreach (var manifestationInContext in metsRepository
                     .GetAllManifestationsInContext(job.Identifier)
                     .WithCancellation(cancellationToken))
@@ -190,8 +190,10 @@ namespace WorkflowProcessor
         private async Task<IManifestation> GetManifestation(IManifestationInContext manifestationInContext)
         {
             var manifestation = manifestationInContext.Manifestation;
+            logger.LogInformation("Getting individual manifestation for Alto-derived asset building, {identifier}", manifestation.Id);
             if (manifestation.Partial)
             {
+                logger.LogInformation("Manifestation is partial, going to fetch full version for {identifier}", manifestation.Id);
                 manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
             }
 

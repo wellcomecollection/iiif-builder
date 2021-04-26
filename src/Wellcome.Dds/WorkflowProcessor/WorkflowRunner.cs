@@ -161,10 +161,12 @@ namespace WorkflowProcessor
         {
             IManifestation manifestation = null;
             // Just look at the first one for now
+            logger.LogInformation("Setting job error message for {identifier}", job.Identifier);
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
+                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Id);
                     manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Id);
                 }
                 else
