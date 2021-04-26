@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
@@ -26,7 +27,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task Old_Workflow_Video_Yields_Collection()
         {
-            var metsRepository = new MetsRepository(workStorageFactory);
+            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>());
             var b16675630 = await metsRepository.GetAsync("b16675630");
             b16675630.Should().BeOfType<Collection>();
             b16675630.Partial.Should().BeFalse();
@@ -59,7 +60,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task New_Workflow_Video_Yields_Multiple_Files()
         {
-            var metsRepository = new MetsRepository(workStorageFactory);
+            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>());
             var b30496160 = await metsRepository.GetAsync("b30496160");
             b30496160.Should().BeOfType<MetsManifestation>();
             b30496160.Partial.Should().BeFalse();
@@ -103,7 +104,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task New_Model_Supports_Old_Alto()
         {
-            var metsRepository = new MetsRepository(workStorageFactory);
+            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>());
             var b30074976 = await metsRepository.GetAsync("b30074976");
             var mb30074976 = (MetsManifestation) b30074976;
             mb30074976.PosterImage.Should().BeNull();
