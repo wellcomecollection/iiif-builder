@@ -1,5 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0.102-ca-patch-buster-slim-amd64 AS build
-# FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
 WORKDIR /src
 
 COPY src/Wellcome.Dds/Wellcome.Dds.Server/Wellcome.Dds.Server.csproj Wellcome.Dds.Server/

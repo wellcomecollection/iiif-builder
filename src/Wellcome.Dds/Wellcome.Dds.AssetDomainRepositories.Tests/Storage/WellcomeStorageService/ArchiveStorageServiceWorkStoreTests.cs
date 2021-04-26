@@ -29,9 +29,27 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageServ
 
             sut = new ArchiveStorageServiceWorkStore(identifier, storageMap, null, xmlElementCache, s3Client);
         }
-
+        
         [Fact]
         public async Task LoadXmlForPath_NoUseCache_AlwaysGetsFromS3()
+        {
+            // Arrange
+            xmlElementCache.Add("b12345678.xml", XElement.Parse("<hey>ho</hey>"));
+            A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
+                .ReturnsLazily(
+                    () => new GetObjectResponse {ResponseStream = GenerateStreamFromString("<foo>bar</foo>")});
+
+            // Act
+            var result1 = await sut.LoadXmlForPath("b12345678.xml", false);
+            
+            // Assert
+            A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
+                .MustHaveHappenedOnceExactly();
+            result1.XElement.ToString().Should().Be("<foo>bar</foo>");
+        }
+
+        [Fact]
+        public async Task LoadXmlForPath_NoUseCache_DoesNotAddItemToCache()
         {
             // Arrange
             A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
@@ -40,34 +58,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageServ
 
             // Act
             var result1 = await sut.LoadXmlForPath("b12345678.xml", false);
-            var result2 = await sut.LoadXmlForPath("b12345678.xml", false);
             
             // Assert
             A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
-                .MustHaveHappenedTwiceExactly();
-            result1.XElement.Should().BeEquivalentTo(result2.XElement);
-            xmlElementCache.Should().HaveCount(1);
+                .MustHaveHappenedOnceExactly();
+            result1.XElement.ToString().Should().Be("<foo>bar</foo>");
+            xmlElementCache.Should().HaveCount(0);
         }
         
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task LoadXmlForPath_UseCache_AlwaysGetsFromS3(bool useCacheOnFirst)
+        [Fact]
+        public async Task LoadXmlForPath_UseCache_ReturnsCachesObject()
         {
             // Arrange
+            xmlElementCache.Add("b12345678.xml", XElement.Parse("<hey>ho</hey>"));
             A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
                 .ReturnsLazily(
                     () => new GetObjectResponse {ResponseStream = GenerateStreamFromString("<foo>bar</foo>")});
 
             // Act
-            var result1 = await sut.LoadXmlForPath("b12345678.xml", useCacheOnFirst);
-            var result2 = await sut.LoadXmlForPath("b12345678.xml", true);
+            var result1 = await sut.LoadXmlForPath("b12345678.xml", true);
             
             // Assert
             A.CallTo(() => s3Client.GetObjectAsync(A<GetObjectRequest>._, A<CancellationToken>._))
-                .MustHaveHappenedOnceExactly();
-            result1.XElement.Should().BeEquivalentTo(result2.XElement);
-            xmlElementCache.Should().HaveCount(1);
+                .MustNotHaveHappened();
+            result1.XElement.ToString().Should().Be("<hey>ho</hey>");
         }
         
         [Fact]
