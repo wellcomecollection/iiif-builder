@@ -403,7 +403,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Structures(manifest, metsManifestation); // ranges
             build.ImprovePagingSequence(manifest);
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
-            build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLIneAnnotations);
+            build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
             build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
         }
         
@@ -466,7 +466,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Resources = new List<IAnnotation>()
                 }
             };
-            if (ddsOptions.BuildWholeManifestLIneAnnotations)
+            if (ddsOptions.BuildWholeManifestLineAnnotations)
             {
                 result.AllContentAnnotations = new()
                 {
