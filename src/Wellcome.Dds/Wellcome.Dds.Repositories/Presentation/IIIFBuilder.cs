@@ -92,6 +92,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
+                logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", bNumber);
                 var resource = await metsRepository.GetAsync(bNumber);
                 // This is a bnumber, so can't be part of anything.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
@@ -101,6 +102,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
+                        logger.LogInformation("Build all Manifestations looping through manifestations: {identifier}", manifestationId);
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
                         logger.LogInformation("Will now build " + metsManifestation.Id);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
@@ -195,6 +197,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             try
             {
                 var ddsId = new DdsIdentifier(identifier);
+                logger.LogInformation($"Build a single manifestation {identifier}", identifier);
                 var metsResource = await metsRepository.GetAsync(identifier);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
@@ -204,6 +207,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // this identifier has a parent, which we will need to build the resource properly
                     // this parent property smells... need to do some work to make sure this is always an identical
                     // result to BuildAndSaveAllManifestations
+                    logger.LogInformation("Getting parent METS resource {identifier}", ddsId.Parent);
                     partOf = await metsRepository.GetAsync(ddsId.Parent) as ICollection;
                 }
 

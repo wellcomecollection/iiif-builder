@@ -102,6 +102,7 @@ namespace Wellcome.Dds.Repositories
                 await ddsContext.SaveChangesAsync();
                 
                 shortB = identifier.ToShortBNumber();
+                logger.LogInformation($"Getting METS resource for synchroniser: {identifier}", identifier);
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
             }
@@ -115,6 +116,7 @@ namespace Wellcome.Dds.Repositories
                 var metsManifestation = mic.Manifestation;
                 if (metsManifestation.Partial)
                 {
+                    logger.LogInformation($"Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
                     metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
                 }
                 if (isBNumber)

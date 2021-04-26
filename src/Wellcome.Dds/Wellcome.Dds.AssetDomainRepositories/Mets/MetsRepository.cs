@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.Runtime.Internal.Util;
+using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -15,10 +17,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     public class MetsRepository : IMetsRepository
     {
         private readonly IWorkStorageFactory workStorageFactory;
+        private readonly ILogger<MetsRepository> logger;
 
-        public MetsRepository(IWorkStorageFactory workStorageFactory)
+        public MetsRepository(
+            IWorkStorageFactory workStorageFactory,
+            ILogger<MetsRepository> logger)
         {
             this.workStorageFactory = workStorageFactory;
+            this.logger = logger;
         }
 
         public async Task<IMetsResource> GetAsync(string identifier)
@@ -65,6 +71,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
         {
+            logger.LogInformation($"Get all manifestations in context for {identifier}", identifier);
             var rootMets = await GetAsync(identifier);
             int sequenceIndex = 0;
             if (rootMets is IManifestation mets)
