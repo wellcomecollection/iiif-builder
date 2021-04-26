@@ -520,7 +520,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
                     };
                 }
-                result.AllContentAnnotations.Items?.AddRange(allW3CPageAnnotations);
+                result.AllContentAnnotations?.Items.AddRange(allW3CPageAnnotations);
                 result.ImageAnnotations.Items.AddRange(w3CIllustrations);
                 result.ImageAnnotations.Items.AddRange(w3CComposedBlocks);
                 w3CPage.Items.AddRange(allW3CPageAnnotations);
