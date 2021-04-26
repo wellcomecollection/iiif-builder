@@ -835,7 +835,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         // ^^ move to structurehelper?
 
-        public void ManifestLevelAnnotations(Manifest manifest, IManifestation metsManifestation)
+        public void ManifestLevelAnnotations(Manifest manifest, IManifestation metsManifestation, bool addAllContentAnnos)
         {
             if (metsManifestation.Sequence.SupportsSearch())
             {
@@ -845,13 +845,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
-                    },
-                    new()
+                    }
+                };
+                if (addAllContentAnnos)
+                {
+                    manifest.Annotations.Add(new()
                     {
                         Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
                         Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
-                    },
-                };
+                    });
+                }
             }
         }
 
