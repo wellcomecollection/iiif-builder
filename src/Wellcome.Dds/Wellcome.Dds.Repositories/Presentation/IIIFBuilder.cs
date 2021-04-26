@@ -407,7 +407,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.Structures(manifest, metsManifestation); // ranges
             build.ImprovePagingSequence(manifest);
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
-            build.ManifestLevelAnnotations(manifest, metsManifestation);
+            build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
             build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
         }
         
@@ -457,11 +457,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             var result = new AltoAnnotationBuildResult(manifestation)
             {
                 // W3C
-                AllContentAnnotations = new()
-                {
-                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 3),
-                    Items = new List<IAnnotation>()
-                },
                 ImageAnnotations = new()
                 {
                     Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 3),
@@ -469,20 +464,29 @@ namespace Wellcome.Dds.Repositories.Presentation
                 },
                 PageAnnotations = new IIIF.Presentation.V3.Annotation.AnnotationPage[annotationPages.Count],
                 // OA
-                OpenAnnotationAllContentAnnotations = new ()
-                {
-                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 2),
-                    Resources = new List<IAnnotation>()
-                },
                 OpenAnnotationImageAnnotations = new ()
                 {
                     Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 2),
                     Resources = new List<IAnnotation>()
                 }
             };
-            result.AllContentAnnotations.EnsurePresentation3Context();
+            if (ddsOptions.BuildWholeManifestLineAnnotations)
+            {
+                result.AllContentAnnotations = new()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 3),
+                    Items = new List<IAnnotation>()
+                };
+                result.AllContentAnnotations.EnsurePresentation3Context();
+                result.OpenAnnotationAllContentAnnotations = new()
+                {
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 2),
+                    Resources = new List<IAnnotation>()
+                };
+                result.OpenAnnotationAllContentAnnotations.EnsurePresentation2Context();
+            }
+            
             result.ImageAnnotations.EnsurePresentation3Context();
-            result.OpenAnnotationAllContentAnnotations.EnsurePresentation2Context();
             result.OpenAnnotationImageAnnotations.EnsurePresentation2Context();
             for (var i = 0; i < annotationPages.Count; i++)
             {
@@ -516,7 +520,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
                     };
                 }
-                result.AllContentAnnotations.Items.AddRange(allW3CPageAnnotations);
+                result.AllContentAnnotations.Items?.AddRange(allW3CPageAnnotations);
                 result.ImageAnnotations.Items.AddRange(w3CIllustrations);
                 result.ImageAnnotations.Items.AddRange(w3CComposedBlocks);
                 w3CPage.Items.AddRange(allW3CPageAnnotations);
@@ -535,7 +539,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     .ToList();
                 var allOAPageAnnotations = oATextLines.Concat(oAIllustrations).Concat(oAComposedBlocks).ToArray();
 
-                result.OpenAnnotationAllContentAnnotations.Resources.AddRange(allOAPageAnnotations);
+                result.OpenAnnotationAllContentAnnotations?.Resources.AddRange(allOAPageAnnotations);
                 result.OpenAnnotationImageAnnotations.Resources.AddRange(oAIllustrations);
                 result.OpenAnnotationImageAnnotations.Resources.AddRange(oAComposedBlocks);
             }

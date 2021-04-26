@@ -35,5 +35,6 @@
         public string AnnotationContainer { get; set; }
         public bool ReferenceV0SearchService { get; set; }
         public bool UseRequiredStatement { get; set; }
+        public bool BuildWholeManifestLineAnnotations { get; set; }
     }
 }
