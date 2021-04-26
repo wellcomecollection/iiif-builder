@@ -81,8 +81,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             }
             
             metsXml = await LoadXElementAsync(relativePath);
-            xmlElementCache[relativePath] = metsXml;
-            
+
+            if (useCache)
+            {
+                xmlElementCache[relativePath] = metsXml;
+            }
+
             return new XmlSource
             {
                 XElement = metsXml,
