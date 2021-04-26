@@ -52,18 +52,37 @@ namespace Wellcome.Dds.Repositories
         }
         
 
+        /// <summary>
+        /// We keep a Manifestation row for each individual Manifestation - a 6 vol work has 6 rows
+        /// Manifestations may get added or removed, their file counts may change, etc.
+        ///
+        /// The id of a row is always the METS-derived Manifestation ID, which for a single volume work is a b number,
+        /// and for a volume in a multi-volume work will be something like b12121212_0003.
+        ///
+        /// This method will always process ALL manifestations, if you give it a b number.
+        ///
+        /// This method will re-create the metadata used for IIIF collection aggregations, if you pass a b number.
+        /// </summary>
+        /// <param name="identifier">
+        /// Either the manifestation identifier, or a bnumber. This is the same for single vol works, with the same
+        /// effect, but for multiple volumes, passing the b number will create/update rows for all of the volumes
+        /// </param>
+        /// <param name="work">
+        /// The work from the Catalogue API. Often the caller already has this for other reasons, so can pass it here
+        /// for efficiency. If null, this method will try to obtain it from the catalogue.
+        /// </param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public async Task RefreshDdsManifestations(string identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
-            var workBNumber = new DdsIdentifier(identifier).BNumber;
-            List<Manifestation> ddsManifestationsForBNumber = null;
-            // bool isNew = false;
             var shortB = -1;
-            List<int> foundManifestationIndexes = null;
+            var workBNumber = new DdsIdentifier(identifier).BNumber;
+            var manifestationIndexesProcessed = new List<int>();
             var containsRestrictedFiles = false;
-            IMetsResource packageMetsResource = null;
-            IFileBasedResource packageFileResource = null;
+            IMetsResource? packageMetsResource = null;
+            IFileBasedResource? packageFileResource = null;
             work ??= await catalogue.GetWorkByOtherIdentifier(workBNumber);
             if (work == null)
             {
@@ -72,23 +91,25 @@ namespace Wellcome.Dds.Repositories
             if (isBNumber)
             {
                 // operations we can only do when the identifier being processed is a b number
-                ddsManifestationsForBNumber = ddsContext.Manifestations.Where(
-                    fm => fm.PackageIdentifier == identifier && fm.Index >= 0)
-                    .ToList();
+                
                 // remove any error manifestations, we can recreate them
-                var errors = ddsContext.Manifestations.Where(
-                    fm => fm.PackageIdentifier == identifier && fm.Index < 0);
+                var errors = ddsContext.Manifestations
+                    .Where(fm => fm.PackageIdentifier == identifier && fm.Index < 0);
                 foreach (var error in errors)
                 {
                     ddsContext.Manifestations.Remove(error);
                 }
-                // isNew = !ddsManifestationsForBNumber.Any();
+                await ddsContext.SaveChangesAsync();
+                
                 shortB = identifier.ToShortBNumber();
-                foundManifestationIndexes = new List<int>();
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
             }
 
+            // At this point no uncommitted DB state
+            
+            // Get all the manifestations for this identifier. If the identifier is a b number, it will be
+            // all possible manifestations currently defined in METS for this b number.
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var metsManifestation = mic.Manifestation;
@@ -102,27 +123,24 @@ namespace Wellcome.Dds.Repositories
                     {
                         containsRestrictedFiles = true;
                     }
-                    foundManifestationIndexes.Add(mic.SequenceIndex);
+                    manifestationIndexesProcessed.Add(mic.SequenceIndex);
                 }
                 var ddsId = new DdsIdentifier(metsManifestation.Id);
 
-                var ddsManifestationsForIdentifier = ddsContext.Manifestations
+                var existingManifestationsForIdentifier = ddsContext.Manifestations
                     .Where(fm => fm.PackageIdentifier == ddsId.BNumber && fm.Index == mic.SequenceIndex)
                     .ToArray();
 
-                var ddsManifestation = ddsManifestationsForIdentifier.FirstOrDefault();
-                if (ddsManifestationsForIdentifier.Length > 1)
+                var ddsManifestation = existingManifestationsForIdentifier.FirstOrDefault();
+                if (existingManifestationsForIdentifier.Length > 1)
                 {
-                    foreach (var fm in ddsManifestationsForIdentifier.Skip(1))
+                    foreach (var fm in existingManifestationsForIdentifier.Skip(1))
                     {
-                        // more than one manif with same bnumber and seq index
+                        // more than one manifestation with same bnumber and seq index
+                        // keep the first one and update it, remove any others.
                         ddsContext.Manifestations.Remove(fm);
-                        if (isBNumber)
-                        {
-                            var duplicateFm = ddsManifestationsForBNumber.Single(fmd => fmd.Id == fm.Id);
-                            ddsManifestationsForBNumber.Remove(duplicateFm);
-                        }
                     }
+                    await ddsContext.SaveChangesAsync();
                 }
 
                 var assets = metsManifestation.Sequence;
@@ -136,17 +154,21 @@ namespace Wellcome.Dds.Repositories
                         Id = ddsId,
                         PackageIdentifier = ddsId.BNumber,
                         PackageShortBNumber = ddsId.BNumber.ToShortBNumber(),
-                        Index = mic.SequenceIndex,
-                        Label = metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)"
+                        Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
                     {
                         ddsManifestation.PackageLabel = packageMetsResource.Label;
                     }
                     ddsManifestation.RootSectionType = metsManifestation.Type;
+                    
+                    // The instance of entity type 'Manifestation' cannot be tracked because another
+                    // instance with the same key value for {'Id'} is already being tracked. 
                     await ddsContext.Manifestations.AddAsync(ddsManifestation);
                 }
 
+                ddsManifestation.Label =
+                    metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)";
                 ddsManifestation.WorkId = work.Id;
                 ddsManifestation.WorkType = work.WorkType.Id;
                 ddsManifestation.ReferenceNumber = work.ReferenceNumber;
@@ -244,25 +266,36 @@ namespace Wellcome.Dds.Repositories
                 {
                     ddsManifestation.ContainsRestrictedFiles = containsRestrictedFiles;
                 }
-            }
+                
+                // save the ddsManifestation, which will commit the AddAsync if it was new
+                // this will also commit any deletes of duplicates we have made.
+                await ddsContext.SaveChangesAsync();
+                
+            } // end of foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier)
             
+            // At this point there are no uncommitted DB changes
             if (isBNumber)
             {
-                string betterTitle = null;
-                if (foundManifestationIndexes.Count == 0)
+                string? betterTitle = null;
+                if (manifestationIndexesProcessed.Count == 0)
                 {
                     const string message = "No manifestations for {0}, creating error manifestation";
                     const string dipStatus = "no-manifs";
-                    CreateErrorManifestation(shortB, message, identifier, dipStatus);
+                    await CreateErrorManifestation(shortB, message, identifier, dipStatus);
                 }
                 else
                 {
                     betterTitle = work.Title;
                     await RefreshMetadata(identifier, work);
                 }
-                foreach (var ddsManifestation in ddsManifestationsForBNumber)
+                
+                // Are there any manifestations in the DB still that we didn't see?
+                
+                // See what's already present in the manifestations table for this b number
+                foreach (var ddsManifestation in ddsContext.Manifestations.Where(
+                    fm => fm.PackageIdentifier == identifier))
                 {
-                    if (!foundManifestationIndexes.Contains(ddsManifestation.Index))
+                    if (!manifestationIndexesProcessed.Contains(ddsManifestation.Index))
                     {
                         logger.LogInformation("Removing ddsManifestation {bnumber}/{index}",
                             ddsManifestation.PackageIdentifier, ddsManifestation.Index);
@@ -276,9 +309,8 @@ namespace Wellcome.Dds.Repositories
                         }
                     }
                 }
+                await ddsContext.SaveChangesAsync();
             }
-            await ddsContext.SaveChangesAsync();
-            
         }
 
         private IPhysicalFile GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
@@ -296,7 +328,7 @@ namespace Wellcome.Dds.Repositories
         }
         
   
-        private void CreateErrorManifestation(int shortB, string message, 
+        private async Task CreateErrorManifestation(int shortB, string message, 
             string bNumber, string dipStatus)
         {
             DeleteMetadata(bNumber);
@@ -310,14 +342,16 @@ namespace Wellcome.Dds.Repositories
                 Processed = DateTime.Now,
                 DipStatus = dipStatus
             };
-            ddsContext.Manifestations.Add(fm);
+            await ddsContext.Manifestations.AddAsync(fm);
+            await ddsContext.SaveChangesAsync();
         }
         
         
-        public async Task RefreshMetadata(string identifier, Work work)
+        private async Task RefreshMetadata(string identifier, Work work)
         {
             DeleteMetadata(identifier);
             await ddsContext.Metadata.AddRangeAsync(work.GetMetadata(identifier));
+            await ddsContext.SaveChangesAsync();
         }
 
         private void DeleteMetadata(string identifier)
