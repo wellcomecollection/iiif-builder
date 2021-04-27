@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Utils.Caching;
@@ -49,7 +51,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             string identifier, IEnumerable<IPhysicalFile> physicalFiles)
         {
             logger.LogInformation($"Building Annotation Pages for {identifier}");
-            var altoProvider = new SimpleAltoProvider();
+            var altoProvider = new SimpleAltoProvider(logger);
             var pages = new AnnotationPageList();
             var ddsId = new DdsIdentifier(identifier);
             var workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
@@ -57,14 +59,24 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             {
                 if (physicalFile.RelativeAltoPath.HasText())
                 {
-                    var altoXml = await workStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
-                    var altoRoot = altoXml.XElement;
+                    XElement? altoRoot = null;
+                    try
+                    {
+                        var altoXml = await workStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
+                        altoRoot = altoXml.XElement;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Cannot read or parse ALTO in {relativeAltoPath}",
+                            physicalFile.RelativeAltoPath);
+                    }
+
                     var page = altoProvider.GetAnnotationPage(altoRoot,
-                        physicalFile.AssetMetadata.GetImageWidth(),
-                        physicalFile.AssetMetadata.GetImageHeight(),
-                        identifier,
-                        physicalFile.StorageIdentifier,
-                        (physicalFile.Order ?? 1) - 1);
+                            physicalFile.AssetMetadata.GetImageWidth(),
+                            physicalFile.AssetMetadata.GetImageHeight(),
+                            identifier,
+                            physicalFile.StorageIdentifier,
+                            (physicalFile.Order ?? 1) - 1);
                     logger.LogInformation($"Adding page - {page}");
                     pages.Add(page);
                 }
