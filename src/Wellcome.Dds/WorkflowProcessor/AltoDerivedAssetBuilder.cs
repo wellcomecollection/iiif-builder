@@ -62,7 +62,6 @@ namespace WorkflowProcessor
             int wordsCountedOnThisRun = 0;
             bool wordCountInvalid = false;
 
-            // TODO - this needs a load of error handling etc
             try
             {
                 DeleteZipFileIfExists(job.Identifier);
@@ -102,7 +101,19 @@ namespace WorkflowProcessor
                         {
                             if (jobOptions.RebuildAllAnnoPageCaches)
                             {
-                                // These are in our internal text model
+                                // TODO: we can have an implementation of cachingAllAnnotationProvider
+                                // that uses the Text object constructed in RebuildText, rather than
+                                // read the ALTO files again.
+                                // However - we need to consider memory use here. At this point, Text
+                                // is not in scope and can be garbage collected; the cachingAllAnnotationProvider
+                                // reads one ALTO file at a time to construct the annotationPages list.
+                                // We would still need the full Text object in scope to build the annotation pages,
+                                // which might use too much memory.
+                                
+                                // A complete alternative would involve doing the BuildW3CAndOaAnnotations
+                                // during the Text construction, which merges together the responsibilities.
+                                // This would be more efficient but is a substantial change.
+                                
                                 var annotationPages = await
                                     cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id,
                                         manifestation.Sequence);

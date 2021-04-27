@@ -83,7 +83,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                             // IF alto file has no margin elements then first lone string that is a number or last lone string that is a number
                             // could be ignored. What to do about running titles?
 
-                            // comment this out for now as it realy should be fixed by providing better ALTO files that have proper PrintSpace,
+                            // comment this out for now as it really should be fixed by providing better ALTO files that have proper PrintSpace,
                             // not trying to outguess the typesetter.
                             //var strings = textBlock.Descendants(ns + "String").ToList();
                             //if (strings.Count() == 1)
@@ -103,9 +103,6 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                             
                             Word prevWord = null;
                             
-         
-
-
                             bool wordIsHyphenSecondPart = false;
                             foreach (var textLine in textBlock.Descendants(ns + "TextLine"))
                             {
@@ -189,7 +186,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Cannot read or parse ALTO");
+                        logger.LogError(ex, "Cannot read or parse ALTO in {relativeAltoPath}", physicalFile.RelativeAltoPath);
                     }
                 }
             }
