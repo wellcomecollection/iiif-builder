@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace Wellcome.Dds
 {
@@ -7,6 +8,7 @@ namespace Wellcome.Dds
     /// It's almost a IIIF Manifest row, but not quite.
     /// Still some rework to do before it can become "Manifest"
     /// </summary>
+    [Index(nameof(PackageIdentifier))]
     public class Manifestation
     {
         public static string EmptyTopLevelArchiveReference = "(no-collection)";

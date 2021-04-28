@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
@@ -7,6 +8,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
     /// Each job must be one IIIF manifest.
     /// The DLCS Ingest Job is then picked up as a DLCS _reconciliation_ job
     /// </summary>
+    [Index(nameof(Identifier))]
+    [Index(nameof(Created))]
     public class DlcsIngestJob
     {
         public int Id { get; set; }

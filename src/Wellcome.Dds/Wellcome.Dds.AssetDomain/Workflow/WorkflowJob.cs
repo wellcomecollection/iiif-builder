@@ -1,8 +1,11 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Wellcome.Dds.AssetDomain.Workflow
 {
+    [Index(nameof(Created))]
+    [Index(nameof(Expedite))]
     public class WorkflowJob
     {
         [Key]
