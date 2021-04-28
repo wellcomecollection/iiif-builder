@@ -1,10 +1,12 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Utils;
 
 namespace Wellcome.Dds
 {
+    [Index(nameof(ManifestationId))]
     public class Metadata
     {
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
