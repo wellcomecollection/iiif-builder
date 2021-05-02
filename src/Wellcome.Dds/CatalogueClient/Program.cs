@@ -74,8 +74,10 @@ namespace CatalogueClient
                     Console.Write($"\rIIIF Presentation in {dumpLoopInfo.MatchCount}/{dumpLoopInfo.TotalCount} works.");
                     break;
                 case "display-bnumber":
-                    var catalogue = GetCatalogue();
-                    dumpUtils.FindDigitisedBNumbers(dumpLoopInfo, catalogue);
+                    dumpUtils.FindDigitisedBNumbers(dumpLoopInfo, GetCatalogue());
+                    break;
+                case "compare-availabilities":
+                    CompareAvailabilities(dumpUtils, skip);
                     break;
                 default:
                     Console.WriteLine("(No bulk operation specified)");
@@ -84,6 +86,28 @@ namespace CatalogueClient
             Console.WriteLine();
             sw.Stop();  
             Console.WriteLine($"Finished in {sw.Elapsed.TotalSeconds} seconds.");
+        }
+
+        private static void CompareAvailabilities(DumpUtils dumpUtils, int skip)
+        {
+            var catalogue = GetCatalogue();
+            var options = DumpUtils.GetSerialiserOptions();
+            int counter = 0;
+            foreach (var line in dumpUtils.ReadLines(new DumpLoopInfo {Skip = skip}))
+            {
+                if (counter++ % 100 == 0)
+                {
+                    Console.WriteLine("processing: " + counter);
+                }
+                var work = catalogue.FromDumpLine(line, options);
+                bool? online = work.IsOnline();
+                if (online == null) continue; // availabilities is NOT present
+                
+                if (work.HasDigitalLocation() != online.Value)
+                {
+                    Console.WriteLine("HasDigitalLocation disagrees with IsOnline for " + work.Id);
+                }
+            }
         }
 
 

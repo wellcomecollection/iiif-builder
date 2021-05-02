@@ -121,5 +121,10 @@ namespace Wellcome.Dds.Catalogue
                     location => location.LocationType.Id == "iiif-presentation"));
             return iiifLocations.HasItems();
         }
+
+        public static bool? IsOnline(this Work work)
+        {
+            return work.Availabilities?.Any(a => a.Id == "online");
+        }
     }
 }

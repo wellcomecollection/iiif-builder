@@ -26,6 +26,8 @@
         public Work[] PrecededBy { get; set; }
         public Work[] SucceededBy { get; set; }
         
+        public LabelledEntity[] Availabilities { get; set; }
+        
         public int TotalParts { get; set; }
         public int TotalDescendentParts { get; set; }
 
