@@ -919,7 +919,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private ICollectionItem? MakePart(Work work, Manifestation? manifestation)
         {
-            if (manifestation != null || work.HasDigitalLocation())
+            if (manifestation != null || work.HasIIIFDigitalLocation())
             {
                 // definitely a manifest
                 return new Manifest

@@ -103,7 +103,7 @@ namespace CatalogueClient
                 bool? online = work.IsOnline();
                 if (online == null) continue; // availabilities is NOT present
                 
-                if (work.HasDigitalLocation() != online.Value)
+                if (work.HasIIIFDigitalLocation() != online.Value)
                 {
                     Console.WriteLine("HasDigitalLocation disagrees with IsOnline for " + work.Id);
                 }
