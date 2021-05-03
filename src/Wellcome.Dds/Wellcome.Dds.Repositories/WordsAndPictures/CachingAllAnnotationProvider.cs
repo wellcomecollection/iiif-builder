@@ -92,5 +92,16 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         {
             cache.DeleteCacheFile(identifier);
         }
+        
+        
+        public void DisableMemoryCache()
+        {
+            cache.DisableMemoryCache();
+        }
+
+        public void EnableMemoryCache()
+        {
+            cache.EnableMemoryCache();
+        }
     }
 }

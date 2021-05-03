@@ -39,5 +39,15 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         {
             searchTextCache.DeleteCacheFile(identifier);
         }
+        
+        public void DisableMemoryCache()
+        {
+            searchTextCache.DisableMemoryCache();
+        }
+
+        public void EnableMemoryCache()
+        {
+            searchTextCache.EnableMemoryCache();
+        }
     }
 }

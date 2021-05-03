@@ -16,6 +16,7 @@ namespace Utils.Caching
         private readonly IStorage storage;
         private readonly IMemoryCache memoryCache;
         private readonly TimeSpan cacheDuration;
+        private bool memoryCacheEnabled = true;
 
         private readonly AsyncKeyedLock asyncLocker = new();
 
@@ -78,7 +79,7 @@ namespace Utils.Caching
 
             var memoryCacheKey = GetMemoryCacheKey(key);
 
-            if (memoryCache != null)
+            if (memoryCache != null && memoryCacheEnabled)
             {
                 t = memoryCache.Get(memoryCacheKey) as T;
             }
@@ -91,7 +92,7 @@ namespace Utils.Caching
             using (var processLock = await GetLock(key))
             {
                 // check in memoryCache cache again
-                if (memoryCache != null)
+                if (memoryCache != null && memoryCacheEnabled)
                 {
                     t = memoryCache.Get(memoryCacheKey) as T;
                 }
@@ -134,7 +135,7 @@ namespace Utils.Caching
                     }
                 }
 
-                if (t != null && memoryCacheMiss && memoryCache != null)
+                if (t != null && memoryCacheMiss && memoryCache != null && memoryCacheEnabled)
                 {
                     PutInMemoryCache(t, memoryCacheKey);
                 }
@@ -168,5 +169,15 @@ namespace Utils.Caching
                 string.Intern(key), 
                 TimeSpan.FromMilliseconds(options.CriticalPathTimeout),
                 options.ThrowOnCriticalPathTimeout);
+
+        public void DisableMemoryCache()
+        {
+            memoryCacheEnabled = false;
+        }
+
+        public void EnableMemoryCache()
+        {
+            memoryCacheEnabled = true;
+        }
     }
 }
