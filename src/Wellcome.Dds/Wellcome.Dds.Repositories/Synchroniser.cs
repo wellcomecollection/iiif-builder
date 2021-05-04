@@ -102,7 +102,7 @@ namespace Wellcome.Dds.Repositories
                 await ddsContext.SaveChangesAsync();
                 
                 shortB = identifier.ToShortBNumber();
-                logger.LogInformation($"Getting METS resource for synchroniser: {identifier}", identifier);
+                logger.LogInformation("Getting METS resource for synchroniser: {identifier}", identifier);
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
             }
@@ -117,7 +117,7 @@ namespace Wellcome.Dds.Repositories
                 var ddsId = new DdsIdentifier(metsManifestation.Id);
                 if (metsManifestation.Partial)
                 {
-                    logger.LogInformation($"Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
+                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
                     metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
                 }
                 if (isBNumber)
@@ -129,26 +129,10 @@ namespace Wellcome.Dds.Repositories
                     manifestationIdsProcessed.Add(ddsId);
                 }
 
-                var existingManifestationsForIdentifier = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == ddsId.BNumber && fm.ManifestationIdentifier == ddsId)
-                    .ToArray();
-
-                var ddsManifestation = existingManifestationsForIdentifier.FirstOrDefault();
-                if (existingManifestationsForIdentifier.Length > 1)
-                {
-                    foreach (var fm in existingManifestationsForIdentifier.Skip(1))
-                    {
-                        // more than one manifestation with same bnumber and seq index
-                        // keep the first one and update it, remove any others.
-                        ddsContext.Manifestations.Remove(fm);
-                    }
-                    await ddsContext.SaveChangesAsync();
-                }
-
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(ddsId.ToString());
                 var assets = metsManifestation.Sequence;
                 
                 // (some Change code removed here) - we're not going to implement this for now
-
                 if (ddsManifestation == null)
                 {
                     ddsManifestation = new Manifestation
