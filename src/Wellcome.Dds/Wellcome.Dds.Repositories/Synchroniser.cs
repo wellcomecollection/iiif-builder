@@ -79,7 +79,7 @@ namespace Wellcome.Dds.Repositories
             var isBNumber = identifier.IsBNumber();
             var shortB = -1;
             var workBNumber = new DdsIdentifier(identifier).BNumber;
-            var manifestationIndexesProcessed = new List<int>();
+            var manifestationIdsProcessed = new List<string>();
             var containsRestrictedFiles = false;
             IMetsResource? packageMetsResource = null;
             IFileBasedResource? packageFileResource = null;
@@ -114,6 +114,7 @@ namespace Wellcome.Dds.Repositories
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var metsManifestation = mic.Manifestation;
+                var ddsId = new DdsIdentifier(metsManifestation.Id);
                 if (metsManifestation.Partial)
                 {
                     logger.LogInformation($"Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
@@ -125,12 +126,11 @@ namespace Wellcome.Dds.Repositories
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIndexesProcessed.Add(mic.SequenceIndex);
+                    manifestationIdsProcessed.Add(ddsId);
                 }
-                var ddsId = new DdsIdentifier(metsManifestation.Id);
 
                 var existingManifestationsForIdentifier = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == ddsId.BNumber && fm.Index == mic.SequenceIndex)
+                    .Where(fm => fm.PackageIdentifier == ddsId.BNumber && fm.ManifestationIdentifier == ddsId)
                     .ToArray();
 
                 var ddsManifestation = existingManifestationsForIdentifier.FirstOrDefault();
@@ -266,6 +266,8 @@ namespace Wellcome.Dds.Repositories
                     : null;
                 if (isBNumber)
                 {
+                    // we can only set these when processing a b number, not an individual manifestation
+                    ddsManifestation.Index = mic.SequenceIndex;
                     ddsManifestation.ContainsRestrictedFiles = containsRestrictedFiles;
                 }
                 
@@ -279,7 +281,7 @@ namespace Wellcome.Dds.Repositories
             if (isBNumber)
             {
                 string? betterTitle = null;
-                if (manifestationIndexesProcessed.Count == 0)
+                if (manifestationIdsProcessed.Count == 0)
                 {
                     const string message = "No manifestations for {0}, creating error manifestation";
                     const string dipStatus = "no-manifs";
@@ -297,7 +299,7 @@ namespace Wellcome.Dds.Repositories
                 foreach (var ddsManifestation in ddsContext.Manifestations.Where(
                     fm => fm.PackageIdentifier == identifier))
                 {
-                    if (!manifestationIndexesProcessed.Contains(ddsManifestation.Index))
+                    if (!manifestationIdsProcessed.Contains(ddsManifestation.Id))
                     {
                         logger.LogInformation("Removing ddsManifestation {bnumber}/{index}",
                             ddsManifestation.PackageIdentifier, ddsManifestation.Index);
