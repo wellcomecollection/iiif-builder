@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -54,12 +55,13 @@ namespace Wellcome.Dds.Server.Controllers
             }
             
             var ddsId = new DdsIdentifier(id);
-            var manifestation = await GetManifestation(id, ddsId);
-            if (manifestation == null)
+            var manifestations = await GetManifestation(id, ddsId);
+            if (!manifestations.Any())
             {
                 return NotFound($"No thumbnail for {id}");
             }
 
+            var manifestation = manifestations.First();
             var iiifThumbs = manifestation.GetThumbnail();
             if (iiifThumbs.HasItems())
             {
@@ -72,28 +74,34 @@ namespace Wellcome.Dds.Server.Controllers
             }
 
             IMetsResource resource = await metsRepository.GetAsync(id);
-            if (manifestation.AssetType == "application/pdf")
+            if (manifestations.Exists(m => m.AssetType.StartsWith("audio") || m.AssetType.StartsWith("video")))
+            {
+                // handle AV request
+                return await HandleAvThumbRequest(id, resource, width ?? 600);
+            }
+            if (manifestations.Exists(m => m.AssetType == "application/pdf"))
             {
                 // Born digital PDF...
                 return await HandlePdfThumbRequest(id, width ?? 200);
             }
-
-            // handle AV request
-            return await HandleAvThumbRequest(id, resource, width ?? 600);
+            
+            return NotFound($"No thumbnail for {id}");
         }
 
-        private async Task<Manifestation> GetManifestation(string id, DdsIdentifier ddsId)
+        // Try to get the specific manifestation, but if that fails, get all for the b number.
+        private async Task<List<Manifestation>>GetManifestation(string id, DdsIdentifier ddsId)
         {
             var manifestation = await ddsContext.Manifestations.FindAsync(id);
 
             // this will also work for plain b number
             if (manifestation == null)
             {
-                manifestation = ddsContext.Manifestations
-                    .FirstOrDefault(m => m.PackageIdentifier == ddsId.BNumber);
+                return ddsContext.Manifestations
+                    .Where(m => m.PackageIdentifier == ddsId.BNumber)
+                    .ToList();
             }
 
-            return manifestation;
+            return new List<Manifestation>{ manifestation };
         }
 
         private async Task<IActionResult> HandlePdfThumbRequest(DdsIdentifier identifier, int width)
