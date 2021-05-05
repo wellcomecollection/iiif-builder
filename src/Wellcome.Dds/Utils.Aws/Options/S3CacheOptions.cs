@@ -4,6 +4,6 @@
     {
         public bool WriteProtobuf { get; set; } = false;
         public bool ReadProtobuf { get; set; } = false;
-        public bool WriteBinary { get; set; } = true;
+        public bool WriteBinary { get; set; } = false;
     }
 }

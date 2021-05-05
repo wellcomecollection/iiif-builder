@@ -50,6 +50,8 @@ namespace WorkflowProcessor
         public async Task RebuildAltoDerivedAssets(WorkflowJob job, RunnerOptions jobOptions, CancellationToken cancellationToken = default)
         {
             if (!jobOptions.RebuildTextCaches) return;
+            cachingAllAnnotationProvider.DisableMemoryCache();
+            cachingSearchTextProvider.DisableMemoryCache();
 
             var start = DateTime.Now;
             job.ExpectedTexts = 0;
@@ -155,6 +157,9 @@ namespace WorkflowProcessor
             finally
             {
                 DeleteZipFileIfExists(job.Identifier);
+                
+                cachingAllAnnotationProvider.EnableMemoryCache();
+                cachingSearchTextProvider.EnableMemoryCache();
             }
         }
 

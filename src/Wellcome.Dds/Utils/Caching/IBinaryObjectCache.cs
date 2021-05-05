@@ -18,5 +18,8 @@ namespace Utils.Caching
         ISimpleStoredFileInfo GetCachedFile(string key);
 
         Task DeleteCacheFile(string key);
+
+        void DisableMemoryCache();
+        void EnableMemoryCache();
     }
 }
