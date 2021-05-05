@@ -114,12 +114,17 @@ namespace Wellcome.Dds.Catalogue
             return new string[0];
         }
 
-        public static bool HasDigitalLocation(this Work work)
+        public static bool HasIIIFDigitalLocation(this Work work)
         {
             var iiifLocations = work
                 .Items?.Where(item => item.Locations.Any(
                     location => location.LocationType.Id == "iiif-presentation"));
             return iiifLocations.HasItems();
+        }
+
+        public static bool? IsOnline(this Work work)
+        {
+            return work.Availabilities?.Any(a => a.Id == "online");
         }
     }
 }

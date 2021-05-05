@@ -258,7 +258,7 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
-                if (work.HasDigitalLocation())
+                if (work.HasIIIFDigitalLocation())
                 {
                     var bNumber = work.GetSierraSystemBNumbers().First();
                     return Redirect(uriPatterns.Manifest(bNumber));
@@ -287,7 +287,7 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
-                if (work.HasDigitalLocation())
+                if (work.HasIIIFDigitalLocation())
                 {
                     var bNumber = work.GetSierraSystemBNumbers().First();
                     return Redirect(uriPatterns.Manifest(bNumber).AsV2());
