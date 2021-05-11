@@ -187,97 +187,37 @@ namespace Wellcome.Dds.Server.Controllers
 
         /**
          * #################################### MOH ######################################
+         * MOH is still on wl.org! But we have changed the service paths, otherwise
+         * we wouldn't be able to handle them separately from above.
          */
+        private const string wlorg = "https://wellcomelibrary.org";
 
-        [HttpGet("service/moh/normalisednames")]
-        public IActionResult MoHNormalisedNames()
+        [HttpGet("service/moh/{operation}")]
+        public IActionResult MoHOperation(string operation)
         {
-            return new StatusCodeResult(501);
+            return BuilderUrl($"{wlorg}/moh/service/{operation}");
         }
-        
-        [HttpGet("service/moh/allplacenames")]
-        public IActionResult MoHAllPlaceNames()
-        {
-            return new StatusCodeResult(501);
-        }
-        
-        [HttpGet("service/moh/normalisedmohplacenames ")]
-        public IActionResult MoHNormalisedMoHPlaceNames()
-        {
-            return new StatusCodeResult(501);
-        }
-        
-        [HttpGet("service/moh/browseanyplace")]
-        public IActionResult MoHBrowseAnyPlace(int pageSize = 0)
-        {
-            return new StatusCodeResult(501);
-        }
-        
-        [HttpGet("service/moh/autocompleteplace")]
-        public IActionResult MoHAutoCompletePlace(string fragment)
-        {
-            return new StatusCodeResult(501);
-        }
-        
-        [HttpGet("service/moh/browsenormalised")]
-        public IActionResult MoHBrowseNormalised(
-            string normalisedPlace = null, 
-            int startYear = 1848, int endYear = 2020, 
-            int page = 1, int pageSize = 100) //, 
-            // Ordering ordering = Ordering.Date) TODO - put this back in!
-        {
-            return new StatusCodeResult(501);
-        }
-        
-        
-        [HttpGet("service/moh/browseanyplace")]
-        public IActionResult MoHBrowseAnyPlace(
-            string place = null,
-            int startYear = 1848, int endYear = 2020,
-            int page = 1, int pageSize = 100) //, 
-            // Ordering ordering = Ordering.Date) TODO - put this back in!
-        {
-            return new StatusCodeResult(501);
-        }
+
         
         [HttpGet("service/moh/report/{id}")]
         public IActionResult MoHReport(string id)
         {
-            return new StatusCodeResult(501);   
+            return BuilderUrl($"{wlorg}/moh/service/report/{id}");   
         }
         
                 
         [HttpGet("service/moh/report/{id}/{page}")]
         public IActionResult MoHReportPage(string id, int page)
         {
-            return new StatusCodeResult(501);
+            return BuilderUrl($"{wlorg}/moh/service/report/{id}/{page}");  
         }
                 
-        [HttpGet("service/moh/search")]
-        public IActionResult MoHSearch(            
-            string terms,
-            string constrainedPlaceName = null,
-            int startYear = 1848, int endYear = 2020,
-            int page = 1, int pageSize = 100,
-            bool tablesOnly = false, bool groupIntoReports = true,
-            bool useSpecialGroupingBehaviour = true, int visibleHitsPerReport = 5, int expandoThreshold = 2)
-        {
-            return new StatusCodeResult(501);
-        }
-
         [HttpGet("service/moh/tables/{tableId}.{fileExt}")]
         public IActionResult MoHTables(long tableId, string fileExt)
         {
-            return new StatusCodeResult(501);
+            return BuilderUrl($"{wlorg}/moh/service/tables/{tableId}.{fileExt}");  
         }
         
-        [HttpGet("service/moh/zip")]
-        public IActionResult MoHZip(
-            string op, string format, int startYear = 0, int endYear = 2020,
-            bool useNormalisedPlace = false)
-        {
-            return new StatusCodeResult(501);
-        }
         
         private string GetNewAggregator(string oldAggregator)
         {
