@@ -53,11 +53,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         {
             logger.LogInformation("Requires new build of storage map for {Identifier}", identifier);
             var storageManifest = await storageServiceClient.LoadStorageManifest(identifier);
-            return WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, identifier);
+            var wellcomeBagAwareArchiveStorageMap = WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, identifier);
+            if (wellcomeBagAwareArchiveStorageMap.VersionSets.IsNullOrEmpty())
+            {
+                throw new InvalidOperationException($"Unable to generate VersionSet for StorageMap. Id: {identifier}");
+            }
+            return wellcomeBagAwareArchiveStorageMap;
         }
         
         private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap map)
         {
+            if (map.VersionSets.IsNullOrEmpty())
+            {
+                logger.LogWarning("Cached StorageMap found with null or empty VersionSet. {Identifier}",
+                    map.Identifier);
+                return true;
+            }
+            
             if (storageOptions.PreferCachedStorageMap)
             {
                 return false;
@@ -73,7 +85,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 // Never rebuild Chemist and Druggist's storage map on demand
                 return false;
             }
-    
+
             var age = DateTime.UtcNow - map.Built;
             return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
         }
