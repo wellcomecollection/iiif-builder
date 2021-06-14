@@ -23,6 +23,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
+      <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
       <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />
     </ItemGroup>
 

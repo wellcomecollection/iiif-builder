@@ -435,6 +435,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                             }
                         }
 
+                        var betterCanvasLabel = GetBetterAVCanvasLabel(metsManifestation, physicalFile);
+                        if (betterCanvasLabel != null)
+                        {
+                            canvas.Label = Lang.Map(betterCanvasLabel);
+                        }
+
                         if (state != null)
                         {
                             state.AVState ??= new AVState();
@@ -487,6 +493,52 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
             }
+        }
+
+        private static string? GetBetterAVCanvasLabel(IManifestation metsManifestation, IPhysicalFile physicalFile)
+        {
+            string? betterCanvasLabel = null;
+            // Find a better Canvas label for an AV canvas by seeing if this file has one
+            // single corresponding logical struct div. This is very conservative in deciding
+            // what a "structural" logical struct div is. Later, we might want TOCs etc - but they 
+            // can come from normal range-building behaviour.
+            var logicalStructs = metsManifestation.RootStructRange?.Children;
+            if (logicalStructs != null && logicalStructs.HasItems())
+            {
+                var logicalStructsForFile = logicalStructs
+                    .Where(s => s.PhysicalFileIds.Contains(physicalFile.Id))
+                    .ToList();
+                if (logicalStructsForFile.Count == 1)
+                {
+                    betterCanvasLabel = GetBetterAVCanvasLabel(
+                        logicalStructsForFile[0].Label,
+                        logicalStructsForFile[0].Type);
+                }
+            }
+
+            return betterCanvasLabel;
+        }
+
+        public static string? GetBetterAVCanvasLabel(string? structLabel, string? structType)
+        {
+            string? betterCanvasLabel = null;
+            var label = structLabel ?? "";
+            var type = structType ?? "";
+            if (!label.Contains("side", StringComparison.InvariantCultureIgnoreCase) && type.ToLowerInvariant().StartsWith("side"))
+            {
+                var humanReadable = "Side " + type.Substring(4).Trim();
+                if (label.HasText())
+                {
+                    label += ", ";
+                }
+
+                label += humanReadable;
+            }
+            if (label.HasText())
+            {
+                betterCanvasLabel = label;
+            }
+            return betterCanvasLabel;
         }
 
         private LabelValuePair? GetPageCountMetadata(IPhysicalFile physicalFile)
