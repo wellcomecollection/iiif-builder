@@ -29,6 +29,13 @@ pipeline {
     ]
    }
   }
+  stage('Install') {
+     steps {
+      sh "apt-get update"
+      sh "apt install python3-pip"
+      sh "pip3 install awscli"
+     }
+    }
   stage('Image') {
    steps {
     sh "docker build -t ${DOCKER_IMAGE}:jenkins -f ${DOCKER_FILE} ."
