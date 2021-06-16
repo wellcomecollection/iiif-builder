@@ -283,6 +283,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = metsManifestation.Id;
             manifest.Items = new List<Canvas>();
+            var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence)
             {
                 string orderLabel = null;
@@ -432,7 +433,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                             {
                                 // A new workflow transcript for this AV file
                                 AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
+                                canvasesWithNewWorkflowTranscripts.Add(canvas);
                             }
+                        }
+
+                        var betterCanvasLabel = GetBetterAVCanvasLabel(metsManifestation, physicalFile);
+                        if (betterCanvasLabel != null)
+                        {
+                            canvas.Label = Lang.Map(betterCanvasLabel);
                         }
 
                         if (state != null)
@@ -481,12 +489,103 @@ namespace Wellcome.Dds.Repositories.Presentation
                         throw new ArgumentOutOfRangeException();
                 }
             }
+            
+            MoveSingleAVTranscriptToManifest(manifest, canvasesWithNewWorkflowTranscripts, true);
 
             if (foundAuthServices.HasItems())
             {
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
             }
+        }
+
+        private static void MoveSingleAVTranscriptToManifest(
+            Manifest manifest,
+            List<Canvas> canvasesWithNewWorkflowTranscripts,
+            bool asRendering)
+        {
+            if (manifest.Items != null)
+            {
+                if ((asRendering || manifest.Items.Count > 1) && canvasesWithNewWorkflowTranscripts.Count == 1)
+                {
+                    // Wellcome AV-specific transcript behaviour. Move the canvas's PDF transcript to the manifest.
+                    // If there is only one transcript and only one canvas then it STAYS ON THE CANVAS because that is
+                    // more correct; it's only to avoid having a transcript with text from other canvases.
+                    var canvas = canvasesWithNewWorkflowTranscripts[0];
+                    var annoPage = canvas.Annotations?[0];
+                    if (annoPage == null) return;
+
+                    if (asRendering)
+                    {
+                        if (annoPage.Items?.OfType<SupplementingDocumentAnnotation>().FirstOrDefault()?.Body is ExternalResource pdf)
+                        {
+                            manifest.Rendering ??= new List<ExternalResource>();
+                            manifest.Rendering.Add(pdf);
+                        }
+                    }
+                    else
+                    {
+                        manifest.Annotations ??= new List<AnnotationPage>();
+                        manifest.Annotations.Add(annoPage);
+                    }
+                    if (manifest.Items.Count > 1)
+                    {
+                        // we can only leave the Canvas one in place if it's the _only_ one.
+                        canvas.Annotations!.RemoveAll(ap => ap.Id == annoPage.Id);
+                        if (canvas.Annotations.Count == 0)
+                        {
+                            canvas.Annotations = null;
+                        }
+                    }
+                }
+                
+            }
+        }
+
+        private static string? GetBetterAVCanvasLabel(IManifestation metsManifestation, IPhysicalFile physicalFile)
+        {
+            string? betterCanvasLabel = null;
+            // Find a better Canvas label for an AV canvas by seeing if this file has one
+            // single corresponding logical struct div. This is very conservative in deciding
+            // what a "structural" logical struct div is. Later, we might want TOCs etc - but they 
+            // can come from normal range-building behaviour.
+            var logicalStructs = metsManifestation.RootStructRange?.Children;
+            if (logicalStructs.HasItems())
+            {
+                var logicalStructsForFile = logicalStructs
+                    .Where(s => s.PhysicalFileIds.Contains(physicalFile.Id))
+                    .ToList();
+                if (logicalStructsForFile.Count == 1)
+                {
+                    betterCanvasLabel = GetBetterAVCanvasLabel(
+                        logicalStructsForFile[0].Label,
+                        logicalStructsForFile[0].Type);
+                }
+            }
+
+            return betterCanvasLabel;
+        }
+
+        public static string? GetBetterAVCanvasLabel(string? structLabel, string? structType)
+        {
+            string? betterCanvasLabel = null;
+            var label = structLabel ?? "";
+            var type = structType ?? "";
+            if (!label.Contains("side", StringComparison.InvariantCultureIgnoreCase) && type.ToLowerInvariant().StartsWith("side"))
+            {
+                var humanReadable = "Side " + type.Substring(4).Trim();
+                if (label.HasText())
+                {
+                    label += ", ";
+                }
+
+                label += humanReadable;
+            }
+            if (label.HasText())
+            {
+                betterCanvasLabel = label;
+            }
+            return betterCanvasLabel;
         }
 
         private LabelValuePair? GetPageCountMetadata(IPhysicalFile physicalFile)

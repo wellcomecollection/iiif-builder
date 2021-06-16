@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using FluentAssertions;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
+using Wellcome.Dds.IIIFBuilding;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
