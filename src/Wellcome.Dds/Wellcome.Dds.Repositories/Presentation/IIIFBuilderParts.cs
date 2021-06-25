@@ -671,7 +671,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The other issue here is that the DLCS probably won't have got round to processing this,
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
-            if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+            if (IsVideoFile(metsManifestation, physicalFile))
             {
                 var confineToBox = new Size(1280, 720);
                 // TODO - this needs to match Elastictranscoder settings, which may be more complex tham this
@@ -695,7 +695,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Height = computedSize.Height
                 });
             }
-            else if (physicalFile.Type == "Audio" || metsManifestation.Type == "Audio")
+            else if (IsAudioFile(metsManifestation, physicalFile))
             {
                 choice.Items.Add(new Audio
                 {
@@ -711,8 +711,28 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return choice;
         }
-        
-        
+
+        private static bool IsAudioFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
+        {
+            if (physicalFile.Type == "Audio" || metsManifestation.Type == "Audio")
+            {
+                return true;
+            }
+
+            if (physicalFile.Type == "WAV" && metsManifestation.Type == "Archive")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsVideoFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
+        {
+            return physicalFile.Type == "Video" || metsManifestation.Type == "Video";
+        }
+
+
         private void AddAuthServices(
             IPaintable media, 
             IPhysicalFile physicalFile,
