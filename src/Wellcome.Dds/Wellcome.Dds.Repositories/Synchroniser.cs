@@ -30,7 +30,8 @@ namespace Wellcome.Dds.Repositories
         
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
-        private readonly Regex thumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
+        private readonly Regex dlcsThumbRegex = new Regex(@"https://dlcs\.io/thumbs/wellcome/[0-9]*/([^/]*)/full/.*");
+        private readonly Regex wcorgThumbRegex = new Regex(@"https://iiif\.wellcomecollection\.org/thumbs/([^/]*)/full/.*");
         // ^^^^^
         // Don't forget this! Needs to happen in Catalogue API *after* we go live.
         // ***********************
@@ -301,11 +302,15 @@ namespace Wellcome.Dds.Repositories
             }
         }
 
-        private IPhysicalFile GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
+        private IPhysicalFile? GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
         {
             if (work.Thumbnail == null) return null;
-            var match = thumbRegex.Match(work.Thumbnail.Url);
-            if (!match.Success) return null;
+            var match = wcorgThumbRegex.Match(work.Thumbnail.Url);
+            if (!match.Success)
+            {
+                match = dlcsThumbRegex.Match(work.Thumbnail.Url);
+                if (!match.Success) return null;
+            }
             var storageIdentifier = match.Groups[1].Value;
             return assets.FirstOrDefault(a => a.StorageIdentifier == storageIdentifier);
         }
