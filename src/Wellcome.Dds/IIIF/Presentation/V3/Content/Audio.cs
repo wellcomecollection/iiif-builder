@@ -6,6 +6,6 @@ namespace IIIF.Presentation.V3.Content
     {
         public double Duration { get; set; }
 
-        public Audio() : base(nameof(Audio)) { }
+        public Audio() : base("Sound") { }
     }
 }
