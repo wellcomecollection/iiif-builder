@@ -13,3 +13,19 @@ Overall process is:
 * Use ghostscript to generate JPG
 * Resize JPG to 1024 wide
 * Upload to S3
+
+Expected CSV format:
+
+```
+Identifier,Processed,Title
+b32878382,14/07/2021 09:48,Mind the gap
+```
+
+## Config
+
+For running, need to setup the following app settings:
+
+* Dds-AWS
+* Storage-AWS
+* Storage_ClientId
+* Storage_ClientSecret

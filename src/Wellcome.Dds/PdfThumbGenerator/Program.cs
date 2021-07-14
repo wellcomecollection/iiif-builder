@@ -105,7 +105,7 @@ namespace PdfThumbGenerator
 
         private async Task ProcessPdf(BornDigitalPdf pdf)
         {
-            // find PDFI th
+            // find PDF items
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
