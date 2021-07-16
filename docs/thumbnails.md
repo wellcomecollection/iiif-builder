@@ -107,7 +107,7 @@ These identifiers are derived from METS for multiple manifestations:
 
 * DLCS should provide a thumb service for PDFs
 * DLCS should provide a thumb/iiif service for video keyframes (this is not the same a poster image; as poster might not be derived from the video)
-* DLCS should allow one asset to have another asset associated with it (allowing audio or video to have an arbitrary poster image and have the DLCS serve them
+* DLCS should allow one asset to have another asset associated with it (allowing audio or video to have an arbitrary poster image and have the DLCS serve them)
 
 Even with the DLCS doing this, the DDS would still be the place to ask for a work or manifestation level thumbnail, because only the DDS understands what those concepts are.
 
@@ -116,4 +116,5 @@ Even with the DLCS doing this, the DDS would still be the place to ask for a wor
 ## Notes
 
 [1] See https://github.com/wellcomecollection/docs/pull/30/files
+
 [2] So why not just put this /thumb/bnumber path into the Catalogue API and let DDS redirect appropriately? Because, at present, the DDS learns the appropriate thumb from the Catalogue API! This logic (finding the cover page) could move to the DDS, though - it already does this to generate IIIF Range Navigation.
