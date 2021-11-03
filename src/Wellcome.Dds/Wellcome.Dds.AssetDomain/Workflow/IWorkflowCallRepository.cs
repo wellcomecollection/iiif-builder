@@ -53,5 +53,19 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         Task<WorkflowJob> CreateExpeditedWorkflowJob(string id, int? workflowOptions, bool invalidateCache);
 
         int FinishAllJobs();
+        
+        /// <summary>
+        /// Return the number of jobs with errors that match this string (LIKE behaviour)
+        /// </summary>
+        /// <param name="msg">The error message, or part of it</param>
+        /// <returns></returns>
+        Task<int> CountMatchingErrors(string msg);
+
+        /// <summary>
+        /// Reset any jobs that have this error.
+        /// </summary>
+        /// <param name="resetWithMessage"></param>
+        /// <returns></returns>
+        Task<int> ResetJobsMatchingError(string resetWithMessage);
     }
 }
