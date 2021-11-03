@@ -102,8 +102,16 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         public int FinishAllJobs()
         {
-            const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, error='Force-finished before job could be taken' where waiting=true";
+            const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, " +
+                               "error='Force-finished before job could be taken' where waiting=true";
             return Database.ExecuteSqlRaw(sql);
+        }
+
+        public int ResetJobsMatchingError(string error)
+        {
+            const string sql = "update workflow_jobs set waiting=true, finished=false, taken=null, " +
+                               "error=null, workflow_options=null where error like '%' || {0} || '%'";
+            return Database.ExecuteSqlRaw(sql, error);
         }
     }
 

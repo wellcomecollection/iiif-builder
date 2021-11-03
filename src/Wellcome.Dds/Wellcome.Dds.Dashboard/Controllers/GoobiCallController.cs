@@ -33,6 +33,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var errors = await workflowCallRepository.GetRecentErrors(100);
             return View("GoobiCallList", errors);
         }
+        
+        public async Task<ActionResult> MatchingErrors(string msg)
+        {
+            ViewBag.ErrorString = msg;
+            var errorCount = await workflowCallRepository.CountMatchingErrors(msg);
+            return View("MatchingErrors", errorCount);
+        }
 
         public async Task<ActionResult> Stats()
         {
@@ -78,6 +85,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 TempData["new-workflow-job-error"] = e.Message;
                 return RedirectToAction("GoobiCall", new {id});
             }
+        }
+
+        public async Task<IActionResult> ResetMatchingErrors(string resetWithMessage)
+        {
+            if (resetWithMessage.HasText())
+            {
+                int jobsReset = await workflowCallRepository.ResetJobsMatchingError(resetWithMessage);
+                TempData["reset-errors"] = $"{jobsReset} Jobs with errors reset.";
+            }
+            return RedirectToAction("Errors");
         }
     }
 }

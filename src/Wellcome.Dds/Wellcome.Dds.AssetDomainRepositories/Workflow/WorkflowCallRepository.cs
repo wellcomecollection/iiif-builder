@@ -148,5 +148,18 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
         {
             return ddsInstrumentationContext.FinishAllJobs();
         }
+
+        public async Task<int> CountMatchingErrors(string msg)
+        {
+            var count = await ddsInstrumentationContext.WorkflowJobs
+                .CountAsync(j => j.Error.Contains(msg));
+            return count;
+        }
+
+        public Task<int> ResetJobsMatchingError(string resetWithMessage)
+        {
+            var count = ddsInstrumentationContext.ResetJobsMatchingError(resetWithMessage);
+            return Task.FromResult(count);
+        }
     }
 }

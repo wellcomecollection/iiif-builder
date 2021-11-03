@@ -19,8 +19,15 @@
                 <td>@StringUtils.GetFriendlyAge(workflowJob.Created)</td>
                 <td>@StringUtils.GetFriendlyAge(workflowJob.Taken)</td>
                 <td>@workflowJob.GetAltoRate()</td>
-                <td>@workflowJob.Error</td>
-            </tr>
+                @if (workflowJob.Error.HasText())
+                {
+                    <td>@Html.ActionLink(workflowJob.Error, "MatchingErrors", "GoobiCall", new { msg = workflowJob.Error }, new { })</td>
+                }
+                else
+                {
+                    <td></td>
+                }
+                </tr>
         }
     </tbody>
 </table>
