@@ -156,7 +156,8 @@ namespace Wellcome.Dds.Repositories
     {
         public const string Sql =
               "select distinct collection_reference_number, collection_title, " 
-            + "collection_work_id from manifestations where collection_title is not null";
+            + "collection_work_id from manifestations where collection_title is not null " 
+            + "and collection_reference_number is not null";
 
         public readonly string ReferenceNumber;
         public readonly string Title;
