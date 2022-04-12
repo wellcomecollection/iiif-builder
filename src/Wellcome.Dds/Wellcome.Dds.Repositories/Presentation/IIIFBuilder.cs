@@ -790,8 +790,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                 Resources = new List<IAnnotation>()
             };
             annotationList.EnsurePresentation2Context();
+
+            var w3CAnnoItems = v3["items"];
+            if (w3CAnnoItems == null || w3CAnnoItems.Type != JTokenType.Array)
+            {
+                // This anno page has no items
+                return annotationList;
+            }
             
-            foreach (var jItem in v3["items"])
+            foreach (var jItem in w3CAnnoItems)
             {
                 var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
