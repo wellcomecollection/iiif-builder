@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using ProtoBuf;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
@@ -51,6 +52,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             var versionToFiles = new Dictionary<string, HashSet<string>>();
             var manifest = storageManifest.SelectToken("manifest");
+
+            var isDigitised = identifier.IsBNumber();
             foreach (var file in manifest["files"])
             {
                 // strip "data/"
@@ -58,13 +61,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 // That's a valid assumption for the DDS to make, but not any other application using the storage
                 var relativePath = file.Value<string>("name").Substring(dataPathElementOffset);
                 var version = file.Value<string>("path").Split(pathSep).First();
-                var minRelativePath = relativePath.Replace(identifier, "#");
                 if (!versionToFiles.ContainsKey(version))
                 {
                     versionToFiles[version] = new HashSet<string>();
                 }
-
-                versionToFiles[version].Add(minRelativePath);
+                if (isDigitised)
+                {
+                    var minRelativePath = relativePath.Replace(identifier, "#");
+                    versionToFiles[version].Add(minRelativePath);
+                }
+                else
+                {
+                    if (relativePath.StartsWith("logs/"))
+                    {
+                        // don't record the Archivematica log files
+                        continue;
+                    }
+                    // we could also strip out README.html, objects/metadata/*, and objects/submissionDocumentation/*
+                    versionToFiles[version].Add(relativePath);
+                }
             }
             
             // now order the dict by largest member
