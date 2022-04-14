@@ -139,7 +139,7 @@ namespace Wellcome.Dds.Common
             // This works for now with our 2 types but is not a GENERAL solution.
             return s.Replace('_', '/');
         }
-
+        
         public static int ToShortBNumber(this string bNumber)
         {
             return GetShortBNumber(bNumber);

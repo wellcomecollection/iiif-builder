@@ -34,6 +34,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         
         [ProtoMember(5)]
         public string Identifier { get; set; }
+        
+        /// <summary>
+        /// This is used to store the Archivematica GUID for a born-digital object
+        /// </summary>
+        [ProtoMember(6)]
+        public string OtherIdentifier { get; set; }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)
         {
@@ -79,6 +85,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     }
                     // we could also strip out README.html, objects/metadata/*, and objects/submissionDocumentation/*
                     versionToFiles[version].Add(relativePath);
+                    if(relativePath.StartsWith("METS.") && relativePath.EndsWith(".xml"))
+                    {
+                        // This is a special case for Archivematica born-digital.
+                        // This will yield the GUID that Archivematica knows the object by,
+                        // which we can use to ask for the METS file.
+                        var parts = relativePath.Split('.');
+                        if (parts.Length == 3)
+                        {
+                            // This should be the Archivematica GUID
+                            archiveStorageMap.OtherIdentifier = parts[1];
+                        }
+                    }
                 }
             }
             

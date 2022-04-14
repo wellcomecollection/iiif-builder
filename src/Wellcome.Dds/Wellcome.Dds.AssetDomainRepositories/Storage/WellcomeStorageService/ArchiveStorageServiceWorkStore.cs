@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Newtonsoft.Json.Linq;
+using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
@@ -147,6 +148,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         public IAssetMetadata MakeAssetMetadata(XElement metsRoot, string admId)
         {
             return new PremisMetadata(metsRoot, admId);
+        }
+
+        public string GetRootDocument()
+        {
+            // This logic works for our current two cases.
+            if (ArchiveStorageMap.OtherIdentifier.HasText())
+            {
+                return $"METS.{ArchiveStorageMap.OtherIdentifier}.xml";
+            }
+
+            return $"{ArchiveStorageMap.Identifier}.xml";
         }
 
         public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageType, Identifier);

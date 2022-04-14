@@ -12,6 +12,8 @@ namespace Wellcome.Dds.Common
 
         public string this[int index] => parts[index];
 
+        // At the moment this kind of means the same thing as package identifier.
+        // the DDSIdentifier might represent a particular Manifestation 
         public string BNumber => parts[0];
 
         public string VolumePart
