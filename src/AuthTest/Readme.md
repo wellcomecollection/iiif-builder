@@ -27,3 +27,7 @@ The following configuration values will need to be added to run the app:
     "ClientId": "<client-id>"
   }
 ```
+
+## Deploying
+
+Run `build.sh` and pass account number to build + push docker image and restart ECS service.
