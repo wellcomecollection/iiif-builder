@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using AuthTest.Models;
@@ -18,13 +14,14 @@ namespace AuthTest.Controllers
             _logger = logger;
         }
 
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Index()
         {
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
+            if (User.Identity is not { IsAuthenticated: true })
+            {
+                return RedirectToAction("Login", "Account");
+            }
+            
             return View();
         }
 

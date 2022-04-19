@@ -10,7 +10,7 @@ using SampleMvcApp.ViewModels;
 
 namespace AuthTest.Controllers
 {
-    public class Account : Controller
+    public class AccountController : Controller
     {
         public async Task Login(string returnUrl = "/")
         {
@@ -35,20 +35,16 @@ namespace AuthTest.Controllers
         }
         
         [Authorize]
-        public IActionResult Profile()
+        public async Task<IActionResult> Profile()
         {
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            
             return View(new UserProfileViewModel
             {
                 Name = User.Identity.Name,
                 EmailAddress = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
                 ProfileImage = User.Claims.FirstOrDefault(c => c.Type == "picture")?.Value
             });
-        }
-        
-        [Authorize]
-        public IActionResult Claims()
-        {
-            return View();
         }
 
         public IActionResult AccessDenied()
