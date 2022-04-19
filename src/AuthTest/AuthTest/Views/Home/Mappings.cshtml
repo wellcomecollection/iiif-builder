@@ -1,0 +1,41 @@
+﻿@using AuthTest.Controllers
+@model AuthTest.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Role Mappings";
+}
+
+<div class="row">
+    <div class="col-md-12">
+
+        <h3>Role Mappings</h3>
+        <p>This page displays mappings of Roles from Auth0:DLCS-Role</p>
+        <p>The "clickthrough" role can be assigned directly by the DLCS but is given automatically given to logged in users.</p>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>
+                    Wellcome Role
+                </th>
+                <th>
+                    Mapped DLCS Role(s)
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var (key, value) in RoleMappings.Map)
+            {
+                <tr>
+                    <td>@key</td>
+                    <td>
+                        @foreach (var role in value)
+                        {
+                            @role<br/>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

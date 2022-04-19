@@ -1,6 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using AuthTest.Models;
+using AuthTest.ViewModels;
 
 namespace AuthTest.Controllers
 {
@@ -14,7 +17,7 @@ namespace AuthTest.Controllers
                 return RedirectToAction("Login", "Account");
             }
             
-            return View();
+            return View(new HomeViewModel(User.Claims));
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -22,5 +25,28 @@ namespace AuthTest.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        [Route("mappings")]
+        public IActionResult Mappings()
+        {
+            return View();
+        }
+    }
+
+    public static class RoleMappings
+    {
+        // Mapping of Auth0 'role' claim : DLCS role
+        public static Dictionary<string, IEnumerable<string>> Map = new()
+        {
+            ["Reader"] = new[] { "https://api.dlcs.io/customers/2/roles/clickthrough" },
+            ["Staff"] = new[]
+            {
+                "https://api.dlcs.io/customers/2/roles/clickthrough",
+                "https://api.dlcs.io/customers/2/roles/clinicalImages",
+                "https://api.dlcs.io/customers/2/roles/restrictedFiles"
+            },
+            ["SelfRegistered"] = new[] { "https://api.dlcs.io/customers/2/roles/clickthrough" },
+            ["Excluded"] = Enumerable.Empty<string>()
+        };
     }
 }
