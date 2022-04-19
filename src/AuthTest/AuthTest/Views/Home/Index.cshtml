@@ -1,0 +1,53 @@
+﻿@model AuthTest.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="row">
+    <div class="col-md-12">
+
+        <h3>Current User</h3>
+        <p>This page displays claims associated to the current User, including mapped DLCS role.</p>
+
+        <table class="table">
+            <thead>
+            <tr>
+                <th>
+                    Claim
+                </th>
+                <th>
+                    Value
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Identifier</td>
+                <td>@Model.Identifier</td>
+            </tr>
+            <tr>
+                <td>Email Address</td>
+                <td>@Model.EmailAddress</td>
+            </tr>
+            <tr>
+                <td>Nickname</td>
+                <td>@Model.Nickname</td>
+            </tr>
+            <tr>
+                <td>Role</td>
+                <td>@Model.Role</td>
+            </tr>
+            <tr>
+                <td>Mapped DLCS Role(s)</td>
+                <td>
+                    @foreach (var role in Model.DLCSRoles)
+                    {
+                        @role<br/>
+                    }
+
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
