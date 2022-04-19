@@ -36,14 +36,13 @@ namespace AuthTest
                     options.Domain = Configuration["Auth0:Domain"];
                     options.ClientId = Configuration["Auth0:ClientId"];
                     options.Scope = "openid profile email weco:patron_role";
-                    options.CallbackPath = Configuration["Auth0:CallbackPath"];
                 });
             
             services.Configure<ForwardedHeadersOptions>(opts =>
             {
                 opts.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
             });
-        
+
             services.AddControllersWithViews();
         }
 
@@ -64,6 +63,7 @@ namespace AuthTest
             app.UseAuthentication();
 
             app.UseHttpsRedirection();
+            app.UseForwardedHeaders();
             app.UseStaticFiles();
 
             app.UseRouting();

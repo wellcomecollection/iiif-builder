@@ -12,7 +12,7 @@ namespace AuthTest.Controllers
         public async Task Login()
         {
             var authenticationProperties = new LoginAuthenticationPropertiesBuilder()
-                .WithRedirectUri(Url.Action("Index", "Home", null, "https"))
+                .WithRedirectUri(Url.Action("Index", "Home"))
                 .Build();
 
             await HttpContext.ChallengeAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
@@ -21,7 +21,7 @@ namespace AuthTest.Controllers
         [Authorize]
         public async Task Logout()
         {
-            var redirectUri = Url.Action("Index", "Home", null, "https");
+            var redirectUri = Url.Action("Index", "Home");
             var authenticationProperties = new LogoutAuthenticationPropertiesBuilder()
                 // Indicate here where Auth0 should redirect the user after a logout.
                 // Note that the resulting absolute Uri must be whitelisted in 
