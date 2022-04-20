@@ -36,7 +36,7 @@ namespace AuthTest.Controllers
     public static class RoleMappings
     {
         // Mapping of Auth0 'role' claim : DLCS role
-        public static Dictionary<string, IEnumerable<string>> Map = new()
+        public static readonly Dictionary<string, IEnumerable<string>> Map = new()
         {
             ["Reader"] = new[] { "https://api.dlcs.io/customers/2/roles/clickthrough" },
             ["Staff"] = new[]
