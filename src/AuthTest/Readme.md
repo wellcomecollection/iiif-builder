@@ -24,7 +24,8 @@ The following configuration values will need to be added to run the app:
 ```json
 "Auth0": {
     "Domain": "<my-domain>.eu.auth0.com",
-    "ClientId": "<client-id>"
+    "ClientId": "<client-id>",
+    "ClientSecret": "<client-secret>"
   }
 ```
 
