@@ -17,7 +17,7 @@ namespace OAuth2Client.Tests
             var ttl = token.GetTimeToLive();
             
             // Assert
-            ttl.Should().BeCloseTo(TimeSpan.FromSeconds(120));
+            ttl.Should().BeCloseTo(TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(2));
         }
     }
 }

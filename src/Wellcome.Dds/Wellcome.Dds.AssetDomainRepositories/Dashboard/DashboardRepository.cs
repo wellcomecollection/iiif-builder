@@ -318,18 +318,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
             {
                 var imagePatches = batch.ToArray();
-                logger.LogInformation("Batch of {0}", imagePatches.Length);
+                logger.LogInformation("Batch of {BatchLength}", imagePatches.Length);
 
                 if (imagePatches.Length == 0)
                 {
-                    logger.LogInformation("zero length - abandoning.");
+                    logger.LogInformation("zero length - abandoning");
                     continue;
                 }
 
                 DlcsBatch dbBatchPatch = new DlcsBatch
                 {
                     BatchSize = imagePatches.Length,
-                    RequestSent = DateTime.Now
+                    RequestSent = DateTime.UtcNow
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
@@ -337,7 +337,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     Members = imagePatches
                 };
                 var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection);
-                dbBatchPatch.Finished = DateTime.Now;
+                dbBatchPatch.Finished = DateTime.UtcNow;
                 dbBatchPatch.RequestBody = registrationOperation.RequestJson;
                 dbBatchPatch.ResponseBody = registrationOperation.ResponseJson;
                 if (registrationOperation.Error != null)
@@ -356,18 +356,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
                 var imageRegistrations = batch.ToArray();
-                logger.LogInformation("Batch of {batchLength}", imageRegistrations.Length);
+                logger.LogInformation("Batch of {BatchLength}", imageRegistrations.Length);
 
                 if (imageRegistrations.Length == 0)
                 {
-                    logger.LogInformation("zero length - abandoning.");
+                    logger.LogInformation("zero length - abandoning");
                     continue;
                 }
 
                 DlcsBatch dbDlcsBatch = new DlcsBatch
                 {
                     BatchSize = imageRegistrations.Length,
-                    RequestSent = DateTime.Now
+                    RequestSent = DateTime.UtcNow
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
@@ -375,7 +375,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     Members = imageRegistrations
                 };
                 var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, priority);
-                dbDlcsBatch.Finished = DateTime.Now;
+                dbDlcsBatch.Finished = DateTime.UtcNow;
                 dbDlcsBatch.RequestBody = registrationOperation.RequestJson;
                 dbDlcsBatch.ResponseBody = registrationOperation.ResponseJson;
                 if (registrationOperation.Error != null)
@@ -694,7 +694,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 Description = description,
                 JobId = jobId,
                 ManifestationId = manifestationId,
-                Performed = DateTime.Now,
+                Performed = DateTime.UtcNow,
                 Username = userName
             };
             ddsInstrumentationContext.IngestActions.Add(ia);
@@ -718,7 +718,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
-            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Audio")
+            if (digitisedManifestation.MetsManifestation.Type is "Video" or "Audio")
             {
                 foreach (var asset in digitisedManifestation.DlcsImages)
                 {

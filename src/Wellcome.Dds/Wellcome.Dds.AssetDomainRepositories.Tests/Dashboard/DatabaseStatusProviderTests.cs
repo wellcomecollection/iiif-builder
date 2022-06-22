@@ -85,7 +85,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var sut = GetSut(minimumJobAge: minAge);
             
             // Assert
-            sut.LatestJobToTake.Should().BeCloseTo(expected, 2000);
+            sut.LatestJobToTake.Should().BeCloseTo(expected, TimeSpan.FromSeconds(2));
         }
 
         [Fact]
