@@ -101,7 +101,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Assert
             result.Should().BeTrue();
             var controlFlow = await ddsInstrumentationContext.ControlFlows.OrderByDescending(cf => cf.Id).FirstAsync();
-            controlFlow.CreatedOn.Should().BeCloseTo(DateTime.Now, 2000);
+            controlFlow.CreatedOn.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
             
             var afterCount = await ddsInstrumentationContext.ControlFlows.CountAsync();
             afterCount.Should().Be(beforeCount + 1);
@@ -207,7 +207,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             
             // Assert
             var updated = await ddsInstrumentationContext.ControlFlows.FindAsync(controlFlow.Id);
-            updated.Heartbeat.Should().BeCloseTo(DateTime.Now, 2000);
+            updated.Heartbeat.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
             updated.Heartbeat.Should().Be(result);
         }
     }

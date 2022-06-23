@@ -329,7 +329,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 DlcsBatch dbBatchPatch = new DlcsBatch
                 {
                     BatchSize = imagePatches.Length,
-                    RequestSent = DateTime.UtcNow
+                    RequestSent = DateTime.Now
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
@@ -337,7 +337,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     Members = imagePatches
                 };
                 var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection);
-                dbBatchPatch.Finished = DateTime.UtcNow;
+                dbBatchPatch.Finished = DateTime.Now;
                 dbBatchPatch.RequestBody = registrationOperation.RequestJson;
                 dbBatchPatch.ResponseBody = registrationOperation.ResponseJson;
                 if (registrationOperation.Error != null)
@@ -367,7 +367,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 DlcsBatch dbDlcsBatch = new DlcsBatch
                 {
                     BatchSize = imageRegistrations.Length,
-                    RequestSent = DateTime.UtcNow
+                    RequestSent = DateTime.Now
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
@@ -375,7 +375,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     Members = imageRegistrations
                 };
                 var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, priority);
-                dbDlcsBatch.Finished = DateTime.UtcNow;
+                dbDlcsBatch.Finished = DateTime.Now;
                 dbDlcsBatch.RequestBody = registrationOperation.RequestJson;
                 dbDlcsBatch.ResponseBody = registrationOperation.ResponseJson;
                 if (registrationOperation.Error != null)
@@ -694,7 +694,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 Description = description,
                 JobId = jobId,
                 ManifestationId = manifestationId,
-                Performed = DateTime.UtcNow,
+                Performed = DateTime.Now,
                 Username = userName
             };
             ddsInstrumentationContext.IngestActions.Add(ia);

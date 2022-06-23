@@ -1,4 +1,5 @@
-﻿using Amazon.SimpleNotificationService;
+﻿using System;
+using Amazon.SimpleNotificationService;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
@@ -44,6 +45,9 @@ namespace WorkflowProcessor
         
         public void ConfigureServices(IServiceCollection services)
         {
+            // Use pre-v6 handling of datetimes for npgsql
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
