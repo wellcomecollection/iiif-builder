@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.Auth.V1;
+using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3.Annotation;
-using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Microsoft.Extensions.Logging;
 using Utils;
@@ -51,7 +51,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 if (buildResult.IIIFVersion == IIIF.Presentation.Version.V3 &&
                     buildResult.IIIFResource is Presi3.StructureBase iiif3)
                 {
-                    logger.LogDebug("Creating V2 resource " + count);
+                    logger.LogDebug("Creating V2 resource {Index}", count);
                     var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
                     try
                     {
@@ -59,12 +59,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         result.IIIFResource = iiif2;
                         result.Outcome = BuildOutcome.Success;
                         
-                        logger.LogDebug("V2 was created successfully: " + count);
+                        logger.LogDebug("V2 was created successfully: {Index}", count);
                         if (iiif2 is Manifest) count++;
                     }
                     catch (Exception e)
                     {
-                        logger.LogWarning($"Build failure for V2 conversion: count {count}, message: {e.Message}");
+                        logger.LogWarning("Build failure for V2 conversion: count {Count}, message: {Message}", count,
+                            e.Message);
                         result.Message = e.Message;
                         result.Outcome = BuildOutcome.Failure;
                     }

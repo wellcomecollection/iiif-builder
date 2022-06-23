@@ -1,17 +1,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
-using IIIF.ImageApi.Service;
-using IIIF.Presentation;
+using IIIF.ImageApi.V2;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 using Image = IIIF.Presentation.V3.Content.Image;
+using Size = IIIF.Size;
 
 namespace Wellcome.Dds.Repositories.Presentation
 {
