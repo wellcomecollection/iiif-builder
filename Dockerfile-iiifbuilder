@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0-bullseye-slim AS build
 WORKDIR /src
 
 COPY src/Wellcome.Dds/Wellcome.Dds.Server/Wellcome.Dds.Server.csproj Wellcome.Dds.Server/
@@ -29,7 +29,11 @@ WORKDIR "/src/Wellcome.Dds.Server"
 RUN dotnet publish "Wellcome.Dds.Server.csproj" -c Release -o /app/publish
 
 # Runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-bullseye-slim
+
+LABEL maintainer="Donald Gray <donald.gray@digirati.com>,Tom Crane <tom.crane@digirati.com>"
+LABEL org.opencontainers.image.source=https://github.com/wellcomecollection/iiif-builder
+
 WORKDIR /app
 
 EXPOSE 80
