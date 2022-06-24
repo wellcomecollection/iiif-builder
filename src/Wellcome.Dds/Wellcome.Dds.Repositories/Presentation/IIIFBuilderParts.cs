@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using IIIF;
-using IIIF.ImageApi.Service;
+using IIIF.ImageApi.V2;
+using IIIF.Presentation;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
@@ -13,7 +12,6 @@ using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
@@ -22,7 +20,6 @@ using Wellcome.Dds.Repositories.Presentation.AuthServices;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights;
 using Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
-using Wellcome.Dds.Repositories.Presentation.V2.IXIF;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Range = IIIF.Presentation.V3.Range;
 using StringUtils = Utils.StringUtils;
@@ -259,8 +256,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
-                string searchServiceId;
-                searchServiceId = referenceV0SearchService ? 
+                var searchServiceId = referenceV0SearchService ? 
                     uriPatterns.IIIFContentSearchService0(metsManifestation.Id) : 
                     uriPatterns.IIIFContentSearchService1(metsManifestation.Id);
                 manifest.Service.Add(new SearchService

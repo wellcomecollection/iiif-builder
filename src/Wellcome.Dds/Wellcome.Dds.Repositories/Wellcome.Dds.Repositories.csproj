@@ -11,11 +11,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
+    <PackageReference Include="iiif-net" Version="0.1.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DlcsWebClient\DlcsWebClient.csproj" />
-    <ProjectReference Include="..\IIIF\IIIF.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
     <ProjectReference Include="..\Wellcome.Dds\Wellcome.Dds.csproj" />

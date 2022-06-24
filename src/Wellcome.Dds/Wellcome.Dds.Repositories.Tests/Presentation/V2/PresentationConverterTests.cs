@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using FluentAssertions;
 using IIIF;
-using IIIF.Presentation.V3.Constants;
+using IIIF.Presentation;
 using IIIF.Search.V2;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -57,13 +57,13 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                 Id = "/presentation/b12312312",
                 Items = new List<Presi3.Canvas>{new ()}
             };
-            manifest.EnsureContext(IIIF.Presentation.Context.V3);
+            manifest.EnsureContext(Context.Presentation3Context);
 
             // Act
             var result = sut.Convert(manifest, "b10727000");
             
             // Assert
-            result.Context.Should().BeOfType<List<string>>().Which.Should().Contain(IIIF.Presentation.Context.V2);
+            result.Context.Should().BeOfType<List<string>>().Which.Should().Contain(Context.Presentation2Context);
         }
         
         [Fact]
@@ -82,13 +82,13 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                     }
                 }
             };
-            collection.EnsureContext(IIIF.Presentation.Context.V3);
+            collection.EnsureContext(Context.Presentation3Context);
 
             // Act
             var result = sut.Convert(collection, "b10727000");
             
             // Assert
-            result.Context.Should().BeOfType<string>().Which.Should().Be(IIIF.Presentation.Context.V2);
+            result.Context.Should().BeOfType<string>().Which.Should().Be(Context.Presentation2Context);
         }
         
         [Fact]

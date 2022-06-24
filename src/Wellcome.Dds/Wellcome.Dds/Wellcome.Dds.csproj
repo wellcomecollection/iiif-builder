@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IIIF\IIIF.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj" />
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
@@ -14,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.1.4" />
+    <PackageReference Include="iiif-net" Version="0.1.1" />
   </ItemGroup>
 
 </Project>

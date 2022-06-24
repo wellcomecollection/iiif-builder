@@ -53,7 +53,6 @@ namespace Wellcome.Dds.Server.Controllers
             var v2 = iiifBuilder.ConvertW3CAnnoPageJsonToOAAnnoList(
                 v3, identifier, assetIdentifier);
             
-            // Jsonify and serve: return Content(..)
             return Content(v2.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
         
