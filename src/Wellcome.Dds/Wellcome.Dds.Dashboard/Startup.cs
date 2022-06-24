@@ -1,16 +1,17 @@
 using System;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.AzureAD.UI;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Identity.Web;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Web.UI;
 using OAuth2;
 using Utils.Aws.Options;
 using Utils.Aws.S3;
@@ -51,6 +52,9 @@ namespace Wellcome.Dds.Dashboard
         
         public void ConfigureServices(IServiceCollection services)
         {
+            // Use pre-v6 handling of datetimes for npgsql
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
@@ -59,8 +63,8 @@ namespace Wellcome.Dds.Dashboard
                 .UseNpgsql(Configuration.GetConnectionString("Dds"))
                 .UseSnakeCaseNamingConvention());
 
-            services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
-                .AddAzureAD(opts => Configuration.Bind("AzureAd", opts));
+            services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+                .AddMicrosoftIdentityWebApp(Configuration);
 
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
@@ -122,7 +126,8 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddControllersWithViews(
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))
-                .AddRazorRuntimeCompilation();
+                .AddRazorRuntimeCompilation()
+                .AddMicrosoftIdentityUI();
 
             services.AddHealthChecks()
                 .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db")

@@ -77,11 +77,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
             if (filter.HasText())
             {
-                logger.LogInformation("Only processing identifiers that end with one of '{filter}'", filter);
+                logger.LogInformation("Only processing identifiers that end with one of '{Filter}'", filter);
                 var endings = filter.ToCharArray();
-                logger.LogInformation("before filter, jobsToProcess has {jobCount} jobs.", jobsToProcess.Count);
+                logger.LogInformation("before filter, jobsToProcess has {JobCount} jobs", jobsToProcess.Count);
                 jobsToProcess = jobsToProcess.Where(j => endings.Contains(j.Identifier[j.Identifier.Length - 1])).ToList();
-                logger.LogInformation("After filter, jobsToProcess has {jobCount} jobs.", jobsToProcess.Count);
+                logger.LogInformation("After filter, jobsToProcess has {JobCount} jobs", jobsToProcess.Count);
             }
             if (maxJobs > -1)
             {

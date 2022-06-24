@@ -29,7 +29,7 @@ namespace OAuth2Client.Tests
             }
 
             [Fact]
-            public void GetToken_Throws_IfUnsuccessfulCallResult()
+            public async Task GetToken_Throws_IfUnsuccessfulCallResult()
             {
                 // Arrange
                 httpHandler.SetResponse(httpHandler.GetResponseMessage(
@@ -40,7 +40,7 @@ namespace OAuth2Client.Tests
                 Func<Task> action = () => sut.GetToken(clientCredentials);
 
                 // Assert
-                action.Should().Throw<HttpRequestException>();
+                await action.Should().ThrowAsync<HttpRequestException>();
             }
 
             [Fact]
@@ -222,7 +222,7 @@ namespace OAuth2Client.Tests
             }
 
             [Fact]
-            public void GetOAuthedJToken_Throws_CallFailsForNon403Reason()
+            public async Task GetOAuthedJToken_Throws_CallFailsForNon403Reason()
             {
                 // Arrange
                 var tokenResponse = httpHandler.GetResponseMessage(
@@ -248,7 +248,7 @@ namespace OAuth2Client.Tests
                 Func<Task> action = () => sut.GetOAuthedJToken("http://example.org", clientCredentials);
                 
                 // Assert
-                action.Should().Throw<HttpRequestException>();
+                await action.Should().ThrowAsync<HttpRequestException>();
             }
             
             [Fact]

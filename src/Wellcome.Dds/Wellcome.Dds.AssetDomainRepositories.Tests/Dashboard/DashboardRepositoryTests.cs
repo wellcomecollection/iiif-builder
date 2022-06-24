@@ -65,7 +65,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
 
         [Fact]
-        public void GetDigitisedResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
+        public async Task GetDigitisedResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
         {
             // Arrange
             const string identifier = "b1231231";
@@ -73,7 +73,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             Func<Task> action = () => sut.GetDigitisedResource(identifier);
 
             // Assert
-            action.Should().Throw<ArgumentException>().And
+            (await action.Should().ThrowAsync<ArgumentException>()).And
                 .Message.Should().Be(
                     "Cannot get a digitised resource from METS for identifier b1231231 (Parameter 'identifier')");
         }
@@ -232,14 +232,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
 
         [Fact]
-        public void ExecuteDlcsSyncOperation_Throws_IfDlcsPreventSync()
+        public async Task ExecuteDlcsSyncOperation_Throws_IfDlcsPreventSync()
         {
             // Arrange
             A.CallTo(() => dlcs.PreventSynchronisation).Returns(true);
             Func<Task> action = () => sut.ExecuteDlcsSyncOperation(new SyncOperation(), true);
             
             // Assert
-            action.Should().Throw<InvalidOperationException>();
+            await action.Should().ThrowAsync<InvalidOperationException>();
         }
         
         [Theory]

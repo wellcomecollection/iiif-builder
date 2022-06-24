@@ -10,7 +10,7 @@ namespace Wellcome.Dds.Server.Tests.Integration
 {
     public class DatabaseFixture : IAsyncLifetime
     {
-        protected static string DdsConnectionString { get; } = $"host=localhost;port=5430;database=ddsinstrtest;username=ddsinstrumentation_user;password=ddsinstrumentation";
+        protected static string DdsConnectionString { get; } = "host=localhost;port=5430;database=ddsinstrtest;username=ddsinstrumentation_user;password=ddsinstrumentation";
         
         public DdsInstrumentationContext DdsInstrumentationContext { get; private set; }
 
@@ -73,9 +73,9 @@ namespace Wellcome.Dds.Server.Tests.Integration
             }
 
             var processStop = Process.Start("docker", "stop dds-server-test");
-            processStop.WaitForExit();
+            await processStop.WaitForExitAsync();
             var processRm = Process.Start("docker", "rm dds-server-test");
-            processRm.WaitForExit();
+            await processRm.WaitForExitAsync();
         }
         
         public void CleanUp()

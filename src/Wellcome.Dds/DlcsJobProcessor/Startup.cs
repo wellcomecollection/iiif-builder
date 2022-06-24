@@ -1,4 +1,5 @@
-﻿using DlcsWebClient.Config;
+﻿using System;
+using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,9 @@ namespace DlcsJobProcessor
         
         public void ConfigureServices(IServiceCollection services)
         {
+            // Use pre-v6 handling of datetimes for npgsql
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());

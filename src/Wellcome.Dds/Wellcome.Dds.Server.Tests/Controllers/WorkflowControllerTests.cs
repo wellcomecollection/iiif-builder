@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -47,7 +48,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var response = await client.GetAsync(requestUri);
             
             // Assert
-            response.StatusCode.Should().Be(202);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
             var actual = await response.Content.ReadAsAsync<WorkflowJob>();
             actual.Should().BeEquivalentTo(expected, opts => 
@@ -93,7 +94,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             await dbFixture.DdsInstrumentationContext.WorkflowJobs.AddAsync(new WorkflowJob
             {
                 Identifier = bnumber,
-                Created = DateTime.Today.AddYears(-1),
+                Created = DateTime.Now.AddYears(-1),
                 Waiting = false
             });
             await dbFixture.DdsInstrumentationContext.SaveChangesAsync();
@@ -102,7 +103,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var response = await client.GetAsync(requestUri);
             
             // Assert
-            response.StatusCode.Should().Be(202);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
             var actual = await response.Content.ReadAsAsync<WorkflowJob>();
             actual.Should().BeEquivalentTo(expected, opts => 
@@ -125,7 +126,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                     .Including(job => job.WorkflowOptions)
                     .Including(job => job.Expedite)
                     .Including(job => job.FlushCache));
-            fromDatabase.Created.Should().BeCloseTo(DateTime.Now, 5000);
+            fromDatabase.Created.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(5));
         }
     }
 }

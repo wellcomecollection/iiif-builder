@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var response = await client.GetAsync(requestUri);
             
             // Assert
-            response.StatusCode.Should().Be(401);
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
             var authenticationHeaderValue = response.Headers.WwwAuthenticate.FirstOrDefault();
             
             authenticationHeaderValue.Parameter.Should().Be("realm=\"Wellcome\"");
@@ -51,7 +52,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var response = await client.SendAsync(request);
             
             // Assert
-            response.StatusCode.Should().Be(401, "unexpected status code for {0}", clearValue);
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "unexpected status code for {0}", clearValue);
         }
         
         [Fact]
@@ -66,7 +67,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var response = await client.SendAsync(request);
             
             // Assert
-            response.StatusCode.Should().Be(404);
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
     }
 }

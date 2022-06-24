@@ -44,7 +44,7 @@ namespace Utils.Tests.Threading
         }
 
         [Fact]
-        public void TimeoutAfter_ThrowsTimeoutException_IfTimesOutAndThrowOnTimeout()
+        public async Task TimeoutAfter_ThrowsTimeoutException_IfTimesOutAndThrowOnTimeout()
         {
             // Arrange
             const int timeout = 100;
@@ -58,7 +58,7 @@ namespace Utils.Tests.Threading
             Func<Task> action = async () => await task.TimeoutAfter(timeout, true);
 
             // Assert
-            action.Should().Throw<TimeoutException>();
+            await action.Should().ThrowAsync<TimeoutException>();
         }
     }
 }

@@ -318,11 +318,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
             {
                 var imagePatches = batch.ToArray();
-                logger.LogInformation("Batch of {0}", imagePatches.Length);
+                logger.LogInformation("Batch of {BatchLength}", imagePatches.Length);
 
                 if (imagePatches.Length == 0)
                 {
-                    logger.LogInformation("zero length - abandoning.");
+                    logger.LogInformation("zero length - abandoning");
                     continue;
                 }
 
@@ -356,11 +356,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
             {
                 var imageRegistrations = batch.ToArray();
-                logger.LogInformation("Batch of {batchLength}", imageRegistrations.Length);
+                logger.LogInformation("Batch of {BatchLength}", imageRegistrations.Length);
 
                 if (imageRegistrations.Length == 0)
                 {
-                    logger.LogInformation("zero length - abandoning.");
+                    logger.LogInformation("zero length - abandoning");
                     continue;
                 }
 
@@ -718,7 +718,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
-            if (digitisedManifestation.MetsManifestation.Type == "Video" || digitisedManifestation.MetsManifestation.Type == "Audio")
+            if (digitisedManifestation.MetsManifestation.Type is "Video" or "Audio")
             {
                 foreach (var asset in digitisedManifestation.DlcsImages)
                 {

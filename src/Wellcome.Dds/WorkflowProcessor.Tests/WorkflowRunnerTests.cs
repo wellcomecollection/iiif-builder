@@ -76,7 +76,7 @@ namespace WorkflowProcessor.Tests
             await sut.ProcessJob(job);
             
             // Assert
-            job.Taken.Should().BeCloseTo(DateTime.Now, 2000);
+            job.Taken.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
             job.TotalTime.Should().BeGreaterThan(0);
         }
         
