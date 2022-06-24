@@ -32,7 +32,7 @@ pipeline {
   stage('Prerequisites') {
     steps {
       sh "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 6.0"
-      sh "\$(aws ecr get-login --no-include-email --region ${REGION})"
+      sh "\$(aws ecr get-login --no-include-email --region eu-west-1)"
     }
   }
   stage('Test') {
