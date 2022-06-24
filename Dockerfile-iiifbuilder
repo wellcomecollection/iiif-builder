@@ -20,10 +20,6 @@ COPY src/Wellcome.Dds/ ./
 WORKDIR "/src/Wellcome.Dds.Server"
 RUN dotnet build "Wellcome.Dds.Server.csproj" -c Release
 
-FROM build AS testrunner
-WORKDIR "/src"
-RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"
-
 FROM build AS publish
 WORKDIR "/src/Wellcome.Dds.Server"
 RUN dotnet publish "Wellcome.Dds.Server.csproj" -c Release -o /app/publish

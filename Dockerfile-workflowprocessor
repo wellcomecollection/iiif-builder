@@ -22,10 +22,6 @@ COPY src/Wellcome.Dds/ ./
 WORKDIR "/src/WorkflowProcessor"
 RUN dotnet build "WorkflowProcessor.csproj" -c Release
 
-FROM build AS testrunner
-WORKDIR "/src"
-RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"
-
 FROM build AS publish
 WORKDIR "/src/WorkflowProcessor"
 RUN dotnet publish "WorkflowProcessor.csproj" -c Release -o /app/publish

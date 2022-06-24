@@ -1,0 +1,70 @@
+pipeline {
+ agent {
+  node {
+   label 'master'
+  }
+ }
+ options {
+  buildDiscarder(logRotator(numToKeepStr: '100'))
+ }
+ stages {
+  stage('Fetch') {
+   steps {
+    deleteDir()
+    checkout scm: [
+     $class: 'GitSCM',
+     branches: scm.branches,
+     doGenerateSubmoduleConfigurations: false,
+     extensions: [
+      [$class: 'SubmoduleOption',
+       disableSubmodules: false,
+       parentCredentials: true,
+       recursiveSubmodules: true,
+       reference: '',
+       trackingSubmodules: false
+      ]
+     ],
+     submoduleCfg: [],
+     userRemoteConfigs: scm.userRemoteConfigs
+    ]
+   }
+  }
+  stage('Prerequisites') {
+    steps {
+      sh "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 6.0"
+      sh "\$(aws ecr get-login --no-include-email --region ${REGION})"
+    }
+  }
+  stage('Test') {
+    steps {
+      sh "cd ./src/Wellcome.Dds; ~/.dotnet/dotnet test --filter \"Category!=Manual\""
+    }
+  }
+  stage('Publish dashboard') {
+   steps {
+    publishImage('iiif-builder-dashboard', 'Dockerfile-dashboard')
+   }
+  }
+  stage('Publish iiif-builder') {
+   steps {
+    publishImage('iiif-builder', 'Dockerfile-iiifbuilder')
+   }
+  }
+  stage('Publish job-processor') {
+   steps {
+    publishImage('job-processor', 'Dockerfile-jobprocessor')
+   }
+  }
+  stage('Publish workflow-processor') {
+   steps {
+    publishImage('workflow-processor', 'Dockerfile-workflowprocessor')
+   }
+  }
+ }
+}
+
+def publishImage(String dockerImage, String dockerFile) {
+    sh "docker build -t ${DOCKER_REPO}/${dockerImage}:`git rev-parse HEAD` -f ${dockerFile} ."
+    sh "docker push ${DOCKER_REPO}/${dockerImage}:`git rev-parse HEAD`"
+}
+
