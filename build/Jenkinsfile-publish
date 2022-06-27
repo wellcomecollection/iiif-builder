@@ -50,7 +50,7 @@ pipeline {
   }
   stage('Test') {
     steps {
-      sh "cd ./src/Wellcome.Dds; ~/.dotnet/dotnet test --filter \"Category!=Manual\""
+      sh "cd ./src/Wellcome.Dds; ~/.dotnet/dotnet test --filter \"Category!=Database&Category!=Manual\""
     }
   }
   stage('Publish dashboard') {
