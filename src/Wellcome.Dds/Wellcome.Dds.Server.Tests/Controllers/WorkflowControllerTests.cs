@@ -21,7 +21,9 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         public WorkflowControllerTests(DatabaseFixture dbFixture, DdsServerAppFactory factory)
         {
             this.dbFixture = dbFixture;
-            client = factory.CreateClient();
+            client = factory
+                .WithInstrumentationConnectionString(dbFixture.DdsInstrumentationConnectionString)
+                .CreateClient();
         }
 
         [Fact]

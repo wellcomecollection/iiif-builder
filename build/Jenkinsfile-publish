@@ -1,0 +1,83 @@
+pipeline {
+ agent {
+  node {
+   label 'master'
+  }
+ }
+ options {
+  buildDiscarder(logRotator(numToKeepStr: '100'))
+ }
+ stages {
+  stage('Fetch') {
+   steps {
+    deleteDir()
+    checkout scm: [
+     $class: 'GitSCM',
+     branches: scm.branches,
+     doGenerateSubmoduleConfigurations: false,
+     extensions: [
+      [$class: 'SubmoduleOption',
+       disableSubmodules: false,
+       parentCredentials: true,
+       recursiveSubmodules: true,
+       reference: '',
+       trackingSubmodules: false
+      ]
+     ],
+     submoduleCfg: [],
+     userRemoteConfigs: scm.userRemoteConfigs
+    ]
+   }
+  }
+  stage('Prerequisites') {
+    steps {
+      sh "apt-get update"
+      sh "apt install -y python3-pip"
+      sh "pip3 install awscli"
+      sh "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 6.0"
+      sh "\$(aws ecr get-login --no-include-email --region eu-west-1)"
+    }
+  }
+  stage('Set Vars') {
+    steps {
+      script {
+        env.ACCOUNT_ID = sh (
+          script: "echo `aws sts get-caller-identity --query 'Account' --output text`",
+          returnStdout: true
+        ).trim()
+      }
+    }
+  }
+  stage('Test') {
+    steps {
+      sh "cd ./src/Wellcome.Dds; ~/.dotnet/dotnet test --filter \"Category!=Database&Category!=Manual\""
+    }
+  }
+  stage('Publish dashboard') {
+   steps {
+    publishImage('iiif-builder-dashboard', 'Dockerfile-dashboard')
+   }
+  }
+  stage('Publish iiif-builder') {
+   steps {
+    publishImage('iiif-builder', 'Dockerfile-iiifbuilder')
+   }
+  }
+  stage('Publish job-processor') {
+   steps {
+    publishImage('job-processor', 'Dockerfile-jobprocessor')
+   }
+  }
+  stage('Publish workflow-processor') {
+   steps {
+    publishImage('workflow-processor', 'Dockerfile-workflowprocessor')
+   }
+  }
+ }
+}
+
+def publishImage(String dockerImage, String dockerFile) {
+    sh "docker build -t ${env.ACCOUNT_ID}.dkr.ecr.eu-west-1.amazonaws.com/${dockerImage}:`git rev-parse HEAD` -f ${dockerFile} ."
+    sh "docker push ${env.ACCOUNT_ID}.dkr.ecr.eu-west-1.amazonaws.com/${dockerImage}:`git rev-parse HEAD`"
+}
+
