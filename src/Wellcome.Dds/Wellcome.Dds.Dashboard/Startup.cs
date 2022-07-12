@@ -167,10 +167,11 @@ namespace Wellcome.Dds.Dashboard
                 endpoints
                     .MapControllers()
                     .RequireAuthorization();
-                
+
+                string actionRegex = "^(?!account|goobicall|job|log|peek|settings).*$";
                 endpoints.MapControllerRoute(name: "dash",
                     pattern: "{action}/{id?}/{*parts}",
-                    constraints: new { action = "^(?!account|goobicall|job|log|peek|settings).*$", },
+                    constraints: new { action = actionRegex, },
                     defaults: new { controller = "Dash" });
                 endpoints.MapControllerRoute("Default", "{controller=Dash}/{action=Index}/{id?}/{*parts}");
                 endpoints.MapHealthChecks("/management/healthcheck");
