@@ -153,7 +153,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
-                    ViewBag.TryInstead = ddsId.BNumber;
+                    ViewBag.TryInstead = ddsId.PackageIdentifier;
                 }
             }
 
@@ -181,9 +181,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (showError || collection == null)
             {
                 ViewBag.Message = "No digitised collection (multiple manifestation) found for identifier " + id;
-                if (id != ddsId.BNumber)
+                if (id != ddsId.PackageIdentifier)
                 {
-                    ViewBag.TryInstead = ddsId.BNumber;
+                    ViewBag.TryInstead = ddsId.PackageIdentifier;
                 }
 
                 return View("ManifestationError");
@@ -306,7 +306,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var ddsId = new DdsIdentifier(id);
                 var manifestation = dds.GetManifestation(id);
-                oldId = $"{ddsId.BNumber}-{manifestation.Index}";
+                oldId = $"{ddsId.PackageIdentifier}-{manifestation.Index}";
             }
 
             var libraryManifest = $"https://wellcomelibrary.org/iiif/{oldId}/manifest";

@@ -61,7 +61,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 Title = "IIIF Resource Preview",
                 Description = "This has been built on the fly - it won't have been written to S3 yet.",
-                BNumber = ddsId.BNumber,
+                BNumber = ddsId.PackageIdentifier,
                 RelativePath = ddsId,
                 Manifestation = ddsId,
                 CodeAsString = build.IIIFResource.AsJson(),
@@ -198,7 +198,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var build = results[ddsId];
             if (build.RequiresMultipleBuild && all == false)
             {
-                results = await BuildIIIF(ddsId.BNumber, true);
+                results = await BuildIIIF(ddsId.PackageIdentifier, true);
                 build = results[ddsId];
                 // do we still have the same resource in the results?
                 // This particular manifestation might have been removed.
@@ -206,7 +206,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     // e.g., AV MM rearranged into one Manifest
                     // So return the b number
-                    build = results[ddsId.BNumber];
+                    build = results[ddsId.PackageIdentifier];
                 }
             }
             return build;
@@ -215,8 +215,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
         {
             var ddsId = new DdsIdentifier(id);
-            var work = await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-            await dds.RefreshManifestations(ddsId.BNumber, work);
+            var work = await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
+            await dds.RefreshManifestations(ddsId.PackageIdentifier, work);
             if (all)
             {
                 return await iiifBuilder.BuildAllManifestations(id);

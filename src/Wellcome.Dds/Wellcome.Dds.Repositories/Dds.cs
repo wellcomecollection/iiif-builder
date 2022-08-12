@@ -54,11 +54,11 @@ namespace Wellcome.Dds.Repositories
             {
                 Identifier = resultDdsId,
                 Manifestations = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == resultDdsId.BNumber && fm.Index >= 0)
+                    .Where(fm => fm.PackageIdentifier == resultDdsId.PackageIdentifier && fm.Index >= 0)
                     .OrderBy(fm => fm.Index)
                     .ToList(),
                 Metadata = ddsContext.Metadata
-                    .Where(m => m.ManifestationId == resultDdsId.BNumber)
+                    .Where(m => m.ManifestationId == resultDdsId.PackageIdentifier)
                     .ToList()
             };
             return result;

@@ -465,7 +465,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                 ModelId = asset.StorageIdentifier, // will be patched to full path later
                 Space = dlcs.DefaultSpace,
                 Origin = origin,
-                String1 = ddsId.BNumber, // will be string reference
+                String1 = ddsId.PackageIdentifier, // will be string reference
                 Number1 = sequenceIndex,
                 Number2 = asset.PhysicalFile.Index,
                 MediaType = asset.MimeType,
@@ -480,8 +480,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    imageRegistration.String2 = ddsId.BNumber;
-                    imageRegistration.String3 = ddsId.BNumber;
+                    imageRegistration.String2 = ddsId.PackageIdentifier;
+                    imageRegistration.String3 = ddsId.PackageIdentifier;
                     break;
                 case IdentifierType.Volume:
                     imageRegistration.String2 = ddsId.VolumePart;
@@ -610,7 +610,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
                     break;
                 case IdentifierType.BNumberAndSequenceIndex:
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == ddsId.BNumber && j.SequenceIndex == ddsId.SequenceIndex);
+                        .Where(j => j.Identifier == ddsId.PackageIdentifier && j.SequenceIndex == ddsId.SequenceIndex);
                     break;
                 case IdentifierType.Issue:
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs

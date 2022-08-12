@@ -33,7 +33,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.BNumber);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().BeNull();
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(0);
@@ -47,7 +47,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.Volume);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0003");
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(0);
@@ -61,7 +61,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.BNumberAndSequenceIndex);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_123"); // NOTE: This doesn't seem right?
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(123);
@@ -75,7 +75,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.Issue);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0002");
             identifier.IssuePart.Should().Be("b99977766_0002_0005");
             identifier.SequenceIndex.Should().Be(0);
@@ -88,10 +88,10 @@ namespace Wellcome.Dds.Common.Tests
             var identifier = new DdsIdentifier(Unknown);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Unknown);
+            identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
             
             // NOTE: These don't seem right
-            identifier.BNumber.Should().Be("2b99977766"); 
+            identifier.PackageIdentifier.Should().Be("2b99977766"); 
             identifier.VolumePart.Should().Be("2b99977766_0002");
             identifier.IssuePart.Should().Be("2b99977766_0002_0005");
             identifier.SequenceIndex.Should().Be(0);
@@ -105,7 +105,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.BNumber);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().BeNull();
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(0);
@@ -119,7 +119,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.Volume);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0003");
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(0);
@@ -133,7 +133,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.BNumberAndSequenceIndex);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_123"); //NOTE: This doesn't seem right
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(123);
@@ -147,7 +147,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.Issue);
-            identifier.BNumber.Should().Be("b99977766");
+            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0002");
             identifier.IssuePart.Should().Be("b99977766_0002_0005");
             identifier.SequenceIndex.Should().Be(0);
@@ -160,10 +160,10 @@ namespace Wellcome.Dds.Common.Tests
             DdsIdentifier identifier = Unknown;
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Unknown);
+            identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
             
             // NOTE: These don't seem right
-            identifier.BNumber.Should().Be("2b99977766"); 
+            identifier.PackageIdentifier.Should().Be("2b99977766"); 
             identifier.VolumePart.Should().Be("2b99977766_0002");
             identifier.IssuePart.Should().Be("2b99977766_0002_0005");
             identifier.SequenceIndex.Should().Be(0);

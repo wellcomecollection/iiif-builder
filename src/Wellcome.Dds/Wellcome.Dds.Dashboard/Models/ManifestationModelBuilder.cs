@@ -67,7 +67,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 jobLogger.Start();
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
-                var workTask = catalogue.GetWorkByOtherIdentifier(identifier.BNumber);
+                var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
                 var ddsTask = dashboardRepository.GetDigitisedResource(identifier, true);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 dgResource = ddsTask.Result;
@@ -97,12 +97,12 @@ namespace Wellcome.Dds.Dashboard.Models
                             grandparent = null;
                             break;
                         case IdentifierType.Volume:
-                            parent = await GetCachedCollectionAsync(identifier.BNumber);
+                            parent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
                             grandparent = null;
                             break;
                         case IdentifierType.Issue:
                             parent = await GetCachedCollectionAsync(identifier.VolumePart);
-                            grandparent = await GetCachedCollectionAsync(identifier.BNumber);
+                            grandparent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
                             break;
                         case IdentifierType.BNumberAndSequenceIndex:
                             throw new ArgumentException("id", $"Can't use an index-based ID here: {identifier}");
@@ -125,7 +125,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsOptions = dlcsOptions,
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
-                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.BNumber),
+                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.PackageIdentifier),
                         ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)

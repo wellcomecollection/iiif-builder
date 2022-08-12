@@ -97,7 +97,7 @@ namespace Wellcome.Dds.Server.Controllers
             if (manifestation == null)
             {
                 return ddsContext.Manifestations
-                    .Where(m => m.PackageIdentifier == ddsId.BNumber)
+                    .Where(m => m.PackageIdentifier == ddsId.PackageIdentifier)
                     .ToList();
             }
 

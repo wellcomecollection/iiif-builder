@@ -155,7 +155,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             var manifest = rootResource
                 ? ConverterHelpers.GetIIIFPresentationBase<T>(p3Manifest)
                 : ConverterHelpers.GetIIIFPresentationBase<T>(p3Manifest,
-                    s => identifier.BNumber == KnownIdentifiers.ChemistAndDruggist || s.StartsWith("Copy") ||
+                    s => identifier.PackageIdentifier == KnownIdentifiers.ChemistAndDruggist || s.StartsWith("Copy") ||
                          s.StartsWith("Volume"));
 
             // Store auth service - if we get this from p3Manifests.Services, we want to add to manifest.Services

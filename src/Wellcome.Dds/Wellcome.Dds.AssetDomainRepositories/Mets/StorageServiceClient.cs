@@ -30,25 +30,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             defaultClientCredentials = GetClientCredentials(storageOptions.Value);
         }
         
-        public async Task<JObject> GetStorageManifest(string storageType, string identifierInStorage)
+        public async Task<JObject> GetStorageManifest(string storageType, string packageIdentifier)
         {
-            if (requestCache.TryGetValue(identifierInStorage, out var cachedJson))
+            if (requestCache.TryGetValue(packageIdentifier, out var cachedJson))
                 return cachedJson;
             
             var storageManifestUrl = string.Format(
-                storageOptions.StorageApiTemplate, storageType, identifierInStorage);
+                storageOptions.StorageApiTemplate, storageType, packageIdentifier);
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += $"?ts={DateTime.Now.Ticks}";
 
             var storageManifestJson = await oAuth2ApiConsumer.GetOAuthedJToken(storageManifestUrl, defaultClientCredentials);
             var manifestJson = (JObject)storageManifestJson;
-            requestCache[identifierInStorage] = manifestJson;
+            requestCache[packageIdentifier] = manifestJson;
             return manifestJson;
         }
         
-        public async Task<JObject> LoadStorageManifest(string storageType, string identifierInStorage)
+        public async Task<JObject> LoadStorageManifest(string storageType, string packageIdentifier)
         {
-            logger.LogInformation("Getting storage manifest for {identifier}", identifierInStorage);
+            logger.LogInformation("Getting storage manifest for {identifier}", packageIdentifier);
             JObject storageManifest = null;
             Exception apiException = null;
             int tries = 1;
@@ -58,7 +58,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 try
                 {
-                    storageManifest = await GetStorageManifest(storageType, identifierInStorage);
+                    storageManifest = await GetStorageManifest(storageType, packageIdentifier);
                 }
                 catch (Exception ex)
                 {
@@ -81,13 +81,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 if (apiException != null)
                 {
-                    logger.LogError(apiException, "Unable to load storage manifest for {identifier}", identifierInStorage);
+                    logger.LogError(apiException, "Unable to load storage manifest for {identifier}", packageIdentifier);
                     throw new ApplicationException(
-                        $"Unable to load storage manifest for {identifierInStorage} - {apiException.Message}", apiException);
+                        $"Unable to load storage manifest for {packageIdentifier} - {apiException.Message}", apiException);
                 }
 
-                logger.LogError("Unable to load storage manifest for {identifier}", identifierInStorage);
-                throw new ApplicationException($"Unable to load storage manifest for {identifierInStorage}");
+                logger.LogError("Unable to load storage manifest for {identifier}", packageIdentifier);
+                throw new ApplicationException($"Unable to load storage manifest for {packageIdentifier}");
             }
 
             return storageManifest;

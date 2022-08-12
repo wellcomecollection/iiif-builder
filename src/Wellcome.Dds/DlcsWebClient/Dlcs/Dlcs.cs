@@ -270,9 +270,10 @@ namespace DlcsWebClient.Dlcs
             {
                 IdentifierType.BNumber => GetImagesForBNumber(identifier),
                 IdentifierType.Volume => GetImagesForVolume(identifier),
-                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber, ddsId.SequenceIndex),
+                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.PackageIdentifier, ddsId.SequenceIndex),
                 IdentifierType.Issue => GetImagesForIssue(identifier),
-                IdentifierType.Unknown => throw new NotSupportedException("Unknown identifier"),
+                // TODO - Archival
+                IdentifierType.NonBNumber => throw new NotSupportedException("Unknown identifier"),
                 _ => throw new NotSupportedException("Unknown identifier")
             };
         }

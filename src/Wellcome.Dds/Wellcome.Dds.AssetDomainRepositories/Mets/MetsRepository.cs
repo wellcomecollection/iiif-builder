@@ -42,23 +42,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // b12345678/0 - old form, must be an IManifestation
             var ddsId = new DdsIdentifier(identifier);
 
-            if (!ddsId.BNumber.IsBNumber())
+            if (!ddsId.PackageIdentifier.IsBNumber())
             {
-                throw new ArgumentException($"{ddsId.BNumber} is not a b number", nameof(identifier));
+                throw new ArgumentException($"{ddsId.PackageIdentifier} is not a b number", nameof(identifier));
             }
 
-            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
+            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.PackageIdentifier);
             ILogicalStructDiv structMap;
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = await GetFileStructMap(ddsId.BNumber, workStore);
+                    structMap = await GetFileStructMap(ddsId.PackageIdentifier, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndex(ddsId.BNumber, ddsId.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndex(ddsId.PackageIdentifier, ddsId.SequenceIndex, workStore);
                 case IdentifierType.Issue:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     // we only want a specific issue
@@ -93,7 +93,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 yield return new ManifestationInContext
                 {
                     Manifestation = mets,
-                    BNumber = ddsId.BNumber,
+                    BNumber = ddsId.PackageIdentifier,
                     SequenceIndex = sequenceIndex,
                     VolumeIdentifier = volumeIdentifier,
                     IssueIdentifier = issueIdentifier
@@ -194,7 +194,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumber:
                     return 0;
                 case IdentifierType.Volume:
-                    var anchor = await GetAsync(ddsId.BNumber) as ICollection;
+                    var anchor = await GetAsync(ddsId.PackageIdentifier) as ICollection;
                     if (anchor == null) return -1;
                     foreach (var manifestation in anchor.Manifestations)
                     {

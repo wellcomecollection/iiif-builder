@@ -234,12 +234,12 @@
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
-                        <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.BNumber })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
+                        <li><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
+                        <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.PackageIdentifier })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
                         @{
                             var sourceFile = ((IFileBasedResource)metsManifestation).SourceFile;
                         }
-                        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.BNumber, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
+                        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
@@ -257,7 +257,7 @@
                     {
                         <li class="list-group-item">
                             <span class="glyphicon glyphicon-flash"></span>
-                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Peek", new { id = Model.DdsIdentifier.BNumber }, new { })</text>
+                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Peek", new { id = Model.DdsIdentifier.PackageIdentifier }, new { })</text>
                         </li>
                     }
                 }
@@ -300,10 +300,10 @@
     <h3>Jobs</h3>
     <ul class="list-group">
         <li class="list-group-item">
-            <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
+            <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
         </li>    
         <li class="list-group-item">
-            <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
+            <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
         </li>
         @foreach (var job in Model.IngestJobs)
         {
@@ -342,10 +342,10 @@
             <h3>Multiples</h3>
             <ul class="list-group">
                 <li class="list-group-item">
-                    <a href="@Url.Action("SyncAllManifestations", "Job", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("SyncAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
                 </li>
                 <li class="list-group-item">
-                    <a href="@Url.Action("ForceReingestAllManifestations", "Job", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("ForceReingestAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
                 </li>
             </ul>
         }
@@ -556,7 +556,7 @@
                             <td>
                                 @if (@pf.RelativeAltoPath.HasText())
                                 {                                    
-                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.BNumber},  pf.RelativeAltoPath)"
+                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier},  pf.RelativeAltoPath)"
                                        title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
                                 }
                             </td>
