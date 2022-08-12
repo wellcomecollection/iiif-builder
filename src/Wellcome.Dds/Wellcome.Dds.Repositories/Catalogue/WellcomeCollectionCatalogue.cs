@@ -85,10 +85,12 @@ namespace Wellcome.Dds.Repositories.Catalogue
                         relatedWorks.Add(work);
                     }
                 }
-                if(matchedWork != null)
+
+                if (matchedWork == null)
                 {
-                    matchedWork.RelatedByIdentifier = relatedWorks.ToArray();
+                    return null;
                 }
+                matchedWork.RelatedByIdentifier = relatedWorks.ToArray();
                 return await GetWorkByWorkId(matchedWork.Id);
             }
             return null;
