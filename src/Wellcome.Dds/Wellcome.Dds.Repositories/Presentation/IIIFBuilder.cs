@@ -202,14 +202,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var metsResource = await metsRepository.GetAsync(identifier);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
+                
                 ICollection? partOf = null;
-                if (ddsId.IdentifierType != IdentifierType.BNumber)
+                if (ddsId.IdentifierType is IdentifierType.Volume or IdentifierType.BNumberAndSequenceIndex)
                 {
-                    // this identifier has a parent, which we will need to build the resource properly
-                    // this parent property smells... need to do some work to make sure this is always an identical
-                    // result to BuildAndSaveAllManifestations
-                    logger.LogInformation("Getting parent METS resource {identifier}", ddsId.Parent);
-                    partOf = await metsRepository.GetAsync(ddsId.Parent) as ICollection;
+                    logger.LogInformation("Getting parent METS resource {identifier}", ddsId.BNumber);
+                    partOf = await metsRepository.GetAsync(ddsId.BNumber) as ICollection;
                 }
 
                 if (metsResource is ICollection collection)

@@ -44,33 +44,6 @@ namespace Wellcome.Dds.Common
 
         public IdentifierType IdentifierType { get; }
 
-        // I don't like this very much, it's the one place where meaning is derived from
-        // the string form of an identifier. It's only used in one place and if we can
-        // avoid that one place then it can be removed.
-        public DdsIdentifier Parent
-        {
-            get
-            {
-                switch (IdentifierType)
-                {
-                    case IdentifierType.BNumber:
-                        return null;
-                    case IdentifierType.Volume:
-                        return BNumber;
-                    case IdentifierType.BNumberAndSequenceIndex:
-                        // TODO: This is invalid for C&D
-                        return BNumber;
-                    case IdentifierType.Unknown:
-                        return null;
-                    case IdentifierType.Issue:
-                        // TODO: C&D only; come back to this
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                throw new NotImplementedException();
-            }
-        }
 
         public DdsIdentifier(string value)
         {
