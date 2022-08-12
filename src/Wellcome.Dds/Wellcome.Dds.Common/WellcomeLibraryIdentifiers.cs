@@ -131,15 +131,6 @@ namespace Wellcome.Dds.Common
             return Regex.IsMatch(s, "\\Ab[0-9x]{7,9}\\z", RegexOptions.IgnoreCase);
         }
         
-        public static string ToCalmForm(this string s)
-        {
-            // Should this check that it's NOT being asked to do this on a b number?
-            // What about other kinds of identifier later that might contain underscores,
-            // but are not CALM IDs? 
-            // This works for now with our 2 types but is not a GENERAL solution.
-            return s.Replace('_', '/');
-        }
-        
         public static int ToShortBNumber(this string bNumber)
         {
             return GetShortBNumber(bNumber);

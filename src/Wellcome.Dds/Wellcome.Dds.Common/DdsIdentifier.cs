@@ -130,7 +130,9 @@
                 // TODO: Can we validate this just from the string?
 
                 StorageType = BornDigital;
-                PackageIdentifier = this.value.ToCalmForm();
+                // TODO - if this arrived in from a dashboard or internal API form, without slashes, we need to reinstate
+                // BUT can we be sure that this is OK? That it didn't start of with Slashes?
+                PackageIdentifier = this.value.Replace(Underscore, Slash);
                 PackageIdentifierPathElementSafe = PackageIdentifier.Replace(Slash, Underscore);
             }
         }
