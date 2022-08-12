@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using ProtoBuf;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
@@ -33,6 +34,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         
         [ProtoMember(5)]
         public string Identifier { get; set; }
+        
+        /// <summary>
+        /// This is used to store the Archivematica GUID for a born-digital object
+        /// </summary>
+        [ProtoMember(6)]
+        public string OtherIdentifier { get; set; }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)
         {
@@ -51,6 +58,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             var versionToFiles = new Dictionary<string, HashSet<string>>();
             var manifest = storageManifest.SelectToken("manifest");
+            
+            var isDigitised = identifier.IsBNumber();
             foreach (var file in manifest["files"])
             {
                 // strip "data/"
@@ -58,13 +67,37 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 // That's a valid assumption for the DDS to make, but not any other application using the storage
                 var relativePath = file.Value<string>("name").Substring(dataPathElementOffset);
                 var version = file.Value<string>("path").Split(pathSep).First();
-                var minRelativePath = relativePath.Replace(identifier, "#");
                 if (!versionToFiles.ContainsKey(version))
                 {
                     versionToFiles[version] = new HashSet<string>();
                 }
-
-                versionToFiles[version].Add(minRelativePath);
+                if (isDigitised)
+                {
+                    var minRelativePath = relativePath.Replace(identifier, "#");
+                    versionToFiles[version].Add(minRelativePath);
+                }
+                else
+                {
+                    if (relativePath.StartsWith("logs/"))
+                    {
+                        // don't record the Archivematica log files
+                        continue;
+                    }
+                    // we could also strip out README.html, objects/metadata/*, and objects/submissionDocumentation/*
+                    versionToFiles[version].Add(relativePath);
+                    if(relativePath.StartsWith("METS.") && relativePath.EndsWith(".xml"))
+                    {
+                        // This is a special case for Archivematica born-digital.
+                        // This will yield the GUID that Archivematica knows the object by,
+                        // which we can use to ask for the METS file.
+                        var parts = relativePath.Split('.');
+                        if (parts.Length == 3)
+                        {
+                            // This should be the Archivematica GUID
+                            archiveStorageMap.OtherIdentifier = parts[1];
+                        }
+                    }
+                }
             }
             
             // now order the dict by largest member

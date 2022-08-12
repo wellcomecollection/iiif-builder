@@ -5,6 +5,7 @@ using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
@@ -72,16 +73,44 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Code", model);
         }
 
-        public async Task<ContentResult> XmlRaw(string id, string parts)
+        /// <summary>
+        /// If no document path has been supplied, redirect to the appropriate root document
+        /// </summary>
+        /// <param name="store"></param>
+        /// <param name="id"></param>
+        /// <param name="parts"></param>
+        /// <returns></returns>
+        private string GetRedirectPath(IWorkStore store, string id, string parts)
+        {
+            if (parts.HasText()) return null;
+            var rootDocument = store.GetRootDocument();
+            if (rootDocument.HasText())
+            {
+                return rootDocument;
+            }
+            return null;
+        }
+
+        public async Task<ActionResult> XmlRaw(string id, string parts)
         {
             var store = await workStorageFactory.GetWorkStore(id);
+            var redirect = GetRedirectPath(store, id, parts);
+            if (redirect.HasText())
+            {
+                return RedirectToAction("XmlRaw", new {id, parts = redirect});
+            }
             var xmlSource = await store.LoadXmlForPath(parts);
             return Content(xmlSource.XElement.ToString(), "text/xml");
         }
         
         public async Task<ActionResult> XmlView(string id, string parts)
         {
-            var store = await workStorageFactory.GetWorkStore(id);
+            var store = await workStorageFactory.GetWorkStore(id);            
+            var redirect = GetRedirectPath(store, id, parts);
+            if (redirect.HasText())
+            {
+                return RedirectToAction("XmlView", new {id, parts = redirect});
+            }
             string errorMessage = null;
             string xmlAsString = "";
             try

@@ -4,14 +4,16 @@ namespace Wellcome.Dds.Common
 {
     public class DdsIdentifier
     {
-        public const char Underscore = '_';
-        public const char Slash = '/';
-        public static readonly char[] Separators = { Underscore, Slash };
+        private const char Underscore = '_';
+        private const char Slash = '/';
+        private static readonly char[] Separators = { Underscore, Slash };
         private readonly string[] parts;
         private readonly string value;
 
         public string this[int index] => parts[index];
-
+        
+        // At the moment this kind of means the same thing as package identifier.
+        // the DDSIdentifier might represent a particular Manifestation 
         public string BNumber => parts[0];
 
         public string VolumePart

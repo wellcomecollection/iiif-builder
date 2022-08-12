@@ -76,5 +76,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             // TODO - when we refactor the interface, move this out - it's not tied to the STORAGE impl any more.
             return new PremisMetadata(metsRoot, admId);
         }
+
+        public string GetRootDocument()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

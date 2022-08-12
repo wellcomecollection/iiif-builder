@@ -28,5 +28,16 @@ namespace Wellcome.Dds.AssetDomain
         /// <param name="admId"></param>
         /// <returns></returns>
         IAssetMetadata MakeAssetMetadata(XElement metsRoot, string admId);
+        
+        
+        /// <summary>
+        /// Returns the appropriate starting document for this work.
+        /// Currently will be
+        /// {bnumber}.xml for digitised (the Goobi METS or anchor file)
+        /// or
+        /// METS.{guid}.xml for born-digital (the Archivematica METS file)
+        /// </summary>
+        /// <returns>A relative file name of the METS file to start with</returns>
+        string GetRootDocument();
     }
 }
