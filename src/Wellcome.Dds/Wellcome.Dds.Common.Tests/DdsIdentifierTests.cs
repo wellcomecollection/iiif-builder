@@ -10,7 +10,11 @@ namespace Wellcome.Dds.Common.Tests
         private const string Volume = "b99977766_0003";
         private const string Issue = "b99977766_0002_0005";
         private const string BNumberSequence = "b99977766/123";
-        private const string Unknown = "2b99977766_0002_0005/123";
+        private const string MsForm = "MS.126";
+        private const string ArchiveFormWithSlashes = "PPCRI/D/4/5A";
+        private const string ArchiveFormNoSlashes = "PPCRI_D_4_5A";
+        private const string NotBNumberButHasParts = "2b99977766_0002_0005";
+        private const string MixedSlashesAndUnderscores = "PPCRI_2/b12312345/_a";
 
         [Theory(Skip = "Verify this is expected behaviour")]
         [InlineData(null)]
@@ -82,18 +86,23 @@ namespace Wellcome.Dds.Common.Tests
         }
         
         [Fact]
-        public void Ctor_Correct_Unknown()
+        public void Ctor_Correct_NotBNumber()
         {
             // Act
-            var identifier = new DdsIdentifier(Unknown);
+            var identifier = new DdsIdentifier(NotBNumberButHasParts);
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
+
+            // This might seem wrong. But with just CALM IDs and bNumbers (or starts with b numbers),
+            // we can have a rule that any non-bnumber identifier with slashes can have those slashes
+            // converted to underscores. https://github.com/wellcomecollection/platform/issues/5498#issuecomment-1218213009
             
-            // NOTE: These don't seem right
-            identifier.PackageIdentifier.Should().Be("2b99977766"); 
-            identifier.VolumePart.Should().Be("2b99977766_0002");
-            identifier.IssuePart.Should().Be("2b99977766_0002_0005");
+            var expectedPackageIdentifier = NotBNumberButHasParts.Replace('_', '/');
+            // The whole identifier
+            identifier.PackageIdentifier.Should().Be(expectedPackageIdentifier); 
+            identifier.VolumePart.Should().BeNull("It doesn't start with a B number");
+            identifier.IssuePart.Should().BeNull("It doesn't start with a B number");
             identifier.SequenceIndex.Should().Be(0);
         }
         
@@ -134,7 +143,7 @@ namespace Wellcome.Dds.Common.Tests
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.BNumberAndSequenceIndex);
             identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_123"); //NOTE: This doesn't seem right
+            identifier.VolumePart.Should().Be("b99977766_123"); 
             identifier.IssuePart.Should().BeNull();
             identifier.SequenceIndex.Should().Be(123);
         }
@@ -157,15 +166,15 @@ namespace Wellcome.Dds.Common.Tests
         public void ImplicitToDdsIdentifier_Correct_Unknown()
         {
             // Act
-            DdsIdentifier identifier = Unknown;
+            DdsIdentifier identifier = NotBNumberButHasParts;
             
             // Assert
             identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
             
-            // NOTE: These don't seem right
-            identifier.PackageIdentifier.Should().Be("2b99977766"); 
-            identifier.VolumePart.Should().Be("2b99977766_0002");
-            identifier.IssuePart.Should().Be("2b99977766_0002_0005");
+            var expectedPackageIdentifier = NotBNumberButHasParts.Replace('_', '/');
+            identifier.PackageIdentifier.Should().Be(expectedPackageIdentifier); 
+            identifier.VolumePart.Should().BeNull("It doesn't start with a B number");
+            identifier.IssuePart.Should().BeNull("It doesn't start with a B number");
             identifier.SequenceIndex.Should().Be(0);
         }
 
@@ -174,7 +183,11 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        [InlineData(Unknown)]
+        [InlineData(NotBNumberButHasParts)]
+        [InlineData(MsForm)]
+        [InlineData(ArchiveFormNoSlashes)]
+        [InlineData(ArchiveFormWithSlashes)]
+        [InlineData(MixedSlashesAndUnderscores)]
         public void ToString_ReturnsOriginalValue(string value)
         {
             // Arrange
@@ -189,7 +202,11 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        [InlineData(Unknown)]
+        [InlineData(NotBNumberButHasParts)]
+        [InlineData(MsForm)]
+        [InlineData(ArchiveFormNoSlashes)]
+        [InlineData(ArchiveFormWithSlashes)]
+        [InlineData(MixedSlashesAndUnderscores)]
         public void ImplicitToString_ReturnsOriginalValue(string value)
         {
             // Arrange
@@ -200,6 +217,143 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             strValue.Should().Be(value);
+        }
+
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_BNumber(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.HasBNumber.Should().BeTrue();
+            identifier.BNumber.Should().Be(BNumber);
+        }
+        
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_BNumber_PackageIdentfier(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PackageIdentifier.Should().Be(BNumber);
+        }
+        
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+        }
+        
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_Digitised_Storage_Type(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.StorageType.Should().Be("digitised");
+        }
+
+
+        [Theory]
+        [InlineData(MsForm)]
+        [InlineData(ArchiveFormWithSlashes)]
+        [InlineData(ArchiveFormNoSlashes)]
+        [InlineData(NotBNumberButHasParts)]
+        [InlineData(MixedSlashesAndUnderscores)]
+        public void Non_BNumbers_Dont_Have_BNumbers(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.HasBNumber.Should().BeFalse();
+            identifier.BNumber.Should().BeNull();
+        }
+        
+        [Theory]
+        [InlineData(MsForm)]
+        [InlineData(ArchiveFormWithSlashes)]
+        [InlineData(ArchiveFormNoSlashes)]
+        [InlineData(NotBNumberButHasParts)]
+        [InlineData(MixedSlashesAndUnderscores)]
+        public void If_NonBNumber_Then_Storage_is_BornDigital(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.StorageType.Should().Be("born-digital");
+        }
+
+        [Fact]
+        public void No_Slashes_Or_Underscores_Yields_Same_Id()
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(MsForm);
+            
+            // Assert
+            identifier.PackageIdentifier.Should().Be(MsForm);
+            identifier.PackageIdentifierPathElementSafe.Should().Be(MsForm);
+        }
+
+        [Fact]
+        public void Package_Identifier_Has_Slashes()
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(ArchiveFormNoSlashes);
+            
+            // Assert
+            identifier.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);
+        }
+        
+        
+        [Fact]
+        public void Package_Identifier_Preserves_Slashes()
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(ArchiveFormWithSlashes);
+            
+            // Assert
+            identifier.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);
+        }
+        
+        
+        [Fact]
+        public void Path_Element_Safe_Form_Round_Trips()
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(ArchiveFormNoSlashes);
+            
+            // Act
+            var packageIdentifier = identifier.PackageIdentifier;
+            var identifier2 = new DdsIdentifier(packageIdentifier);
+            
+            // Assert
+            identifier2.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);
+            identifier2.PackageIdentifierPathElementSafe.Should().Be(ArchiveFormNoSlashes);
         }
     }
 }

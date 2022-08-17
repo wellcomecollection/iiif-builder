@@ -42,7 +42,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // b12345678/0 - old form, must be an IManifestation
             var ddsId = new DdsIdentifier(identifier);
 
-            if (!ddsId.PackageIdentifier.IsBNumber())
+            // TODO: This won't be true for much longer!
+            // This line will just go, I think. We can no longer enforce this test here.
+            if (!ddsId.HasBNumber)
             {
                 throw new ArgumentException($"{ddsId.PackageIdentifier} is not a b number", nameof(identifier));
             }
@@ -52,13 +54,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = await GetFileStructMap(ddsId.PackageIdentifier, workStore);
+                    structMap = await GetFileStructMap(ddsId.BNumber, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndex(ddsId.PackageIdentifier, ddsId.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndex(ddsId.BNumber, ddsId.SequenceIndex, workStore);
                 case IdentifierType.Issue:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     // we only want a specific issue
@@ -93,7 +95,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 yield return new ManifestationInContext
                 {
                     Manifestation = mets,
-                    BNumber = ddsId.PackageIdentifier,
+                    BNumber = ddsId.BNumber,
                     SequenceIndex = sequenceIndex,
                     VolumeIdentifier = volumeIdentifier,
                     IssueIdentifier = issueIdentifier

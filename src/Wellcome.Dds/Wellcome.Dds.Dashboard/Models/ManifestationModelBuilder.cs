@@ -97,12 +97,12 @@ namespace Wellcome.Dds.Dashboard.Models
                             grandparent = null;
                             break;
                         case IdentifierType.Volume:
-                            parent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
+                            parent = await GetCachedCollectionAsync(identifier.BNumber);
                             grandparent = null;
                             break;
                         case IdentifierType.Issue:
                             parent = await GetCachedCollectionAsync(identifier.VolumePart);
-                            grandparent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
+                            grandparent = await GetCachedCollectionAsync(identifier.BNumber);
                             break;
                         case IdentifierType.BNumberAndSequenceIndex:
                             throw new ArgumentException("id", $"Can't use an index-based ID here: {identifier}");
