@@ -273,7 +273,7 @@ namespace Wellcome.Dds.Common.Tests
             var identifier = new DdsIdentifier(value);
             
             // Assert
-            identifier.StorageType.Should().Be("digitised");
+            identifier.StorageSpace.Should().Be("digitised");
         }
 
 
@@ -305,7 +305,7 @@ namespace Wellcome.Dds.Common.Tests
             var identifier = new DdsIdentifier(value);
             
             // Assert
-            identifier.StorageType.Should().Be("born-digital");
+            identifier.StorageSpace.Should().Be("born-digital");
         }
 
         [Fact]

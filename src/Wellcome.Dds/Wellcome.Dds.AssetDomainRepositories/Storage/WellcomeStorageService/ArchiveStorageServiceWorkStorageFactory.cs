@@ -45,7 +45,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             var ddsId = new DdsIdentifier(identifier);
 
             Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => 
-                BuildStorageMap(ddsId.StorageType, ddsId.PackageIdentifier);
+                BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
             
             logger.LogInformation("Getting IWorkStore for {Identifier}", ddsId.PackageIdentifier);
             
@@ -53,14 +53,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 await storageMapCache.GetCachedObject(ddsId.PackageIdentifier, getFromSource, NeedsRebuilding);
             
             return new ArchiveStorageServiceWorkStore(
-                ddsId.StorageType, ddsId.PackageIdentifier,
+                ddsId.StorageSpace, ddsId.PackageIdentifier,
                 storageMap, storageServiceClient, xmlElementCache, storageServiceS3);
         }
 
-        private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string storageType, string packageIdentifier)
+        private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string storageSpace, string packageIdentifier)
         {
             logger.LogInformation("Requires new build of storage map for {Identifier}", packageIdentifier);
-            var storageManifest = await storageServiceClient.LoadStorageManifest(storageType, packageIdentifier);
+            var storageManifest = await storageServiceClient.LoadStorageManifest(storageSpace, packageIdentifier);
             var wellcomeBagAwareArchiveStorageMap = WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, packageIdentifier);
             if (wellcomeBagAwareArchiveStorageMap.VersionSets.IsNullOrEmpty())
             {

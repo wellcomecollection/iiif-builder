@@ -26,7 +26,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         public WellcomeBagAwareArchiveStorageMap ArchiveStorageMap { get; }
         
         public ArchiveStorageServiceWorkStore(
-            string storageType,
+            string storageSpace,
             string identifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
             StorageServiceClient storageServiceClient,
@@ -41,14 +41,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
             xmlElementCache = elementCache;
             Identifier = identifier;            
-            StorageType = storageType;
+            StorageSpace = storageSpace;
             this.storageServiceClient = storageServiceClient;
             ArchiveStorageMap = archiveStorageMap;
             this.storageServiceS3 = storageServiceS3;
         }
 
         public string Identifier { get; }        
-        public string StorageType { get; }
+        public string StorageSpace { get; }
 
         public string GetAwsKey(string relativePath)
         {            
@@ -59,7 +59,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 // version keys are in descending order of the number of files at that version
                 if (versionSet.Value.Contains(minRelativePath))
                 {
-                    return string.Format(awsKeyTemplate, StorageType, Identifier, versionSet.Key, relativePath);
+                    return string.Format(awsKeyTemplate, StorageSpace, Identifier, versionSet.Key, relativePath);
                 }
             }
             throw new FileNotFoundException("File not present in storage map: " + relativePath, relativePath);
@@ -161,6 +161,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             return $"{ArchiveStorageMap.Identifier}.xml";
         }
 
-        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageType, Identifier);
+        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageSpace, Identifier);
     }
 }

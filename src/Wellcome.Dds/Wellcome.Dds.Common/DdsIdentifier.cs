@@ -30,7 +30,7 @@
         /// What prefix in the storage service API is required to locate this object's files
         /// Currently either "digitised" or "born-digital"
         /// </summary>
-        public string StorageType { get; }
+        public string StorageSpace { get; }
         
         /// <summary>
         /// Whether this identifier starts with a BNumber
@@ -92,16 +92,16 @@
         /// Constructor for DdsIdentifier
         /// </summary>
         /// <param name="value">A string that will be parsed</param>
-        /// <param name="storageType">
+        /// <param name="storageSpace">
         /// Specifies which space in the storage service the DDS will look for the object's files in.
         /// If not provided, it will be determined from the format of the string.
         /// 
         /// </param>
-        public DdsIdentifier(string value, string storageType = null)
+        public DdsIdentifier(string value, string storageSpace = null)
         {
-            if (!string.IsNullOrWhiteSpace(storageType))
+            if (!string.IsNullOrWhiteSpace(storageSpace))
             {
-                StorageType = storageType;
+                StorageSpace = storageSpace;
             }
             IdentifierType = IdentifierType.NonBNumber;
             this.value = value;
@@ -112,7 +112,7 @@
                 BNumber = parts[0];
                 PackageIdentifier = BNumber;
                 PackageIdentifierPathElementSafe = BNumber;
-                StorageType ??= Digitised;
+                StorageSpace ??= Digitised;
             }
             if (parts.Length == 1 && HasBNumber)
             {
@@ -141,7 +141,7 @@
                 // BNumber is a potential born digital identifier.
                 // TODO: Can we validate this just from the string?
 
-                StorageType ??= BornDigital;
+                StorageSpace ??= BornDigital;
                 
                 // TODO - if this arrived in from a dashboard or internal API form, without slashes, we need to reinstate
                 // BUT can we be sure that this is OK? That it didn't start off with Slashes?

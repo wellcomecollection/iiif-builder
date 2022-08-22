@@ -30,13 +30,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             defaultClientCredentials = GetClientCredentials(storageOptions.Value);
         }
         
-        public async Task<JObject> GetStorageManifest(string storageType, string packageIdentifier)
+        public async Task<JObject> GetStorageManifest(string storageSpace, string packageIdentifier)
         {
             if (requestCache.TryGetValue(packageIdentifier, out var cachedJson))
                 return cachedJson;
             
             var storageManifestUrl = string.Format(
-                storageOptions.StorageApiTemplate, storageType, packageIdentifier);
+                storageOptions.StorageApiTemplate, storageSpace, packageIdentifier);
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += $"?ts={DateTime.Now.Ticks}";
 
@@ -46,7 +46,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return manifestJson;
         }
         
-        public async Task<JObject> LoadStorageManifest(string storageType, string packageIdentifier)
+        public async Task<JObject> LoadStorageManifest(string storageSpace, string packageIdentifier)
         {
             logger.LogInformation("Getting storage manifest for {identifier}", packageIdentifier);
             JObject storageManifest = null;
@@ -58,7 +58,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 try
                 {
-                    storageManifest = await GetStorageManifest(storageType, packageIdentifier);
+                    storageManifest = await GetStorageManifest(storageSpace, packageIdentifier);
                 }
                 catch (Exception ex)
                 {
