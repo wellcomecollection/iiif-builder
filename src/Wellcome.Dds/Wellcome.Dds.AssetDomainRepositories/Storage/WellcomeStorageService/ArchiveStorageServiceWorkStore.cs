@@ -52,14 +52,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         public string GetAwsKey(string relativePath)
         {            
-            const string awsKeyTemplate = "{0}/{1}/{2}/data/{3}";
             var minRelativePath = relativePath.Replace(Identifier, "#");
             foreach (var versionSet in ArchiveStorageMap.VersionSets)
             {
                 // version keys are in descending order of the number of files at that version
                 if (versionSet.Value.Contains(minRelativePath))
                 {
-                    return string.Format(awsKeyTemplate, StorageSpace, Identifier, versionSet.Key, relativePath);
+                    return $"{StorageSpace}/{Identifier}/{versionSet.Key}/data/{relativePath}";
                 }
             }
             throw new FileNotFoundException("File not present in storage map: " + relativePath, relativePath);
