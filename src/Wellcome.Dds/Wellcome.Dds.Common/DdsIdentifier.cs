@@ -88,9 +88,21 @@
         /// </summary>
         public IdentifierType IdentifierType { get; }
 
-
-        public DdsIdentifier(string value)
+        /// <summary>
+        /// Constructor for DdsIdentifier
+        /// </summary>
+        /// <param name="value">A string that will be parsed</param>
+        /// <param name="storageType">
+        /// Specifies which space in the storage service the DDS will look for the object's files in.
+        /// If not provided, it will be determined from the format of the string.
+        /// 
+        /// </param>
+        public DdsIdentifier(string value, string storageType = null)
         {
+            if (!string.IsNullOrWhiteSpace(storageType))
+            {
+                StorageType = storageType;
+            }
             IdentifierType = IdentifierType.NonBNumber;
             this.value = value;
             parts = value.Split(Separators);
@@ -100,7 +112,7 @@
                 BNumber = parts[0];
                 PackageIdentifier = BNumber;
                 PackageIdentifierPathElementSafe = BNumber;
-                StorageType = Digitised;
+                StorageType ??= Digitised;
             }
             if (parts.Length == 1 && HasBNumber)
             {
@@ -129,7 +141,7 @@
                 // BNumber is a potential born digital identifier.
                 // TODO: Can we validate this just from the string?
 
-                StorageType = BornDigital;
+                StorageType ??= BornDigital;
                 
                 // TODO - if this arrived in from a dashboard or internal API form, without slashes, we need to reinstate
                 // BUT can we be sure that this is OK? That it didn't start off with Slashes?
