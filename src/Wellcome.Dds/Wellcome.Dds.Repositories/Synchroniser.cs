@@ -79,7 +79,7 @@ namespace Wellcome.Dds.Repositories
             logger.LogInformation("Synchronising {id}", identifier);
             var isBNumber = identifier.IsBNumber();
             var shortB = -1;
-            var workBNumber = new DdsIdentifier(identifier).BNumber;
+            var workBNumber = new DdsIdentifier(identifier).PackageIdentifier;
             var manifestationIdsProcessed = new List<string>();
             var containsRestrictedFiles = false;
             IMetsResource? packageMetsResource = null;
@@ -139,8 +139,8 @@ namespace Wellcome.Dds.Repositories
                     ddsManifestation = new Manifestation
                     {
                         Id = ddsId,
-                        PackageIdentifier = ddsId.BNumber,
-                        PackageShortBNumber = ddsId.BNumber.ToShortBNumber(),
+                        PackageIdentifier = ddsId.PackageIdentifier,
+                        PackageShortBNumber = ddsId.PackageIdentifier.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)

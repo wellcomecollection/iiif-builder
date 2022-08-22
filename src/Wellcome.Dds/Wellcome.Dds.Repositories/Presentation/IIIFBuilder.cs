@@ -87,12 +87,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // we could throw an exception - do we actually care?
                 // just process it. 
             }
-            bNumber = ddsId.BNumber;
+            bNumber = ddsId.PackageIdentifier;
             var manifestationId = "start";
             try
             {
-                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
+                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
+                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", bNumber);
                 var resource = await metsRepository.GetAsync(bNumber);
                 // This is a bnumber, so can't be part of anything.
@@ -200,16 +200,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var ddsId = new DdsIdentifier(identifier);
                 logger.LogInformation($"Build a single manifestation {identifier}", identifier);
                 var metsResource = await metsRepository.GetAsync(identifier);
-                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.BNumber);
-                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.BNumber);
+                work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
+                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
+                
                 ICollection? partOf = null;
-                if (ddsId.IdentifierType != IdentifierType.BNumber)
+                if (ddsId.IdentifierType is IdentifierType.Volume or IdentifierType.BNumberAndSequenceIndex)
                 {
-                    // this identifier has a parent, which we will need to build the resource properly
-                    // this parent property smells... need to do some work to make sure this is always an identical
-                    // result to BuildAndSaveAllManifestations
-                    logger.LogInformation("Getting parent METS resource {identifier}", ddsId.Parent);
-                    partOf = await metsRepository.GetAsync(ddsId.Parent) as ICollection;
+                    logger.LogInformation("Getting parent METS resource {identifier}", ddsId.PackageIdentifier);
+                    partOf = await metsRepository.GetAsync(ddsId.PackageIdentifier) as ICollection;
                 }
 
                 if (metsResource is ICollection collection)
@@ -320,7 +318,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new("Text")
                 {
-                    Id = uriPatterns.WorkZippedText(manifestationMetadata.Identifier.BNumber),
+                    Id = uriPatterns.WorkZippedText(manifestationMetadata.Identifier.PackageIdentifier),
                     Label = Lang.Map("en", "Complete text as zip file"),
                     Format = "application/zip"
                 }

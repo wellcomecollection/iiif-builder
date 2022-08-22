@@ -42,12 +42,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // b12345678/0 - old form, must be an IManifestation
             var ddsId = new DdsIdentifier(identifier);
 
-            if (!ddsId.BNumber.IsBNumber())
+            // TODO: This won't be true for much longer!
+            // This line will just go, I think. We can no longer enforce this test here.
+            if (!ddsId.HasBNumber)
             {
-                throw new ArgumentException($"{ddsId.BNumber} is not a b number", nameof(identifier));
+                throw new ArgumentException($"{ddsId.PackageIdentifier} is not a b number", nameof(identifier));
             }
 
-            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.BNumber);
+            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.PackageIdentifier);
             ILogicalStructDiv structMap;
             switch (ddsId.IdentifierType)
             {
@@ -194,7 +196,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumber:
                     return 0;
                 case IdentifierType.Volume:
-                    var anchor = await GetAsync(ddsId.BNumber) as ICollection;
+                    var anchor = await GetAsync(ddsId.PackageIdentifier) as ICollection;
                     if (anchor == null) return -1;
                     foreach (var manifestation in anchor.Manifestations)
                     {

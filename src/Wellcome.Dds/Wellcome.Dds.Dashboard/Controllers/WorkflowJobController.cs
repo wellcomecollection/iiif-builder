@@ -50,7 +50,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             
             try
             {
-                var bNumber = new DdsIdentifier(id).BNumber;
+                var bNumber = new DdsIdentifier(id).PackageIdentifier;
                 await workflowCallRepository.CreateExpeditedWorkflowJob(bNumber, iiifOnly ? 6 : null, true);
             }
             catch (Exception ex)

@@ -67,7 +67,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 jobLogger.Start();
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
-                var workTask = catalogue.GetWorkByOtherIdentifier(identifier.BNumber);
+                var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
                 var ddsTask = dashboardRepository.GetDigitisedResource(identifier, true);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 dgResource = ddsTask.Result;
@@ -125,7 +125,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsOptions = dlcsOptions,
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
-                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.BNumber),
+                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.PackageIdentifier),
                         ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)

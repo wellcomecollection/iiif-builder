@@ -1225,7 +1225,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             string trackingLabel = "Format: " + format +
                         ", Institution: " + institution +
-                        ", Identifier: " + manifestationMetadata.Identifier.BNumber +
+                        ", Identifier: " + manifestationMetadata.Identifier.PackageIdentifier +
                         ", Digicode: " + digicode +
                         ", Collection code: " + collectioncode;
 

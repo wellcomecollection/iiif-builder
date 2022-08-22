@@ -130,7 +130,7 @@ namespace Wellcome.Dds.Common
             // TODO: should this allow 
             return Regex.IsMatch(s, "\\Ab[0-9x]{7,9}\\z", RegexOptions.IgnoreCase);
         }
-
+        
         public static int ToShortBNumber(this string bNumber)
         {
             return GetShortBNumber(bNumber);
