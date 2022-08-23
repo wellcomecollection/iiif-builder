@@ -3,9 +3,9 @@ using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 
-namespace Wellcome.Dds.AssetDomain.Dashboard
+namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
-    public interface IDigitisedManifestation : IDigitalObject
+    public interface IDigitalManifestation : IDigitalObject
     {
         IManifestation MetsManifestation { get; set; }
 

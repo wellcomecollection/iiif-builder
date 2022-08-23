@@ -12,7 +12,7 @@ using Utils;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Logging;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -71,7 +71,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 var dgResource = ddsTask.Result;
                 var work = workTask.Result;
 
-                if (dgResource is IDigitisedManifestation dgManifestation)
+                if (dgResource is IDigitalManifestation dgManifestation)
                 {
                     // ***************************************************
                     // THIS IS ONLY HERE TO SUPPORT THE PDF LINK

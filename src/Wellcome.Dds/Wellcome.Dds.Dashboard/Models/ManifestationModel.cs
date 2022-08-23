@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -27,7 +27,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
-        public IDigitisedManifestation DigitisedManifestation { get; set; }
+        public IDigitalManifestation DigitisedManifestation { get; set; }
         public IDigitisedCollection Parent { get; set; }
         public IDigitisedCollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }

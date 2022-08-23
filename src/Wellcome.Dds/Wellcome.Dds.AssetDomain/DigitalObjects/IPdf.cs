@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Wellcome.Dds.AssetDomain.Dashboard
+namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IPdf
     {

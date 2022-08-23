@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -176,7 +176,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // we expect a job to correspond to a manifestation
-            IDigitisedManifestation digitisedManifestation = null;
+            IDigitalManifestation digitisedManifestation = null;
             Exception error = null;
             string errorDataMessage = null;
             IManifestation manifestation = null;
@@ -185,7 +185,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 digitisedManifestation = await digitalObjectRepository
                         .GetDigitalObject(job.GetManifestationIdentifier())
-                    as IDigitisedManifestation;
+                    as IDigitalManifestation;
             }
             catch (Exception ex)
             {
@@ -340,7 +340,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             var digitisedManifestation = (await digitalObjectRepository
                      .GetDigitalObject(job.GetManifestationIdentifier()))
-                     as IDigitisedManifestation;
+                     as IDigitalManifestation;
 
             var query = new ImageQuery
             {

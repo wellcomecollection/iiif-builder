@@ -14,7 +14,7 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Threading.Tasks;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;

@@ -1,12 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -14,7 +13,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
     public class DigitalObjectRepository : IDigitalObjectRepository
     {
@@ -109,7 +108,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <param name="digitisedManifestation"></param>
         /// <param name="reIngestErrorImages"></param>
         /// <returns></returns>
-        public async Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
+        public async Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages)
         {
             // TODO - some of this can go inside IDigitisedManifestation
@@ -681,7 +680,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = (await GetDigitalObject(id)) as IDigitisedManifestation;
+            var manifestation = (await GetDigitalObject(id)) as IDigitalManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return await dlcs.DeleteImages(syncOp.Orphans);
         }
@@ -715,7 +714,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public Task<Dictionary<string, long>> GetDlcsQueueLevel() => dlcs.GetDlcsQueueLevel();
 
-        public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
+        public AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
             if (digitisedManifestation.MetsManifestation.Type is "Video" or "Audio")

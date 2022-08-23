@@ -1,6 +1,6 @@
-﻿using Wellcome.Dds.AssetDomain.Dashboard;
+﻿using Wellcome.Dds.AssetDomain.DigitalObjects;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
     public abstract class BaseDigitalObject : IDigitalObject
     {

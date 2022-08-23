@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
     public class DigitisedCollection : BaseDigitalObject, IDigitisedCollection
     {
         public ICollection MetsCollection { get; set; }
-        public IEnumerable<IDigitisedManifestation> Manifestations { get; set; }
+        public IEnumerable<IDigitalManifestation> Manifestations { get; set; }
         public IEnumerable<IDigitisedCollection> Collections { get; set; }
     }
 }
