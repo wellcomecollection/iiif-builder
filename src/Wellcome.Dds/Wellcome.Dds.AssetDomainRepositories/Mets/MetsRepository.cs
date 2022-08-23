@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Amazon.Runtime.Internal.Util;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain;
@@ -18,6 +17,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     {
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly ILogger<MetsRepository> logger;
+        
+        // For born-digital
+        private const string Directory = "Directory";
+        private const string Item = "Item";
+        private const string TypeAttribute = "TYPE";
+        private const string LabelAttribute = "LABEL";
 
         public MetsRepository(
             IWorkStorageFactory workStorageFactory,
@@ -49,9 +54,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.BNumber:
                     structMap = await GetFileStructMap(ddsId.BNumber, workStore);
                     return GetMetsResource(structMap, workStore);
-                case IdentifierType.NonBNumber:
-                    structMap = await GetRootDocumentFileStructMap(workStore);
-                    return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
                     structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
@@ -62,9 +64,41 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     // we only want a specific issue
                     var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
                     return new MetsManifestation(issueStruct, structMap);
+                
+                case IdentifierType.NonBNumber:
+                    var bdManifestation = await BuildBornDigitalManifestation(workStore);
+                    return bdManifestation;
             }
 
             throw new NotSupportedException("Unknown identifier");
+        }
+
+        private async Task<IManifestation> BuildBornDigitalManifestation(IWorkStore workStore)
+        {
+            // we can't get a logical struct map, because there isn't one in this METS.
+            // But there is one in the mets file in the submission...
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1649945431278779
+            var metsXml = await workStore.LoadRootDocumentXml();
+            var physicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, TypeAttribute, "physical");
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1661272044683399
+            var rootDir = physicalStructMap.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
+            var objectsDir = rootDir.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
+            // There can be only one
+            if (objectsDir?.Attribute(LabelAttribute)?.Value != "objects")
+            {
+                throw new NotSupportedException("Could not find objects directory in physical structMap");
+            }
+            // Now note the metadata and submissionDocumentation directories as last two children of objects 
+            // get the path to the METS for submission doc if we need it later - it has the logical structmap
+            // from the physical Directory and Item information, build both the physicalFile list and the structures.
+            
+            // build an IManifestation.
+            // We might need to pull some info out of LogicalStructDiv if we are duplicating.
+            
+            var rootStructuralDiv = logicalStructMap.Elements(XNames.MetsDiv).Single(); // require only one
+            var structMap = new LogicalStructDiv(rootStructuralDiv, metsXml.RelativeXmlFilePath, identifier, workStore);
+            return structMap;
+            throw new NotImplementedException();
         }
 
         public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
@@ -220,13 +254,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return GetLogicalStructDiv(metsXml, identifier, workStore);
         }
         
-        private async Task<ILogicalStructDiv> GetRootDocumentFileStructMap(IWorkStore workStore)
-        {
-            var metsXml = await workStore.LoadRootDocumentXml();
-            return GetLogicalStructDiv(metsXml, workStore.Identifier, workStore);
-        }
-
-        private static IMetsResource GetMetsResource(ILogicalStructDiv structMap, IWorkStore workStore)
+     private static IMetsResource GetMetsResource(ILogicalStructDiv structMap, IWorkStore workStore)
         {
             IMetsResource res = null;
             if (structMap.IsManifestation)
@@ -276,7 +304,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         private static ILogicalStructDiv GetLogicalStructDiv(XmlSource metsXml, string identifier, IWorkStore workStore)
         {
-            var logicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, "TYPE", "LOGICAL");
+            var logicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, TypeAttribute, "LOGICAL");
             var rootStructuralDiv = logicalStructMap.Elements(XNames.MetsDiv).Single(); // require only one
             var structMap = new LogicalStructDiv(rootStructuralDiv, metsXml.RelativeXmlFilePath, identifier, workStore);
             return structMap;
