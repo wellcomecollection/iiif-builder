@@ -55,6 +55,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             return await LoadXmlForPath(relativePath);
         }
 
+        public Task<XmlSource> LoadRootDocumentXml()
+        {
+            // Only for born digital
+            throw new System.NotImplementedException();
+        }
+
         public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
         {
             var fullPath = FileUri(relativePath);

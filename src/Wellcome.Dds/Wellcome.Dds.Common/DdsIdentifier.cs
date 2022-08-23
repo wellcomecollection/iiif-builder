@@ -148,6 +148,9 @@
                 // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
                 PackageIdentifier = this.value.Replace(Underscore, Slash);
                 PackageIdentifierPathElementSafe = PackageIdentifier.Replace(Slash, Underscore);
+                
+                // used for ToString()... callers will need to ask for the path element safe version explicitly
+                this.value = PackageIdentifier; 
             }
         }
 

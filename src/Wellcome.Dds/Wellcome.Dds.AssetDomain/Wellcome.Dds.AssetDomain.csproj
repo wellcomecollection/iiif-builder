@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Utils\Utils.csproj" />
+    <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
   </ItemGroup>
 
 </Project>

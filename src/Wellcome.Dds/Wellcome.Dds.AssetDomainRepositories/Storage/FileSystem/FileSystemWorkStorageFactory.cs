@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
 {
@@ -16,7 +17,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             this.rootDirectory = rootDirectory;
         }
         
-        public Task<IWorkStore> GetWorkStore(string identifier)
+        public Task<IWorkStore> GetWorkStore(DdsIdentifier identifier)
         {
             return Task.FromResult<IWorkStore>(new FileSystemWorkStore(rootDirectory, identifier));
         }
