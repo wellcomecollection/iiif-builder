@@ -151,7 +151,7 @@ namespace Wellcome.Dds.Server
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddScoped<AltoSearchTextProvider>()

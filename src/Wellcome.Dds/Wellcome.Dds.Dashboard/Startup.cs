@@ -110,7 +110,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
 
             // TODO - assess the lifecycle of all of these
-            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IDigitalObjectRepository, DigitalObjectRepository>();
             services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();

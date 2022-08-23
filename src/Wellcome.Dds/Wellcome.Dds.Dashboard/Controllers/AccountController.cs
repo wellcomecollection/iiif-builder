@@ -6,17 +6,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
 
-        public AccountController(IDashboardRepository dashboardRepository)
+        public AccountController(IDigitalObjectRepository digitalObjectRepository)
         {
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
         }
 
         public ActionResult UserPage(string id = null)
         {
             var username = id.HasText() ? id : User.Identity.Name;
-            var recentActions = dashboardRepository.GetRecentActions(200, username);
+            var recentActions = digitalObjectRepository.GetRecentActions(200, username);
             ViewBag.Subject = username;
             return View(recentActions);
         }

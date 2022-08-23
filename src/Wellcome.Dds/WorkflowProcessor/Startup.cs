@@ -88,7 +88,7 @@ namespace WorkflowProcessor
             services
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<IWorkflowCallRepository, WorkflowCallRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()

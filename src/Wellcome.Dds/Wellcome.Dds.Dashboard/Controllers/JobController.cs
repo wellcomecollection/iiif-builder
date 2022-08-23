@@ -17,18 +17,18 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IIngestJobRegistry jobRegistry;
         private readonly IIngestJobProcessor jobProcessor;
         private readonly Synchroniser synchroniser;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
 
         public JobController(
             IIngestJobRegistry jobRegistry,
             IIngestJobProcessor jobProcessor,
             Synchroniser synchroniser,
-            IDashboardRepository dashboardRepository)
+            IDigitalObjectRepository digitalObjectRepository)
         {
             this.jobRegistry = jobRegistry;
             this.jobProcessor = jobProcessor;
             this.synchroniser = synchroniser;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
         }
         
         // Different actions that all trigger jobs
@@ -49,7 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ActionResult> CleanOldJobs(string id)
         {
-            int removed = await dashboardRepository.RemoveOldJobs(id);
+            int removed = await digitalObjectRepository.RemoveOldJobs(id);
             TempData["remove-old-jobs"] = removed;
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
@@ -73,7 +73,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
             await foreach (var job in jobs)
             {
-                dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
+                digitalObjectRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
                 await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
             }
 

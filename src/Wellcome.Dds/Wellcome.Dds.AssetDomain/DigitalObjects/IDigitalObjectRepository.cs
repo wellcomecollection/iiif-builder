@@ -6,9 +6,9 @@ using Wellcome.Dds.AssetDomain.Dlcs.Model;
 
 namespace Wellcome.Dds.AssetDomain.Dashboard
 {
-    public interface IDashboardRepository
+    public interface IDigitalObjectRepository
     {
-        Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false);
+        Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false);
         Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
             bool reIngestErrorImages);
         Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);

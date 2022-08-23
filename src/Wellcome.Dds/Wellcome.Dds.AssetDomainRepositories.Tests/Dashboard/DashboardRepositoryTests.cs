@@ -27,7 +27,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         private readonly ICatalogue catalogue;
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
-        private readonly DashboardRepository sut;
+        private readonly DigitalObjectRepository sut;
         
         public DashboardRepositoryTests()
         {
@@ -49,7 +49,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var options = Options.Create(ddsOptions);
             var uriPatterns = new UriPatterns(options);
 
-            sut = new DashboardRepository(new NullLogger<DashboardRepository>(), uriPatterns, dlcs, metsRepository,
+            sut = new DigitalObjectRepository(new NullLogger<DigitalObjectRepository>(), uriPatterns, dlcs, metsRepository,
                 ddsInstrumentationContext);
         }
 
@@ -70,7 +70,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Arrange
             const string identifier = "b1231231";
             A.CallTo(() => metsRepository.GetAsync(identifier)).Returns<IMetsResource>(null);
-            Func<Task> action = () => sut.GetDigitisedResource(identifier);
+            Func<Task> action = () => sut.GetDigitalObject(identifier);
 
             // Assert
             (await action.Should().ThrowAsync<ArgumentException>()).And
@@ -94,7 +94,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitisedResource(identifier);
+            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier);
 
             // Assert
             result.Identifier.Should().Be("manifest_id");
@@ -122,7 +122,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetPdfDetails("manifest_id")).Returns(pdf);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitisedResource(identifier, true);
+            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier, true);
 
             // Assert
             result.Identifier.Should().Be("manifest_id");
@@ -165,7 +165,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitisedResource(identifier);
+            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
@@ -215,7 +215,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitisedResource(identifier, true);
+            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier, true);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);

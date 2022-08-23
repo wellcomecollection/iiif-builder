@@ -5,7 +5,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomain.Dashboard
 {
-    public interface IDigitisedManifestation : IDigitisedResource
+    public interface IDigitisedManifestation : IDigitalObject
     {
         IManifestation MetsManifestation { get; set; }
 

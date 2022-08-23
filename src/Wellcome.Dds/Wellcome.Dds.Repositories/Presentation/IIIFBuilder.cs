@@ -41,7 +41,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private const string DcTypesStillImage = "dctypes:StillImage";
         private readonly IDds dds;
         private readonly IMetsRepository metsRepository;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly ICatalogue catalogue;
         private readonly DdsOptions ddsOptions;
         private readonly UriPatterns uriPatterns;
@@ -52,7 +52,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public IIIFBuilder(
             IDds dds,
             IMetsRepository metsRepository,
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             ICatalogue catalogue,
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
@@ -61,7 +61,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.catalogue = catalogue;
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;

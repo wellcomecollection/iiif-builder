@@ -72,7 +72,7 @@ namespace DlcsJobProcessor
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>()
                 .AddSingleton<UriPatterns>()
                 .AddHostedService<DashboardContinuousRunningStrategy>();

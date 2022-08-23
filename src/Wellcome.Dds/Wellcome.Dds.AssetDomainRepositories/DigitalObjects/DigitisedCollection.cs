@@ -4,7 +4,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
-    public class DigitisedCollection : BaseDigitisedResource, IDigitisedCollection
+    public class DigitisedCollection : BaseDigitalObject, IDigitisedCollection
     {
         public ICollection MetsCollection { get; set; }
         public IEnumerable<IDigitisedManifestation> Manifestations { get; set; }

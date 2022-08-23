@@ -15,7 +15,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
     public class DashboardCloudServicesJobProcessor : IIngestJobProcessor
     {
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly IStatusProvider statusProvider;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly ILogger<DashboardCloudServicesJobProcessor> logger;
@@ -37,12 +37,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         const int MaximumSequentialFailuresTolerated = 3;
 
         public DashboardCloudServicesJobProcessor(
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             IStatusProvider statusProvider,
             DdsInstrumentationContext ddsInstrumentationContext,
             ILogger<DashboardCloudServicesJobProcessor> logger)
         {
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.statusProvider = statusProvider;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.logger = logger;
@@ -183,8 +183,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
             try
             {
-                digitisedManifestation = await dashboardRepository
-                        .GetDigitisedResource(job.GetManifestationIdentifier())
+                digitisedManifestation = await digitalObjectRepository
+                        .GetDigitalObject(job.GetManifestationIdentifier())
                     as IDigitisedManifestation;
             }
             catch (Exception ex)
@@ -244,7 +244,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // TODO - consider any running processes....
-            var syncOperation = await dashboardRepository.GetDlcsSyncOperation(digitisedManifestation, true);
+            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitisedManifestation, true);
             if (forceReingest)
             {
                 foreach (var image in syncOperation.ImagesAlreadyOnDlcs.Values)
@@ -263,7 +263,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            await dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
             var result = new ImageIngestResult
             {
@@ -338,8 +338,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         /// <param name="job"></param>
         private async Task UpdateJobAsync(DlcsIngestJob job)
         {
-            var digitisedManifestation = (await dashboardRepository
-                     .GetDigitisedResource(job.GetManifestationIdentifier()))
+            var digitisedManifestation = (await digitalObjectRepository
+                     .GetDigitalObject(job.GetManifestationIdentifier()))
                      as IDigitisedManifestation;
 
             var query = new ImageQuery

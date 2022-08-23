@@ -9,7 +9,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 {
-    public class DigitisedManifestation : BaseDigitisedResource, IDigitisedManifestation
+    public class DigitisedManifestation : BaseDigitalObject, IDigitisedManifestation
     {
         public IManifestation MetsManifestation { get; set; }
         

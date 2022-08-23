@@ -3,7 +3,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomain.Dashboard
 {
-    public interface IDigitisedCollection : IDigitisedResource
+    public interface IDigitisedCollection : IDigitalObject
     {
         ICollection MetsCollection { get; set; }
         IEnumerable<IDigitisedManifestation> Manifestations { get; set; }
