@@ -16,6 +16,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName MetsFileSec = mets + "fileSec";
         public static readonly XName MetsFile = mets + "file";
         public static readonly XName MetsMptr = mets + "mptr";
+        public static readonly XName MetsAmdSec = mets + "amdSec";
         public static readonly XName MetsDmdSec = mets + "dmdSec";
         public static readonly XName MetsMdWrap = mets + "mdWrap";
         public static readonly XName MetsXmlData = mets + "xmlData";

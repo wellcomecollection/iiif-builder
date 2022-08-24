@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-using Amazon.Runtime.Internal;
 using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -13,22 +11,79 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public class PhysicalFile : IPhysicalFile
     {
-        public PhysicalFile(XElement physFileElement, Dictionary<string, XElement> fileMap, IWorkStore workStore)
+        public static IPhysicalFile FromBornDigitalMets(
+            XElement rootElement,
+            XElement fileElement,
+            IWorkStore workStore)
         {
-            WorkStore = workStore;
-            var metsRoot = physFileElement.AncestorsAndSelf().Last();
-            Id =         (string) physFileElement.Attribute("ID");
-            Type =       (string) physFileElement.Attribute("TYPE");
-            Order =      (int?)   physFileElement.Attribute("ORDER");
-            OrderLabel = (string) physFileElement.Attribute("ORDERLABEL");
-            Files =      new List<IStoredFile>();
+            var physicalFile = new PhysicalFile
+            {
+                WorkStore    = workStore,
+                Id           = (string) fileElement.Attribute("ID"),
+                Files        = new List<IStoredFile>(),
+                RelativePath = GetLinkRef(fileElement)
+            };
+
+            string admId = fileElement.Attribute("ADMID")?.Value;
+            if (admId.IsNullOrWhiteSpace())
+            {
+                throw new NotSupportedException($"File element {physicalFile.Id} has no ADMID attribute.");
+            }
+
+            // process Premis
+            // We don't yet know if this is structured the same!
+            physicalFile.AssetMetadata = workStore.MakeAssetMetadata(rootElement, admId);
             
+            // mods - this isn't MODS but will also come from the Premis block.
+            // this will give us our access conditions.
+            
+            
+            // set other properties of physicalFile that are required and being set in the Goobi version
+
+            // DANGER
+            physicalFile.StorageIdentifier = "TBC"; // BD Naming convention compare with GetSafeStorageIdentifier below
+            physicalFile.MimeType = "xxx"; // This will have to be obtained from PREMIS not an attribute... see FITS data.
+            physicalFile.Family = AssetFamily.File; // OK?
+            
+            // for BD there is only one StoredFile per PhysicalFile
+            var file = new StoredFile
+            {
+                Id = physicalFile.Id,
+                WorkStore = workStore,
+                PhysicalFile = physicalFile,
+                AssetMetadata = physicalFile.AssetMetadata,
+                RelativePath = physicalFile.RelativePath,
+                StorageIdentifier = physicalFile.StorageIdentifier,
+                MimeType = physicalFile.MimeType,
+                Family = physicalFile.Family
+            };
+            physicalFile.Files.Add(file);
+            
+            return physicalFile;
+        }
+        
+        public static IPhysicalFile FromDigitisedMets(
+            XElement physFileElement,
+            Dictionary<string, XElement> fileMap,
+            IWorkStore workStore)
+        {
+            var metsRoot = physFileElement.AncestorsAndSelf().Last();
+            var physicalFile = new PhysicalFile
+            {
+                WorkStore  = workStore,
+                Id         = (string) physFileElement.Attribute("ID"),
+                Type       = (string) physFileElement.Attribute("TYPE"),
+                Order      = (int?)   physFileElement.Attribute("ORDER"),
+                OrderLabel = (string) physFileElement.Attribute("ORDERLABEL"),
+                Files      = new List<IStoredFile>()
+            };
+
             // When the link to technical metadata is declared on the physical file element itself
             // This is always the case until the new AV workflow.
             string admId = (string) physFileElement.Attribute("ADMID");
             if (admId.HasText())
             {
-                AssetMetadata = workStore.MakeAssetMetadata(metsRoot, admId);
+                physicalFile.AssetMetadata = workStore.MakeAssetMetadata(metsRoot, admId);
             }
             else
             {
@@ -37,7 +92,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 string amdId = (string)physFileElement.Attribute("AMDID");
                 if (amdId.HasText())
                 {
-                    AssetMetadata = workStore.MakeAssetMetadata(metsRoot, amdId);
+                    physicalFile.AssetMetadata = workStore.MakeAssetMetadata(metsRoot, amdId);
                 }
             }
             // at this point, AssetMetadata will still be null for the new AV workflow
@@ -50,61 +105,68 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 {
                     Id = (string) pointer.Attribute("FILEID"),
                     WorkStore = workStore,
-                    PhysicalFile = this
+                    PhysicalFile = physicalFile
                 };
-                Files.Add(file);
+                physicalFile.Files.Add(file);
 
                 var fileElement = fileMap[file.Id];
                 file.Use = fileElement.Parent.Attribute("USE").Value;
-                var xElement = fileElement.Element(XNames.MetsFLocat);
-                string linkHref = null;
-                var xAttribute = xElement?.Attribute(XNames.XLinkHref);
-                if (xAttribute != null)
-                    linkHref = xAttribute.Value;
-                if (!linkHref.HasText())
-                    linkHref = null;
                 admId = (string) fileElement.Attribute("ADMID");
                 if (admId.HasText())
                 {
                     file.AssetMetadata = workStore.MakeAssetMetadata(metsRoot, admId);
                 }
-                file.StorageIdentifier = GetSafeStorageIdentifier(linkHref);
+                file.RelativePath = GetLinkRef(fileElement);
+                file.StorageIdentifier = GetSafeStorageIdentifier(file.RelativePath, workStore);
                 file.MimeType = (string)fileElement.Attribute("MIMETYPE");
-                file.RelativePath = linkHref;
                 file.Family = file.MimeType.GetAssetFamily();
 
                 switch (file.Use)
                 {
                     case "ALTO":
-                        RelativeAltoPath = linkHref; 
+                        physicalFile.RelativeAltoPath = file.RelativePath; 
                         break;
                     
                     case "POSTER":
-                        RelativePosterPath = linkHref;
+                        physicalFile.RelativePosterPath = file.RelativePath;
                         break;
                     
                     case "PRESERVATION":
-                        RelativeMasterPath = linkHref;
+                        physicalFile.RelativeMasterPath = file.RelativePath;
                         break;
                     
                     case "TRANSCRIPT":
-                        RelativeTranscriptPath = linkHref;
+                        physicalFile.RelativeTranscriptPath = file.RelativePath;
                         break;
                         
                     default:
                         // Assume that anything else (it should be ACCESS) is the access version,
                         // and the source of the physical file properties.
-                        AssetMetadata ??= file.AssetMetadata;
-                        StorageIdentifier = file.StorageIdentifier;
-                        MimeType = file.MimeType;
-                        RelativePath = file.RelativePath;
-                        Family = file.Family;
+                        physicalFile.AssetMetadata ??= file.AssetMetadata;
+                        physicalFile.StorageIdentifier = file.StorageIdentifier;
+                        physicalFile.MimeType = file.MimeType;
+                        physicalFile.RelativePath = file.RelativePath;
+                        physicalFile.Family = file.Family;
                         break;
                 }
             }
+
+            return physicalFile;
         }
 
-        private string GetSafeStorageIdentifier(string fullPath)
+        private static string GetLinkRef(XElement fileElement)
+        {
+            var xElement = fileElement.Element(XNames.MetsFLocat);
+            string linkHref = null;
+            var xAttribute = xElement?.Attribute(XNames.XLinkHref);
+            if (xAttribute != null)
+                linkHref = xAttribute.Value;
+            if (!linkHref.HasText())
+                linkHref = null;
+            return linkHref;
+        }
+
+        private static string GetSafeStorageIdentifier(string fullPath, IWorkStore workStore)
         {
             const string objectsPart = "objects/";
             const int pos = 8;
@@ -117,9 +179,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 storageIdentifier = PathStringUtils.GetSimpleNameFromPath(fullPath);
             }
-            if (!storageIdentifier.StartsWith(WorkStore.Identifier, StringComparison.InvariantCultureIgnoreCase))
+            if (!storageIdentifier.StartsWith(workStore.Identifier, StringComparison.InvariantCultureIgnoreCase))
             {
-                storageIdentifier = string.Format("{0}_{1}", WorkStore.Identifier, storageIdentifier);
+                storageIdentifier = string.Format("{0}_{1}", workStore.Identifier, storageIdentifier);
             }
             return storageIdentifier;
         }
@@ -178,5 +240,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return ToString() + " |  w=" + AssetMetadata.GetImageWidth() + ",h=" + AssetMetadata.GetImageHeight();
         }
 
+        /// <summary>
+        /// Gather all the mets:file elements and store them by ID attribute to avoid repeated traversal
+        /// </summary>
+        /// <param name="rootElement"></param>
+        /// <returns></returns>
+        public static Dictionary<string, XElement> MakeFileMap(XElement rootElement)
+        {
+            return rootElement
+                .Element(XNames.MetsFileSec)
+                ?.Descendants(XNames.MetsFile)
+                .ToDictionary(file => (string) file.Attribute("ID"));
+        }
     }
+    
 }

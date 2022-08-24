@@ -177,7 +177,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             if (physicalFiles == null)
             {
-                fileMap = MakeFileMap();
+                fileMap = PhysicalFile.MakeFileMap(rootElement);
                 var physicalSequenceElement = rootElement
                     .GetSingleElementWithAttribute(XNames.MetsStructMap, "TYPE", "PHYSICAL")
                     .GetSingleElementWithAttribute(XNames.MetsDiv, "TYPE", "physSequence");
@@ -190,7 +190,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         smLink =>
                             physicalSequenceElement.GetSingleElementWithAttribute(XNames.MetsDiv, "ID",
                                 (string) smLink.Attribute(XNames.XLinkTo)))
-                    .Select(physFileElement => new PhysicalFile(physFileElement, fileMap, WorkStore) as IPhysicalFile)
+                    .Select(physFileElement => PhysicalFile.FromDigitisedMets(physFileElement, fileMap, WorkStore))
                     .OrderBy(physicalFile => physicalFile.Order)
                     .ToList();
                 foreach (var physicalFile in physicalFiles)
@@ -201,17 +201,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return physicalFiles;
         }
 
-        /// <summary>
-        /// Gather all the mets:file elements and store them by ID attribute to avoid repeated traversal
-        /// </summary>
-        /// <returns></returns>
-        private Dictionary<string, XElement> MakeFileMap()
-        {
-            return rootElement
-                .Element(XNames.MetsFileSec)
-                .Descendants(XNames.MetsFile)
-                .ToDictionary(file => (string) file.Attribute("ID"));
-        }
+
 
         /// <summary>
         /// This needs to carry on working for the temporary bagging version, as well as the new "official" version

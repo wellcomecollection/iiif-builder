@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain;
@@ -88,17 +89,139 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 throw new NotSupportedException("Could not find objects directory in physical structMap");
             }
+
+            // These should be the last two, but we won't mind the order
+            XElement metadataDirectory = null;
+            XElement submissionDocumentationDirectory = null;
+
+            var objectsChildren = objectsDir.Elements().ToArray();
+            if (objectsChildren.Length >= 2)
+            {
+                metadataDirectory = objectsChildren[^2..].SingleOrDefault(el =>
+                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "metadata");
+                submissionDocumentationDirectory = objectsChildren[^2..].SingleOrDefault(el =>
+                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "submissionDocumentation");
+            }
+
+            if (metadataDirectory == null || submissionDocumentationDirectory == null)
+            {
+                throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
+            }
+
+            var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
+            // not sure if we need this yet. It has the logical structMap.
+            var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
+            
+            // We can now ignore the last two.
+            var digitalContent = objectsChildren[..^2];
+            if (digitalContent.Length == 0)
+            {
+                throw new NotSupportedException("The objects directory has no digital content");
+            }
+            
+            
+            
             // Now note the metadata and submissionDocumentation directories as last two children of objects 
             // get the path to the METS for submission doc if we need it later - it has the logical structmap
             // from the physical Directory and Item information, build both the physicalFile list and the structures.
             
             // build an IManifestation.
             // We might need to pull some info out of LogicalStructDiv if we are duplicating.
+
+            // In Goobi METS, the logical structmap is the root of all navigation and model building.
+            // But here, the logical structMap is less important, because the physical structmap conveys the
+            // directory structure anyway and there's not anything more "real world" to model (unlike parts of books).
             
-            var rootStructuralDiv = logicalStructMap.Elements(XNames.MetsDiv).Single(); // require only one
-            var structMap = new LogicalStructDiv(rootStructuralDiv, metsXml.RelativeXmlFilePath, identifier, workStore);
-            return structMap;
-            throw new NotImplementedException();
+            // Notes about accessconditions and related:
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648716914566629
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648211809211439
+
+            // assume still true:
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648717080923719
+            
+            var fileMap = PhysicalFile.MakeFileMap(metsXml.XElement);
+            
+            // we're going to build the physical file list and the structural information at the same time,
+            // as we walk the directory structure in the physical structMap.
+            
+            // We'll populate these on the BD manifestation:
+            // public List<IPhysicalFile> Sequence { get; set; }
+            // public List<IStoredFile> SynchronisableFiles { get; }
+            // public IStructRange RootStructRange { get; set; }
+            var bdm = new BornDigitalManifestation();
+            bdm.Sequence = new List<IPhysicalFile>();
+            // bdm.SynchronisableFiles is read only, built from physicalFile.Files; but 
+            // for born digital I expect each physical file (METS entry) will have one and only one 
+            // IStoredFile in .Files. So maybe bdm can just build it on demand
+            bdm.RootStructRange = new StructRange
+            {
+                Label = "objects",
+                Type = Directory,
+                PhysicalFileIds = new List<string>()
+            };
+            // all our structRanges are going to be directories
+            AddDirectoryToBornDigitalManifestation(
+                metsXml.XElement,
+                fileMap,
+                bdm.Sequence,
+                bdm.RootStructRange,
+                digitalContent, 
+                workStore);
+            
+            // Chars permitted in CALM ref
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
+            
+            for (int index = 0; index < bdm.Sequence.Count; index++)
+            {
+                bdm.Sequence[index].Index = index;
+                bdm.Sequence[index].Order = index + 1;
+                bdm.Sequence[index].OrderLabel = (index + 1).ToString();
+            }
+            
+            return bdm;
+        }
+
+        private void AddDirectoryToBornDigitalManifestation(
+            XElement rootElement,
+            Dictionary<string, XElement> fileMap,
+            List<IPhysicalFile> physicalFiles,
+            IStructRange structRange,
+            XElement[] contents,
+            IWorkStore workStore)
+        {
+            bool hasSeenDirectory = false;
+            foreach (var element in contents)
+            {
+                var label = element.Attribute(LabelAttribute)?.Value;
+                // directories then folders within a directory
+                if (element.Attribute(TypeAttribute)?.Value == Item)
+                {
+                    if (hasSeenDirectory)
+                    {
+                        // https://digirati.slack.com/archives/CBT40CMKQ/p1661348387002749
+                        throw new NotSupportedException(
+                            $"Encountered a file (Item) after processing a directory: {label}");
+                    }
+                    var fileId = element.Elements(XNames.MetsFptr).First().Attribute("FILEID")?.Value;
+                    if (fileId.IsNullOrWhiteSpace())
+                    {
+                        throw new NotSupportedException(
+                            $"File has no pointer to file element: {label}");
+                    }
+
+                    var file = fileMap[fileId];
+                    var physicalFile = PhysicalFile.FromBornDigitalMets(rootElement, file, workStore);
+                    physicalFiles.Add(physicalFile);
+                    structRange.PhysicalFileIds.Add(physicalFile.Id);
+
+                 
+                } 
+                else if (element.Attribute(TypeAttribute)?.Value == Directory)
+                {
+                    hasSeenDirectory = true;
+                    // make another structure, then call this recursivley.
+                }
+            }
         }
 
         public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,7 +9,7 @@ namespace Utils
 {
     public static class StringUtils
     {
-        public static bool IsNullOrWhiteSpace(this string s)
+        public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string s)
         {
             return string.IsNullOrWhiteSpace(s);
         }
@@ -19,9 +20,9 @@ namespace Utils
         /// <remarks>
         /// This may seem trivial but it helps code readability.
         /// </remarks>
-        /// <param name="s"></param>
+        /// <param name="str"></param>
         /// <returns></returns>
-        public static bool HasText(this string s) => !string.IsNullOrWhiteSpace(s);
+        public static bool HasText([NotNullWhen(true)] this string str) => !string.IsNullOrWhiteSpace(str);
 
         /// <summary> 
         /// Removes separator from the start of str if it's there, otherwise leave it alone.

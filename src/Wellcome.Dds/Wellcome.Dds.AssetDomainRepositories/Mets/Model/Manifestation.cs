@@ -8,6 +8,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     /// <summary>
     /// A bridge to IIIF. Updates the Sequence Physical File Ids with access conditions obtained from the sections
+    ///
+    /// This is specifically a GOOBI METS Manifestation, and could be renamed to reflect that.
     /// </summary>
     public class Manifestation : BaseMetsResource, IManifestation
     {
