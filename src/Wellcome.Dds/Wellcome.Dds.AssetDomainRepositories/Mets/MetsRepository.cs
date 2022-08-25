@@ -148,16 +148,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // public List<IPhysicalFile> Sequence { get; set; }
             // public List<IStoredFile> SynchronisableFiles { get; }
             // public IStructRange RootStructRange { get; set; }
-            var bdm = new BornDigitalManifestation();
-            bdm.Sequence = new List<IPhysicalFile>();
-            // bdm.SynchronisableFiles is read only, built from physicalFile.Files; but 
-            // for born digital I expect each physical file (METS entry) will have one and only one 
-            // IStoredFile in .Files. So maybe bdm can just build it on demand
-            bdm.RootStructRange = new StructRange
+            var bdm = new BornDigitalManifestation
             {
-                Label = "objects",
-                Type = Directory,
-                PhysicalFileIds = new List<string>()
+                // Many props still to assigned 
+                Label = workStore.Identifier,
+                Id = workStore.Identifier,
+                Type = "Born Digital",
+                Order = 0,
+                Sequence = new List<IPhysicalFile>(),
+                IgnoredStorageIdentifiers = new List<string>(),
+                RootStructRange = new StructRange
+                {
+                    Label = "objects",
+                    Type = Directory,
+                    PhysicalFileIds = new List<string>()
+                },
+                SourceFile = workStore.GetFileInfoForPath(workStore.GetRootDocument())
             };
             // all our structRanges are going to be directories
             AddDirectoryToBornDigitalManifestation(
@@ -177,6 +183,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 bdm.Sequence[index].Order = index + 1;
                 bdm.Sequence[index].OrderLabel = (index + 1).ToString();
             }
+
             
             return bdm;
         }
@@ -219,7 +226,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 else if (element.Attribute(TypeAttribute)?.Value == Directory)
                 {
                     hasSeenDirectory = true;
-                    // make another structure, then call this recursivley.
+                    // make another structure, then call this recursively.
                 }
             }
         }
@@ -347,6 +354,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
+                case IdentifierType.NonBNumber:
                     return 0;
                 case IdentifierType.Volume:
                     var anchor = await GetAsync(ddsId.PackageIdentifier) as ICollection;

@@ -67,7 +67,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName PremisSignificantPropertiesValue = premis + "significantPropertiesValue";
         public static readonly XName PremisSize = premis + "size";
         public static readonly XName PremisFormatName = premis + "formatName";
+        public static readonly XName PremisFormatVersion = premis + "formatVersion";
+        public static readonly XName PremisFormatRegistryKey = premis + "formatRegistryKey";
+        public static readonly XName PremisOriginalName = premis + "originalName";
+        public static readonly XName PremisDateCreatedByApplication = premis + "dateCreatedByApplication";
+        public static readonly XName PremisObjectCharacteristicsExtension = premis + "objectCharacteristicsExtension";
 
+        public static readonly XNamespace fits = "http://hul.harvard.edu/ois/xml/ns/fits/fits_output";
+        public static readonly XName FitsIdentity = fits + "identity";
 
         public static readonly XNamespace wt = "http://wellcome.ac.uk/";
         public static readonly XName WtVolumeNumber = wt + "volumeNumber";

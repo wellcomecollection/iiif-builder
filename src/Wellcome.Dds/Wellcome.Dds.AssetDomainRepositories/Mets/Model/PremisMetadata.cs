@@ -22,8 +22,49 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             this.admId = admId;
         }
 
+        public string GetOriginalName()
+        {
+            if (!initialised) Init();
+            const string transferPrefix = "%transferDirectory%objects/";
+            var value = premisObject.GetDesendantElementValue(XNames.PremisOriginalName);
+            if (value == null || !value.Contains(transferPrefix))
+            {
+                throw new NotSupportedException($"Premis original name does not contain transfer prefix: {value}");
+            }
+            return value.RemoveStart(transferPrefix);
+        }
+
+        public string GetMimeType()
+        {
+            if (!initialised) Init();
+            var objectCharacteristics =
+                premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
+            if (objectCharacteristics != null)
+            {
+                return objectCharacteristics.Descendants(XNames.FitsIdentity)
+                    .FirstOrDefault()?
+                    .Attribute("mimetype")?
+                    .Value;
+            }
+
+            return "unknown/unknown";
+        }
+
+        public DateTime? GetCreatedDate()
+        {
+            if (!initialised) Init();
+            var createdDateString = premisObject.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
+            if(DateTime.TryParse(createdDateString, out var result))
+            {
+                return result;
+            }
+
+            return null;
+        }
+
         public string GetFileName()
         {
+            // This only works for Goobi METS
             if (!initialised) Init();
             var oids = premisObject.Elements(XNames.PremisObjectIdentifier);
             foreach (var oid in oids)
@@ -52,6 +93,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             if (!initialised) Init();
             return premisObject.GetDesendantElementValue(XNames.PremisFormatName);
+        }
+
+        public string GetFormatVersion()
+        {
+            if (!initialised) Init();
+            return premisObject.GetDesendantElementValue(XNames.PremisFormatVersion);
+        }
+
+        public string GetPronomKey()
+        {
+            if (!initialised) Init();
+            return premisObject.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
         }
 
         public string GetAssetId()
@@ -135,7 +188,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         private void Init()
         {
-            var techMd = metsRoot.GetSingleDescendantWithAttribute(XNames.MetsTechMD, "ID", admId);
+            // Goobi and Archivematica METS are quite differently arranged.
+            XElement techMd = null;
+            try
+            {
+                // Goobi layout
+                techMd = metsRoot.GetSingleDescendantWithAttribute(XNames.MetsTechMD, "ID", admId);
+            }
+            catch
+            {
+                // Archivematic layout
+                var amdSec = metsRoot.GetSingleElementWithAttribute(XNames.MetsAmdSec, "ID", admId);
+                techMd = amdSec.Element(XNames.MetsTechMD);
+            }
+
+            if (techMd == null)
+            {
+                throw new NotSupportedException($"Unable to locate techMD section for {admId}");
+            }
             var xmlData = techMd.Descendants(XNames.MetsXmlData).Single();
             premisObject = xmlData.Element(XNames.PremisObject);
             significantProperties = new Dictionary<string, string>();

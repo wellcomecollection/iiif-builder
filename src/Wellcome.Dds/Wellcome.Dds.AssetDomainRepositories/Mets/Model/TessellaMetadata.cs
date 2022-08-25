@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Xml.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -43,6 +44,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             if (!initialised) Init();
             return fileElement.GetDesendantElementValue(XNames.TessellaFormatName);
+        }
+
+        public string GetFormatVersion()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetPronomKey()
+        {
+            throw new NotImplementedException();
         }
 
         public string GetAssetId()
@@ -122,6 +133,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             var xmlData = techMd.Descendants(XNames.MetsXmlData).Single();
             fileElement = xmlData.Element(XNames.TessellaFile);
             //fileDoc = new XDocument(xmlData.FirstNode);
+        }
+
+        public string GetOriginalName()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public string GetMimeType()
+        {
+            throw new NotImplementedException();
+        }
+
+        public DateTime? GetCreatedDate()
+        {
+            throw new NotImplementedException();
         }
     }
 }

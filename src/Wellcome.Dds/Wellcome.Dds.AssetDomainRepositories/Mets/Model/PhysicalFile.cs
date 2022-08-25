@@ -33,6 +33,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // process Premis
             // We don't yet know if this is structured the same!
             physicalFile.AssetMetadata = workStore.MakeAssetMetadata(rootElement, admId);
+            // trigger a call to the Init for Premis data
+            // we might want a different impl despite both being premis
+            var fileSize = physicalFile.AssetMetadata.GetFileSize();
             
             // mods - this isn't MODS but will also come from the Premis block.
             // this will give us our access conditions.
@@ -41,9 +44,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // set other properties of physicalFile that are required and being set in the Goobi version
 
             // DANGER
-            physicalFile.StorageIdentifier = "TBC"; // BD Naming convention compare with GetSafeStorageIdentifier below
-            physicalFile.MimeType = "xxx"; // This will have to be obtained from PREMIS not an attribute... see FITS data.
+            physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
+            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.OriginalName);
+            physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
+            physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
             physicalFile.Family = AssetFamily.File; // OK?
+            
+            // DO we set AccessCondition and DzLicense code here?
+            // Or will we eventually have directory-level access conditions that apply to all their files?
+            physicalFile.AccessCondition = "NOT-SET";
+            physicalFile.DzLicenseCode = "NOT-SET";
             
             // for BD there is only one StoredFile per PhysicalFile
             var file = new StoredFile
@@ -61,7 +71,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             
             return physicalFile;
         }
-        
+
         public static IPhysicalFile FromDigitisedMets(
             XElement physFileElement,
             Dictionary<string, XElement> fileMap,
@@ -117,7 +127,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     file.AssetMetadata = workStore.MakeAssetMetadata(metsRoot, admId);
                 }
                 file.RelativePath = GetLinkRef(fileElement);
-                file.StorageIdentifier = GetSafeStorageIdentifier(file.RelativePath, workStore);
+                file.StorageIdentifier = GetSafeStorageIdentifierForDigitised(file.RelativePath, workStore);
                 file.MimeType = (string)fileElement.Attribute("MIMETYPE");
                 file.Family = file.MimeType.GetAssetFamily();
 
@@ -165,8 +175,29 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 linkHref = null;
             return linkHref;
         }
+        
+        
+        private static string GetSafeStorageIdentifierForBornDigital(string identifier, string relativePath)
+        {
+            // This implementation is TBC!
+            // We have a problem with path lengths here.
+            // We WILL encounter paths longer than this and we need a strategy for dealing with them and still
+            // produce a guaranteed unique ID.
+            // we choose to build this from relativePath to use whatever normalisation Archivematica has already done
+            // We could choose to do this from the originalName.
 
-        private static string GetSafeStorageIdentifier(string fullPath, IWorkStore workStore)
+            var id = relativePath.RemoveStart("objects/");
+            id = id.Replace("/", "---");
+            id = identifier.Replace("/", "_") + "---" + id;
+            if (id.Length > 220) // this can be longer, we'll see what happens when we run into it.
+            {
+                throw new NotSupportedException($"Identifier longer than 220: {id}");
+            }
+
+            return id;
+        }
+
+        private static string GetSafeStorageIdentifierForDigitised(string fullPath, IWorkStore workStore)
         {
             const string objectsPart = "objects/";
             const int pos = 8;
@@ -190,6 +221,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public IWorkStore WorkStore { get; set; }
         public string Id { get; set; }
         public string Type { get; set; }
+        public string OriginalName { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public int? Order { get; set; }
         public int Index { get; set; }
         public string OrderLabel { get; set; }

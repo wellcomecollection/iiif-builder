@@ -66,7 +66,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
-                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, true);
+                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, identifier.HasBNumber);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 var dgResource = ddsTask.Result;
                 var work = workTask.Result;
@@ -91,6 +91,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     switch (identifier.IdentifierType)
                     {
                         case IdentifierType.BNumber:
+                        case IdentifierType.NonBNumber:
                             parent = null;
                             grandparent = null;
                             break;
@@ -248,7 +249,7 @@ namespace Wellcome.Dds.Dashboard.Models
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await digitalObjectRepository.GetDigitalObject(identifier, true));
+                async () => await digitalObjectRepository.GetDigitalObject(identifier, identifier.IsBNumber()));
             return (IDigitisedCollection)coll;
         }
 

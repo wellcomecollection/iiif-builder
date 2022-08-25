@@ -18,6 +18,14 @@ namespace Wellcome.Dds.AssetDomain.Mets
         IWorkStore WorkStore { get; set; }
         string Id { get; set; }
         string Type { get; set; }
+        
+        // Added for born digital
+        
+        // From PREMIS, in Archivematica METS contains a full path.
+        string OriginalName { get; set; }
+        
+        DateTime? CreatedDate { get; set; }
+        
         /// <summary>
         /// Order from METS, not necessarily given
         /// </summary>
