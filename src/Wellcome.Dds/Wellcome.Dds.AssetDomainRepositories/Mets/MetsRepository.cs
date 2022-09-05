@@ -151,7 +151,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var bdm = new BornDigitalManifestation
             {
                 // Many props still to assigned 
-                Label = workStore.Identifier,
+                Label = workStore.Identifier, // we have no descriptive metadata!
                 Id = workStore.Identifier,
                 Type = "Born Digital",
                 Order = 0,

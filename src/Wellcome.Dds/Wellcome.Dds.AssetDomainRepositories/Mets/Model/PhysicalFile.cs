@@ -48,7 +48,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.OriginalName);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
-            physicalFile.Family = AssetFamily.File; // OK?
+            physicalFile.Family = AssetFamily.File; // TODO: This is not OK! If it's an image, or AV, it gets the proper DLCS asset delivery treatment.
             
             // DO we set AccessCondition and DzLicense code here?
             // Or will we eventually have directory-level access conditions that apply to all their files?
@@ -65,7 +65,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 RelativePath = physicalFile.RelativePath,
                 StorageIdentifier = physicalFile.StorageIdentifier,
                 MimeType = physicalFile.MimeType,
-                Family = physicalFile.Family
+                Family = physicalFile.Family,
+                Use = fileElement.Parent?.Attribute("USE")?.Value
             };
             physicalFile.Files.Add(file);
             

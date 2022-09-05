@@ -13,7 +13,7 @@ public class BornDigitalManifestation : IManifestation
     public string Label { get; set; }
     public string Type { get; set; }
     public int? Order { get; set; }
-    public IModsData ModsData { get; }
+    public IModsData ModsData { get; set; }
     public IModsData ParentModsData { get; }
     public bool Partial { get; }
     public string GetRootId()
@@ -36,7 +36,10 @@ public class BornDigitalManifestation : IManifestation
     // Going to assume that this isn't relevant any more - or will need a whole new set of operations.
     // This was originally for UV - allow download etc, allow crop,...
     public string[] PermittedOperations => Array.Empty<string>();
-    public string FirstInternetType { get; }
+
+    // This is not very useful for born digital items, where a sequence can be mixed media
+    public string FirstInternetType => Sequence.First().MimeType;
+
     public List<string> IgnoredStorageIdentifiers { get; set; }
     public IStoredFile PosterImage { get; set; }
 }

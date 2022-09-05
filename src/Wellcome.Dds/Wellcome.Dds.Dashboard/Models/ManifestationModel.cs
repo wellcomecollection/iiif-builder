@@ -416,7 +416,8 @@ namespace Wellcome.Dds.Dashboard.Models
             return files.Where(f => 
                 f.Use != "OBJECTS" &&  // Old workflow
                 f.Use != "ACCESS" &&   // New workflow
-                f.Use != "ALTO");
+                f.Use != "ALTO" &&
+                f.Use != "original");  // Born digital  
         }
     }
 
