@@ -23,6 +23,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName MetsFptr = mets + "fptr";
         public static readonly XName MetsFLocat = mets + "FLocat";
         public static readonly XName MetsTechMD = mets + "techMD";
+        public static readonly XName MetsRightsMD = mets + "rightsMD";
 
         public static readonly XNamespace mods = "http://www.loc.gov/mods/v3";
         public static readonly XName ModsTitle = mods + "title";
@@ -72,6 +73,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName PremisOriginalName = premis + "originalName";
         public static readonly XName PremisDateCreatedByApplication = premis + "dateCreatedByApplication";
         public static readonly XName PremisObjectCharacteristicsExtension = premis + "objectCharacteristicsExtension";
+        public static readonly XName PremisRightsStatement = premis + "rightsStatement";
+        public static readonly XName PremisRightsStatementIdentifier = premis + "rightsStatementIdentifier";
+        public static readonly XName PremisRightsBasis = premis + "rightsBasis";
+        public static readonly XName PremisRightsGrantedNote = premis + "rightsGrantedNote";
+        public static readonly XName PremisLicenseNote = premis + "licenseNote";
+        public static readonly XName PremisCopyrightNote = premis + "copyrightNote";
+        public static readonly XName PremisCopyrightStatus = premis + "copyrightStatus";
+        
+        
+        
+        
+        
 
         public static readonly XNamespace fits = "http://hul.harvard.edu/ois/xml/ns/fits/fits_output";
         public static readonly XName FitsIdentity = fits + "identity";

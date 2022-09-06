@@ -127,6 +127,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return null;
         }
 
+        public IRightsStatement GetRightsStatement()
+        {
+            throw new NotImplementedException();
+        }
+        
         private void Init()
         {
             var techMd = metsRoot.GetSingleDescendantWithAttribute(XNames.MetsTechMD, "ID", admId);

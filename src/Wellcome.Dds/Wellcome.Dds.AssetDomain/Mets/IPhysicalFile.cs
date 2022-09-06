@@ -42,7 +42,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string MimeType { get; set; }
         IAssetMetadata AssetMetadata { get; set; }
         string AccessCondition { get; set; }
-        string DzLicenseCode { get; set; }
         
         /// <summary>
         /// The path of the ACCESS file (e.g., JP2, MP4)

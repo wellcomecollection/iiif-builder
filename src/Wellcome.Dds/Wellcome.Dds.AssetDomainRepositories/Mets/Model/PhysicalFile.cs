@@ -30,30 +30,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 throw new NotSupportedException($"File element {physicalFile.Id} has no ADMID attribute.");
             }
 
-            // process Premis
-            // We don't yet know if this is structured the same!
             physicalFile.AssetMetadata = workStore.MakeAssetMetadata(rootElement, admId);
-            // trigger a call to the Init for Premis data
-            // we might want a different impl despite both being premis
-            var fileSize = physicalFile.AssetMetadata.GetFileSize();
-            
-            // mods - this isn't MODS but will also come from the Premis block.
-            // this will give us our access conditions.
-            
-            
-            // set other properties of physicalFile that are required and being set in the Goobi version
+            // Will we eventually have directory-level access conditions that apply to all their files?
+            var rights = physicalFile.AssetMetadata.GetRightsStatement();
+            if (rights == null)
+            {
+                throw new NotSupportedException(
+                    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
+            }
 
-            // DANGER
+            physicalFile.AccessCondition = rights.AccessCondition;
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.OriginalName);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
             physicalFile.Family = AssetFamily.File; // TODO: This is not OK! If it's an image, or AV, it gets the proper DLCS asset delivery treatment.
-            
-            // DO we set AccessCondition and DzLicense code here?
-            // Or will we eventually have directory-level access conditions that apply to all their files?
-            physicalFile.AccessCondition = "NOT-SET";
-            physicalFile.DzLicenseCode = "NOT-SET";
             
             // for BD there is only one StoredFile per PhysicalFile
             var file = new StoredFile
@@ -237,7 +228,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         // These two fields are obtained from MODS
         public string AccessCondition { get; set; }
-        public string DzLicenseCode { get; set; }
 
         public List<IStoredFile> Files { get; set; }
         

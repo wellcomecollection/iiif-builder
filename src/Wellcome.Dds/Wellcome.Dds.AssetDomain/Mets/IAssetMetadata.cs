@@ -2,6 +2,11 @@
 
 namespace Wellcome.Dds.AssetDomain.Mets
 {
+    /// <summary>
+    /// This interface is currently populated by Premis sections from METS
+    /// Born digital PREMIS and Goobi PREMIS contribute very different data,
+    /// so this metadata is used quite differently when building manifestations.
+    /// </summary>
     public interface IAssetMetadata
     {
         string GetFileName();
@@ -23,6 +28,8 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string GetOriginalName();
         string GetMimeType();
         DateTime? GetCreatedDate();
+
+        IRightsStatement GetRightsStatement();
 
     }
 }
