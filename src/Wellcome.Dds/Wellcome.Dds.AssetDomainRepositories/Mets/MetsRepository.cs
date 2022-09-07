@@ -79,21 +79,27 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // we can't get a logical struct map, because there isn't one in this METS.
             // But there is one in the mets file in the submission...
             // https://digirati.slack.com/archives/CBT40CMKQ/p1649945431278779
+            
+            // for now we won't use this METS, we'll see if we can get everything we need from the root METS
             var metsXml = await workStore.LoadRootDocumentXml();
             var physicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, TypeAttribute, "physical");
-            // https://digirati.slack.com/archives/CBT40CMKQ/p1661272044683399
             var rootDir = physicalStructMap.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
+            
+            // The files we are interested in are in /objects
+            // This folder contains the files and folders of the archive, and also two preservation artefacts,
+            // the directories /metadata and /submissionDocumentation.
+            // We ignore these - they are not part of the deliverable digital object.
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1661272044683399
+            // However, we will throw an exception if they are not present, because that means something is wrong.
             var objectsDir = rootDir.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
             // There can be only one
             if (objectsDir?.Attribute(LabelAttribute)?.Value != "objects")
             {
                 throw new NotSupportedException("Could not find objects directory in physical structMap");
             }
-
             // These should be the last two, but we won't mind the order
             XElement metadataDirectory = null;
             XElement submissionDocumentationDirectory = null;
-
             var objectsChildren = objectsDir.Elements().ToArray();
             if (objectsChildren.Length >= 2)
             {
@@ -102,14 +108,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 submissionDocumentationDirectory = objectsChildren[^2..].SingleOrDefault(el =>
                     el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "submissionDocumentation");
             }
-
             if (metadataDirectory == null || submissionDocumentationDirectory == null)
             {
                 throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
             }
 
             var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
-            // not sure if we need this yet. It has the logical structMap.
+            // Get the path to the METS for submission doc if we need it later - it has the logical structMap
             var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
             
             // We can now ignore the last two.
@@ -119,20 +124,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 throw new NotSupportedException("The objects directory has no digital content");
             }
             
-            
-            
-            // Now note the metadata and submissionDocumentation directories as last two children of objects 
-            // get the path to the METS for submission doc if we need it later - it has the logical structmap
-            // from the physical Directory and Item information, build both the physicalFile list and the structures.
-            
-            // build an IManifestation.
-            // We might need to pull some info out of LogicalStructDiv if we are duplicating.
-
             // In Goobi METS, the logical structmap is the root of all navigation and model building.
             // But here, the logical structMap is less important, because the physical structmap conveys the
             // directory structure anyway and there's not anything more "real world" to model (unlike parts of books).
             
-            // Notes about accessconditions and related:
+            // Notes about access conditions and related:
             // https://digirati.slack.com/archives/CBT40CMKQ/p1648716914566629
             // https://digirati.slack.com/archives/CBT40CMKQ/p1648211809211439
 
@@ -177,6 +173,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // Chars permitted in CALM ref
             // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
             
+            // Now assign order and labels to each of the PhysicalFiles
             for (int index = 0; index < bdm.Sequence.Count; index++)
             {
                 bdm.Sequence[index].Index = index;
@@ -206,8 +203,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     if (hasSeenDirectory)
                     {
                         // https://digirati.slack.com/archives/CBT40CMKQ/p1661348387002749
-                        throw new NotSupportedException(
-                            $"Encountered a file (Item) after processing a directory: {label}");
+                        
+                        logger.LogWarning($"Encountered a file (Item) after processing a directory: {label}");
+                        // throw new NotSupportedException(..);
                     }
                     var fileId = element.Elements(XNames.MetsFptr).First().Attribute("FILEID")?.Value;
                     if (fileId.IsNullOrWhiteSpace())
@@ -227,6 +225,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     hasSeenDirectory = true;
                     // make another structure, then call this recursively.
+                    // We cannot assign an .Id to this structRange from any info in the METS
+                    // Do we need one? We probably do because we are going to need ids for IIIF Ranges,
+                    // and this would be a good place to generate them.
+                    // We could generate them from the folder path like the file Ids.
+                    // In fact... generate them after in the pass through.
+                    var childStructRange = new StructRange
+                    {
+                        Label = label,
+                        Type = Directory,
+                        PhysicalFileIds = new List<string>()
+                    };
+                    structRange.Children ??= new List<IStructRange>();
+                    structRange.Children.Add(childStructRange);
+                    var childContents = element.Elements().ToArray();
+                    AddDirectoryToBornDigitalManifestation(
+                        rootElement, fileMap, physicalFiles,
+                        childStructRange, childContents, workStore
+                        );
                 }
             }
         }

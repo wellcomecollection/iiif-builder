@@ -35,8 +35,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             var rights = physicalFile.AssetMetadata.GetRightsStatement();
             if (rights == null)
             {
-                throw new NotSupportedException(
-                    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
+                //throw new NotSupportedException(
+                //    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
+                
+                // We need to throw the error above but for now, for testing, we'll make a pseudo-rights statement:
+                rights = new PremisRightsStatement
+                {
+                    Basis = "No Rights Statement",
+                    Identifier = "no-rights",
+                    AccessCondition = Common.AccessCondition.Closed,
+                    Statement = "No Rights"
+                };
             }
 
             physicalFile.AccessCondition = rights.AccessCondition;
