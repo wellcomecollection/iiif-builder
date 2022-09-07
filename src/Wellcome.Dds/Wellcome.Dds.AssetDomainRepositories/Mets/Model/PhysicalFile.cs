@@ -50,7 +50,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             physicalFile.AccessCondition = rights.AccessCondition;
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
-            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.OriginalName);
+            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
             physicalFile.Family = AssetFamily.File; // TODO: This is not OK! If it's an image, or AV, it gets the proper DLCS asset delivery treatment.

@@ -68,7 +68,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
             }
 
-            return "unknown/unknown";
+            return "application/octet-stream";
         }
 
         public DateTime? GetCreatedDate()
