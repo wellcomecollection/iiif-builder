@@ -37,7 +37,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public string GetMimeType()
         {
-            if (!initialised) Init();
+            string mimeType = null;
+            var pronomKey = GetPronomKey();
+            var map = PronomData.Instance.FormatMap;
+            if (pronomKey.HasText() && map.ContainsKey(pronomKey))
+            {
+                mimeType = map[pronomKey];
+            }
+
+            if (mimeType.HasText())
+            {
+                return mimeType;
+            }
+            
+            // probably not going to succeed but let's look elsewhere for mime info
+            
             var objectCharacteristics =
                 premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
             if (objectCharacteristics != null)

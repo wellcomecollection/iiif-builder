@@ -16,7 +16,7 @@ public sealed class PronomData
 
     private PronomData()
     {                
-        var dataPath = Path.Combine(Environment.CurrentDirectory, "Data", "pronom_map.json");
+        var dataPath = Path.Combine(AppContext.BaseDirectory, "Data", "pronom_map.json");
         var formats = File.ReadAllText(dataPath);
         var rawDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(formats);
         // we only want the first mimetype if there are many
