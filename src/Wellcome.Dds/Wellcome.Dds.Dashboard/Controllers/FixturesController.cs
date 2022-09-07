@@ -42,6 +42,6 @@ public class FixturesController : Controller
         {
             return new BornDigitalStaging().Identifiers.Select(id => new DdsIdentifier(id));
         }
-        return new BornDigitalStaging().Identifiers.Select(id => new DdsIdentifier(id));
+        return new BornDigitalProduction().Identifiers.Select(id => new DdsIdentifier(id));
     }
 }

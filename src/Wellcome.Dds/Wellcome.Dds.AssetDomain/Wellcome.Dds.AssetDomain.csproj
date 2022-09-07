@@ -14,4 +14,10 @@
     <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Data\pronom_map.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
