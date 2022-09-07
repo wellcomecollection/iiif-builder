@@ -491,7 +491,15 @@
         <table class="table table-hover table-condensed asset-table">
             <thead>
                 <tr>
-                    @if (Model.ManifestationFamily == AssetFamily.Image)
+                    @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
+                    {
+                        <th></th>
+                        <th>Format</th>
+                        <th>Access</th>
+                        <th>DLCS</th>
+                        <th></th>
+                    }
+                    else if (Model.ManifestationFamily == AssetFamily.Image)
                     {
                         <th>Order</th>
                         <th>Label</th>
@@ -531,45 +539,70 @@
                     var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
                     bool ignored = false; // The physical file itself is never ignored.
                     <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
-                        <td>@pf.Order</td>
-                        @if (Model.ManifestationFamily == AssetFamily.Image)
+                        <td><small>@pf.Order</small></td>
+                        
+                        @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
                         {
-                            <td>@pf.OrderLabel</td>
-                            <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
+                            <td>
+                                @pf.MimeType
+                                <br/>
+                                <small>@pf.AssetMetadata.GetFormatName()</small>
+                            </td>
+                            <td>@pf.AccessCondition</td>
+                            <td>
+                                @pf.OriginalName
+                                <br/>
+                                <small>
+                                    @if (dlcsImage != null)
+                                    {
+                                        <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    }
+                                    else
+                                    {
+                                        @pf.StorageIdentifier
+                                    }
+                                </small>
+                            </td>
                         }
                         else
                         {
-                            <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
-                            <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
-                            if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                            if (Model.ManifestationFamily == AssetFamily.Image)
                             {
-                                <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
+                                <td>@pf.OrderLabel</td>
+                                <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
                             }
                             else
                             {
-                                <td>@pf.AssetMetadata.GetNumberOfPages()</td>
-                            }
-                        }
-                        @if (ignored)
-                        {
-                            <td>ignored</td>
-                        }
-                        else
-                        {
-                            <td>@pf.AccessCondition</td>
-                        }
-                        @if (Model.ManifestationFamily == AssetFamily.Image)
-                        {
-                            <td>
-                                @if (@pf.RelativeAltoPath.HasText())
-                                {                                    
-                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe},  pf.RelativeAltoPath)"
-                                       title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
+                                <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
+                                if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                                {
+                                    <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
                                 }
-                            </td>
-                        }
-                        @{
-                            if (dlcsImage != null)
+                                else
+                                {
+                                    <td>@pf.AssetMetadata.GetNumberOfPages()</td>
+                                }
+                            }
+                            @if (ignored)
+                            {
+                                <td>ignored</td>
+                            }
+                            else
+                            {
+                                <td>@pf.AccessCondition</td>
+                            }
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
+                            {
+                                <td>
+                                    @if (pf.RelativeAltoPath.HasText())
+                                    {
+                                        <a href="@Url.ActionWithPath("XmlView", "Peek", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe }, pf.RelativeAltoPath)"
+                                           title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                    }
+                                </td>
+                            }
+                            @if (dlcsImage != null)
                             {
                                 <td>
                                     <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
@@ -578,7 +611,7 @@
                                         <div class="tbmetadata">
                                             <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
                                             <pre style="display: none">@dlcsImage.Metadata
-                                    </pre>
+                                </pre>
                                         </div>
                                     }
                                 </td>
@@ -588,10 +621,8 @@
                                 <td>@pf.StorageIdentifier</td>
                             }
                         }
-                        @*@if (family == AssetFamily.TimeBased)
-                            {
-                                <td>(transcode metadata)</td>
-                            }*@
+                        
+                        
                         <td>
                             @if (Model.ManifestationFamily == AssetFamily.Image)
                             {
@@ -600,12 +631,19 @@
                                 var fullIIIF = Model.GetIIIFImageService(dlcsImage, "image");
                                 @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
                                 <iiif-thumb class="iiifpreview"
-                                small-thumb="thumb24" large-thumb="thumb100"
-                                full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
+                                            small-thumb="thumb24" large-thumb="thumb100"
+                                            full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
                             }
                             <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                            @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
+                            {
+                                <br/>
+                                <small>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</small>
+                            }
                         </td>
                     </tr>
+                    
+                    
                     @foreach (var adjunct in Model.GetAdjunctsForDashboardDisplay(pf.Files))
                     {
                         dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);

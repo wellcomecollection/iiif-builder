@@ -189,6 +189,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             var id = relativePath.RemoveStart("objects/");
             id = id.Replace("/", "---");
+            id = id.Replace(" ", "_");
             id = identifier.Replace("/", "_") + "---" + id;
             if (id.Length > 220) // this can be longer, we'll see what happens when we run into it.
             {
@@ -266,11 +267,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             return string.Format("{4} / {0} AC={7} TYPE={1} Order:{2} ({3}) MIME={5} ALTO={6}",
                 Id, Type, Order, OrderLabel, StorageIdentifier, MimeType, RelativeAltoPath, AccessCondition);
-        }
-
-        public string ToStringWithDimensions()
-        {
-            return ToString() + " |  w=" + AssetMetadata.GetImageWidth() + ",h=" + AssetMetadata.GetImageHeight();
         }
 
         /// <summary>

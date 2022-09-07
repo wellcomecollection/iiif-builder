@@ -4,8 +4,8 @@
     {
         private const char Underscore = '_';
         private const char Slash = '/';
-        private const string BornDigital = "born-digital";
-        private const string Digitised = "digitised";
+        public const string BornDigital = "born-digital";
+        public const string Digitised = "digitised";
         private static readonly char[] Separators = { Underscore, Slash };
         private readonly string[] parts;
         private readonly string value;

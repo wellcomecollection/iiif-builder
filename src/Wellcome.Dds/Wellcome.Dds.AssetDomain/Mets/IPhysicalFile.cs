@@ -52,7 +52,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// Gets path to ALTO file associated with this file, if it has one.
         /// </summary>
         string RelativeAltoPath { get; set; }
-        string ToStringWithDimensions();
 
         AssetFamily Family { get; set; }
 
