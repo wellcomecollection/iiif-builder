@@ -51,6 +51,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             
             // probably not going to succeed but let's look elsewhere for mime info
+            // The FITS section is present on some files. This could be extended to look in other sections.
             
             var objectCharacteristics =
                 premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
