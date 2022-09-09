@@ -319,6 +319,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             public List<string> IgnoredStorageIdentifiers { get; }
             public IStoredFile PosterImage { get; set; }
             public List<IStoredFile> SynchronisableFiles { get; }
+
+            public Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
         }
         
         public class TestCollection : ICollection

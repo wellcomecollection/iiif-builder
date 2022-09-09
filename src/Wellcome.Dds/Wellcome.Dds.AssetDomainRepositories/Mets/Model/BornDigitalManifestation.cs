@@ -18,7 +18,7 @@ public class BornDigitalManifestation : IManifestation
     public bool Partial { get; }
     public string GetRootId()
     {
-        throw new System.NotImplementedException();
+        throw new NotImplementedException();
     }
 
     public List<IPhysicalFile> Sequence { get; set; }
@@ -42,4 +42,6 @@ public class BornDigitalManifestation : IManifestation
 
     public List<string> IgnoredStorageIdentifiers { get; set; }
     public IStoredFile PosterImage { get; set; }
+    
+    public Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
 }

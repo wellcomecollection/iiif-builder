@@ -17,12 +17,14 @@
             <th>Identifier</th>
             <th></th>
             <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
     @foreach (var identifier in Model)
     {<tr>
          <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+         <td>@Html.ActionLink("(as tree)", "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe, tree=true }, new { })</td>
          <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
          <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
      </tr>

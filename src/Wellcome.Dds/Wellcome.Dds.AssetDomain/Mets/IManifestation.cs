@@ -14,5 +14,10 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string FirstInternetType { get; }
         List<string> IgnoredStorageIdentifiers { get; }
         IStoredFile PosterImage { get; set; }
+        
+        /// <summary>
+        /// A map to look up files by their IDs
+        /// </summary>
+        Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
     }
 }

@@ -181,8 +181,45 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 bdm.Sequence[index].OrderLabel = (index + 1).ToString();
             }
 
+            bdm.PhysicalFileMap = bdm.Sequence.ToDictionary(pf => pf.Id);
+            
+            // Now work out the original folder names, from their files
+            ApplyDirectoryLabels(bdm.RootStructRange, bdm.PhysicalFileMap);
             
             return bdm;
+        }
+
+        private void ApplyDirectoryLabels(IStructRange structRange,
+            Dictionary<string, IPhysicalFile> fileMap)
+        {
+            // Replace the labels obtained from the <mets:div TYPE="Directory" /> with 
+            // labels derived from the originalName path
+            if (structRange.PhysicalFileIds.HasItems())
+            {
+                var firstFileId = structRange.PhysicalFileIds.First();
+            
+                if (firstFileId.HasText())
+                {
+                    var file = fileMap[firstFileId];
+                    // this assumes that the originalName always uses / as separator
+                    var parts = file.OriginalName.Split('/');
+                    if (parts.Length > 1)
+                    {
+                        var label = parts[^2];
+                        if (label.HasText())
+                        {
+                            structRange.Label = label;
+                        }
+                    }
+                }
+            }
+
+            if (!structRange.Children.HasItems()) return;
+            
+            foreach (var childStructRange in structRange.Children)
+            {
+                ApplyDirectoryLabels(childStructRange, fileMap);
+            }
         }
 
         private void AddDirectoryToBornDigitalManifestation(
@@ -232,7 +269,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     // In fact... generate them after in the pass through.
                     var childStructRange = new StructRange
                     {
-                        Label = label,
+                        Label = label, // This is the Label Attribute; we'll need to replace this with the original folder name
                         Type = Directory,
                         PhysicalFileIds = new List<string>()
                     };

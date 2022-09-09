@@ -106,7 +106,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             set { posterImage = value; }
         }
 
-        private Dictionary<string, IPhysicalFile> ByFileId { get; set; }
         private ILogicalStructDiv logicalStructDiv;
         private ILogicalStructDiv parentLogicalStructDiv;
         private IStoredFile posterImage;
@@ -144,7 +143,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 sequence = logicalStructDiv.GetPhysicalFiles();
                 posterImage = logicalStructDiv.GetPosterImage();
-                ByFileId = sequence.ToDictionary(pf => pf.Id);
+                PhysicalFileMap = sequence.ToDictionary(pf => pf.Id);
                 rootStructRange = BuildStructRange(logicalStructDiv);
                 var ignoreAssetFilter = new IgnoreAssetFilter();
                 if (sequence.HasItems())
@@ -196,7 +195,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 foreach (var fileId in sr.PhysicalFileIds)
                 {
-                    var file = ByFileId[fileId];
+                    var file = PhysicalFileMap[fileId];
                     if (!file.AccessCondition.HasText())
                     {
                         file.AccessCondition = mods.AccessCondition;
@@ -215,5 +214,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             return sr;
         }
+
+        public Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +6,6 @@ using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -130,14 +128,49 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public AssetFamily ManifestationFamily
-        {
-            get
-            {
-                return DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
-            }
-        }
+        public AssetFamily ManifestationFamily => DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
 
+        private string typeSummary;
+        public string GetTypeSummary()
+        {
+            if (typeSummary != null)
+            {
+                return typeSummary;
+            }
+
+            var mimeCounts = new Dictionary<string, int>();
+            foreach (var mimeType in DigitisedManifestation.MetsManifestation.Sequence
+                         .Select(pf => pf.MimeType))
+            {
+                if (mimeCounts.ContainsKey(mimeType))
+                {
+                    mimeCounts[mimeType] += 1;
+                }
+                else
+                {
+                    mimeCounts[mimeType] = 1;
+                }
+            }
+            switch (mimeCounts.Count)
+            {
+                case 0:
+                    typeSummary = "No MimeTypes"; // this should never happen
+                    break;
+                case 1:
+                    typeSummary = mimeCounts.First().Key;
+                    break;
+                case 2:
+                    typeSummary = $"{mimeCounts.First().Key} ({mimeCounts.First().Value}) and {mimeCounts.Last().Key} ({mimeCounts.Last().Value})";
+                    break;
+                case > 2:
+                    var (mimeType, count) = mimeCounts.MaxBy(kvp => kvp.Value);
+                    typeSummary = $"{mimeType} ({count}) and {mimeCounts.Count - 1} other types";
+                    break;
+            }
+
+            return typeSummary;
+
+        }
 
 
         public string GetPortalPageForImage(Image image)
@@ -419,6 +452,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 f.Use != "ALTO" &&
                 f.Use != "original");  // Born digital  
         }
+
     }
 
 
