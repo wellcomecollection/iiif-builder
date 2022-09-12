@@ -893,7 +893,8 @@
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
                 <li class="list-group-item">
                     <span class="badge">@Model.FormatSize(@file.AssetMetadata.GetFileSize())</span>
-                    <a title="@file.OriginalName"><strong>@file.OriginalName.Split('/').Last()</strong></a>
+                    <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
+                       title="@file.OriginalName"><strong>@file.OriginalName.Split('/').Last()</strong></a>
                     <br/>
                     <small>
                         @file.MimeType (@file.AssetMetadata.GetFormatName())
@@ -910,13 +911,16 @@
                 </li>
             }
             
-            @foreach (var childRange in structRange.Children ?? new List<IStructRange>())
+            @if (structRange.Children.HasItems())
             {
-                <li class="list-group-item">
-                    @{
-                        RenderTree(childRange, fileMap);
-                    }
-                </li>
+                @foreach (var childRange in structRange.Children)
+                {
+                    <li class="list-group-item">
+                        @{
+                            RenderTree(childRange, fileMap);
+                        }
+                    </li>
+                }
             }
         </ul>
         
