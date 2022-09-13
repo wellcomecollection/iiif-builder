@@ -209,12 +209,12 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public string FormatSize(string rawSize)
+        public string FormatSize(string rawSize, bool withSpace = false)
         {
             long asLong;
             if (long.TryParse(rawSize, out asLong))
             {
-                return StringUtils.FormatFileSize(asLong);
+                return StringUtils.FormatFileSize(asLong, withSpace);
             }
             return rawSize;
         }
@@ -436,7 +436,6 @@ namespace Wellcome.Dds.Dashboard.Models
         public Work Work { get; set; }
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
-        public string EncoreRecordUrl { get; set; }
         public string ManifestUrl { get; set; }
 
         /// <summary>

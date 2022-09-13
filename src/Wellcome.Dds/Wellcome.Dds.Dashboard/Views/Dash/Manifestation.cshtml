@@ -214,18 +214,20 @@
             <ul class="list-group">
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Model.WorkPage">Work page</a></li>
-                        <li>@Html.ActionLink("View v2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v3 in current UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
+                        @if (Model.DdsIdentifier.StorageSpace != DdsIdentifier.BornDigital)
+                        {
+                            <li>@Html.ActionLink("View IIIF 2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
+                            <li>@Html.ActionLink("View IIIF 2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
+                        }
+                        <li>@Html.ActionLink("View IIIF 3 in Universal Viewer", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View IIIF 3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
                         <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
+                        <li><a href="@Model.WorkPage">Work page</a></li>
                         <li><a href="@Model.CatalogueApi">Catalogue API</a></li>
-                        <li><a href="@Model.EncoreRecordUrl">Encore record</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
@@ -892,7 +894,8 @@
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
                 <li class="list-group-item">
-                    <span class="badge">@Model.FormatSize(@file.AssetMetadata.GetFileSize())</span>
+                    <span class="badge">@Model.FormatSize(file.AssetMetadata.GetFileSize(), true)</span>
+                    <span class="badge">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>@file.OriginalName.Split('/').Last()</strong></a>
                     <br/>

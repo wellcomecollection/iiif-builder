@@ -9,6 +9,13 @@ namespace Utils
 {
     public static class StringUtils
     {
+        private static readonly string[] FileSizeSuffixes;
+        static StringUtils()
+        {
+            //Longs run out around EB
+            FileSizeSuffixes = new[] { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        }
+        
         public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string s)
         {
             return string.IsNullOrWhiteSpace(s);
@@ -264,16 +271,17 @@ namespace Utils
         /// 
         /// </summary>
         /// <param name="sizeInBytes"></param>
+        /// <param name="withSpace">include a space between number and unit</param>
         /// <returns></returns>
-        public static string FormatFileSize(long sizeInBytes)
+        public static string FormatFileSize(long sizeInBytes, bool withSpace = false)
         {
-            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            var spacer = withSpace ? " " : "";
             if (sizeInBytes == 0)
-                return "0" + suf[0];
+                return "0" + spacer + FileSizeSuffixes[0];
             long bytes = Math.Abs(sizeInBytes);
             int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
             double num = Math.Round(bytes / Math.Pow(1024, place), 1);
-            return (Math.Sign(sizeInBytes) * num) + suf[place];
+            return (Math.Sign(sizeInBytes) * num) + spacer +  FileSizeSuffixes[place];
         }
 
 
