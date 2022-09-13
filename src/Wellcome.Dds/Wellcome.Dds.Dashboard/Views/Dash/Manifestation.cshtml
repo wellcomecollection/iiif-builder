@@ -515,7 +515,7 @@
         </h4>
 
         @* Tree here or table *@
-        @if (Context.Request.Query["tree"].HasItems())
+        @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
         {
             var fileMap = Model.DigitisedManifestation.MetsManifestation.Sequence
                 .ToDictionary(pf => pf.Id, pf => pf);
@@ -527,15 +527,7 @@
                 <thead>
                     <tr>
                     @* The table headings differ between different METS and Asset sources *@
-                    @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
-                    {
-                        <th></th>
-                        <th>Format</th>
-                        <th>Access</th>
-                        <th>DLCS</th>
-                        <th></th>
-                    }
-                    else if (Model.ManifestationFamily == AssetFamily.Image)
+                    @if (Model.ManifestationFamily == AssetFamily.Image)
                     {
                         @* Digitised Images *@
                         <th>Order</th>
@@ -579,87 +571,62 @@
                         bool ignored = false; // The physical file itself is never ignored.
                         <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
                             <td><small>@pf.Order</small></td>
-                            
-                            @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
+
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
+                            {
+                                <td>@pf.OrderLabel</td>
+                                <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
+                            }
+                            else
+                            {
+                                <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
+                                <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
+                                if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                                {
+                                    <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
+                                }
+                                else
+                                {
+                                    <td>@pf.AssetMetadata.GetNumberOfPages()</td>
+                                }
+                            }
+                            @if (ignored)
+                            {
+                                <td>ignored</td>
+                            }
+                            else
+                            {
+                                <td>@pf.AccessCondition</td>
+                            }
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
                             {
                                 <td>
-                                    @pf.MimeType
-                                    <br/>
-                                    <small>@pf.AssetMetadata.GetFormatName()</small>
+                                    @if (pf.RelativeAltoPath.HasText())
+                                    {
+                                        <a href="@Url.ActionWithPath("XmlView", "Peek", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe }, pf.RelativeAltoPath)"
+                                           title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                    }
                                 </td>
-                                <td>@pf.AccessCondition</td>
+                            }
+                            @if (dlcsImage != null)
+                            {
                                 <td>
-                                    @pf.OriginalName
-                                    <br/>
-                                    <small>
-                                        @if (dlcsImage != null)
-                                        {
-                                            <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
-                                        }
-                                        else
-                                        {
-                                            @pf.StorageIdentifier
-                                        }
-                                    </small>
+                                    <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
+                                    {
+                                        <div class="tbmetadata">
+                                            <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
+                                            <pre style="display: none">@dlcsImage.Metadata
+                                </pre>
+                                        </div>
+                                    }
                                 </td>
                             }
                             else
                             {
-                                if (Model.ManifestationFamily == AssetFamily.Image)
-                                {
-                                    <td>@pf.OrderLabel</td>
-                                    <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
-                                }
-                                else
-                                {
-                                    <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
-                                    <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
-                                    if (Model.ManifestationFamily == AssetFamily.TimeBased)
-                                    {
-                                        <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
-                                    }
-                                    else
-                                    {
-                                        <td>@pf.AssetMetadata.GetNumberOfPages()</td>
-                                    }
-                                }
-                                @if (ignored)
-                                {
-                                    <td>ignored</td>
-                                }
-                                else
-                                {
-                                    <td>@pf.AccessCondition</td>
-                                }
-                                @if (Model.ManifestationFamily == AssetFamily.Image)
-                                {
-                                    <td>
-                                        @if (pf.RelativeAltoPath.HasText())
-                                        {
-                                            <a href="@Url.ActionWithPath("XmlView", "Peek", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe }, pf.RelativeAltoPath)"
-                                               title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
-                                        }
-                                    </td>
-                                }
-                                @if (dlcsImage != null)
-                                {
-                                    <td>
-                                        <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
-                                        @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
-                                        {
-                                            <div class="tbmetadata">
-                                                <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
-                                                <pre style="display: none">@dlcsImage.Metadata
-                                    </pre>
-                                            </div>
-                                        }
-                                    </td>
-                                }
-                                else
-                                {
-                                    <td>@pf.StorageIdentifier</td>
-                                }
+                                <td>@pf.StorageIdentifier</td>
                             }
+                            
                             
                             
                             <td>
@@ -674,11 +641,6 @@
                                                 full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
                                 }
                                 <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
-                                @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
-                                {
-                                    <br/>
-                                    <small>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</small>
-                                }
                             </td>
                         </tr>
                         
@@ -893,7 +855,7 @@
             {
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
-                <li class="list-group-item">
+                <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
                     <span class="badge">@Model.FormatSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
@@ -908,7 +870,9 @@
                         }
                         else
                         {
-                            @file.StorageIdentifier
+                            <span class="text-danger">@file.StorageIdentifier</span>
+                             <span class="text-muted small"> - NOT ON DLCS</span>
+                                                                             
                         }
                     </small>
                 </li>

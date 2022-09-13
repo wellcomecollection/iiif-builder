@@ -22,12 +22,13 @@
     </thead>
     <tbody>
     @foreach (var identifier in Model)
-    {<tr>
-         <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-         <td>@Html.ActionLink("(as tree)", "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe, tree=true }, new { })</td>
-         <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-         <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-     </tr>
+    {
+        <tr>
+            <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("Workflow call", "GoobiCall", "GoobiCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+        </tr>
     }
     </tbody>
 </table>
