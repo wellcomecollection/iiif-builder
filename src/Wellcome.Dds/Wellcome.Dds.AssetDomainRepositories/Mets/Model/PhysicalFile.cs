@@ -11,6 +11,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public class PhysicalFile : IPhysicalFile
     {
+        // Only set AssetFamily to Image for born digital mimetypes image/{type} where {type} is one of:
+        public static readonly string[] BornDigitalImageTypes = { "jpeg", "tiff" };
+        
         public static IPhysicalFile FromBornDigitalMets(
             XElement rootElement,
             XElement fileElement,
@@ -53,8 +56,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
-            physicalFile.Family = AssetFamily.File; // TODO: This is not OK! If it's an image, or AV, it gets the proper DLCS asset delivery treatment.
-            
+            physicalFile.Family = physicalFile.MimeType.GetAssetFamily(BornDigitalImageTypes);
+                
             // for BD there is only one StoredFile per PhysicalFile
             var file = new StoredFile
             {
@@ -262,6 +265,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             return WorkStore.GetFileInfoForPath(RelativeAltoPath);
         }
+        
 
         public override string ToString()
         {

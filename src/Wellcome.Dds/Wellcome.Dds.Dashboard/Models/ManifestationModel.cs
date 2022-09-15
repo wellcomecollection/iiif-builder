@@ -248,6 +248,29 @@ namespace Wellcome.Dds.Dashboard.Models
                     return string.Format(GlyphTemplate, "file");
             }
         }
+
+        public string GetAssetGlyph(AssetFamily assetFamily, string mimeType)
+        {
+            switch (assetFamily)
+            {
+                case AssetFamily.File:
+                    return string.Format(GlyphTemplate, "file");
+                case AssetFamily.Image:
+                    return string.Format(GlyphTemplate, "picture");
+                case AssetFamily.TimeBased:
+                    if (mimeType.StartsWith("audio/"))
+                    {
+                        return string.Format(GlyphTemplate, "volume-up");
+                    }
+                    if (mimeType.StartsWith("video/"))
+                    {
+                        return string.Format(GlyphTemplate, "film"); 
+                    }
+                    break;
+            }
+            return string.Format(GlyphTemplate, "question-sign");
+        }
+        
         private string GetAccessConditionIcon(string accessCondition)
         {
             switch (accessCondition.ToLowerInvariant())

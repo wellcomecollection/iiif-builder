@@ -859,9 +859,12 @@
                     <span class="badge">@Model.FormatSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
-                       title="@file.OriginalName"><strong>@file.OriginalName.Split('/').Last()</strong></a>
+                       title="@file.OriginalName"><strong>
+                        @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                        @file.OriginalName.Split('/').Last()
+                    </strong></a>
                     <br/>
-                    <small>
+                    <div class="small" style="margin-left: 18px;">
                         @file.MimeType (@file.AssetMetadata.GetFormatName())
                         <br/>
                         @if (dlcsImage != null)
@@ -874,7 +877,7 @@
                              <span class="text-muted small"> - NOT ON DLCS</span>
                                                                              
                         }
-                    </small>
+                    </div>
                 </li>
             }
             

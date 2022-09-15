@@ -136,7 +136,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 Partial = true;
             }
         }
-
+        
         private void LazyInit()
         {
             if (!Partial && !initialised)
