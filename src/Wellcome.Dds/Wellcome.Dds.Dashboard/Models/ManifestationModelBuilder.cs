@@ -12,7 +12,7 @@ using Utils;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Logging;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -26,7 +26,7 @@ namespace Wellcome.Dds.Dashboard.Models
         private readonly IAmazonS3 amazonS3;
         private readonly ILogger<ManifestationModelBuilder> logger;
         private readonly ICatalogue catalogue;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly ISimpleCache cache;
         private readonly UriPatterns uriPatterns;
         private readonly DdsOptions ddsOptions;
@@ -42,7 +42,7 @@ namespace Wellcome.Dds.Dashboard.Models
             IAmazonS3 amazonS3,
             ILogger<ManifestationModelBuilder> logger,
             ICatalogue catalogue,
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             ISimpleCache cache,
             UriPatterns uriPatterns
         )
@@ -51,7 +51,7 @@ namespace Wellcome.Dds.Dashboard.Models
             this.amazonS3 = amazonS3;
             this.logger = logger;
             this.catalogue = catalogue;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.cache = cache;
             this.uriPatterns = uriPatterns;
             this.dlcsOptions = dlcsOptions.Value;
@@ -60,20 +60,18 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public async Task<OverallResult> Build(DdsIdentifier identifier, IUrlHelper url)
         {
-            IDigitisedResource dgResource;
-            Work work;
             try
             {
                 jobLogger.Start();
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
-                var ddsTask = dashboardRepository.GetDigitisedResource(identifier, true);
+                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, identifier.HasBNumber);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
-                dgResource = ddsTask.Result;
-                work = workTask.Result;
+                var dgResource = ddsTask.Result;
+                var work = workTask.Result;
 
-                if (dgResource is IDigitisedManifestation dgManifestation)
+                if (dgResource is IDigitalManifestation dgManifestation)
                 {
                     // ***************************************************
                     // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
@@ -83,7 +81,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     jobLogger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                     // represents the set of differences between the METS view of the world and the DLCS view
                     jobLogger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                    var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                    var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true);
                     jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                     IDigitisedCollection parent;
@@ -93,6 +91,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     switch (identifier.IdentifierType)
                     {
                         case IdentifierType.BNumber:
+                        case IdentifierType.NonBNumber:
                             parent = null;
                             grandparent = null;
                             break;
@@ -115,7 +114,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
                     var model = new ManifestationModel
                     {
-                        DefaultSpace = dashboardRepository.DefaultSpace,
+                        DefaultSpace = digitalObjectRepository.DefaultSpace,
                         Url = url,
                         DdsIdentifier = identifier,
                         DigitisedManifestation = dgManifestation,
@@ -125,7 +124,6 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsOptions = dlcsOptions,
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
-                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.PackageIdentifier),
                         ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)
@@ -136,10 +134,10 @@ namespace Wellcome.Dds.Dashboard.Models
                         model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
                     }
 
-                    model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
+                    model.AVDerivatives = digitalObjectRepository.GetAVDerivatives(dgManifestation);
                     model.MakeManifestationNavData();
                     jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                    var jobActivity = await dashboardRepository.GetRationalisedJobActivity(syncOperation);
+                    var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation);
                     jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                     model.IngestJobs = jobActivity.UpdatedJobs;
                     model.BatchesForImages = jobActivity.BatchesForCurrentImages;
@@ -250,7 +248,7 @@ namespace Wellcome.Dds.Dashboard.Models
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await dashboardRepository.GetDigitisedResource(identifier, true));
+                async () => await digitalObjectRepository.GetDigitalObject(identifier, identifier.IsBNumber()));
             return (IDigitisedCollection)coll;
         }
 

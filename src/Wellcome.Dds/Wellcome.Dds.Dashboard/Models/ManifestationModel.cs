@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,9 +6,8 @@ using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -27,7 +25,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
-        public IDigitisedManifestation DigitisedManifestation { get; set; }
+        public IDigitalManifestation DigitisedManifestation { get; set; }
         public IDigitisedCollection Parent { get; set; }
         public IDigitisedCollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
@@ -130,14 +128,49 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public AssetFamily ManifestationFamily
-        {
-            get
-            {
-                return DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
-            }
-        }
+        public AssetFamily ManifestationFamily => DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
 
+        private string typeSummary;
+        public string GetTypeSummary()
+        {
+            if (typeSummary != null)
+            {
+                return typeSummary;
+            }
+
+            var mimeCounts = new Dictionary<string, int>();
+            foreach (var mimeType in DigitisedManifestation.MetsManifestation.Sequence
+                         .Select(pf => pf.MimeType))
+            {
+                if (mimeCounts.ContainsKey(mimeType))
+                {
+                    mimeCounts[mimeType] += 1;
+                }
+                else
+                {
+                    mimeCounts[mimeType] = 1;
+                }
+            }
+            switch (mimeCounts.Count)
+            {
+                case 0:
+                    typeSummary = "No MimeTypes"; // this should never happen
+                    break;
+                case 1:
+                    typeSummary = mimeCounts.First().Key;
+                    break;
+                case 2:
+                    typeSummary = $"{mimeCounts.First().Key} ({mimeCounts.First().Value}) and {mimeCounts.Last().Key} ({mimeCounts.Last().Value})";
+                    break;
+                case > 2:
+                    var (mimeType, count) = mimeCounts.MaxBy(kvp => kvp.Value);
+                    typeSummary = $"{mimeType} ({count}) and {mimeCounts.Count - 1} other types";
+                    break;
+            }
+
+            return typeSummary;
+
+        }
 
 
         public string GetPortalPageForImage(Image image)
@@ -176,12 +209,12 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public string FormatSize(string rawSize)
+        public string FormatSize(string rawSize, bool withSpace = false)
         {
             long asLong;
             if (long.TryParse(rawSize, out asLong))
             {
-                return StringUtils.FormatFileSize(asLong);
+                return StringUtils.FormatFileSize(asLong, withSpace);
             }
             return rawSize;
         }
@@ -215,6 +248,29 @@ namespace Wellcome.Dds.Dashboard.Models
                     return string.Format(GlyphTemplate, "file");
             }
         }
+
+        public string GetAssetGlyph(AssetFamily assetFamily, string mimeType)
+        {
+            switch (assetFamily)
+            {
+                case AssetFamily.File:
+                    return string.Format(GlyphTemplate, "file");
+                case AssetFamily.Image:
+                    return string.Format(GlyphTemplate, "picture");
+                case AssetFamily.TimeBased:
+                    if (mimeType.StartsWith("audio/"))
+                    {
+                        return string.Format(GlyphTemplate, "volume-up");
+                    }
+                    if (mimeType.StartsWith("video/"))
+                    {
+                        return string.Format(GlyphTemplate, "film"); 
+                    }
+                    break;
+            }
+            return string.Format(GlyphTemplate, "question-sign");
+        }
+        
         private string GetAccessConditionIcon(string accessCondition)
         {
             switch (accessCondition.ToLowerInvariant())
@@ -403,7 +459,6 @@ namespace Wellcome.Dds.Dashboard.Models
         public Work Work { get; set; }
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
-        public string EncoreRecordUrl { get; set; }
         public string ManifestUrl { get; set; }
 
         /// <summary>
@@ -416,8 +471,10 @@ namespace Wellcome.Dds.Dashboard.Models
             return files.Where(f => 
                 f.Use != "OBJECTS" &&  // Old workflow
                 f.Use != "ACCESS" &&   // New workflow
-                f.Use != "ALTO");
+                f.Use != "ALTO" &&
+                f.Use != "original");  // Born digital  
         }
+
     }
 
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;
 

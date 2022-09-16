@@ -3,7 +3,7 @@ using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 
-namespace Wellcome.Dds.AssetDomain.Dashboard
+namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     /// <summary>
     /// Contains the result of a synchronisation request.

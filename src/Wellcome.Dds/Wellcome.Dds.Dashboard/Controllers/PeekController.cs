@@ -125,13 +125,23 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
 
             var manifestation = id;
-            try
+            if (id.IsBNumber())
             {
-                var firstPart = parts.Split('/')[0].Split('.')[0];
-                manifestation = firstPart;
-            }
-            catch 
-            {
+                try
+                {
+                    // (this was broken in live version...)
+                    // we need to get a manifestation ID from just a file path which might be alto etc.
+                    manifestation = parts.Split('/').Last().Split('.')[0];
+                    var bParts = manifestation.Split('_');
+                    if (bParts.Length == 3)
+                    {
+                        manifestation = $"{bParts[0]}_{bParts[1]}";
+                    }
+                }
+                catch
+                {
+                    // ignored
+                }
             }
 
             var model = new CodeModel

@@ -53,8 +53,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             logger.LogInformation($"Building Annotation Pages for {identifier}");
             var altoProvider = new SimpleAltoProvider(logger);
             var pages = new AnnotationPageList();
-            var ddsId = new DdsIdentifier(identifier);
-            var workStore = await workStorageFactory.GetWorkStore(ddsId.PackageIdentifier);
+            var workStore = await workStorageFactory.GetWorkStore(identifier);
             foreach (var physicalFile in physicalFiles)
             {
                 if (physicalFile.RelativeAltoPath.HasText())

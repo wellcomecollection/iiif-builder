@@ -11,11 +11,11 @@ using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
@@ -72,7 +72,7 @@ namespace DlcsJobProcessor
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<IIngestJobProcessor, DashboardCloudServicesJobProcessor>()
                 .AddSingleton<UriPatterns>()
                 .AddHostedService<DashboardContinuousRunningStrategy>();

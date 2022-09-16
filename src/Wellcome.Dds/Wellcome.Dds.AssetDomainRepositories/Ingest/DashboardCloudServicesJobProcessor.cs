@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -15,7 +15,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
     public class DashboardCloudServicesJobProcessor : IIngestJobProcessor
     {
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly IStatusProvider statusProvider;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly ILogger<DashboardCloudServicesJobProcessor> logger;
@@ -37,12 +37,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         const int MaximumSequentialFailuresTolerated = 3;
 
         public DashboardCloudServicesJobProcessor(
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             IStatusProvider statusProvider,
             DdsInstrumentationContext ddsInstrumentationContext,
             ILogger<DashboardCloudServicesJobProcessor> logger)
         {
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.statusProvider = statusProvider;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.logger = logger;
@@ -176,16 +176,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // we expect a job to correspond to a manifestation
-            IDigitisedManifestation digitisedManifestation = null;
+            IDigitalManifestation digitisedManifestation = null;
             Exception error = null;
             string errorDataMessage = null;
             IManifestation manifestation = null;
 
             try
             {
-                digitisedManifestation = await dashboardRepository
-                        .GetDigitisedResource(job.GetManifestationIdentifier())
-                    as IDigitisedManifestation;
+                digitisedManifestation = await digitalObjectRepository
+                        .GetDigitalObject(job.GetManifestationIdentifier())
+                    as IDigitalManifestation;
             }
             catch (Exception ex)
             {
@@ -244,7 +244,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // TODO - consider any running processes....
-            var syncOperation = await dashboardRepository.GetDlcsSyncOperation(digitisedManifestation, true);
+            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitisedManifestation, true);
             if (forceReingest)
             {
                 foreach (var image in syncOperation.ImagesAlreadyOnDlcs.Values)
@@ -263,7 +263,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            await dashboardRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
             var result = new ImageIngestResult
             {
@@ -338,9 +338,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         /// <param name="job"></param>
         private async Task UpdateJobAsync(DlcsIngestJob job)
         {
-            var digitisedManifestation = (await dashboardRepository
-                     .GetDigitisedResource(job.GetManifestationIdentifier()))
-                     as IDigitisedManifestation;
+            var digitisedManifestation = (await digitalObjectRepository
+                     .GetDigitalObject(job.GetManifestationIdentifier()))
+                     as IDigitalManifestation;
 
             var query = new ImageQuery
             {

@@ -10,9 +10,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     public class PremisMetadata : IAssetMetadata
     {
         private XElement premisObject;
+        private XElement premisRightsStatement;
         private readonly XElement metsRoot;
         private readonly string admId;
-        private bool initialised = false;
+        private bool initialised;
         private Dictionary<string, string> significantProperties; 
 
         public PremisMetadata(XElement metsRoot, string admId)
@@ -22,8 +23,70 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             this.admId = admId;
         }
 
+        public string GetOriginalName()
+        {
+            if (!initialised) Init();
+            const string transferPrefix = "%transferDirectory%objects/";
+            var value = premisObject.GetDesendantElementValue(XNames.PremisOriginalName);
+            if (value == null || !value.Contains(transferPrefix))
+            {
+                throw new NotSupportedException($"Premis original name does not contain transfer prefix: {value}");
+            }
+            return value.RemoveStart(transferPrefix);
+        }
+
+        public string GetMimeType()
+        {
+            string mimeType = null;
+            var pronomKey = GetPronomKey();
+            var map = PronomData.Instance.FormatMap;
+            if (pronomKey.HasText() && map.ContainsKey(pronomKey))
+            {
+                mimeType = map[pronomKey];
+            }
+
+            if (mimeType.HasText())
+            {
+                return mimeType;
+            }
+            
+            // probably not going to succeed but let's look elsewhere for mime info
+            // The FITS section is present on some files. This could be extended to look in other sections.
+            
+            var objectCharacteristics =
+                premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
+            if (objectCharacteristics != null)
+            {
+                // THIS IS NOT RELIABLE
+                // See https://digirati.slack.com/archives/CBT40CMKQ/p1662485191979289
+                var mimeTypeFromFits = objectCharacteristics.Descendants(XNames.FitsIdentity)
+                    .FirstOrDefault()?
+                    .Attribute("mimetype")?
+                    .Value;
+                if (mimeTypeFromFits.HasText())
+                {
+                    return mimeTypeFromFits;
+                }
+            }
+
+            return "application/octet-stream";
+        }
+
+        public DateTime? GetCreatedDate()
+        {
+            if (!initialised) Init();
+            var createdDateString = premisObject.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
+            if(DateTime.TryParse(createdDateString, out var result))
+            {
+                return result;
+            }
+
+            return null;
+        }
+
         public string GetFileName()
         {
+            // This only works for Goobi METS
             if (!initialised) Init();
             var oids = premisObject.Elements(XNames.PremisObjectIdentifier);
             foreach (var oid in oids)
@@ -52,6 +115,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             if (!initialised) Init();
             return premisObject.GetDesendantElementValue(XNames.PremisFormatName);
+        }
+
+        public string GetFormatVersion()
+        {
+            if (!initialised) Init();
+            return premisObject.GetDesendantElementValue(XNames.PremisFormatVersion);
+        }
+
+        public string GetPronomKey()
+        {
+            if (!initialised) Init();
+            return premisObject.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
         }
 
         public string GetAssetId()
@@ -111,33 +186,80 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return value;
         }
 
-        public int? GetInt32FilePropertyValue(string filePropertyName)
+        private int? GetInt32FilePropertyValue(string filePropertyName)
         {
-            int i;
             var fpv = GetFilePropertyValue(filePropertyName);
             // TODO: temporary workaround because some images have floating point values
             try
             {
-                i = (int) Convert.ToDouble(fpv);
+                var i = (int) Convert.ToDouble(fpv);
                 return i;
             }
             catch
             {
                 return null;
             }
+        }
 
-            //if (int.TryParse(fpv, out i))
-            //{
-            //    return i;
-            //}
-            //return null;
+        public IRightsStatement GetRightsStatement()
+        {
+            if (!initialised) Init();
+            if (premisRightsStatement == null)
+            {
+                return null;
+            }
+
+            var rightsStatement = new PremisRightsStatement
+            {
+                Identifier = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
+                Basis = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsBasis),
+                AccessCondition = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
+            };
+
+            switch (rightsStatement.Basis)
+            {
+                case "License":
+                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisLicenseNote);
+                    break;
+                case "Copyright":
+                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightNote);
+                    rightsStatement.Status = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
+                    break;
+                default:
+                    throw new NotSupportedException($"Unknown rights statement basis: {rightsStatement.Basis}");
+            }
+
+            return rightsStatement;
         }
 
         private void Init()
         {
-            var techMd = metsRoot.GetSingleDescendantWithAttribute(XNames.MetsTechMD, "ID", admId);
-            var xmlData = techMd.Descendants(XNames.MetsXmlData).Single();
-            premisObject = xmlData.Element(XNames.PremisObject);
+            // Goobi and Archivematica METS are quite differently arranged.
+            XElement techMd = null;
+            XElement rightsMd = null;
+            
+            // first try the Goobi layout, as this is the more common:
+            var rootTechMDs = metsRoot.GetAllDescendantsWithAttribute(
+                XNames.MetsTechMD, "ID", admId).ToList();
+            if (rootTechMDs.Any())
+            {
+                techMd = rootTechMDs.First();
+                // There is no rightsMD in Goobi METS
+            }
+            else
+            {
+                // Archivematica layout
+                var amdSec = metsRoot.GetSingleElementWithAttribute(XNames.MetsAmdSec, "ID", admId);
+                techMd = amdSec.Element(XNames.MetsTechMD);
+                rightsMd = amdSec.Element(XNames.MetsRightsMD);
+            }
+
+            if (techMd == null)
+            {
+                throw new NotSupportedException($"Unable to locate techMD section for {admId}");
+            }
+            premisObject = techMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisObject);
+            
             significantProperties = new Dictionary<string, string>();
             if (premisObject == null) return;
             foreach (var sigProp in premisObject.Elements(XNames.PremisSignificantProperties))
@@ -146,6 +268,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var propValue = sigProp.Element(XNames.PremisSignificantPropertiesValue).Value;
                 significantProperties[propType] = propValue;
             }
+            
+            if (rightsMd != null)
+            {
+                premisRightsStatement = rightsMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisRightsStatement);
+            }
+
+            initialised = true;
         }
         
         /// <summary>

@@ -1,0 +1,34 @@
+@model IEnumerable<DdsIdentifier>
+
+@{
+    ViewBag.Title = "Test Identifiers";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">@Html.Raw(Model.First().HasBNumber ? "Digitised" : "Born Digital") Identifiers</h3>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Identifier</th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var identifier in Model)
+    {
+        <tr>
+            <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("Workflow call", "GoobiCall", "GoobiCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+        </tr>
+    }
+    </tbody>
+</table>

@@ -3,19 +3,19 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class DashGlobalsActionFilter : IAsyncActionFilter
     {
         private readonly IStatusProvider statusProvider;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
 
-        public DashGlobalsActionFilter(IStatusProvider statusProvider, IDashboardRepository dashboardRepository)
+        public DashGlobalsActionFilter(IStatusProvider statusProvider, IDigitalObjectRepository digitalObjectRepository)
         {
             this.statusProvider = statusProvider;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -29,7 +29,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var warningState = heartbeat == null || heartbeat.Value.AddMinutes(3) < DateTime.Now;
             viewBag.HeartbeatWarning = warningState;
             viewBag.HeartbeatClass = warningState ? "btn-danger" : "";
-            var getQueueLevel = dashboardRepository.GetDlcsQueueLevel();
+            var getQueueLevel = digitalObjectRepository.GetDlcsQueueLevel();
             await next();
 
             try

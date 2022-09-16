@@ -104,6 +104,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             return await LoadXmlForPath(relativePath);
         }
 
+        public async Task<XmlSource> LoadRootDocumentXml()
+        {
+            return await LoadXmlForPath(GetRootDocument());
+        }
+
         public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
         {
             return new ArchiveStorageStoredFileInfo(

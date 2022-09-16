@@ -1,4 +1,7 @@
-﻿namespace Wellcome.Dds.AssetDomain.Dlcs
+﻿using System.Linq;
+using Utils;
+
+namespace Wellcome.Dds.AssetDomain.Dlcs
 {
     public enum AssetFamily
     {
@@ -9,11 +12,18 @@
 
     public static class AssetFamilyUtils
     {
-        public static AssetFamily GetAssetFamily(this string mediaType)
+        public static AssetFamily GetAssetFamily(this string mediaType, string[] permittedImages = null)
         {
             if (mediaType.StartsWith("image/"))
             {
-                return AssetFamily.Image;
+                if (!permittedImages.HasItems()) return AssetFamily.Image;
+                var part2 = mediaType.RemoveStart("image/");
+                if (permittedImages.Contains(part2))
+                {
+                    return AssetFamily.Image;
+                }
+
+                return AssetFamily.File;
             }
             if (mediaType.StartsWith("video/") || mediaType.StartsWith("audio/"))
             {

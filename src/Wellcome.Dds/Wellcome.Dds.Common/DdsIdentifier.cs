@@ -4,8 +4,8 @@
     {
         private const char Underscore = '_';
         private const char Slash = '/';
-        private const string BornDigital = "born-digital";
-        private const string Digitised = "digitised";
+        public const string BornDigital = "born-digital";
+        public const string Digitised = "digitised";
         private static readonly char[] Separators = { Underscore, Slash };
         private readonly string[] parts;
         private readonly string value;
@@ -148,6 +148,9 @@
                 // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
                 PackageIdentifier = this.value.Replace(Underscore, Slash);
                 PackageIdentifierPathElementSafe = PackageIdentifier.Replace(Slash, Underscore);
+                
+                // used for ToString()... callers will need to ask for the path element safe version explicitly
+                this.value = PackageIdentifier; 
             }
         }
 

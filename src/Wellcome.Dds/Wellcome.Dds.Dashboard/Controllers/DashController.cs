@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -23,7 +23,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class DashController : Controller
     {
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly IIngestJobRegistry jobRegistry;
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
@@ -35,7 +35,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly ManifestationModelBuilder modelBuilder;
 
         public DashController(
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             IIngestJobRegistry jobRegistry,
             IStatusProvider statusProvider,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
@@ -49,7 +49,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             // TODO - we need a review of all these dependencies!
             // too many things going on in this controller
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.jobRegistry = jobRegistry;
             this.statusProvider = statusProvider;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
@@ -73,7 +73,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
-                errorsByMetadataPage = await dashboardRepository.GetErrorsByMetadata(page);
+                errorsByMetadataPage = await digitalObjectRepository.GetErrorsByMetadata(page);
             }
             catch (Exception ex)
             {
@@ -82,7 +82,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     {Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1};
             }
 
-            var recentActions = dashboardRepository.GetRecentActions(200);
+            var recentActions = digitalObjectRepository.GetRecentActions(200);
             var model = new HomeModel
             {
                 ProblemJobs = new JobsModel {Jobs = problemJobs.ToArray()},
@@ -170,7 +170,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await dashboardRepository.GetDigitisedResource(id)) as IDigitisedCollection;
+                collection = (await digitalObjectRepository.GetDigitalObject(id)) as IDigitisedCollection;
             }
             catch (Exception metsEx)
             {
@@ -275,7 +275,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult RecentActions()
         {
-            var recentActions = dashboardRepository.GetRecentActions(200);
+            var recentActions = digitalObjectRepository.GetRecentActions(200);
             return View(recentActions);
         }
 
@@ -352,36 +352,36 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeletePdf(string id)
         {
-            var success = await dashboardRepository.DeletePdf(id);
+            var success = await digitalObjectRepository.DeletePdf(id);
             var message = success ? "success" : "failed";
             TempData["delete-pdf"] = success;
-            dashboardRepository.LogAction(id, null, User.Identity.Name, $"Delete PDF: {message}");
+            digitalObjectRepository.LogAction(id, null, User.Identity.Name, $"Delete PDF: {message}");
             return RedirectToAction("Manifestation", new { id });
         }
 
         public async Task<ActionResult> DoStop(object id)
         {
-            dashboardRepository.LogAction(null, null, User.Identity.Name, "STOP services");
+            digitalObjectRepository.LogAction(null, null, User.Identity.Name, "STOP services");
             TempData["stop-result"] = await statusProvider.Stop();
             return RedirectToAction("StopStatus");
         }
 
         public async Task<ActionResult> DoStart(object id)
         {
-            dashboardRepository.LogAction(null, null, User.Identity.Name, "START services");
+            digitalObjectRepository.LogAction(null, null, User.Identity.Name, "START services");
             TempData["start-result"] = await statusProvider.Start();
             return RedirectToAction("StopStatus");
         }
 
         public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
-            return dashboardRepository.GetDlcsQueueLevel();
+            return digitalObjectRepository.GetDlcsQueueLevel();
         }
 
         public async Task<ActionResult> DeleteOrphans(string id)
         {
-            dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
-            int removed = await dashboardRepository.DeleteOrphans(id);
+            digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
+            int removed = await digitalObjectRepository.DeleteOrphans(id);
             TempData["orphans-deleted"] = removed;
             return RedirectToAction("Manifestation", new { id });
         }

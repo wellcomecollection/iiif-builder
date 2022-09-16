@@ -17,10 +17,10 @@ using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Auth.Web;
@@ -151,7 +151,7 @@ namespace Wellcome.Dds.Server
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddScoped<AltoSearchTextProvider>()

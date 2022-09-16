@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Control;
 using Wellcome.Dds.Common;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
     /// <summary>
     /// Implementation of <see cref="IStatusProvider"/> using db for backing store.

@@ -13,12 +13,12 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
@@ -88,7 +88,7 @@ namespace WorkflowProcessor
             services
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<IWorkflowCallRepository, WorkflowCallRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()

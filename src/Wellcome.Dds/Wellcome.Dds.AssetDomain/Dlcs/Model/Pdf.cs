@@ -1,6 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Model
 {

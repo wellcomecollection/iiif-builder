@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Amazon.Runtime.Internal.Util;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain;
@@ -18,6 +18,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     {
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly ILogger<MetsRepository> logger;
+        
+        // For born-digital
+        private const string Directory = "Directory";
+        private const string Item = "Item";
+        private const string TypeAttribute = "TYPE";
+        private const string LabelAttribute = "LABEL";
 
         public MetsRepository(
             IWorkStorageFactory workStorageFactory,
@@ -42,14 +48,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // b12345678/0 - old form, must be an IManifestation
             var ddsId = new DdsIdentifier(identifier);
 
-            // TODO: This won't be true for much longer!
-            // This line will just go, I think. We can no longer enforce this test here.
-            if (!ddsId.HasBNumber)
-            {
-                throw new ArgumentException($"{ddsId.PackageIdentifier} is not a b number", nameof(identifier));
-            }
-
-            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId.PackageIdentifier);
+            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId);
             ILogicalStructDiv structMap;
             switch (ddsId.IdentifierType)
             {
@@ -66,9 +65,223 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     // we only want a specific issue
                     var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
                     return new MetsManifestation(issueStruct, structMap);
+                
+                case IdentifierType.NonBNumber:
+                    var bdManifestation = await BuildBornDigitalManifestation(workStore);
+                    return bdManifestation;
             }
 
             throw new NotSupportedException("Unknown identifier");
+        }
+
+        private async Task<IManifestation> BuildBornDigitalManifestation(IWorkStore workStore)
+        {
+            // we can't get a logical struct map, because there isn't one in this METS.
+            // But there is one in the mets file in the submission...
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1649945431278779
+            
+            // for now we won't use this METS, we'll see if we can get everything we need from the root METS
+            var metsXml = await workStore.LoadRootDocumentXml();
+            var physicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, TypeAttribute, "physical");
+            var rootDir = physicalStructMap.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
+            
+            // The files we are interested in are in /objects
+            // This folder contains the files and folders of the archive, and also two preservation artefacts,
+            // the directories /metadata and /submissionDocumentation.
+            // We ignore these - they are not part of the deliverable digital object.
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1661272044683399
+            // However, we will throw an exception if they are not present, because that means something is wrong.
+            var objectsDir = rootDir.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
+            // There can be only one
+            if (objectsDir?.Attribute(LabelAttribute)?.Value != "objects")
+            {
+                throw new NotSupportedException("Could not find objects directory in physical structMap");
+            }
+            // These should be the last two, but we won't mind the order
+            XElement metadataDirectory = null;
+            XElement submissionDocumentationDirectory = null;
+            var objectsChildren = objectsDir.Elements().ToArray();
+            if (objectsChildren.Length >= 2)
+            {
+                metadataDirectory = objectsChildren[^2..].SingleOrDefault(el =>
+                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "metadata");
+                submissionDocumentationDirectory = objectsChildren[^2..].SingleOrDefault(el =>
+                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "submissionDocumentation");
+            }
+            if (metadataDirectory == null || submissionDocumentationDirectory == null)
+            {
+                throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
+            }
+
+            var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
+            // Get the path to the METS for submission doc if we need it later - it has the logical structMap
+            var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
+            
+            // We can now ignore the last two.
+            var digitalContent = objectsChildren[..^2];
+            if (digitalContent.Length == 0)
+            {
+                throw new NotSupportedException("The objects directory has no digital content");
+            }
+            
+            // In Goobi METS, the logical structmap is the root of all navigation and model building.
+            // But here, the logical structMap is less important, because the physical structmap conveys the
+            // directory structure anyway and there's not anything more "real world" to model (unlike parts of books).
+            
+            // Notes about access conditions and related:
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648716914566629
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648211809211439
+
+            // assume still true:
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1648717080923719
+            
+            var fileMap = PhysicalFile.MakeFileMap(metsXml.XElement);
+            
+            // we're going to build the physical file list and the structural information at the same time,
+            // as we walk the directory structure in the physical structMap.
+            
+            // We'll populate these on the BD manifestation:
+            // public List<IPhysicalFile> Sequence { get; set; }
+            // public List<IStoredFile> SynchronisableFiles { get; }
+            // public IStructRange RootStructRange { get; set; }
+            var bdm = new BornDigitalManifestation
+            {
+                // Many props still to assigned 
+                Label = workStore.Identifier, // we have no descriptive metadata!
+                Id = workStore.Identifier,
+                Type = "Born Digital",
+                Order = 0,
+                Sequence = new List<IPhysicalFile>(),
+                IgnoredStorageIdentifiers = new List<string>(),
+                RootStructRange = new StructRange
+                {
+                    Label = "objects",
+                    Type = Directory,
+                    PhysicalFileIds = new List<string>()
+                },
+                SourceFile = workStore.GetFileInfoForPath(workStore.GetRootDocument())
+            };
+            // all our structRanges are going to be directories
+            AddDirectoryToBornDigitalManifestation(
+                metsXml.XElement,
+                fileMap,
+                bdm.Sequence,
+                bdm.RootStructRange,
+                digitalContent, 
+                workStore);
+            
+            // Chars permitted in CALM ref
+            // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
+            
+            // Now assign order and labels to each of the PhysicalFiles
+            for (int index = 0; index < bdm.Sequence.Count; index++)
+            {
+                bdm.Sequence[index].Index = index;
+                bdm.Sequence[index].Order = index + 1;
+                bdm.Sequence[index].OrderLabel = (index + 1).ToString();
+            }
+
+            bdm.PhysicalFileMap = bdm.Sequence.ToDictionary(pf => pf.Id);
+            
+            // Now work out the original folder names, from their files
+            ApplyDirectoryLabels(bdm.RootStructRange, bdm.PhysicalFileMap);
+            
+            return bdm;
+        }
+
+        private void ApplyDirectoryLabels(IStructRange structRange,
+            Dictionary<string, IPhysicalFile> fileMap)
+        {
+            // Replace the labels obtained from the <mets:div TYPE="Directory" /> with 
+            // labels derived from the originalName path
+            if (structRange.PhysicalFileIds.HasItems())
+            {
+                var firstFileId = structRange.PhysicalFileIds.First();
+            
+                if (firstFileId.HasText())
+                {
+                    var file = fileMap[firstFileId];
+                    // this assumes that the originalName always uses / as separator
+                    var parts = file.OriginalName.Split('/');
+                    if (parts.Length > 1)
+                    {
+                        var label = parts[^2];
+                        if (label.HasText())
+                        {
+                            structRange.Label = label;
+                        }
+                    }
+                }
+            }
+
+            if (!structRange.Children.HasItems()) return;
+            
+            foreach (var childStructRange in structRange.Children)
+            {
+                ApplyDirectoryLabels(childStructRange, fileMap);
+            }
+        }
+
+        private void AddDirectoryToBornDigitalManifestation(
+            XElement rootElement,
+            Dictionary<string, XElement> fileMap,
+            List<IPhysicalFile> physicalFiles,
+            IStructRange structRange,
+            XElement[] contents,
+            IWorkStore workStore)
+        {
+            bool hasSeenDirectory = false;
+            foreach (var element in contents)
+            {
+                var label = element.Attribute(LabelAttribute)?.Value;
+                // directories then folders within a directory
+                if (element.Attribute(TypeAttribute)?.Value == Item)
+                {
+                    if (hasSeenDirectory)
+                    {
+                        // https://digirati.slack.com/archives/CBT40CMKQ/p1661348387002749
+                        
+                        logger.LogWarning($"Encountered a file (Item) after processing a directory: {label}");
+                        // throw new NotSupportedException(..);
+                    }
+                    var fileId = element.Elements(XNames.MetsFptr).First().Attribute("FILEID")?.Value;
+                    if (fileId.IsNullOrWhiteSpace())
+                    {
+                        throw new NotSupportedException(
+                            $"File has no pointer to file element: {label}");
+                    }
+
+                    var file = fileMap[fileId];
+                    var physicalFile = PhysicalFile.FromBornDigitalMets(rootElement, file, workStore);
+                    physicalFiles.Add(physicalFile);
+                    structRange.PhysicalFileIds.Add(physicalFile.Id);
+
+                 
+                } 
+                else if (element.Attribute(TypeAttribute)?.Value == Directory)
+                {
+                    hasSeenDirectory = true;
+                    // make another structure, then call this recursively.
+                    // We cannot assign an .Id to this structRange from any info in the METS
+                    // Do we need one? We probably do because we are going to need ids for IIIF Ranges,
+                    // and this would be a good place to generate them.
+                    // We could generate them from the folder path like the file Ids.
+                    // In fact... generate them after in the pass through.
+                    var childStructRange = new StructRange
+                    {
+                        Label = label, // This is the Label Attribute; we'll need to replace this with the original folder name
+                        Type = Directory,
+                        PhysicalFileIds = new List<string>()
+                    };
+                    structRange.Children ??= new List<IStructRange>();
+                    structRange.Children.Add(childStructRange);
+                    var childContents = element.Elements().ToArray();
+                    AddDirectoryToBornDigitalManifestation(
+                        rootElement, fileMap, physicalFiles,
+                        childStructRange, childContents, workStore
+                        );
+                }
+            }
         }
 
         public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
@@ -194,6 +407,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
+                case IdentifierType.NonBNumber:
                     return 0;
                 case IdentifierType.Volume:
                     var anchor = await GetAsync(ddsId.PackageIdentifier) as ICollection;
@@ -223,8 +437,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var metsXml = await workStore.LoadXmlForIdentifier(identifier);
             return GetLogicalStructDiv(metsXml, identifier, workStore);
         }
-
-        private static IMetsResource GetMetsResource(ILogicalStructDiv structMap, IWorkStore workStore)
+        
+     private static IMetsResource GetMetsResource(ILogicalStructDiv structMap, IWorkStore workStore)
         {
             IMetsResource res = null;
             if (structMap.IsManifestation)
@@ -274,7 +488,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         private static ILogicalStructDiv GetLogicalStructDiv(XmlSource metsXml, string identifier, IWorkStore workStore)
         {
-            var logicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, "TYPE", "LOGICAL");
+            var logicalStructMap = metsXml.XElement.GetSingleElementWithAttribute(XNames.MetsStructMap, TypeAttribute, "LOGICAL");
             var rootStructuralDiv = logicalStructMap.Elements(XNames.MetsDiv).Single(); // require only one
             var structMap = new LogicalStructDiv(rootStructuralDiv, metsXml.RelativeXmlFilePath, identifier, workStore);
             return structMap;

@@ -1,6 +1,6 @@
-﻿namespace Wellcome.Dds.AssetDomain.Dashboard
+﻿namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
-    public interface IDigitisedResource
+    public interface IDigitalObject
     {
         string Identifier { get; set; }
         bool Partial { get; set; }

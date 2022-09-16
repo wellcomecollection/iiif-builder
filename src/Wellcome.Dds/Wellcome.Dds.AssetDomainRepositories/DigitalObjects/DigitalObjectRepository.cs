@@ -1,12 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -14,11 +13,11 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
-    public class DashboardRepository : IDashboardRepository
+    public class DigitalObjectRepository : IDigitalObjectRepository
     {
-        private readonly ILogger<DashboardRepository> logger;
+        private readonly ILogger<DigitalObjectRepository> logger;
         private readonly UriPatterns uriPatterns;
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
@@ -26,8 +25,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public int DefaultSpace { get; }
 
-        public DashboardRepository(
-            ILogger<DashboardRepository> logger,
+        public DigitalObjectRepository(
+            ILogger<DigitalObjectRepository> logger,
             UriPatterns uriPatterns,
             IDlcs dlcs, 
             IMetsRepository metsRepository,
@@ -51,26 +50,26 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <param name="identifier">Same as used for METS</param>
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
-        public async Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false)
+        public async Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false)
         {
             logger.LogInformation($"GetDigitisedResource will get MetsResource for {identifier}", identifier);
-            IDigitisedResource digResource;
+            IDigitalObject digObject;
             var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation resource)
             {
-                digResource = await MakeDigitisedManifestation(resource, includePdfDetails);
+                digObject = await MakeDigitisedManifestation(resource, includePdfDetails);
             }
             else if (metsResource is ICollection collection)
             {
-                digResource = await MakeDigitisedCollection(collection, includePdfDetails);
+                digObject = await MakeDigitisedCollection(collection, includePdfDetails);
             }
             else
             {
                 throw new ArgumentException($"Cannot get a digitised resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
-            digResource.Identifier = metsResource.Id;
-            digResource.Partial = metsResource.Partial;
+            digObject.Identifier = metsResource.Id;
+            digObject.Partial = metsResource.Partial;
 
             //// DEBUG step - force evaluation of DLCS query
             //var list = (digResource as IDigitisedManifestation).DlcsImages.ToList();
@@ -78,7 +77,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
             //{
             //    Log.DebugFormat("{0}/{1}", image.String1, image.Number2);
             //}
-            return digResource;
+            return digObject;
         }
         
         public async Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue)
@@ -109,7 +108,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
         /// <param name="digitisedManifestation"></param>
         /// <param name="reIngestErrorImages"></param>
         /// <returns></returns>
-        public async Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
+        public async Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages)
         {
             // TODO - some of this can go inside IDigitisedManifestation
@@ -681,7 +680,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = (await GetDigitisedResource(id)) as IDigitisedManifestation;
+            var manifestation = (await GetDigitalObject(id)) as IDigitalManifestation;
             var syncOp = await GetDlcsSyncOperation(manifestation, false);
             return await dlcs.DeleteImages(syncOp.Orphans);
         }
@@ -715,7 +714,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
 
         public Task<Dictionary<string, long>> GetDlcsQueueLevel() => dlcs.GetDlcsQueueLevel();
 
-        public AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation)
+        public AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
             if (digitisedManifestation.MetsManifestation.Type is "Video" or "Audio")

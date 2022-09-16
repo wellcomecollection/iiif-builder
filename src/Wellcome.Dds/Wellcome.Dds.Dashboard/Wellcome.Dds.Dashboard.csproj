@@ -212,4 +212,8 @@
     <None Include="wwwroot\js\_references.js" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages" />
+  </ItemGroup>
+
  </Project>

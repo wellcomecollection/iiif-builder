@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Utils;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Dashboard
+namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
-    public class DigitisedManifestation : BaseDigitisedResource, IDigitisedManifestation
+    public class DigitisedManifestation : BaseDigitalObject, IDigitalManifestation
     {
         public IManifestation MetsManifestation { get; set; }
         

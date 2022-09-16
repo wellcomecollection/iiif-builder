@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Utils
@@ -33,13 +34,13 @@ namespace Utils
         /// <typeparam name="T"></typeparam>
         /// <param name="enumerable"></param>
         /// <returns></returns>
-        public static bool IsNullOrEmpty<T>(this IEnumerable<T> enumerable) 
+        public static bool IsNullOrEmpty<T>([NotNullWhen(false)] this IEnumerable<T> enumerable) 
             => enumerable == null || !enumerable.Any();
 
         /// <summary>
         /// Does the sequence contain anything (allows null sequence)?
         /// </summary>
-        public static bool IsNullOrEmpty<T>(this IList<T> enumerable) 
+        public static bool IsNullOrEmpty<T>([NotNullWhen(false)] this IList<T> enumerable) 
             => enumerable == null || enumerable.Count == 0;
 
         /// <summary>
@@ -48,12 +49,12 @@ namespace Utils
         /// <typeparam name="T"></typeparam>
         /// <param name="enumerable"></param>
         /// <returns></returns>
-        public static bool HasItems<T>(this IEnumerable<T> enumerable) => !enumerable.IsNullOrEmpty();
+        public static bool HasItems<T>([NotNullWhen(true)] this IEnumerable<T> enumerable) => !enumerable.IsNullOrEmpty();
 
         /// <summary>
         /// Does the sequence contain anything (allows null sequence)?
         /// </summary>
-        public static bool HasItems<T>(this IList<T> enumerable) => !enumerable.IsNullOrEmpty();
+        public static bool HasItems<T>([NotNullWhen(true)] this IList<T> enumerable) => !enumerable.IsNullOrEmpty();
 
         /// <summary>
         /// Generate collection of IEnumerables of specified size.

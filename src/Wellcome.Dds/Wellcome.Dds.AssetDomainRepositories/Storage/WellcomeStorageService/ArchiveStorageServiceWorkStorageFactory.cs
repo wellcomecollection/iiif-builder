@@ -40,10 +40,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             this.storageServiceS3 = storageServiceS3.Get(NamedClient.Storage);
         }
 
-        public async Task<IWorkStore> GetWorkStore(string identifier)
+        public async Task<IWorkStore> GetWorkStore(DdsIdentifier ddsId)
         {
-            var ddsId = new DdsIdentifier(identifier);
-
             Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => 
                 BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
             

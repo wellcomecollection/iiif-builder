@@ -4,12 +4,12 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 
-namespace Wellcome.Dds.AssetDomain.Dashboard
+namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
-    public interface IDashboardRepository
+    public interface IDigitalObjectRepository
     {
-        Task<IDigitisedResource> GetDigitisedResource(string identifier, bool includePdfDetails = false);
-        Task<SyncOperation> GetDlcsSyncOperation(IDigitisedManifestation digitisedManifestation,
+        Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false);
+        Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages);
         Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);
         int DefaultSpace { get; }
@@ -31,6 +31,6 @@ namespace Wellcome.Dds.AssetDomain.Dashboard
         IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null);
         IEnumerable<IngestAction> GetRecentActions(int count, string user = null);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
-        AVDerivative[] GetAVDerivatives(IDigitisedManifestation digitisedManifestation);
+        AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation);
     }
 }

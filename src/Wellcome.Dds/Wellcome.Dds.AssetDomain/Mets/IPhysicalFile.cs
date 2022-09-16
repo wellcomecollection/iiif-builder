@@ -18,6 +18,14 @@ namespace Wellcome.Dds.AssetDomain.Mets
         IWorkStore WorkStore { get; set; }
         string Id { get; set; }
         string Type { get; set; }
+        
+        // Added for born digital
+        
+        // From PREMIS, in Archivematica METS contains a full path.
+        string OriginalName { get; set; }
+        
+        DateTime? CreatedDate { get; set; }
+        
         /// <summary>
         /// Order from METS, not necessarily given
         /// </summary>
@@ -34,7 +42,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string MimeType { get; set; }
         IAssetMetadata AssetMetadata { get; set; }
         string AccessCondition { get; set; }
-        string DzLicenseCode { get; set; }
         
         /// <summary>
         /// The path of the ACCESS file (e.g., JP2, MP4)
@@ -45,7 +52,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// Gets path to ALTO file associated with this file, if it has one.
         /// </summary>
         string RelativeAltoPath { get; set; }
-        string ToStringWithDimensions();
 
         AssetFamily Family { get; set; }
 
