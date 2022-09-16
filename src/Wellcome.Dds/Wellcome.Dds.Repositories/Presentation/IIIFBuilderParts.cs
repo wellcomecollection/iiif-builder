@@ -146,12 +146,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     var dict = PlayerConfigProvider.BaseConfig.Modules.ConditionsDialogue.Content;
                     usage = dict.ContainsKey(code) ? dict[code] : null;
-                    if (usage != null && !usage.StartsWith("<"))
-                    {
-                        // Make HTML
-                        usage = usage.WrapSpan();
-                    }
                 }
+            }
+            if (usage != null && !usage.StartsWith("<"))
+            {
+                // Make HTML
+                usage = usage.WrapSpan();
             }
 
             // NOTE - the PDF uses the first string that is not "Wellcome Collection" for output
