@@ -73,33 +73,26 @@ namespace Wellcome.Dds.Repositories.Presentation
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 
-        public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
+        public async Task<MultipleBuildResult> BuildAllManifestations(DdsIdentifier ddsId, Work? work = null)
         {
             var state = new State();
-            if (bNumber == KnownIdentifiers.ChemistAndDruggist)
+            if (ddsId.PackageIdentifier == KnownIdentifiers.ChemistAndDruggist)
             {
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
-            var buildResults = new MultipleBuildResult {Identifier = bNumber};
-            var ddsId = new DdsIdentifier(bNumber);
-            if (ddsId.IdentifierType != IdentifierType.BNumber)
-            {
-                // we could throw an exception - do we actually care?
-                // just process it. 
-            }
-            bNumber = ddsId.PackageIdentifier;
+            var buildResults = new MultipleBuildResult {Identifier = ddsId.PackageIdentifier};
             var manifestationId = "start";
             try
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
-                logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", bNumber);
-                var resource = await metsRepository.GetAsync(bNumber);
-                // This is a bnumber, so can't be part of anything.
+                logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", ddsId);
+                var resource = await metsRepository.GetAsync(ddsId.PackageIdentifier);
+                // This is a bnumber or born digital archive, so can't be part of any multiple manifestation.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is ICollection parentCollection)
                 {
-                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
+                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId.PackageIdentifier))
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
@@ -121,8 +114,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
-            => presentation2Converter.ConvertAll(identifier, buildResults);
+        public MultipleBuildResult BuildLegacyManifestations(DdsIdentifier ddsId, IEnumerable<BuildResult> buildResults)
+            => presentation2Converter.ConvertAll(ddsId.PackageIdentifier, buildResults);
 
         private async Task CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
@@ -191,15 +184,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public async Task<MultipleBuildResult> Build(string identifier, Work? work = null)
+        public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null)
         {
             // only this identifier, not all for the b number.
             var buildResults = new MultipleBuildResult();
             try
             {
-                var ddsId = new DdsIdentifier(identifier);
-                logger.LogInformation($"Build a single manifestation {identifier}", identifier);
-                var metsResource = await metsRepository.GetAsync(identifier);
+                logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
+                var metsResource = await metsRepository.GetAsync(ddsId);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 
@@ -214,7 +206,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (collection.Manifestations.Any(m => m.IsMultiPart()))
                     {
-                        buildResults.Add(new BuildResult(identifier, Version.V3) {RequiresMultipleBuild = true});
+                        buildResults.Add(new BuildResult(ddsId, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
                     }
                 }
