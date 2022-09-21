@@ -228,7 +228,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
 
         private BuildResult BuildInternal(Work work,
-            IMetsResource metsResource, ICollection? partOf,
+            IMetsResource metsResource, ICollection? partOfCollection,
             ManifestationMetadata manifestationMetadata, State? state)
         {
             var result = new BuildResult(metsResource.Id, Version.V3);
@@ -236,7 +236,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
-                    metsResource, partOf, work, manifestationMetadata, state);
+                    metsResource, partOfCollection, work, manifestationMetadata, state);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
@@ -256,7 +256,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         private StructureBase MakePresentation3Resource(
             IMetsResource metsResource,
-            ICollection? partOf,
+            ICollection? partOfCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
             State? state)
@@ -276,13 +276,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         Id = uriPatterns.Manifest(metsManifestation.Id)
                     };
-                    if (partOf != null)
+                    if (partOfCollection != null)
                     {
+                        // For multi-volume works, periodicals etc that are all under the same _package_
+                        // Hierarchical archive partOf is not set here, but by AddCommonMetadata
                         manifest.PartOf = new List<ResourceBase>
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOf.Id),
+                                Id = uriPatterns.CollectionForWork(partOfCollection.Id),
                                 Label = Lang.Map(work.Title),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
@@ -384,7 +386,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             Manifest manifest, 
             IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata,
-            State state)
+            State? state)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);

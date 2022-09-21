@@ -274,7 +274,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IManifestation metsManifestation, State state)
+        public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state)
         {
             var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = metsManifestation.Id;
@@ -1059,7 +1059,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void CheckForCopyAndVolumeStructure(
             IManifestation metsManifestation,
-            State state)
+            State? state)
         {
             if (metsManifestation.SectionMetadata.CopyNumber > 0)
             {
