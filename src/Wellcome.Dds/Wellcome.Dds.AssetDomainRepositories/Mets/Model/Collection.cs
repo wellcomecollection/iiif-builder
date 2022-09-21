@@ -8,8 +8,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public Collection(ILogicalStructDiv structDiv)
         {
             Id = structDiv.ExternalId;
-            ModsData = structDiv.GetMods();
-            Label = GetLabel(structDiv, ModsData);
+            SectionMetadata = structDiv.GetSectionMetadata();
+            Label = GetLabel(structDiv, SectionMetadata);
             Type = structDiv.Type;
             Order = structDiv.Order;
             Partial = structDiv.HasChildLink();

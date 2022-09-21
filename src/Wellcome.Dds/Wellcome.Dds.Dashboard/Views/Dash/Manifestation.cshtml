@@ -269,14 +269,14 @@
                         <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
                     </ul>
                 </li>
-                @if (metsManifestation.ModsData != null)
+                @if (metsManifestation.SectionMetadata != null)
                 {
                     <li class="list-group-item">
                         <ul class="list-unstyled">
                             <li>
                                 Mods:
-                                <span title="accessCondition" class="label label-primary">@metsManifestation.ModsData.AccessCondition</span>
-                                <span title="leader6" class="label label-primary">@metsManifestation.ModsData.Leader6</span>
+                                <span title="accessCondition" class="label label-primary">@metsManifestation.SectionMetadata.AccessCondition</span>
+                                <span title="leader6" class="label label-primary">@metsManifestation.SectionMetadata.Leader6</span>
                             </li>
                         </ul>
                     </li>

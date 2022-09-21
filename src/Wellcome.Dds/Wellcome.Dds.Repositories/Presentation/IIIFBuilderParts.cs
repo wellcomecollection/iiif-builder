@@ -138,7 +138,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata,
             bool useRequiredStatement)
         {
-            var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.ModsData.Usage);
+            var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.SectionMetadata.Usage);
             if (!usage.HasText())
             {
                 var code = GetMappedLicenceCode(metsManifestation);
@@ -180,7 +180,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // TODO - what do we want to do with this?
             // Park for now and resurrect later, it all depends on what the wc.org front end wants to do with these things
             // var permittedOps = digitisedManifestation.MetsManifestation.PermittedOperations;
-            // var accessCondition = digitisedManifestation.MetsManifestation.ModsData.AccessCondition;
+            // var accessCondition = digitisedManifestation.MetsManifestation.SectionData.AccessCondition;
         }
 
         public void Rights(Manifest manifest, IManifestation metsManifestation)
@@ -198,7 +198,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private static string GetMappedLicenceCode(IManifestation metsManifestation)
         {
-            var dzl = metsManifestation.ModsData.DzLicenseCode;
+            var dzl = metsManifestation.SectionMetadata.DzLicenseCode;
             return LicenceCodes.MapLicenseCode(dzl);
         }
 
@@ -803,7 +803,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 metsManifestation.Id,
                 physIdDict,
                 metsManifestation.RootStructRange, 
-                metsManifestation.ParentModsData);
+                metsManifestation.ParentSectionMetadata);
             if (IsManuscriptStructure(metsManifestation.RootStructRange))
             {
                 wdlRoot = ConvertFirstChildToRoot(wdlRoot);
@@ -856,20 +856,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             string manifestationId,
             Dictionary<string, string> physIdDict,
             IStructRange structRange,
-            IModsData parentMods)
+            ISectionMetadata parentSectionMetadata)
         {
             var range = new Range
             {
                 Id = uriPatterns.Range(manifestationId, structRange.Id)
             };
-            if (structRange.Type == "PeriodicalIssue" && parentMods != null)
+            if (structRange.Type == "PeriodicalIssue" && parentSectionMetadata != null)
             {
                 // for periodicals, some MODS data is held at the VOLUME level, 
                 // which is the dmdSec referenced by the parent structural div
-                MergeExtraPeriodicalVolumeData(structRange.Mods, parentMods);
+                MergeExtraPeriodicalVolumeData(structRange.SectionMetadata, parentSectionMetadata);
             }
 
-            var modsForAccessCondition = structRange.Mods ?? parentMods;
+            var modsForAccessCondition = structRange.SectionMetadata ?? parentSectionMetadata;
             if (!range.Label.HasItems()) // && structRange.Mods != null)
             {
                 range.Label = GetMappedRangeLabel(structRange);
@@ -913,7 +913,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private LanguageMap GetMappedRangeLabel(IStructRange structRange)
         {
-            var s = structRange.Mods?.Title ?? structRange.Type;
+            var s = structRange.SectionMetadata?.Title ?? structRange.Type;
             var humanFriendly = manifestStructureHelper.GetHumanFriendlySectionLabel(s);
             return Lang.Map("none", humanFriendly); // TODO - "en" is often wrong.
         }
@@ -924,7 +924,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// </summary>
         /// <param name="sectionMods">The MODS for the current structural section - the periodical issue</param>
         /// <param name="volumeMods">The MODS for the volume (one per METS file)</param>
-        private void MergeExtraPeriodicalVolumeData(IModsData sectionMods, IModsData volumeMods)
+        private void MergeExtraPeriodicalVolumeData(ISectionMetadata sectionMods, ISectionMetadata volumeMods)
         {
             if (sectionMods.AccessCondition.IsNullOrWhiteSpace() || sectionMods.AccessCondition == "Open")
             {
@@ -1061,7 +1061,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IManifestation metsManifestation,
             State state)
         {
-            if (metsManifestation.ModsData.CopyNumber > 0)
+            if (metsManifestation.SectionMetadata.CopyNumber > 0)
             {
                 if (state == null)
                 {
@@ -1073,8 +1073,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 state.MultiCopyState.CopyAndVolumes[metsManifestation.Id] = new CopyAndVolume
                 {
                     Id = metsManifestation.Id,
-                    CopyNumber = metsManifestation.ModsData.CopyNumber,
-                    VolumeNumber = metsManifestation.ModsData.VolumeNumber
+                    CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
+                    VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
                 };
             }
         }

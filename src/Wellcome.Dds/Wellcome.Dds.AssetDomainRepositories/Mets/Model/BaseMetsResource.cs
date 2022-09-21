@@ -1,5 +1,4 @@
 ﻿using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 
@@ -11,23 +10,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string Label { get; set; }
         public string Type { get; set; }
         public int? Order { get; set; }
-        public IModsData ModsData { get; set; }
-        public IModsData ParentModsData { get; set; }
+        public ISectionMetadata SectionMetadata { get; set; }
+        public ISectionMetadata ParentSectionMetadata { get; set; }
         public IArchiveStorageStoredFileInfo SourceFile { get; set; }
         public bool Partial { get; set; }
         
-        protected string GetLabel(ILogicalStructDiv div, IModsData mods)
+        protected string GetLabel(ILogicalStructDiv div, ISectionMetadata sectionMetadata)
         {
             string label = null;
-            if (mods != null)
+            if (sectionMetadata != null)
             {
                 if (div.Type == "PeriodicalIssue")
                 {
-                    var issue = mods.GetDisplayTitle();
+                    var issue = sectionMetadata.GetDisplayTitle();
                     var issueIsUseful = issue.ToAlphanumeric().HasText();
-                    if (mods.OriginDateDisplay.HasText())
+                    if (sectionMetadata.DisplayDate.HasText())
                     {
-                        label = mods.OriginDateDisplay;
+                        label = sectionMetadata.DisplayDate;
                         if (issueIsUseful)
                         {
                             label += " (issue " + issue + ")";
@@ -44,7 +43,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
                 else
                 {
-                    label = mods.GetDisplayTitle();
+                    label = sectionMetadata.GetDisplayTitle();
                 }
             }
             if (!label.HasText())
