@@ -282,12 +282,18 @@ namespace Wellcome.Dds.Repositories.Presentation
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence)
             {
-                string orderLabel = null;
-                LanguageMap canvasLabel = null;
-                if (physicalFile.OrderLabel.HasText())
+                LanguageMap canvasLabel;
+                if (metsManifestation.Type == "Born Digital") // define as const - but where?
                 {
-                    orderLabel = physicalFile.OrderLabel;
-                    canvasLabel = Lang.Map("none", orderLabel);
+                    canvasLabel = Lang.Map("none", physicalFile.OriginalName.GetFileName());
+                }
+                else if (physicalFile.OrderLabel.HasText())
+                {
+                    canvasLabel = Lang.Map("none", physicalFile.OrderLabel);
+                }
+                else
+                {
+                    canvasLabel = Lang.Map("none", physicalFile.Index.ToString());
                 }
                 var canvas = new Canvas
                 {
@@ -308,6 +314,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
+                        // This should not make a difference whether born digital or not
                         var size = new Size(
                             physicalFile.AssetMetadata.GetImageWidth(),
                             physicalFile.AssetMetadata.GetImageHeight());
@@ -351,7 +358,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 new ()
                                 {
                                     Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestIdentifier, assetIdentifier, 3),
-                                    Label = Lang.Map(orderLabel.HasText() ? $"Text of page {orderLabel}" : "Text of this page")
+                                    Label = Lang.Map(physicalFile.OrderLabel.HasText() ? $"Text of page {physicalFile.OrderLabel}" : "Text of this page")
                                 }
                             };
                         }

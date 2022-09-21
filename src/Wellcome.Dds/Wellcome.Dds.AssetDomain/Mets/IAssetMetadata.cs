@@ -16,7 +16,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string GetFormatVersion();
         string GetPronomKey();
         string GetAssetId();
-        string GetLengthInSeconds();
+        string GetDisplayDuration();
         double GetDuration();
         string GetBitrateKbps();
         int GetNumberOfPages();

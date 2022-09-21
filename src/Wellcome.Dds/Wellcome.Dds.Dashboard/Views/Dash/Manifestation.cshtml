@@ -583,7 +583,7 @@
                                 <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
-                                    <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
+                                    <td>@pf.AssetMetadata.GetDisplayDuration()</td>
                                 }
                                 else
                                 {
@@ -663,7 +663,7 @@
                                     <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
-                                        <td>@adjunct.AssetMetadata.GetLengthInSeconds()</td>
+                                        <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
                                     }
                                     else
                                     {
@@ -861,7 +861,7 @@
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>
                         @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                        @file.OriginalName.Split('/').Last()
+                        @file.OriginalName.GetFileName()
                     </strong></a>
                     <br/>
                     <div class="small" style="margin-left: 18px;">

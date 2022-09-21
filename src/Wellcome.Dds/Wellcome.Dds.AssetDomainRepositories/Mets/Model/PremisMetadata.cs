@@ -11,6 +11,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     {
         private XElement premisObjectXElement;
         private XElement premisRightsStatementXElement;
+        private MediaDimensions mediaDimensions;
         private readonly XElement metsRoot;
         private readonly string admId;
         private bool initialised;
@@ -41,6 +42,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return originalName;
         }
 
+        private const string DefaultMimeType = "application/octet-stream";
         public string GetMimeType()
         {
             string mimeType = null;
@@ -75,7 +77,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
             }
 
-            return "application/octet-stream";
+            return DefaultMimeType;
         }
 
         public DateTime? GetCreatedDate()
@@ -145,21 +147,164 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             throw new NotImplementedException();
         }
 
-        public string GetLengthInSeconds()
+        public int GetImageWidth()
         {
-            return GetFilePropertyValue("Duration");
+            EnsureMediaDimensions();
+            return mediaDimensions.Width.GetValueOrDefault();
         }
 
+        public int GetImageHeight()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions.Height.GetValueOrDefault();
+        }
+        
         public double GetDuration()
         {
-            var possibleStringLength = GetLengthInSeconds();
-            if (double.TryParse(possibleStringLength, out var result))
+            EnsureMediaDimensions();
+            return mediaDimensions.Duration.GetValueOrDefault();
+        }
+        
+        public string GetDisplayDuration()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions.DurationDisplay;
+        }
+        
+        private void EnsureMediaDimensions()
+        {
+            if (mediaDimensions != null)
             {
-                return result;
+                return;
             }
 
-            return ParseDuration(possibleStringLength);
+            mediaDimensions = new MediaDimensions();
+            bool processToolOutputs = false; // If we need to seek this info in Archivematica tool outputs
+            var mimeType = GetMimeType();
+            if (mimeType.StartsWith("image/") || mimeType.StartsWith("video/") || mimeType == DefaultMimeType)
+            {
+                // the most common type... and the most common (Goobi) metadata:
+                mediaDimensions.Width = GetInt32FilePropertyValue("ImageWidth");
+                mediaDimensions.Height = GetInt32FilePropertyValue("ImageHeight");
+                if (mediaDimensions.Width is null or <= 0)
+                {
+                    // Not found in Goobi metadata, so:
+                    processToolOutputs = true;
+                }
+            }
+
+            if (mimeType.StartsWith("video/") || mimeType.StartsWith("audio/") || mimeType == DefaultMimeType)
+            {
+                // for now look for Goobi way first as it's much quicker.
+                // Over time we may expect far more BD AV so we could try the Archivematica way first.
+                var durationString = GetFilePropertyValue("Duration");
+                if (durationString.HasText())
+                {
+                    double parsedDuration;
+                    if (double.TryParse(durationString, out var result))
+                    {
+                        parsedDuration = result;
+                    }
+                    else
+                    {
+                        parsedDuration = ParseDuration(durationString);
+                    }
+                    if (parsedDuration > 0)
+                    {
+                        mediaDimensions.DurationDisplay = durationString;
+                        mediaDimensions.Duration = parsedDuration;
+                    }
+                }
+                else
+                {
+                    processToolOutputs = true;
+                }
+            }
+
+            if (processToolOutputs)
+            {
+                // Also for now we won't treat application/* as time-based, or image.
+                PopulateMediaDimensionsFromToolOutputs();
+            }
         }
+
+        private void PopulateMediaDimensionsFromToolOutputs()
+        {
+            // SAFPA_C_D_5_15_1 - video/quicktime - ffprobe, one form of Exif
+            // SA_REN_B_21_1 - video/x-ms-wmv - FITS Exiftool
+            // PPSML_Z_11_4 - video/quicktime - ffprobe as above
+            // PPCRI_D_4_5A - jpeg - MediaInfo - track type="Image", same for TIFFs
+            
+            var objectCharacteristics = premisObjectXElement
+                .Descendants(XNames.PremisObjectCharacteristicsExtension)
+                .SingleOrDefault();
+
+            if (objectCharacteristics == null)
+            {
+                return;
+            }
+
+            var mediaInfoTracks = objectCharacteristics.Descendants(XNames.MediaInfoTrack).ToList();
+            if (mediaInfoTracks.Any())
+            {
+                foreach (var track in mediaInfoTracks)
+                {
+                    switch (track.Attribute("type")?.Value)
+                    {
+                        case "Image":
+                            GetWidthAndHeightFromMediaInfoTrack(track);
+                            break;
+                        case "Video":
+                            GetWidthAndHeightFromMediaInfoTrack(track);
+                            GetDurationFromMediaInfoTrack(track);
+                            break;
+                        case "Audio":
+                            GetDurationFromMediaInfoTrack(track);
+                            break;
+                    }
+                }
+                // return here? Or carry on seeking more info?
+            }
+
+            var fitsExifOutput = objectCharacteristics.GetAllDescendantsWithAttribute(
+                XNames.FitsTool, "name", "Exiftool").FirstOrDefault();
+            if (fitsExifOutput != null)
+            {
+                // see slack
+            }
+
+
+
+        }
+
+        private void GetWidthAndHeightFromMediaInfoTrack(XElement track)
+        {
+            if (mediaDimensions.Width.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Width = track
+                    .GetDesendantElementValue(XNames.MediaInfoWidth)
+                    .ToNullableInt();
+            }
+
+            if (mediaDimensions.Height.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Height = track
+                    .GetDesendantElementValue(XNames.MediaInfoHeight)
+                    .ToNullableInt();
+            }
+        }
+
+        private void GetDurationFromMediaInfoTrack(XElement track)
+        {
+            if (mediaDimensions.Duration.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Duration = track
+                    .GetDesendantElementValue(XNames.MediaInfoDuration)
+                    .ToNullableDouble();
+                mediaDimensions.DurationDisplay = mediaDimensions.Duration.ToString();
+            }
+        }
+
 
         public string GetBitrateKbps()
         {
@@ -175,18 +320,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public int GetNumberOfImages()
         {
             throw new NotImplementedException();
-        }
-
-        public int GetImageWidth()
-        {
-            var num = GetInt32FilePropertyValue("ImageWidth");
-            return num ?? 0;
-        }
-
-        public int GetImageHeight()
-        {
-            var num = GetInt32FilePropertyValue("ImageHeight");
-            return num ?? 0;
         }
 
         private string GetFilePropertyValue(string filePropertyName)
@@ -262,6 +395,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private void Init()
         {
             // Goobi and Archivematica METS are quite differently arranged.
+            // We want this class to work with both kinds of METS, and possibly for Goobi METS to start using more
+            // Premis or other information. 
             XElement techMd = null;
             XElement rightsMd = null;
             
@@ -328,5 +463,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             return 0;
         }
+    }
+
+    class MediaDimensions
+    {
+        public int? Width { get; set; }
+        public int? Height { get; set; }
+        public double? Duration { get; set; }
+        public string DurationDisplay { get; set; }
     }
 }

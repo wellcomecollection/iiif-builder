@@ -38,7 +38,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.AccessCondition = physicalFile.AssetMetadata.GetRightsStatement().AccessCondition;
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
-            physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.
+            physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); 
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
             physicalFile.Family = physicalFile.MimeType.GetAssetFamily(BornDigitalImageTypes);
                 
@@ -142,6 +142,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         // and the source of the physical file properties.
                         physicalFile.AssetMetadata ??= file.AssetMetadata;
                         physicalFile.StorageIdentifier = file.StorageIdentifier;
+                        // So... here we set MimeType from the file element.
+                        // But, we are using the Premis IAssetMetadata mimetype to guide how we find height and width...
+                        // This will be fine as long as they give the same result.
+                        // TODO: MimeType determination, revisit.
                         physicalFile.MimeType = file.MimeType;
                         physicalFile.RelativePath = file.RelativePath;
                         physicalFile.Family = file.Family;

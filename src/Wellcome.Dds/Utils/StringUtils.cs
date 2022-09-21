@@ -560,6 +560,16 @@ namespace Utils
             return (operation, parameter);
         }
 
+        public static int? ToNullableInt(this string s)
+        {
+            if (int.TryParse(s, out var i)) return i;
+            return null;
+        }
         
+        public static double? ToNullableDouble(this string s)
+        {
+            if (double.TryParse(s, out var i)) return i;
+            return null;
+        }
     }
 }
