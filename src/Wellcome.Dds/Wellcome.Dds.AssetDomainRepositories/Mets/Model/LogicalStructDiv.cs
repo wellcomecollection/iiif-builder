@@ -7,6 +7,9 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
+    /// <summary>
+    /// This class is only used to model Goobi METS, not Archivematica.
+    /// </summary>
     public class LogicalStructDiv : ILogicalStructDiv
     {
         private const char FileSeparator = '\\';
@@ -148,7 +151,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private ModsData modsData;
         private bool modsLoaded;
 
-        public IModsData GetMods()
+        public ISectionMetadata GetSectionMetadata()
         {
             // Lazy loaded mods
             if (!modsLoaded)

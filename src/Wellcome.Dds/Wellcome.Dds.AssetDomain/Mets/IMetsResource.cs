@@ -6,8 +6,8 @@
         string Label { get; }
         string Type { get; }
         int? Order { get; }
-        IModsData ModsData { get; }
-        IModsData ParentModsData { get; }
+        ISectionMetadata SectionMetadata { get; }
+        ISectionMetadata ParentSectionMetadata { get; }
         bool Partial { get; }
 
         string GetRootId();

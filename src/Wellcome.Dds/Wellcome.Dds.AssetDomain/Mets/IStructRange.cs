@@ -9,6 +9,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string Id { get; set; }
         List<string> PhysicalFileIds { get; set; }
         List<IStructRange> Children { get; set; }
-        IModsData Mods { get; set; } // TODO: Why was this not a good idea before?
+        ISectionMetadata SectionMetadata { get; set; } 
     }
 }

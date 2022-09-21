@@ -35,23 +35,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             physicalFile.AssetMetadata = workStore.MakeAssetMetadata(rootElement, admId);
             // Will we eventually have directory-level access conditions that apply to all their files?
-            var rights = physicalFile.AssetMetadata.GetRightsStatement();
-            if (rights == null)
-            {
-                //throw new NotSupportedException(
-                //    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
-                
-                // We need to throw the error above but for now, for testing, we'll make a pseudo-rights statement:
-                rights = new PremisRightsStatement
-                {
-                    Basis = "No Rights Statement",
-                    Identifier = "no-rights",
-                    AccessCondition = Common.AccessCondition.Closed,
-                    Statement = "No Rights"
-                };
-            }
-
-            physicalFile.AccessCondition = rights.AccessCondition;
+            physicalFile.AccessCondition = physicalFile.AssetMetadata.GetRightsStatement().AccessCondition;
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); // This will have to be obtained from PREMIS not an attribute... see FITS data.

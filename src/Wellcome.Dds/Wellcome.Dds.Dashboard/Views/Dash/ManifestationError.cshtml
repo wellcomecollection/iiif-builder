@@ -19,6 +19,6 @@
     }
     
     <h3>Other tools</h3>
-    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", "Peek", new {id = ViewBag.DdsId.BNumber})</p>
-    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
+    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.PackageIdentifierPathElementSafe), "StorageManifest", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})</p>
+    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})">METS file for @(ViewBag.DdsId.PackageIdentifier)</a></p>
 }

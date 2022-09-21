@@ -72,24 +72,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             get
             {
-                if (ParentModsData != null && Type == "PeriodicalIssue")
+                if (ParentSectionMetadata != null && Type == "PeriodicalIssue")
                 {
-                    if (ParentModsData.PlayerOptions > 0)
+                    if (ParentSectionMetadata.PlayerOptions > 0)
                     {
                         return LicensesAndOptions.Instance.GetPermittedOperations(
-                            ParentModsData.PlayerOptions, FirstInternetType);
+                            ParentSectionMetadata.PlayerOptions, FirstInternetType);
                     }
                 }
                 // ModsData will be null if Partial == true
-                if (ModsData != null && ModsData.PlayerOptions > 0)
+                if (SectionMetadata != null && SectionMetadata.PlayerOptions > 0)
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        ModsData.PlayerOptions, FirstInternetType);
+                        SectionMetadata.PlayerOptions, FirstInternetType);
                 }
-                if (ModsData != null && ModsData.DzLicenseCode.HasText())
+                if (SectionMetadata != null && SectionMetadata.DzLicenseCode.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        ModsData.DzLicenseCode, Type, FirstInternetType);
+                        SectionMetadata.DzLicenseCode, Type, FirstInternetType);
                 }
                 return new string[] {};
             }
@@ -121,13 +121,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             logicalStructDiv = structDiv;
             Id = logicalStructDiv.ExternalId;
-            ModsData = logicalStructDiv.GetMods();
+            SectionMetadata = logicalStructDiv.GetSectionMetadata();
             parentLogicalStructDiv = parentStructDiv;
             if (parentLogicalStructDiv != null)
             {
-                ParentModsData = parentLogicalStructDiv.GetMods();
+                ParentSectionMetadata = parentLogicalStructDiv.GetSectionMetadata();
             }
-            Label = GetLabel(logicalStructDiv, ModsData);
+            Label = GetLabel(logicalStructDiv, SectionMetadata);
             Type = logicalStructDiv.Type;
             Order = logicalStructDiv.Order;
             SourceFile = structDiv.WorkStore.GetFileInfoForPath(structDiv.ContainingFileRelativePath); 
@@ -181,11 +181,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         private IStructRange BuildStructRange(ILogicalStructDiv div)
         {
-            var mods = div.GetMods();
+            var mods = div.GetSectionMetadata();
             var sr = new StructRange
             {
                 Id = div.Id,
-                Mods = mods,
+                SectionMetadata = mods,
                 Label = GetLabel(div, mods),
                 Type = div.Type,
                 PhysicalFileIds = div.GetPhysicalFiles().Select(pf => pf.Id).ToList()

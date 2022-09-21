@@ -9,8 +9,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public class PremisMetadata : IAssetMetadata
     {
-        private XElement premisObject;
-        private XElement premisRightsStatement;
+        private XElement premisObjectXElement;
+        private XElement premisRightsStatementXElement;
         private readonly XElement metsRoot;
         private readonly string admId;
         private bool initialised;
@@ -23,16 +23,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             this.admId = admId;
         }
 
+        private string originalName;
         public string GetOriginalName()
         {
+            if (originalName != null)
+            {
+                return originalName;
+            }
             if (!initialised) Init();
             const string transferPrefix = "%transferDirectory%objects/";
-            var value = premisObject.GetDesendantElementValue(XNames.PremisOriginalName);
+            var value = premisObjectXElement.GetDesendantElementValue(XNames.PremisOriginalName);
             if (value == null || !value.Contains(transferPrefix))
             {
                 throw new NotSupportedException($"Premis original name does not contain transfer prefix: {value}");
             }
-            return value.RemoveStart(transferPrefix);
+            originalName = value.RemoveStart(transferPrefix);
+            return originalName;
         }
 
         public string GetMimeType()
@@ -54,7 +60,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // The FITS section is present on some files. This could be extended to look in other sections.
             
             var objectCharacteristics =
-                premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
+                premisObjectXElement.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
             if (objectCharacteristics != null)
             {
                 // THIS IS NOT RELIABLE
@@ -75,7 +81,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public DateTime? GetCreatedDate()
         {
             if (!initialised) Init();
-            var createdDateString = premisObject.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
+            var createdDateString = premisObjectXElement.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
             if(DateTime.TryParse(createdDateString, out var result))
             {
                 return result;
@@ -86,16 +92,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public string GetFileName()
         {
-            // This only works for Goobi METS
             if (!initialised) Init();
-            var oids = premisObject.Elements(XNames.PremisObjectIdentifier);
-            foreach (var oid in oids)
+            var objectIDs = premisObjectXElement.Elements(XNames.PremisObjectIdentifier);
+            foreach (var oid in objectIDs)
             {
+                // This only works for Goobi METS
                 var oidType = oid.GetDesendantElementValue(XNames.PremisObjectIdentifierType);
                 if (oidType == "local")
                 {
                     return oid.GetDesendantElementValue(XNames.PremisObjectIdentifierValue);
                 }
+            }
+            // didn't find any objectIDs, look for born digital elements
+            if (GetOriginalName().HasText())
+            {
+                return originalName.GetFileName();
             }
             return null;
         }
@@ -108,25 +119,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string GetFileSize()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisSize);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisSize);
         }
 
         public string GetFormatName()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatName);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatName);
         }
 
         public string GetFormatVersion()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatVersion);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatVersion);
         }
 
         public string GetPronomKey()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
         }
 
         public string GetAssetId()
@@ -201,29 +212,45 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
+        private IRightsStatement rightsStatement;
         public IRightsStatement GetRightsStatement()
         {
             if (!initialised) Init();
-            if (premisRightsStatement == null)
+            if (premisRightsStatementXElement == null)
             {
-                return null;
+                //throw new NotSupportedException(
+                //    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
+            
+                // We need to throw the error above but for now, for testing, we'll make a pseudo-rights statement:
+                rightsStatement = new PremisRightsStatement
+                {
+                    Basis = "No Rights Statement",
+                    Identifier = "no-rights",
+                    AccessCondition = Common.AccessCondition.Closed,
+                    Statement = "No Rights"
+                };
             }
 
-            var rightsStatement = new PremisRightsStatement
+            if (rightsStatement != null)
             {
-                Identifier = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
-                Basis = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsBasis),
-                AccessCondition = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
+                return rightsStatement;
+            }
+
+            rightsStatement = new PremisRightsStatement
+            {
+                Identifier = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
+                Basis = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsBasis),
+                AccessCondition = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
             };
 
             switch (rightsStatement.Basis)
             {
                 case "License":
-                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisLicenseNote);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisLicenseNote);
                     break;
                 case "Copyright":
-                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightNote);
-                    rightsStatement.Status = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightNote);
+                    rightsStatement.Status = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
                     break;
                 default:
                     throw new NotSupportedException($"Unknown rights statement basis: {rightsStatement.Basis}");
@@ -258,11 +285,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 throw new NotSupportedException($"Unable to locate techMD section for {admId}");
             }
-            premisObject = techMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisObject);
+            premisObjectXElement = techMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisObject);
             
             significantProperties = new Dictionary<string, string>();
-            if (premisObject == null) return;
-            foreach (var sigProp in premisObject.Elements(XNames.PremisSignificantProperties))
+            if (premisObjectXElement == null) return;
+            foreach (var sigProp in premisObjectXElement.Elements(XNames.PremisSignificantProperties))
             {
                 var propType = sigProp.Element(XNames.PremisSignificantPropertiesType).Value;
                 var propValue = sigProp.Element(XNames.PremisSignificantPropertiesValue).Value;
@@ -271,7 +298,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             
             if (rightsMd != null)
             {
-                premisRightsStatement = rightsMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisRightsStatement);
+                premisRightsStatementXElement = rightsMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisRightsStatement);
             }
 
             initialised = true;

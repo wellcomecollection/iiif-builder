@@ -140,10 +140,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // we're going to build the physical file list and the structural information at the same time,
             // as we walk the directory structure in the physical structMap.
             
-            // We'll populate these on the BD manifestation:
-            // public List<IPhysicalFile> Sequence { get; set; }
-            // public List<IStoredFile> SynchronisableFiles { get; }
-            // public IStructRange RootStructRange { get; set; }
+            var objectsStructRange = new StructRange
+            {
+                Label = "objects",
+                Type = Directory,
+                PhysicalFileIds = new List<string>()
+            };
+            
             var bdm = new BornDigitalManifestation
             {
                 // Many props still to assigned 
@@ -153,12 +156,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),
                 IgnoredStorageIdentifiers = new List<string>(),
-                RootStructRange = new StructRange
-                {
-                    Label = "objects",
-                    Type = Directory,
-                    PhysicalFileIds = new List<string>()
-                },
+                RootStructRange = objectsStructRange,
                 SourceFile = workStore.GetFileInfoForPath(workStore.GetRootDocument())
             };
             // all our structRanges are going to be directories
@@ -183,13 +181,26 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
             bdm.PhysicalFileMap = bdm.Sequence.ToDictionary(pf => pf.Id);
             
-            // Now work out the original folder names, from their files
-            ApplyDirectoryLabels(bdm.RootStructRange, bdm.PhysicalFileMap);
-            
+            DecorateStructure(bdm.RootStructRange, bdm.PhysicalFileMap);
+            var objectsMetadata = bdm.RootStructRange.SectionMetadata;
+            bdm.SectionMetadata = new BornDigitalSectionMetadata
+            {
+                Title = bdm.Label,
+                AccessCondition = objectsMetadata.AccessCondition,
+                DzLicenseCode = objectsMetadata.DzLicenseCode
+            };
             return bdm;
         }
 
-        private void ApplyDirectoryLabels(IStructRange structRange,
+        /// <summary>
+        /// Work out the original folder names, from their files, and add structural
+        /// access and rights information. Initially this is just based on the first file
+        /// in the section.
+        /// </summary>
+        /// <param name="structRange"></param>
+        /// <param name="fileMap"></param>
+        private void DecorateStructure(
+            IStructRange structRange,
             Dictionary<string, IPhysicalFile> fileMap)
         {
             // Replace the labels obtained from the <mets:div TYPE="Directory" /> with 
@@ -211,6 +222,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                             structRange.Label = label;
                         }
                     }
+                    structRange.SectionMetadata = new BornDigitalSectionMetadata
+                    {
+                        Title = structRange.Label,
+                        AccessCondition = file.AccessCondition,
+                        DzLicenseCode = file.AssetMetadata.GetRightsStatement().Statement
+                    };
                 }
             }
 
@@ -218,7 +235,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             
             foreach (var childStructRange in structRange.Children)
             {
-                ApplyDirectoryLabels(childStructRange, fileMap);
+                DecorateStructure(childStructRange, fileMap);
+                if (structRange.SectionMetadata == null)
+                {
+                    // this happens when the directory had no immediate child files
+                    // which means it MUST have child folders
+                    var firstChildStructRange = structRange.Children.First();
+                    structRange.SectionMetadata = new BornDigitalSectionMetadata
+                    {
+                        Title = structRange.Label,
+                        AccessCondition = firstChildStructRange.SectionMetadata.AccessCondition,
+                        DzLicenseCode = firstChildStructRange.SectionMetadata.DzLicenseCode
+                    };
+                }
             }
         }
 

@@ -163,19 +163,19 @@ namespace Wellcome.Dds.Repositories.Presentation
                     state.Volumes.Add(volume);
                     var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
                     // populate volume fields
-                    volume.Volume = metsVolume.ModsData.Number;
-                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.Volume = metsVolume.SectionMetadata.Number;
+                    volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
                     volume.NavDate = state.GetNavDate(volume.DisplayDate);
-                    volume.Label = metsVolume.ModsData.Title;
+                    volume.Label = metsVolume.SectionMetadata.Title;
                 }
                 logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
                 var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
                 volume.Issues.Add(issue);
                 var metsIssue = mic.Manifestation;
-                var mods = metsIssue.ModsData;
+                var mods = metsIssue.SectionMetadata;
                 // populate issue fields
                 issue.Title = mods.Title; // like "2293"
-                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.DisplayDate = mods.DisplayDate;
                 issue.NavDate = state.GetNavDate(issue.DisplayDate);
                 issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
                 issue.MonthNum = issue.NavDate.Month;

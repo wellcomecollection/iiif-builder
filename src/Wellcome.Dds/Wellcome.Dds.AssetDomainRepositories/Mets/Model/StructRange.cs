@@ -10,7 +10,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string Id { get; set; }
         public List<string> PhysicalFileIds { get; set; }
         public List<IStructRange> Children { get; set; }
-        public IModsData Mods { get; set; }
+        public ISectionMetadata SectionMetadata { get; set; }
 
         public override string ToString()
         {
