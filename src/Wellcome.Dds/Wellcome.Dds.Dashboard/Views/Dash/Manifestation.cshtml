@@ -866,9 +866,11 @@
                     <br/>
                     <div class="small" style="margin-left: 18px;">
                         @file.MimeType (@file.AssetMetadata.GetFormatName())
-                        <a 
-                            href="https://www.nationalarchives.gov.uk/PRONOM/PUID/proPUIDSearch.aspx?status=new" 
-                            target="_blank">@file.AssetMetadata.GetPronomKey()</a>
+                        @{
+                            var pronomKey = file.AssetMetadata.GetPronomKey();
+                            var tnaPage = "https://www.nationalarchives.gov.uk/PRONOM/" + pronomKey;
+                        }
+                        <a href="@tnaPage" target="_blank">@pronomKey</a>
                         <br/>
                         @if (dlcsImage != null)
                         {
@@ -878,7 +880,6 @@
                         {
                             <span class="text-danger">@file.StorageIdentifier</span>
                              <span class="text-muted small"> - NOT ON DLCS</span>
-                                                                             
                         }
                     </div>
                 </li>
