@@ -22,10 +22,11 @@ public class MediaDimensions
             hasDimensions = true;
         }
 
-        if (DurationDisplay.HasText())
+        if (Duration.GetValueOrDefault() > 0)
         {
             if (s.Length > 0) s.Append(", ");
-            s.Append(DurationDisplay);
+            s.Append(Duration);
+            s.Append(" (" + DurationDisplay + ")");
             hasDimensions = true;
         }
 

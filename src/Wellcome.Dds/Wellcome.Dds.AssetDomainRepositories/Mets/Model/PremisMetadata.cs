@@ -207,15 +207,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var durationString = GetFilePropertyValue("Duration");
                 if (durationString.HasText())
                 {
-                    double parsedDuration;
-                    if (double.TryParse(durationString, out var result))
-                    {
-                        parsedDuration = result;
-                    }
-                    else
-                    {
-                        parsedDuration = ParseDuration(durationString);
-                    }
+                    var parsedDuration = ParseDuration(durationString);
                     if (parsedDuration > 0)
                     {
                         mediaDimensions.DurationDisplay = durationString;
@@ -498,25 +490,46 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 return 0;
             }
-            if (possibleStringLength.Contains("mn"))
+
+            var test = possibleStringLength.Trim();
+            if (test.Contains("mn"))
             {
                 // Examples
                 // 22mn 49s
                 // 1mn 41s
                 // 9mn 46s ... this format seems very consistent
-                var parts = possibleStringLength.Split(' ');
+                var parts = test.Split(' ');
                 int.TryParse(parts[0].ToNumber(), out var mins);
                 int.TryParse(parts[1].ToNumber(), out var secs);
                 return 60 * mins + secs;
             }
 
-            if (TimeSpan.TryParse(possibleStringLength, out var ts))
+            if (test.Contains(":"))
             {
-                // 12:30:33 and similar formats
-                if (ts.TotalSeconds > 0)
+                var parts = test.Split(':');
+                if (parts.Length == 2)
                 {
-                    return ts.TotalSeconds;
+                    test = "00:" + test;
                 }
+                // TODO - deal with overflow parts only if we find them, e.g., 00:80:20
+                if (TimeSpan.TryParse(test, out var ts))
+                {
+                    // 12:30:33 and similar formats
+                    if (ts.TotalSeconds > 0)
+                    {
+                        return ts.TotalSeconds;
+                    }
+                }
+            }
+            
+            // "58s"
+            if (test.EndsWith("s"))
+            {
+                test = test.Chomp("s");
+            }
+            if (double.TryParse(test, out var result))
+            {
+                return result;
             }
 
             return 0;

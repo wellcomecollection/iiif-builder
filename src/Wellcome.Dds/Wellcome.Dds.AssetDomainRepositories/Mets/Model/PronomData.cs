@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Utils;
 
@@ -25,7 +26,30 @@ public sealed class PronomData
         {
             if (kvp.Value.HasText())
             {
-                formatMap[kvp.Key] = kvp.Value.Split(',')[0].Trim();
+                var mimes = kvp.Value.Split(',').Select(m => m.Trim()).ToArray();
+                string mimeType = null;
+                if (mimes.Length > 1)
+                {
+                    // if there are multiple mime types, favour those that are explicitly "paintable"
+                    mimeType = mimes.FirstOrDefault(m => m.StartsWith("image/"));
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.StartsWith("video/"));
+                    }
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.StartsWith("audio/"));
+                    }
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.StartsWith("text/"));
+                    }
+                }
+                if (mimeType.IsNullOrWhiteSpace())
+                {
+                    mimeType = mimes[0];
+                }
+                formatMap[kvp.Key] = mimeType?.Trim();
             }
             else
             {
