@@ -258,11 +258,11 @@ namespace Wellcome.Dds.Dashboard.Models
                 case AssetFamily.Image:
                     return string.Format(GlyphTemplate, "picture");
                 case AssetFamily.TimeBased:
-                    if (mimeType.StartsWith("audio/"))
+                    if (mimeType.IsAudioMimeType())
                     {
                         return string.Format(GlyphTemplate, "volume-up");
                     }
-                    if (mimeType.StartsWith("video/"))
+                    if (mimeType.IsVideoMimeType())
                     {
                         return string.Format(GlyphTemplate, "film"); 
                     }

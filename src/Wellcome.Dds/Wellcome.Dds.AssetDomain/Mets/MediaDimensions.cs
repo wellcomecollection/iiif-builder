@@ -9,7 +9,7 @@ public class MediaDimensions
     public int? Height { get; set; }
     public double? Duration { get; set; }
     public string DurationDisplay { get; set; }
-
+    
     public override string ToString()
     {
         bool hasDimensions = false;

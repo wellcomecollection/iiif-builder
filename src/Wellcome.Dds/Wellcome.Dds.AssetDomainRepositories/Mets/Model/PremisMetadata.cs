@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using Utils;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
@@ -188,7 +189,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             mediaDimensions = new MediaDimensions();
             bool processToolOutputs = false; // If we need to seek this info in Archivematica tool outputs
             var mimeType = GetMimeType();
-            if (mimeType.StartsWith("image/") || mimeType.StartsWith("video/") || mimeType == DefaultMimeType)
+            if (mimeType.IsImageMimeType() || mimeType.IsVideoMimeType() || mimeType == DefaultMimeType)
             {
                 // the most common type... and the most common (Goobi) metadata:
                 mediaDimensions.Width = GetInt32FilePropertyValue("ImageWidth");
@@ -200,7 +201,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
             }
 
-            if (mimeType.StartsWith("video/") || mimeType.StartsWith("audio/") || mimeType == DefaultMimeType)
+            if (mimeType.IsVideoMimeType() || mimeType.IsAudioMimeType() || mimeType == DefaultMimeType)
             {
                 // for now look for Goobi way first as it's much quicker.
                 // Over time we may expect far more BD AV so we could try the Archivematica way first.

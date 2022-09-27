@@ -276,6 +276,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state)
         {
+            var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = metsManifestation.Id;
             manifest.Items = new List<Canvas>();
@@ -283,7 +284,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             foreach (var physicalFile in metsManifestation.Sequence)
             {
                 LanguageMap canvasLabel;
-                if (metsManifestation.Type == "Born Digital") // define as const - but where?
+                if (isBornDigitalManifestation) 
                 {
                     canvasLabel = Lang.Map("none", physicalFile.OriginalName.GetFileName());
                 }
@@ -314,10 +315,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
-                        // This should not make a difference whether born digital or not
-                        var size = new Size(
-                            physicalFile.AssetMetadata.GetImageWidth(),
-                            physicalFile.AssetMetadata.GetImageHeight());
+                        var size = physicalFile.GetWhSize();
+                        if (size == null)
+                        {
+                            throw new NotSupportedException("No image dimensions for " + assetIdentifier);
+                        }
                         canvas.Width = size.Width;
                         canvas.Height = size.Height;
                         var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
@@ -365,7 +367,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
                     case AssetFamily.TimeBased:
-                        if (state == null)
+                        if (!isBornDigitalManifestation && state == null)
                         {
                             // We need this state to build OLD workflow videos, because we need to consider
                             // other manifestations within a multiple manifestation.
@@ -384,23 +386,39 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     "State is required to build AV resources for OLD WORKFLOWS");
                             }
                         }
-                        Size videoSize = null;
-                        if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+                        Size? videoSize = physicalFile.GetWhSize();
+                        if (isBornDigitalManifestation && physicalFile.MimeType.IsVideoMimeType())
                         {
-                            videoSize = new Size(
-                                physicalFile.AssetMetadata.GetImageWidth(),
-                                physicalFile.AssetMetadata.GetImageHeight());
+                            // Missing size is an error for BD, but not (yet) for Goobi
+                            if (videoSize == null)
+                            {
+                                throw new NotSupportedException("No video w,h dimensions for " + assetIdentifier);
+                            }
                         }
+                        
                         double duration = physicalFile.AssetMetadata.GetDuration();
+                        if (isBornDigitalManifestation && 
+                            (physicalFile.MimeType.IsVideoMimeType() || physicalFile.MimeType.IsAudioMimeType()))
+                        {
+                            // Missing duration is an error for BD, but not (yet) for Goobi
+                            if (duration <= 0)
+                            {
+                                throw new NotSupportedException("No duration for " + assetIdentifier);
+                            }
+                        }
+
                         // Without more support in Goobi we might have ended up with 0,0,0 here.
                         // So we'll fake some obvious sizes
+
+                        if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+                        {
+                            // These types are from Goobi workflow
+                            // Assign a fake size if we haven't got one
+                            videoSize ??= new Size(999, 999);
+                        }
+                            
                         if (videoSize != null)
                         {
-                            if (videoSize.Width <= 0 || videoSize.Height <= 0)
-                            {
-                                videoSize = new Size(999, 999);
-                            }
-
                             canvas.Width = videoSize.Width;
                             canvas.Height = videoSize.Height;
                         }
@@ -414,7 +432,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             canvas.Items = new List<AnnotationPage>
                             {
-                                new AnnotationPage
+                                new()
                                 {
                                     Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
                                     Items = new List<IAnnotation>
@@ -429,21 +447,28 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 }
                             };
                             AddAuthServices(avChoice, physicalFile, foundAuthServices);
-                            // This is still the DDS-hosted poster image, for old and new AV workflows
-                            AddPosterImage(manifest, assetIdentifier, manifestIdentifier);
-                            var transcriptPdf = physicalFile.Files.FirstOrDefault(f => f.Use == "TRANSCRIPT");
-                            if (transcriptPdf != null)
+
+                            if (!isBornDigitalManifestation)
                             {
-                                // A new workflow transcript for this AV file
-                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
-                                canvasesWithNewWorkflowTranscripts.Add(canvas);
+                                // This is still the DDS-hosted poster image, for old and new AV workflows
+                                AddPosterImage(manifest, assetIdentifier, manifestIdentifier);
+                                var transcriptPdf = physicalFile.Files.FirstOrDefault(f => f.Use == "TRANSCRIPT");
+                                if (transcriptPdf != null)
+                                {
+                                    // A new workflow transcript for this AV file
+                                    AddSupplementingPdfToCanvas(manifestIdentifier, canvas, transcriptPdf, "transcript", "PDF Transcript");
+                                    canvasesWithNewWorkflowTranscripts.Add(canvas);
+                                }
                             }
                         }
 
-                        var betterCanvasLabel = GetBetterAVCanvasLabel(metsManifestation, physicalFile);
-                        if (betterCanvasLabel != null)
+                        if (!isBornDigitalManifestation)
                         {
-                            canvas.Label = Lang.Map(betterCanvasLabel);
+                            var betterCanvasLabel = GetBetterAVCanvasLabel(metsManifestation, physicalFile);
+                            if (betterCanvasLabel != null)
+                            {
+                                canvas.Label = Lang.Map(betterCanvasLabel);
+                            }
                         }
 
                         if (state != null)
@@ -454,6 +479,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
+                        
+                        // We need our born-digital extensions
+                        manifest.EnsureContext("https://iiif.wellcomecollection.org/extensions/born-digital/context.json");
+                        
+                        
+                        
                         if (metsManifestation.Type == "Monograph")
                         {
                             // TODO: is this simple logic OK for every BD PDF? See what comparison tool reveals.
@@ -490,6 +521,20 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
+                }
+
+                if (isBornDigitalManifestation)
+                {
+                    var originalName = physicalFile.AssetMetadata.GetOriginalName();
+                    canvas.Metadata ??= new List<LabelValuePair>();
+                    var label = Lang.Map("en", "Full path");
+                    var value = Lang.Map("none", originalName);
+                    canvas.Metadata.Add(new LabelValuePair(label, value));
+                    var possibleNavDate = physicalFile.AssetMetadata.GetCreatedDate();
+                    if (possibleNavDate.HasValue)
+                    {
+                        canvas.NavDateDateTime = possibleNavDate;
+                    }
                 }
             }
             
@@ -677,7 +722,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             if (IsVideoFile(metsManifestation, physicalFile))
             {
                 var confineToBox = new Size(1280, 720);
-                // TODO - this needs to match Elastictranscoder settings, which may be more complex tham this
+                // TODO - this needs to match Elastictranscoder settings, which may be more complex than this
                 var computedSize = Size.Confine(confineToBox, videoSize);
                 choice.Items.Add(new Video
                 {
@@ -717,6 +762,9 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private static bool IsAudioFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
         {
+            // must be called after IsVideoFile!
+            // TODO - use info we already have, this is messy
+            // Use new MediaDimensions earlier than this.
             if (physicalFile.Type == "Audio" || metsManifestation.Type == "Audio")
             {
                 return true;
@@ -727,12 +775,27 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return true;
             }
 
+            if (physicalFile.AssetMetadata.GetDuration() > 0)
+            {
+                return true;
+            }
+            
             return false;
         }
 
         private static bool IsVideoFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
         {
-            return physicalFile.Type == "Video" || metsManifestation.Type == "Video";
+            if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
+            {
+                return true;
+            }
+
+            if (physicalFile.GetWhSize() != null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
 
@@ -756,6 +819,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddAuthServiceToDictionary(foundAuthServices, loginService);
                     AddAuthServiceToMedia(media, loginServiceReference);
                     break;
+                case AccessCondition.Restricted: 
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
                     AddAuthServiceToMedia(media, externalAuthServiceReference);
@@ -1158,6 +1222,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
+        /// <summary>
+        /// This is a suitable model for including a PDF transcript, but not for when the PDF is the main attraction.
+        /// </summary>
+        /// <param name="manifestIdentifier"></param>
+        /// <param name="canvas"></param>
+        /// <param name="pdfFile"></param>
+        /// <param name="annoIdentifier"></param>
+        /// <param name="label"></param>
         private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
             string annoIdentifier, string label)
         {

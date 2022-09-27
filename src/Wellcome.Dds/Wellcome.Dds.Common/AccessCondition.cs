@@ -10,6 +10,7 @@ namespace Wellcome.Dds.Common
         public const string RequiresRegistration = "Requires registration";
         public const string OpenWithAdvisory = "Open with advisory";
         public const string ClinicalImages = "Clinical images";
+        public const string Restricted = "Restricted"; // TODO - temporary addition, will be replaced by "Restricted files" in Archivematica METS"
         public const string RestrictedFiles = "Restricted files";
         public const string Closed = "Closed";
 
@@ -26,6 +27,7 @@ namespace Wellcome.Dds.Common
                 new(OpenWithAdvisory, 2),
                 new(ClinicalImages, 3),
                 new(RestrictedFiles, 4),
+                new(Restricted, 4), // TODO: temporary, see above
                 new(Closed, 5)
             };
 
@@ -36,6 +38,7 @@ namespace Wellcome.Dds.Common
                     s == OpenWithAdvisory ||
                     s == ClinicalImages || 
                     s == RestrictedFiles || 
+                    s == Restricted ||  // TODO: temporary, see above
                     s == Closed || 
                     s == Degraded);
         }
