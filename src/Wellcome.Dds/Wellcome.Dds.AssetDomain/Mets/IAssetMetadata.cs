@@ -28,6 +28,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string GetOriginalName();
         string GetMimeType();
         DateTime? GetCreatedDate();
+        MediaDimensions GetMediaDimensions();
 
         IRightsStatement GetRightsStatement();
 

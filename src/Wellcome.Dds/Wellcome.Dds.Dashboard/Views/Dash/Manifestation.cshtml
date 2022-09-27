@@ -871,6 +871,8 @@
                             var tnaPage = "https://www.nationalarchives.gov.uk/PRONOM/" + pronomKey;
                         }
                         <a href="@tnaPage" target="_blank">@pronomKey</a>
+                        |
+                        @file.AssetMetadata.GetMediaDimensions().ToString()
                         <br/>
                         @if (dlcsImage != null)
                         {

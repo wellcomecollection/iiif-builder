@@ -4,8 +4,11 @@ public class BornDigitalStaging
 {
     public string[] Identifiers = new[]
     {
-        "SA/REN/E/2",
+        "SAFPA/C/D/5/15/1",
         "SA/REN/B/21/1",
+        "PPSML/Z/11/4",
+        "PPCRI/D/4/5A",
+        "SA/REN/E/2",
         "SAILE_L_3_17_2_2",
         "PPKZR/A/38/1",
         "PP/MYG/A/4/19/4",
@@ -22,7 +25,6 @@ public class BornDigitalStaging
         "GP57/7",
         "WF/1",
         "SANNS_H_1",
-        "SAFPA/C/D/5/15/1",
         "SA/REN/C/2",
         "SA/REN/A/4",
         "SATSY_1821",
@@ -33,9 +35,7 @@ public class BornDigitalStaging
         "SAPIL/A/7/3",
         "WT/B/9/2/2",
         "SABSO/9/2",
-        "PPSML/Z/11/4",
         "SANNS/H/1",
-        "ARTCOO/B/10",
-        "PPCRI/D/4/5A"
+        "ARTCOO/B/10"
     };
 }    

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -170,7 +171,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             EnsureMediaDimensions();
             return mediaDimensions.DurationDisplay;
         }
-        
+
+        public MediaDimensions GetMediaDimensions()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions;
+        }
+
         private void EnsureMediaDimensions()
         {
             if (mediaDimensions != null)
@@ -270,7 +277,48 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 XNames.FitsTool, "name", "Exiftool").FirstOrDefault();
             if (fitsExifOutput != null)
             {
-                // see slack
+                string durationValue = null;
+                string widthValue = null;
+                string heightValue = null;
+                
+                // The fields that hold w,h,d information will be different for different media types.
+                // Start with these then rearrange this code when we have more.
+                var playDuration = fitsExifOutput.GetDesendantElementValue("PlayDuration");
+                if (playDuration.HasText())
+                {
+                    durationValue = playDuration;
+                }
+                
+                var imageWidth = fitsExifOutput.GetDesendantElementValue("ImageWidth");
+                var imageHeight = fitsExifOutput.GetDesendantElementValue("ImageHeight");
+                if (imageWidth.HasText())
+                {
+                    widthValue = imageWidth;
+                }
+
+                if (imageHeight.HasText())
+                {
+                    heightValue = imageHeight;
+                }
+
+                if (durationValue.HasText() && mediaDimensions.Duration.GetValueOrDefault() <= 0)
+                {
+                    mediaDimensions.Duration = ParseDuration(durationValue);
+                    mediaDimensions.DurationDisplay = durationValue;
+                }
+                
+                if(widthValue.HasText() && heightValue.HasText())
+                {
+                    if (int.TryParse(widthValue, out var pw))
+                    {
+                        mediaDimensions.Width = pw;
+                    }
+                    if (int.TryParse(heightValue, out var ph))
+                    {
+                        mediaDimensions.Height = ph;
+                    }
+                    
+                }
             }
 
 
@@ -301,7 +349,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 mediaDimensions.Duration = track
                     .GetDesendantElementValue(XNames.MediaInfoDuration)
                     .ToNullableDouble();
-                mediaDimensions.DurationDisplay = mediaDimensions.Duration.ToString();
+                mediaDimensions.DurationDisplay = mediaDimensions.Duration.ToString() + "s";
             }
         }
 
@@ -446,30 +494,32 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns>The length in seconds, or 0 if no length obtained.</returns>
         public static double ParseDuration(string possibleStringLength)
         {
-            if (possibleStringLength.HasText())
+            if (possibleStringLength.IsNullOrWhiteSpace())
+            {
+                return 0;
+            }
+            if (possibleStringLength.Contains("mn"))
             {
                 // Examples
                 // 22mn 49s
                 // 1mn 41s
                 // 9mn 46s ... this format seems very consistent
-                if (possibleStringLength.Contains("mn"))
+                var parts = possibleStringLength.Split(' ');
+                int.TryParse(parts[0].ToNumber(), out var mins);
+                int.TryParse(parts[1].ToNumber(), out var secs);
+                return 60 * mins + secs;
+            }
+
+            if (TimeSpan.TryParse(possibleStringLength, out var ts))
+            {
+                // 12:30:33 and similar formats
+                if (ts.TotalSeconds > 0)
                 {
-                    var parts = possibleStringLength.Split(' ');
-                    int.TryParse(parts[0].ToNumber(), out var mins);
-                    int.TryParse(parts[1].ToNumber(), out var secs);
-                    return 60 * mins + secs;
+                    return ts.TotalSeconds;
                 }
             }
 
             return 0;
         }
-    }
-
-    class MediaDimensions
-    {
-        public int? Width { get; set; }
-        public int? Height { get; set; }
-        public double? Duration { get; set; }
-        public string DurationDisplay { get; set; }
     }
 }

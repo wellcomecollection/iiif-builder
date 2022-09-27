@@ -72,6 +72,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             throw new System.NotImplementedException();
         }
 
+        public MediaDimensions GetMediaDimensions()
+        {
+            throw new NotImplementedException();
+        }
+
         public string GetBitrateKbps()
         {
             return GetFilePropertyValue("Bitrate (kbps)");
