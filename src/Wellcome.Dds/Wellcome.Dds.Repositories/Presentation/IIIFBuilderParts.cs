@@ -988,7 +988,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 pf => pf.Id, pf => pf.StorageIdentifier);
             
             // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
-            var wdlRoot = GetSectionFromStructDiv(
+            var wdlRoot = MakeRangeFromMetsStructure(
                 metsManifestation.Id,
                 physIdDict,
                 metsManifestation.RootStructRange, 
@@ -1041,7 +1041,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
         }
 
-        private Range GetSectionFromStructDiv(
+        private Range MakeRangeFromMetsStructure(
             string manifestationId,
             Dictionary<string, string> physIdDict,
             IStructRange structRange,
@@ -1088,7 +1088,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             if (structRange.Children.HasItems())
             {
                 var childRanges = structRange.Children
-                    .Select(child => GetSectionFromStructDiv(manifestationId, physIdDict, child, modsForAccessCondition))
+                    .Select(child => MakeRangeFromMetsStructure(manifestationId, physIdDict, child, modsForAccessCondition))
                     .ToList();
                 if (childRanges.HasItems())
                 {

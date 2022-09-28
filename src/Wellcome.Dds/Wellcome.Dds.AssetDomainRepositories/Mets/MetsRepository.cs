@@ -182,6 +182,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             bdm.PhysicalFileMap = bdm.Sequence.ToDictionary(pf => pf.Id);
             
             DecorateStructure(bdm.RootStructRange, bdm.PhysicalFileMap);
+            ConvertIdsToPaths(bdm.RootStructRange, null);
             var objectsMetadata = bdm.RootStructRange.SectionMetadata;
             bdm.SectionMetadata = new BornDigitalSectionMetadata
             {
@@ -204,7 +205,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             Dictionary<string, IPhysicalFile> fileMap)
         {
             // Replace the labels obtained from the <mets:div TYPE="Directory" /> with 
-            // labels derived from the originalName path
+            // labels derived from the originalName path, but use the METS labels to generate
+            // a path-based ID for the structRange. Some structRanges don't have files.
             if (structRange.PhysicalFileIds.HasItems())
             {
                 var firstFileId = structRange.PhysicalFileIds.First();
@@ -251,6 +253,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
         }
 
+        /// <summary>
+        /// In the first pass the structRanges were assigned the folder name as ID.
+        /// While this is the path-safe form and not the original folder name, it's
+        /// not guaranteed unique within the object. We need to replace the folder name
+        /// IDs with full paths.
+        /// </summary>
+        /// <param name="range"></param>
+        /// <param name="parentRange"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void ConvertIdsToPaths(IStructRange range, IStructRange parentRange)
+        {
+            if (parentRange != null && parentRange.Id.HasText())
+            {
+                range.Id = parentRange.Id + "/" + range.Id;
+            }
+
+            if (range.Children.IsNullOrEmpty()) return; 
+
+            foreach (var childRange in range.Children)
+            {
+                ConvertIdsToPaths(childRange, range);
+            }
+        }
+
         private void AddDirectoryToBornDigitalManifestation(
             XElement rootElement,
             Dictionary<string, XElement> fileMap,
@@ -291,14 +317,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     hasSeenDirectory = true;
                     // make another structure, then call this recursively.
-                    // We cannot assign an .Id to this structRange from any info in the METS
-                    // Do we need one? We probably do because we are going to need ids for IIIF Ranges,
-                    // and this would be a good place to generate them.
-                    // We could generate them from the folder path like the file Ids.
-                    // In fact... generate them after in the pass through.
+                    // Generate IDs for the ranges on the second pass through.
                     var childStructRange = new StructRange
                     {
-                        Label = label, // This is the Label Attribute; we'll need to replace this with the original folder name
+                        // This is the path-safe Label Attribute; we'll need to replace this with
+                        // the original folder name, but we also use it to generate the path-safe Range ID
+                        Label = label, 
+                        Id = label,
                         Type = Directory,
                         PhysicalFileIds = new List<string>()
                     };
