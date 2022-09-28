@@ -37,7 +37,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
         private readonly ManifestStructureHelper manifestStructureHelper;
-        private readonly IAuthServiceProvider authServiceProvider;
 
         private readonly IService clickthroughService;
         private readonly IService clickthroughServiceReference;
@@ -49,6 +48,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         // omit Digitalcollection and Location
         private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
+        // Two behavior values for born digital
+        private static readonly List<string> OriginalBehavior = new() { "original" };
+        private static readonly List<string> PlaceholderBehavior = new() { "placeholder" };
+        private static readonly Size PlaceholderCanvasSize = new Size(5000, 5000);
+        private static readonly Size PlaceholderThumbnailSize = new Size(500, 500);
+        
         public IIIFBuilderParts(UriPatterns uriPatterns,
             string dlcsEntryPoint,
             bool referenceV0SearchService)
@@ -57,8 +62,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
             manifestStructureHelper = new ManifestStructureHelper();
-            authServiceProvider = new DlcsIIIFAuthServiceProvider();
-            
+            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider();
+
             // These still bear lots of traces of previous incarnations
             // We only want one of these but I'm not quite sure which one...
             clickthroughService = authServiceProvider.GetAcceptTermsAuthServices().First();
@@ -74,7 +79,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             iiifResource.Homepage = new List<ExternalResource>
             {
-                new ExternalResource("Text")
+                new("Text")
                 {
                     Id = uriPatterns.PersistentPlayerUri(work.Id),
                     Label = Lang.Map(work.Title),
@@ -93,7 +98,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (!DisplayedAggregations.Contains(md.Label))
                     {
-                        // don't use Location or DigitalCollection as memebership aggregations
+                        // don't use Location or DigitalCollection as membership aggregations
                         continue;
                     }
                     var urlFriendlyAggregator = Wellcome.Dds.Metadata.ToUrlFriendlyAggregator(md.Label);
@@ -446,7 +451,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     }
                                 }
                             };
-                            AddAuthServices(avChoice, physicalFile, foundAuthServices);
+                            
+                            foreach (var paintable in avChoice.Items)
+                            {
+                                if (paintable is ResourceBase resource)
+                                {
+                                    AddAuthServices(resource, physicalFile, foundAuthServices);
+                                }
+                            }
 
                             if (!isBornDigitalManifestation)
                             {
@@ -480,42 +492,69 @@ namespace Wellcome.Dds.Repositories.Presentation
                         
                     case AssetFamily.File:
                         
-                        // We need our born-digital extensions
-                        manifest.EnsureContext("https://iiif.wellcomecollection.org/extensions/born-digital/context.json");
-                        
-                        
-                        
-                        if (metsManifestation.Type == "Monograph")
+                        if (isBornDigitalManifestation || metsManifestation.Type == "Monograph")
                         {
+                            // We need our born-digital extensions
+                            manifest.EnsureContext(uriPatterns.BornDigitalExtensionContext());
+                            
                             // TODO: is this simple logic OK for every BD PDF? See what comparison tool reveals.
-                            // This is a born digital PDF
-                            var bornDigitalPdf = physicalFile.Files.FirstOrDefault();
-                            if (bornDigitalPdf != null)
+                            // This is a born digital file that is not image or AV, and is not
+                            // the transcript manifestation for a Goobi AV file.
+                            
+                            var bornDigitalFile = physicalFile.Files.FirstOrDefault();
+                            if (bornDigitalFile != null)
                             {
-                                // A new workflow transcript for this AV file
-                                AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
-                                    "pdf", manifest.Label.ToString());
+                                // AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
+                                //    "pdf", manifest.Label.ToString());
+
+                                var externalResource = new ExternalResource(GetDcType(physicalFile))
+                                {
+                                    Id = uriPatterns.DlcsFile(dlcsEntryPoint, bornDigitalFile.StorageIdentifier),
+                                    Format = physicalFile.MimeType,
+                                    Behavior = OriginalBehavior,
+                                    Label = canvas.Label
+                                };
+                                AddAuthServices(externalResource, physicalFile, foundAuthServices);
+                                canvas.Rendering ??= new List<ExternalResource>();
+                                canvas.Rendering.Add(externalResource);
+
+                                canvas.Behavior = PlaceholderBehavior;
+                                AddBornDigitalCanvasPlaceholderImage(canvas, physicalFile, manifestIdentifier, assetIdentifier);
                                 var pageCountMetadata = GetPageCountMetadata(physicalFile);
                                 if (pageCountMetadata != null)
                                 {
-                                    manifest.Metadata ??= new List<LabelValuePair>();
-                                    manifest.Metadata.Add(pageCountMetadata);
+                                    canvas.Metadata ??= new List<LabelValuePair>();
+                                    canvas.Metadata.Add(pageCountMetadata);
                                 }
-                                manifest.Behavior = null;
-                                manifest.Thumbnail = new List<ExternalResource>
+                                // TODO - other file characteristics
+                                
+                                if (metsManifestation.Type == "Monograph")
                                 {
-                                    new Image
+                                    // The previous model added some info to the Manifest; for Goobi PDFs,
+                                    // there will only be one file in the Manifest.
+                                    if (pageCountMetadata != null)
                                     {
-                                        Id = uriPatterns.PdfThumbnail(manifestIdentifier),
-                                        Format = "image/jpeg"
+                                        manifest.Metadata ??= new List<LabelValuePair>();
+                                        manifest.Metadata.Add(pageCountMetadata);
                                     }
-                                };
+                                    manifest.Behavior = null;
+                                    manifest.Thumbnail = new List<ExternalResource>
+                                    {
+                                        new Image
+                                        {
+                                            Id = uriPatterns.PdfThumbnail(manifestIdentifier),
+                                            Format = "image/jpeg"
+                                        }
+                                    };
+                                }
+                                
                             }
+                            
                         }
                         else
                         {
                             // An AV transcript. Note it down and add it to the AVState
-                            state.FileState ??= new FileState();
+                            state!.FileState ??= new FileState();
                             state.FileState.FoundFiles.Add(physicalFile);
                         }
                         break;
@@ -545,6 +584,89 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
             }
+        }
+
+        /// <summary>
+        /// This is a "stock" image that acts as a placeholder for the born digital file that's
+        /// associated with the canvas via rendering. For now, it's the same image every time.
+        /// But later we could produce an image representation of the file.
+        /// </summary>
+        /// <param name="canvas"></param>
+        /// <param name="physicalFile">Not yet used, but custom placeholder images would be based on this</param>
+        /// <param name="manifestIdentifier"></param>
+        /// <param name="assetIdentifier"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void AddBornDigitalCanvasPlaceholderImage(
+            Canvas canvas, IPhysicalFile physicalFile, 
+            string manifestIdentifier, string assetIdentifier)
+        {
+            canvas.Width = PlaceholderCanvasSize.Width;
+            canvas.Height = PlaceholderCanvasSize.Height;                        
+            canvas.Items = new List<AnnotationPage>
+            {
+                new()
+                {
+                    Id = uriPatterns.CanvasPaintingAnnotationPage(manifestIdentifier, assetIdentifier),
+                    Items = new List<IAnnotation>
+                    {
+                        new PaintingAnnotation
+                        {
+                            Id = uriPatterns.CanvasPaintingAnnotation(manifestIdentifier, assetIdentifier),
+                            Body = new Image
+                            {
+                                Id = uriPatterns.CanvasFilePlaceholderImage(
+                                    physicalFile.AssetMetadata.GetPronomKey(), 
+                                    physicalFile.MimeType),
+                                Width = PlaceholderCanvasSize.Width,
+                                Height = PlaceholderCanvasSize.Height,
+                                Format = "image/png"
+                            },
+                            Target = new Canvas{ Id = canvas.Id }
+                        }
+                    }
+                }
+            };
+            canvas.Thumbnail = new List<ExternalResource>
+            {
+                new Image
+                {
+                    Id = uriPatterns.CanvasFilePlaceholderThumbnail(
+                        physicalFile.AssetMetadata.GetPronomKey(), 
+                        physicalFile.MimeType),
+                    Width = PlaceholderThumbnailSize.Width,
+                    Height = PlaceholderThumbnailSize.Height,
+                    Format = "image/png"
+                }
+            };  
+        }
+
+        /// <summary>
+        /// What Dublin Core type should be assigned to this born digital external resource?
+        /// </summary>
+        /// <param name="physicalFile"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private static string GetDcType(IPhysicalFile physicalFile)
+        {
+            if (physicalFile.MimeType.IsTextMimeType())
+            {
+                return "Text";
+            }
+            if (physicalFile.MimeType.IsImageMimeType())
+            {
+                return "Image";
+            }
+            if (physicalFile.MimeType.IsVideoMimeType())
+            {
+                return "Video";
+            }
+            if (physicalFile.MimeType.IsAudioMimeType())
+            {
+                return "Audio";
+            }
+
+            // return "Dataset"; 
+            return "Text"; // This is probably safest for now but we could have a more complex pronom lookup
         }
 
         private static void MoveSingleAVTranscriptToManifest(
@@ -691,7 +813,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private (Image MainImage, Image ThumbImage) GetCanvasImages(IPhysicalFile physicalFile)
+        private (Image MainImage, Image? ThumbImage) GetCanvasImages(IPhysicalFile physicalFile)
         {
             var assetIdentifier = physicalFile.StorageIdentifier;
             var imageService = uriPatterns.DlcsImageService(dlcsEntryPoint, assetIdentifier);
@@ -700,7 +822,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var actualSize = sizes.First();
             var thumbSizes = sizes.Skip(1).ToList();
             var staticSize = actualSize;
-            Image thumbImage = null;
+            Image? thumbImage = null;
             if (thumbSizes.Any())
             {
                 staticSize = thumbSizes.First();
@@ -710,19 +832,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             return (mainImage, thumbImage);
         }
 
-        private PaintingChoice GetAVChoice(IManifestation metsManifestation, IPhysicalFile physicalFile, Size videoSize, double duration)
+        private PaintingChoice GetAVChoice(IManifestation metsManifestation, IPhysicalFile physicalFile, Size? videoSize, double duration)
         {
             // TODO - this needs work later. For now, we're deducing the properties of the output
-            // based on inside knowledge of the Elastictranscoder settings.
+            // based on inside knowledge of the Elastic Transcoder settings.
             // Ideally, we ask the DLCS what it actually produced - including variations in size and duration 
             // The duration might not be identical.
             // The other issue here is that the DLCS probably won't have got round to processing this,
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
-            if (IsVideoFile(metsManifestation, physicalFile))
+            if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
             {
                 var confineToBox = new Size(1280, 720);
-                // TODO - this needs to match Elastictranscoder settings, which may be more complex than this
+                // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
                 var computedSize = Size.Confine(confineToBox, videoSize);
                 choice.Items.Add(new Video
                 {
@@ -800,7 +922,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
 
         private void AddAuthServices(
-            IPaintable media, 
+            ResourceBase media, 
             IPhysicalFile physicalFile,
             Dictionary<string, IService> foundAuthServices)
         {
@@ -831,35 +953,31 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private void AddAuthServiceToDictionary(Dictionary<string, IService> foundAuthServices, IService service)
         {
-            if (!foundAuthServices.ContainsKey(service.Id))
+            if (!foundAuthServices.ContainsKey(service.Id!))
             {
-                foundAuthServices[service.Id] = service;
+                foundAuthServices[service.Id!] = service;
             }
         }
         
-        private void AddAuthServiceToMedia(IPaintable? paintable, IService? service)
+        private void AddAuthServiceToMedia(ResourceBase? resource, IService? service)
         {
-            if (paintable == null || service == null)
+            if (resource == null || service == null)
             {
                 return;
             }
 
-            switch (paintable)
+            switch (resource)
             {
                 case Image image:
-                    var iiifImageApi2 = (ImageService2) image.Service.First();
-                    iiifImageApi2.Service = new List<IService>{service};
-                    break;
-                case PaintingChoice choice:
-                    foreach (var item in choice.Items ?? Enumerable.Empty<IPaintable>())
+                    if (image.Service != null)
                     {
-                        item.Service ??= new List<IService>();
-                        item.Service.Add(service);
+                        var iiifImageApi2 = (ImageService2) image.Service.First();
+                        iiifImageApi2.Service = new List<IService>{service};
                     }
                     break;
                 default:
-                    paintable.Service ??= new List<IService>();
-                    paintable.Service.Add(service);
+                    resource.Service ??= new List<IService>();
+                    resource.Service.Add(service);
                     break;
             }
         }
@@ -894,9 +1012,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private Range ConvertFirstChildToRoot(Range wdlRoot)
+        private Range? ConvertFirstChildToRoot(Range wdlRoot)
         {
-            var newRoot = (Range) wdlRoot.Items?.FirstOrDefault(r => r is Range);
+            var newRoot = (Range?) wdlRoot.Items?.FirstOrDefault(r => r is Range);
             if (newRoot == null) return wdlRoot;
             newRoot.Label = wdlRoot.Label;
             return newRoot;

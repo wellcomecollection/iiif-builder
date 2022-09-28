@@ -64,7 +64,9 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string WorkTextZipFormat =          "/text/v1/{identifier}.zip";
         
         // Other resources
-        private const string WorkThumbnailFormat =        "/thumb/{identifier}";
+        private const string WorkThumbnailFormat =                  "/thumb/{identifier}";
+        private const string CanvasFilePlaceholderImageFormat =     "/extensions/born-digital/placeholder-canvas/{identifier}/{assetIdentifier}";
+        private const string CanvasFilePlaceholderThumbnailFormat = "/extensions/born-digital/placeholder-thumb/{identifier}/{assetIdentifier}";
         
         // TODO - rename to WorkPageFormat, once fully ported.
         private const string PersistentPlayerUriFormat =       "https://wellcomecollection.org/works/{identifier}";
@@ -349,7 +351,24 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
         }
+        
+        public string CanvasFilePlaceholderImage(string pronomKey, string mimeType)
+        {
+            return ManifestAndAssetIdentifiers(CanvasFilePlaceholderImageFormat, pronomKey, mimeType);
+        }
 
+        public string CanvasFilePlaceholderThumbnail(string pronomKey, string mimeType)
+        {
+            return ManifestAndAssetIdentifiers(CanvasFilePlaceholderThumbnailFormat, pronomKey, mimeType);
+        }
+
+        public string BornDigitalExtensionContext()
+        {
+            return $"{schemeAndHostValue}/extensions/born-digital/context.json";
+        }
+        
+
+        
         public string GetPath(string format, string manifestIdentifier,
             params (string Token, string Replacement)[] replacements)
         {

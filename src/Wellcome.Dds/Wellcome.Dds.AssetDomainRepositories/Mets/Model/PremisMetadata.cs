@@ -354,6 +354,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public int GetNumberOfPages()
         {
+            // TODO: we can get this for Archivematica files too but not from this property.
             var num = GetInt32FilePropertyValue("PageNumber");
             return num ?? 0;
         }
@@ -400,7 +401,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 {
                     Basis = "No Rights Statement",
                     Identifier = "no-rights",
-                    AccessCondition = Common.AccessCondition.Closed,
+                    AccessCondition = Common.AccessCondition.Restricted, // so that we still generate IIIF
                     Statement = "No Rights"
                 };
             }
