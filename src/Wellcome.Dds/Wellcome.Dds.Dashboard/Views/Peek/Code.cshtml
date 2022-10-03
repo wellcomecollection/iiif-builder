@@ -3,7 +3,7 @@
 @{
     ViewBag.Title = Model.Title;
 }
-<style type="text/css" media="screen">
+<style media="screen">
     #aceView {
         position: absolute;
         top: 0;
@@ -17,23 +17,21 @@
 <div class="row" style="height:100%">
     <div class="col-md-12">
         <h3>
-            @(Model.RelativePath ?? Model.BNumber)
+            @(Model.RelativePath ?? Model.Identifier.PackageIdentifier)
             <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
             ( 
             <a href="@Model.Raw">Raw</a> 
             |
-            @Html.ActionLink( "Manifestation", "Manifestation", "Dash", new {id = Model.Manifestation})
+            @Html.ActionLink( "Manifestation", "Manifestation", "Dash", 
+                new {id = Model.Identifier.PackageIdentifierPathElementSafe})
             @if (Model.AnchorFile.HasText())
             {
                 @: | <a href="@Model.AnchorFile">Anchor file</a>
             } 
             @if (Model.IncludeLinksToFullBuild)
             {
-                @: | <a href='@(Model.Raw + "?all=true")'>Full Build Raw</a>
-                @if (Model.BNumber.HasText())
-                {
-                    @: | <a href='@(Model.BNumber + "?all=true")'>@Model.BNumber Full build</a>
-                }
+                @: | <a href='@(Model.Raw + "?all=true")'>Full Build Raw</a> | 
+                <a href='@(Model.Identifier.PackageIdentifier + "?all=true")'>@Model.Identifier.PackageIdentifier Full build</a>
             }
             )
         </h3>

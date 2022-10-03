@@ -49,7 +49,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // This property should reflect the access file metadata, not any of the others
             physFile.AssetMetadata.GetFileName().Should().Be("0055-0000-3718-0000-0-0000-0000-0.mpg");
             physFile.AssetMetadata.GetFormatName().Should().Be("MPEG-2 Video Format");
-            physFile.AssetMetadata.GetLengthInSeconds().Should().Be("14mn 20s");
+            physFile.AssetMetadata.GetDisplayDuration().Should().Be("14mn 20s");
             
             // old poster image
             mb16675630_0001.PosterImage.Should().BeOfType<StoredFile>();
@@ -79,7 +79,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // This property should reflect the access file metadata, not any of the others
             physFile.AssetMetadata.GetFileName().Should().Be("b30496160_0002.mp4");
             physFile.AssetMetadata.GetFormatName().Should().Be("MPEG-4 Media File");
-            physFile.AssetMetadata.GetLengthInSeconds().Should().Be("58s");
+            physFile.AssetMetadata.GetDisplayDuration().Should().Be("58s");
             
             // we retain physFile.AssetMetadata as the access file's metadata.
             // But we allow access to the assetMetadata of the other files through a new lookup:

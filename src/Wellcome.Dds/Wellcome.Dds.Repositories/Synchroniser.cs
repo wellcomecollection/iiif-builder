@@ -123,7 +123,7 @@ namespace Wellcome.Dds.Repositories
                 }
                 if (isBNumber)
                 {
-                    if (metsManifestation.ModsData.AccessCondition == "Restricted files")
+                    if (metsManifestation.SectionMetadata.AccessCondition == "Restricted files")
                     {
                         containsRestrictedFiles = true;
                     }
@@ -194,7 +194,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
                 ddsManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
                 ddsManifestation.PermittedOperations = string.Join(",", metsManifestation.PermittedOperations);
-                ddsManifestation.RootSectionAccessCondition = metsManifestation.ModsData.AccessCondition;
+                ddsManifestation.RootSectionAccessCondition = metsManifestation.SectionMetadata.AccessCondition;
                 if (assets.HasItems())
                 {
                     ddsManifestation.FileCount = assets.Count;
@@ -227,7 +227,7 @@ namespace Wellcome.Dds.Repositories
                                 break;
                             case AssetFamily.TimeBased:
                                 ddsManifestation.FirstFileThumbnailDimensions =
-                                    asset.AssetMetadata.GetLengthInSeconds();
+                                    asset.AssetMetadata.GetDisplayDuration();
                                 ddsManifestation.FirstFileDuration = asset.AssetMetadata.GetDuration();
                                 break;
                         }

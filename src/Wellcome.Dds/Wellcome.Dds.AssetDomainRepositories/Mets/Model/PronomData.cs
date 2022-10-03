@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Utils;
+using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
@@ -25,7 +27,30 @@ public sealed class PronomData
         {
             if (kvp.Value.HasText())
             {
-                formatMap[kvp.Key] = kvp.Value.Split(',')[0].Trim();
+                var mimes = kvp.Value.Split(',').Select(m => m.Trim()).ToArray();
+                string mimeType = null;
+                if (mimes.Length > 1)
+                {
+                    // if there are multiple mime types, favour those that are explicitly "paintable"
+                    mimeType = mimes.FirstOrDefault(m => m.IsImageMimeType());
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.IsVideoMimeType());
+                    }
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.IsAudioMimeType());
+                    }
+                    if (mimeType.IsNullOrWhiteSpace())
+                    {
+                        mimeType = mimes.FirstOrDefault(m => m.IsTextMimeType());
+                    }
+                }
+                if (mimeType.IsNullOrWhiteSpace())
+                {
+                    mimeType = mimes[0];
+                }
+                formatMap[kvp.Key] = mimeType?.Trim();
             }
             else
             {

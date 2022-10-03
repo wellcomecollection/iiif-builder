@@ -306,8 +306,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; set; }
-            public IModsData ModsData { get; set; }
-            public IModsData ParentModsData { get; set; }
+            public ISectionMetadata SectionMetadata { get; set; }
+            public ISectionMetadata ParentSectionMetadata { get; set; }
             public bool Partial { get; set; }
             public string GetRootId() => "b12398761";
 
@@ -330,8 +330,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; }
-            public IModsData ModsData { get; }
-            public IModsData ParentModsData { get; }
+            public ISectionMetadata SectionMetadata { get; }
+            public ISectionMetadata ParentSectionMetadata { get; }
             public bool Partial { get; set; }
             public string GetRootId() => "b12398761";
 

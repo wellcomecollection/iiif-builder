@@ -513,10 +513,25 @@ namespace Utils
             // https://stackoverflow.com/a/14033595
             return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value));
         }
+        
         public static string ReplaceFromDictionary(this string s, Dictionary<string, string> dict, string template)
         {
             // https://stackoverflow.com/a/14033595
-            return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
+            // return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
+
+            var byLength = dict.OrderByDescending(kvp => kvp.Key.Length).ToArray();
+            for (var index = 0; index < byLength.Length; index++)
+            {
+                var pair = byLength[index];
+                s = s.Replace(pair.Key, $"%%${index}$%%");
+            }
+
+            for (var index = 0; index < byLength.Length; index++)
+            {
+                var pair = byLength[index];
+                s = s.Replace($"%%${index}$%%", string.Format(template, pair.Key, pair.Value));
+            }
+            return s;
         }
 
         /// <summary>
@@ -545,6 +560,16 @@ namespace Utils
             return (operation, parameter);
         }
 
+        public static int? ToNullableInt(this string s)
+        {
+            if (int.TryParse(s, out var i)) return i;
+            return null;
+        }
         
+        public static double? ToNullableDouble(this string s)
+        {
+            if (double.TryParse(s, out var i)) return i;
+            return null;
+        }
     }
 }

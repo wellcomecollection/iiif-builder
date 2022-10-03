@@ -14,7 +14,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
     {
         public static AssetFamily GetAssetFamily(this string mediaType, string[] permittedImages = null)
         {
-            if (mediaType.StartsWith("image/"))
+            if (mediaType.IsImageMimeType())
             {
                 if (!permittedImages.HasItems()) return AssetFamily.Image;
                 var part2 = mediaType.RemoveStart("image/");
@@ -25,11 +25,32 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
 
                 return AssetFamily.File;
             }
-            if (mediaType.StartsWith("video/") || mediaType.StartsWith("audio/"))
+            if (mediaType.IsVideoMimeType() || mediaType.IsAudioMimeType())
             {
                 return AssetFamily.TimeBased;
             }
             return AssetFamily.File;
         }
+        
+        public static bool IsVideoMimeType(this string mimeType)
+        {
+            return mimeType != null && mimeType.StartsWith("video/");
+        }
+
+        public static bool IsAudioMimeType(this string mimeType)
+        {
+            return mimeType != null && mimeType.StartsWith("audio/");
+        }
+        
+        public static bool IsImageMimeType(this string mimeType)
+        {
+            return mimeType != null && mimeType.StartsWith("image/");
+        }
+        
+        public static bool IsTextMimeType(this string mimeType)
+        {
+            return mimeType != null && mimeType.StartsWith("text/");
+        }
     }
+    
 }

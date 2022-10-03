@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
@@ -13,7 +14,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 // A video with a poster image and/or an MXF master file.
                 foreach (IPhysicalFile pf in sequence)
                 {
-                    if (!pf.MimeType.StartsWith("video/"))
+                    if (!pf.MimeType.IsVideoMimeType())
                     {
                         ignored.Add(pf.StorageIdentifier);
                     }

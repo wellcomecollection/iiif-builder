@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.Repositories;
 
@@ -70,6 +71,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
+            // TODO: handle different ID forms in jobs table; at present this goes in as null because uses .BNumber
+            var ddsId = new DdsIdentifier(id);
+            if (!ddsId.HasBNumber)
+            {
+                throw new NotSupportedException("You can only create jobs for b numbers at the moment.");
+            }
+            
+            
             var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
             await foreach (var job in jobs)
             {

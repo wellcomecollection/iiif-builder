@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using Utils;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public class PremisMetadata : IAssetMetadata
     {
-        private XElement premisObject;
-        private XElement premisRightsStatement;
+        private XElement premisObjectXElement;
+        private XElement premisRightsStatementXElement;
+        private MediaDimensions mediaDimensions;
         private readonly XElement metsRoot;
         private readonly string admId;
         private bool initialised;
@@ -23,18 +26,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             this.admId = admId;
         }
 
+        private string originalName;
         public string GetOriginalName()
         {
+            if (originalName != null)
+            {
+                return originalName;
+            }
             if (!initialised) Init();
             const string transferPrefix = "%transferDirectory%objects/";
-            var value = premisObject.GetDesendantElementValue(XNames.PremisOriginalName);
+            var value = premisObjectXElement.GetDesendantElementValue(XNames.PremisOriginalName);
             if (value == null || !value.Contains(transferPrefix))
             {
                 throw new NotSupportedException($"Premis original name does not contain transfer prefix: {value}");
             }
-            return value.RemoveStart(transferPrefix);
+            originalName = value.RemoveStart(transferPrefix);
+            return originalName;
         }
 
+        private const string DefaultMimeType = "application/octet-stream";
         public string GetMimeType()
         {
             string mimeType = null;
@@ -54,7 +64,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // The FITS section is present on some files. This could be extended to look in other sections.
             
             var objectCharacteristics =
-                premisObject.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
+                premisObjectXElement.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
             if (objectCharacteristics != null)
             {
                 // THIS IS NOT RELIABLE
@@ -69,13 +79,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
             }
 
-            return "application/octet-stream";
+            return DefaultMimeType;
         }
 
         public DateTime? GetCreatedDate()
         {
             if (!initialised) Init();
-            var createdDateString = premisObject.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
+            var createdDateString = premisObjectXElement.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
             if(DateTime.TryParse(createdDateString, out var result))
             {
                 return result;
@@ -86,16 +96,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public string GetFileName()
         {
-            // This only works for Goobi METS
             if (!initialised) Init();
-            var oids = premisObject.Elements(XNames.PremisObjectIdentifier);
-            foreach (var oid in oids)
+            var objectIDs = premisObjectXElement.Elements(XNames.PremisObjectIdentifier);
+            foreach (var oid in objectIDs)
             {
+                // This only works for Goobi METS
                 var oidType = oid.GetDesendantElementValue(XNames.PremisObjectIdentifierType);
                 if (oidType == "local")
                 {
                     return oid.GetDesendantElementValue(XNames.PremisObjectIdentifierValue);
                 }
+            }
+            // didn't find any objectIDs, look for born digital elements
+            if (GetOriginalName().HasText())
+            {
+                return originalName.GetFileName();
             }
             return null;
         }
@@ -108,25 +123,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string GetFileSize()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisSize);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisSize);
         }
 
         public string GetFormatName()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatName);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatName);
         }
 
         public string GetFormatVersion()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatVersion);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatVersion);
         }
 
         public string GetPronomKey()
         {
             if (!initialised) Init();
-            return premisObject.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
+            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
         }
 
         public string GetAssetId()
@@ -134,21 +149,203 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             throw new NotImplementedException();
         }
 
-        public string GetLengthInSeconds()
+        public int GetImageWidth()
         {
-            return GetFilePropertyValue("Duration");
+            EnsureMediaDimensions();
+            return mediaDimensions.Width.GetValueOrDefault();
         }
 
+        public int GetImageHeight()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions.Height.GetValueOrDefault();
+        }
+        
         public double GetDuration()
         {
-            var possibleStringLength = GetLengthInSeconds();
-            if (double.TryParse(possibleStringLength, out var result))
+            EnsureMediaDimensions();
+            return mediaDimensions.Duration.GetValueOrDefault();
+        }
+        
+        public string GetDisplayDuration()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions.DurationDisplay;
+        }
+
+        public MediaDimensions GetMediaDimensions()
+        {
+            EnsureMediaDimensions();
+            return mediaDimensions;
+        }
+
+        private void EnsureMediaDimensions()
+        {
+            if (mediaDimensions != null)
             {
-                return result;
+                return;
             }
 
-            return ParseDuration(possibleStringLength);
+            mediaDimensions = new MediaDimensions();
+            bool processToolOutputs = false; // If we need to seek this info in Archivematica tool outputs
+            var mimeType = GetMimeType();
+            if (mimeType.IsImageMimeType() || mimeType.IsVideoMimeType() || mimeType == DefaultMimeType)
+            {
+                // the most common type... and the most common (Goobi) metadata:
+                mediaDimensions.Width = GetInt32FilePropertyValue("ImageWidth");
+                mediaDimensions.Height = GetInt32FilePropertyValue("ImageHeight");
+                if (mediaDimensions.Width is null or <= 0)
+                {
+                    // Not found in Goobi metadata, so:
+                    processToolOutputs = true;
+                }
+            }
+
+            if (mimeType.IsVideoMimeType() || mimeType.IsAudioMimeType() || mimeType == DefaultMimeType)
+            {
+                // for now look for Goobi way first as it's much quicker.
+                // Over time we may expect far more BD AV so we could try the Archivematica way first.
+                var durationString = GetFilePropertyValue("Duration");
+                if (durationString.HasText())
+                {
+                    var parsedDuration = ParseDuration(durationString);
+                    if (parsedDuration > 0)
+                    {
+                        mediaDimensions.DurationDisplay = durationString;
+                        mediaDimensions.Duration = parsedDuration;
+                    }
+                }
+                else
+                {
+                    processToolOutputs = true;
+                }
+            }
+
+            if (processToolOutputs)
+            {
+                // Also for now we won't treat application/* as time-based, or image.
+                PopulateMediaDimensionsFromToolOutputs();
+            }
         }
+
+        private void PopulateMediaDimensionsFromToolOutputs()
+        {
+            // SAFPA_C_D_5_15_1 - video/quicktime - ffprobe, one form of Exif
+            // SA_REN_B_21_1 - video/x-ms-wmv - FITS Exiftool
+            // PPSML_Z_11_4 - video/quicktime - ffprobe as above
+            // PPCRI_D_4_5A - jpeg - MediaInfo - track type="Image", same for TIFFs
+            
+            var objectCharacteristics = premisObjectXElement
+                .Descendants(XNames.PremisObjectCharacteristicsExtension)
+                .SingleOrDefault();
+
+            if (objectCharacteristics == null)
+            {
+                return;
+            }
+
+            var mediaInfoTracks = objectCharacteristics.Descendants(XNames.MediaInfoTrack).ToList();
+            if (mediaInfoTracks.Any())
+            {
+                foreach (var track in mediaInfoTracks)
+                {
+                    switch (track.Attribute("type")?.Value)
+                    {
+                        case "Image":
+                            GetWidthAndHeightFromMediaInfoTrack(track);
+                            break;
+                        case "Video":
+                            GetWidthAndHeightFromMediaInfoTrack(track);
+                            GetDurationFromMediaInfoTrack(track);
+                            break;
+                        case "Audio":
+                            GetDurationFromMediaInfoTrack(track);
+                            break;
+                    }
+                }
+                // return here? Or carry on seeking more info?
+            }
+
+            var fitsExifOutput = objectCharacteristics.GetAllDescendantsWithAttribute(
+                XNames.FitsTool, "name", "Exiftool").FirstOrDefault();
+            if (fitsExifOutput != null)
+            {
+                string durationValue = null;
+                string widthValue = null;
+                string heightValue = null;
+                
+                // The fields that hold w,h,d information will be different for different media types.
+                // Start with these then rearrange this code when we have more.
+                var playDuration = fitsExifOutput.GetDesendantElementValue("PlayDuration");
+                if (playDuration.HasText())
+                {
+                    durationValue = playDuration;
+                }
+                
+                var imageWidth = fitsExifOutput.GetDesendantElementValue("ImageWidth");
+                var imageHeight = fitsExifOutput.GetDesendantElementValue("ImageHeight");
+                if (imageWidth.HasText())
+                {
+                    widthValue = imageWidth;
+                }
+
+                if (imageHeight.HasText())
+                {
+                    heightValue = imageHeight;
+                }
+
+                if (durationValue.HasText() && mediaDimensions.Duration.GetValueOrDefault() <= 0)
+                {
+                    mediaDimensions.Duration = ParseDuration(durationValue);
+                    mediaDimensions.DurationDisplay = durationValue;
+                }
+                
+                if(widthValue.HasText() && heightValue.HasText())
+                {
+                    if (int.TryParse(widthValue, out var pw))
+                    {
+                        mediaDimensions.Width = pw;
+                    }
+                    if (int.TryParse(heightValue, out var ph))
+                    {
+                        mediaDimensions.Height = ph;
+                    }
+                    
+                }
+            }
+
+
+
+        }
+
+        private void GetWidthAndHeightFromMediaInfoTrack(XElement track)
+        {
+            if (mediaDimensions.Width.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Width = track
+                    .GetDesendantElementValue(XNames.MediaInfoWidth)
+                    .ToNullableInt();
+            }
+
+            if (mediaDimensions.Height.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Height = track
+                    .GetDesendantElementValue(XNames.MediaInfoHeight)
+                    .ToNullableInt();
+            }
+        }
+
+        private void GetDurationFromMediaInfoTrack(XElement track)
+        {
+            if (mediaDimensions.Duration.GetValueOrDefault() <= 0)
+            {
+                mediaDimensions.Duration = track
+                    .GetDesendantElementValue(XNames.MediaInfoDuration)
+                    .ToNullableDouble();
+                mediaDimensions.DurationDisplay = mediaDimensions.Duration.ToString() + "s";
+            }
+        }
+
 
         public string GetBitrateKbps()
         {
@@ -157,6 +354,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public int GetNumberOfPages()
         {
+            // TODO: we can get this for Archivematica files too but not from this property.
             var num = GetInt32FilePropertyValue("PageNumber");
             return num ?? 0;
         }
@@ -164,18 +362,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public int GetNumberOfImages()
         {
             throw new NotImplementedException();
-        }
-
-        public int GetImageWidth()
-        {
-            var num = GetInt32FilePropertyValue("ImageWidth");
-            return num ?? 0;
-        }
-
-        public int GetImageHeight()
-        {
-            var num = GetInt32FilePropertyValue("ImageHeight");
-            return num ?? 0;
         }
 
         private string GetFilePropertyValue(string filePropertyName)
@@ -201,29 +387,45 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
+        private IRightsStatement rightsStatement;
         public IRightsStatement GetRightsStatement()
         {
             if (!initialised) Init();
-            if (premisRightsStatement == null)
+            if (premisRightsStatementXElement == null)
             {
-                return null;
+                //throw new NotSupportedException(
+                //    $"No rights statement found for physical file {physicalFile.Id} in {workStore.Identifier}");
+            
+                // We need to throw the error above but for now, for testing, we'll make a pseudo-rights statement:
+                rightsStatement = new PremisRightsStatement
+                {
+                    Basis = "No Rights Statement",
+                    Identifier = "no-rights",
+                    AccessCondition = Common.AccessCondition.Restricted, // so that we still generate IIIF
+                    Statement = "No Rights"
+                };
             }
 
-            var rightsStatement = new PremisRightsStatement
+            if (rightsStatement != null)
             {
-                Identifier = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
-                Basis = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsBasis),
-                AccessCondition = premisRightsStatement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
+                return rightsStatement;
+            }
+
+            rightsStatement = new PremisRightsStatement
+            {
+                Identifier = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
+                Basis = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsBasis),
+                AccessCondition = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
             };
 
             switch (rightsStatement.Basis)
             {
                 case "License":
-                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisLicenseNote);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisLicenseNote);
                     break;
                 case "Copyright":
-                    rightsStatement.Statement = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightNote);
-                    rightsStatement.Status = premisRightsStatement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightNote);
+                    rightsStatement.Status = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
                     break;
                 default:
                     throw new NotSupportedException($"Unknown rights statement basis: {rightsStatement.Basis}");
@@ -235,6 +437,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private void Init()
         {
             // Goobi and Archivematica METS are quite differently arranged.
+            // We want this class to work with both kinds of METS, and possibly for Goobi METS to start using more
+            // Premis or other information. 
             XElement techMd = null;
             XElement rightsMd = null;
             
@@ -258,11 +462,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 throw new NotSupportedException($"Unable to locate techMD section for {admId}");
             }
-            premisObject = techMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisObject);
+            premisObjectXElement = techMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisObject);
             
             significantProperties = new Dictionary<string, string>();
-            if (premisObject == null) return;
-            foreach (var sigProp in premisObject.Elements(XNames.PremisSignificantProperties))
+            if (premisObjectXElement == null) return;
+            foreach (var sigProp in premisObjectXElement.Elements(XNames.PremisSignificantProperties))
             {
                 var propType = sigProp.Element(XNames.PremisSignificantPropertiesType).Value;
                 var propValue = sigProp.Element(XNames.PremisSignificantPropertiesValue).Value;
@@ -271,7 +475,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             
             if (rightsMd != null)
             {
-                premisRightsStatement = rightsMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisRightsStatement);
+                premisRightsStatementXElement = rightsMd.Descendants(XNames.MetsXmlData).Single().Element(XNames.PremisRightsStatement);
             }
 
             initialised = true;
@@ -284,19 +488,50 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns>The length in seconds, or 0 if no length obtained.</returns>
         public static double ParseDuration(string possibleStringLength)
         {
-            if (possibleStringLength.HasText())
+            if (possibleStringLength.IsNullOrWhiteSpace())
+            {
+                return 0;
+            }
+
+            var test = possibleStringLength.Trim();
+            if (test.Contains("mn"))
             {
                 // Examples
                 // 22mn 49s
                 // 1mn 41s
                 // 9mn 46s ... this format seems very consistent
-                if (possibleStringLength.Contains("mn"))
+                var parts = test.Split(' ');
+                int.TryParse(parts[0].ToNumber(), out var mins);
+                int.TryParse(parts[1].ToNumber(), out var secs);
+                return 60 * mins + secs;
+            }
+
+            if (test.Contains(":"))
+            {
+                var parts = test.Split(':');
+                if (parts.Length == 2)
                 {
-                    var parts = possibleStringLength.Split(' ');
-                    int.TryParse(parts[0].ToNumber(), out var mins);
-                    int.TryParse(parts[1].ToNumber(), out var secs);
-                    return 60 * mins + secs;
+                    test = "00:" + test;
                 }
+                // TODO - deal with overflow parts only if we find them, e.g., 00:80:20
+                if (TimeSpan.TryParse(test, out var ts))
+                {
+                    // 12:30:33 and similar formats
+                    if (ts.TotalSeconds > 0)
+                    {
+                        return ts.TotalSeconds;
+                    }
+                }
+            }
+            
+            // "58s"
+            if (test.EndsWith("s"))
+            {
+                test = test.Chomp("s");
+            }
+            if (double.TryParse(test, out var result))
+            {
+                return result;
             }
 
             return 0;

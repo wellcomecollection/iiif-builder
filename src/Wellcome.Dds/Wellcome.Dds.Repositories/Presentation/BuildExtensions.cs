@@ -204,6 +204,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case AccessCondition.Degraded:
                 case AccessCondition.ClinicalImages:
                 case AccessCondition.RestrictedFiles:
+                case AccessCondition.Restricted:
                     return false;
                 default:
                     return true;
@@ -224,6 +225,22 @@ namespace Wellcome.Dds.Repositories.Presentation
                 default:
                     return false;
             }
+        }
+
+
+        public static Size? GetWhSize(this IPhysicalFile file)
+        {
+            var dimensions = file.AssetMetadata?.GetMediaDimensions();
+            if (dimensions == null) return null;
+            
+            var w = dimensions.Width.GetValueOrDefault();
+            var h = dimensions.Height.GetValueOrDefault();
+            if (w > 0 && h > 0)
+            {
+                return new Size(w, h);
+            }
+
+            return null;
         }
     }
 }

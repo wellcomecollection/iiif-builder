@@ -81,13 +81,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName PremisCopyrightNote = premis + "copyrightNote";
         public static readonly XName PremisCopyrightStatus = premis + "copyrightStatus";
         
-        
-        
-        
-        
-
         public static readonly XNamespace fits = "http://hul.harvard.edu/ois/xml/ns/fits/fits_output";
         public static readonly XName FitsIdentity = fits + "identity";
+        public static readonly XName FitsTool = fits + "tool";
+
+        public static readonly XNamespace MediaInfo = "https://mediaarea.net/mediainfo";
+        public static readonly XName MediaInfoTrack = MediaInfo + "track";
+        public static readonly XName MediaInfoWidth = MediaInfo + "Width";
+        public static readonly XName MediaInfoHeight = MediaInfo + "Height";
+        public static readonly XName MediaInfoDuration = MediaInfo + "Duration";
 
         public static readonly XNamespace wt = "http://wellcome.ac.uk/";
         public static readonly XName WtVolumeNumber = wt + "volumeNumber";

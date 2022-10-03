@@ -62,7 +62,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return fileElement.GetDesendantElementValue(XNames.TessellaID);
         }
 
-        public string GetLengthInSeconds()
+        public string GetDisplayDuration()
         {
             return GetFilePropertyValue("Length In Seconds");
         }
@@ -70,6 +70,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public double GetDuration()
         {
             throw new System.NotImplementedException();
+        }
+
+        public MediaDimensions GetMediaDimensions()
+        {
+            throw new NotImplementedException();
         }
 
         public string GetBitrateKbps()

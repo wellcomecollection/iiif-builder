@@ -153,7 +153,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
-                    ViewBag.TryInstead = ddsId.PackageIdentifier;
+                    ViewBag.TryInstead = ddsId.PackageIdentifierPathElementSafe;
                 }
             }
 

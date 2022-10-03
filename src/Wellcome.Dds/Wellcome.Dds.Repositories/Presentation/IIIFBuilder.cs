@@ -73,33 +73,26 @@ namespace Wellcome.Dds.Repositories.Presentation
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 
-        public async Task<MultipleBuildResult> BuildAllManifestations(string bNumber, Work? work = null)
+        public async Task<MultipleBuildResult> BuildAllManifestations(DdsIdentifier ddsId, Work? work = null)
         {
             var state = new State();
-            if (bNumber == KnownIdentifiers.ChemistAndDruggist)
+            if (ddsId.PackageIdentifier == KnownIdentifiers.ChemistAndDruggist)
             {
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
-            var buildResults = new MultipleBuildResult {Identifier = bNumber};
-            var ddsId = new DdsIdentifier(bNumber);
-            if (ddsId.IdentifierType != IdentifierType.BNumber)
-            {
-                // we could throw an exception - do we actually care?
-                // just process it. 
-            }
-            bNumber = ddsId.PackageIdentifier;
+            var buildResults = new MultipleBuildResult {Identifier = ddsId.PackageIdentifier};
             var manifestationId = "start";
             try
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
-                logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", bNumber);
-                var resource = await metsRepository.GetAsync(bNumber);
-                // This is a bnumber, so can't be part of anything.
+                logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", ddsId);
+                var resource = await metsRepository.GetAsync(ddsId.PackageIdentifier);
+                // This is a bnumber or born digital archive, so can't be part of any multiple manifestation.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is ICollection parentCollection)
                 {
-                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(bNumber))
+                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId.PackageIdentifier))
                     {
                         var manifestation = manifestationInContext.Manifestation;
                         manifestationId = manifestation.Id;
@@ -121,8 +114,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        public MultipleBuildResult BuildLegacyManifestations(string identifier, IEnumerable<BuildResult> buildResults)
-            => presentation2Converter.ConvertAll(identifier, buildResults);
+        public MultipleBuildResult BuildLegacyManifestations(DdsIdentifier ddsId, IEnumerable<BuildResult> buildResults)
+            => presentation2Converter.ConvertAll(ddsId.PackageIdentifier, buildResults);
 
         private async Task CheckAndProcessState(MultipleBuildResult buildResults, State state)
         {
@@ -163,19 +156,19 @@ namespace Wellcome.Dds.Repositories.Presentation
                     state.Volumes.Add(volume);
                     var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
                     // populate volume fields
-                    volume.Volume = metsVolume.ModsData.Number;
-                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.Volume = metsVolume.SectionMetadata.Number;
+                    volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
                     volume.NavDate = state.GetNavDate(volume.DisplayDate);
-                    volume.Label = metsVolume.ModsData.Title;
+                    volume.Label = metsVolume.SectionMetadata.Title;
                 }
                 logger.LogInformation($"Issue {mic.IssueIdentifier}, Volume {mic.VolumeIdentifier}");
                 var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
                 volume.Issues.Add(issue);
                 var metsIssue = mic.Manifestation;
-                var mods = metsIssue.ModsData;
+                var mods = metsIssue.SectionMetadata;
                 // populate issue fields
                 issue.Title = mods.Title; // like "2293"
-                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.DisplayDate = mods.DisplayDate;
                 issue.NavDate = state.GetNavDate(issue.DisplayDate);
                 issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);
                 issue.MonthNum = issue.NavDate.Month;
@@ -191,15 +184,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public async Task<MultipleBuildResult> Build(string identifier, Work? work = null)
+        public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null)
         {
             // only this identifier, not all for the b number.
             var buildResults = new MultipleBuildResult();
             try
             {
-                var ddsId = new DdsIdentifier(identifier);
-                logger.LogInformation($"Build a single manifestation {identifier}", identifier);
-                var metsResource = await metsRepository.GetAsync(identifier);
+                logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
+                var metsResource = await metsRepository.GetAsync(ddsId);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 
@@ -214,7 +206,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (collection.Manifestations.Any(m => m.IsMultiPart()))
                     {
-                        buildResults.Add(new BuildResult(identifier, Version.V3) {RequiresMultipleBuild = true});
+                        buildResults.Add(new BuildResult(ddsId, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
                     }
                 }
@@ -236,7 +228,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
 
         private BuildResult BuildInternal(Work work,
-            IMetsResource metsResource, ICollection? partOf,
+            IMetsResource metsResource, ICollection? partOfCollection,
             ManifestationMetadata manifestationMetadata, State? state)
         {
             var result = new BuildResult(metsResource.Id, Version.V3);
@@ -244,7 +236,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
-                    metsResource, partOf, work, manifestationMetadata, state);
+                    metsResource, partOfCollection, work, manifestationMetadata, state);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
@@ -264,7 +256,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         
         private StructureBase MakePresentation3Resource(
             IMetsResource metsResource,
-            ICollection? partOf,
+            ICollection? partOfCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
             State? state)
@@ -284,13 +276,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         Id = uriPatterns.Manifest(metsManifestation.Id)
                     };
-                    if (partOf != null)
+                    if (partOfCollection != null)
                     {
+                        // For multi-volume works, periodicals etc that are all under the same _package_
+                        // Hierarchical archive partOf is not set here, but by AddCommonMetadata
                         manifest.PartOf = new List<ResourceBase>
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOf.Id),
+                                Id = uriPatterns.CollectionForWork(partOfCollection.Id),
                                 Label = Lang.Map(work.Title),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
@@ -392,7 +386,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             Manifest manifest, 
             IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata,
-            State state)
+            State? state)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);

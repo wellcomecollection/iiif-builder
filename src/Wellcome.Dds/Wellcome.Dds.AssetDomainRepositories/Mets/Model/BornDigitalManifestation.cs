@@ -13,8 +13,8 @@ public class BornDigitalManifestation : IManifestation
     public string Label { get; set; }
     public string Type { get; set; }
     public int? Order { get; set; }
-    public IModsData ModsData { get; set; }
-    public IModsData ParentModsData { get; }
+    public ISectionMetadata SectionMetadata { get; set; }
+    public ISectionMetadata ParentSectionMetadata { get; }
     public bool Partial { get; }
     public string GetRootId()
     {

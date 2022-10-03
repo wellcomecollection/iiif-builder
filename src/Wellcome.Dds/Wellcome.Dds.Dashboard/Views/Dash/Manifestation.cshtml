@@ -269,14 +269,14 @@
                         <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
                     </ul>
                 </li>
-                @if (metsManifestation.ModsData != null)
+                @if (metsManifestation.SectionMetadata != null)
                 {
                     <li class="list-group-item">
                         <ul class="list-unstyled">
                             <li>
                                 Mods:
-                                <span title="accessCondition" class="label label-primary">@metsManifestation.ModsData.AccessCondition</span>
-                                <span title="leader6" class="label label-primary">@metsManifestation.ModsData.Leader6</span>
+                                <span title="accessCondition" class="label label-primary">@metsManifestation.SectionMetadata.AccessCondition</span>
+                                <span title="leader6" class="label label-primary">@metsManifestation.SectionMetadata.Leader6</span>
                             </li>
                         </ul>
                     </li>
@@ -583,7 +583,7 @@
                                 <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
-                                    <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
+                                    <td>@pf.AssetMetadata.GetDisplayDuration()</td>
                                 }
                                 else
                                 {
@@ -663,7 +663,7 @@
                                     <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
-                                        <td>@adjunct.AssetMetadata.GetLengthInSeconds()</td>
+                                        <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
                                     }
                                     else
                                     {
@@ -861,14 +861,18 @@
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>
                         @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                        @file.OriginalName.Split('/').Last()
+                        @file.OriginalName.GetFileName()
                     </strong></a>
                     <br/>
                     <div class="small" style="margin-left: 18px;">
                         @file.MimeType (@file.AssetMetadata.GetFormatName())
-                        <a 
-                            href="https://www.nationalarchives.gov.uk/PRONOM/PUID/proPUIDSearch.aspx?status=new" 
-                            target="_blank">@file.AssetMetadata.GetPronomKey()</a>
+                        @{
+                            var pronomKey = file.AssetMetadata.GetPronomKey();
+                            var tnaPage = "https://www.nationalarchives.gov.uk/PRONOM/" + pronomKey;
+                        }
+                        <a href="@tnaPage" target="_blank">@pronomKey</a>
+                        |
+                        @file.AssetMetadata.GetMediaDimensions().ToString()
                         <br/>
                         @if (dlcsImage != null)
                         {
@@ -878,7 +882,6 @@
                         {
                             <span class="text-danger">@file.StorageIdentifier</span>
                              <span class="text-muted small"> - NOT ON DLCS</span>
-                                                                             
                         }
                     </div>
                 </li>

@@ -479,6 +479,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
+                case IdentifierType.NonBNumber: // for Archivematica, always (at present) a single manifestation
                     imageRegistration.String2 = ddsId.PackageIdentifier;
                     imageRegistration.String3 = ddsId.PackageIdentifier;
                     break;
