@@ -7,7 +7,7 @@
     }
     else
     {
-        ViewBag.Title = "Goobi call for " + Model.Identifier;
+        ViewBag.Title = "Workflow call for " + Model.Identifier;
     }
 }
 
@@ -32,11 +32,11 @@
 }
 else
 {
-    <h2>Goobi call for @Model.Identifier</h2>
+    <h2>Workflow call for @Model.Identifier</h2>
 }
 
 <ul class="list-group">
-    <li class="list-group-item"><a href="@Url.Action("Create", "WorkflowCall", new {id = Model.Identifier})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a></li>
+    <li class="list-group-item"><a href="@Url.Action("Create", "WorkflowCall", new {id = Model.Identifier})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Workflow Call</a></li>
     <li class="list-group-item">@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new {id = @Model.Identifier}, new {})</li>
     <li class="list-group-item"><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.Identifier})">Storage Manifest</a></li>
     <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = Model.Identifier, parts = Model.Identifier + ".xml"})">METS file</a></li>
