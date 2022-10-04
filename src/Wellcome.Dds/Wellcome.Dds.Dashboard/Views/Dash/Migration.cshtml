@@ -77,7 +77,7 @@
         <p>There is a @Html.ActionLink("storage manifest for " + Model.Identifier, "StorageManifest", "Peek", new { id = Model.Identifier }, new { }).</p>
         <p>It was created @Model.StorageManifestDescription.</p>
         <p>@Html.ActionLink("DDS View of " + @Model.Identifier, "Manifestation", "Dash", new {id = @Model.Identifier}, new {})</p>
-        <p>@Html.ActionLink("View DDS Call info for " + Model.Identifier, "GoobiCall", "WorkflowCall", new { id = Model.Identifier }, new { })</p>
+        <p>@Html.ActionLink("View DDS Call info for " + Model.Identifier, "WorkflowCall", "WorkflowCall", new { id = Model.Identifier }, new { })</p>
     }
 
     <h3>Migrated bag</h3>

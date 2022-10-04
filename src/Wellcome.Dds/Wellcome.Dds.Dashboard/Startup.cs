@@ -168,7 +168,7 @@ namespace Wellcome.Dds.Dashboard
                     .MapControllers()
                     .RequireAuthorization();
 
-                string actionRegex = "^(?!account|goobicall|job|log|peek|settings).*$";
+                string actionRegex = "^(?!account|workflowcall|job|log|peek|settings).*$";
                 endpoints.MapControllerRoute(name: "dash",
                     pattern: "{action}/{id?}/{*parts}",
                     constraints: new { action = actionRegex, },
