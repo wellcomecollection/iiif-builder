@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 {
@@ -35,6 +36,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
         {
             var workflowJob =
                 await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions, true, invalidateCache);
+            return workflowJob;
+        }
+
+        public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
+        {
+            logger.LogInformation("Creating workflow job from message: " + message);
+            var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier, true, false, -1, false, false);
             return workflowJob;
         }
 

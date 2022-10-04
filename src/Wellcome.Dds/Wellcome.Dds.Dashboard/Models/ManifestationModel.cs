@@ -459,6 +459,7 @@ namespace Wellcome.Dds.Dashboard.Models
         public Work Work { get; set; }
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
+        public string CatalogueApiFull { get; set; }
         public string ManifestUrl { get; set; }
 
         /// <summary>

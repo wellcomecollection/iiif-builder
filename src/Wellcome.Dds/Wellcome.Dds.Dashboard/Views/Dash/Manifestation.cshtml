@@ -227,7 +227,7 @@
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.WorkPage">Work page</a></li>
-                        <li><a href="@Model.CatalogueApi">Catalogue API</a></li>
+                        <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
@@ -334,10 +334,10 @@
         <h3>Jobs</h3>
         <ul class="list-group">
             <li class="list-group-item">
-                <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
+                <a href="@Url.Action("GoobiCall", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
             </li>    
             <li class="list-group-item">
-                <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
+                <a href="@Url.Action("Create", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
             </li>
             @foreach (var job in Model.IngestJobs)
             {

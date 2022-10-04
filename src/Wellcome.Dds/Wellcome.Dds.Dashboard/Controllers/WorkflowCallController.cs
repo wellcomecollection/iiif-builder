@@ -7,14 +7,14 @@ using Wellcome.Dds.AssetDomain.Workflow;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
-    public class GoobiCallController : Controller
+    public class WorkflowCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
-        private readonly ILogger<GoobiCallController> logger;
+        private readonly ILogger<WorkflowCallController> logger;
 
-        public GoobiCallController(
+        public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
-            ILogger<GoobiCallController> logger)
+            ILogger<WorkflowCallController> logger)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;

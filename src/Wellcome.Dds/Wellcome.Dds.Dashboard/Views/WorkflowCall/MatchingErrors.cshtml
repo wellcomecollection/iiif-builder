@@ -7,12 +7,12 @@
 
 <div class="col-md-12">
     <h3 style="margin: 25px 0 20px 0">Errors matching a string</h3>
-    <p>@Html.ActionLink("View all errors", "Errors", "GoobiCall")</p>
+    <p>@Html.ActionLink("View all errors", "Errors", "WorkflowCall")</p>
 </div>
 
 <div class="row" style="padding-top:2em">
     <div class="col-md-12">
-        @using (Html.BeginForm("MatchingErrors", "GoobiCall", FormMethod.Get))
+        @using (Html.BeginForm("MatchingErrors", "WorkflowCall", FormMethod.Get))
         {
             <div class="input-group">
                 <input type="text" value="@ViewBag.ErrorString" class="form-control" name="msg" id="schBox">
@@ -27,7 +27,7 @@
 <div class="row" style="padding-top:2em">
     <div class="col-md-12">
         <p>@Model errors matching this string.</p>
-                @using (Html.BeginForm("ResetMatchingErrors", "GoobiCall", FormMethod.Post))
+                @using (Html.BeginForm("ResetMatchingErrors", "WorkflowCall", FormMethod.Post))
                 {
                     <div class="input-group">
                         <input type="text" disabled value="@ViewBag.ErrorString" class="form-control">

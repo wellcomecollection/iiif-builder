@@ -170,7 +170,7 @@ namespace WorkflowProcessor
                 {
                     var processParam = GetOperationWithParameter(new[] {ProcessParam}).parameter;
                     logger.LogInformation($"Creating workflow record and processing {processParam}");
-                    await ProcessBNumber(processParam, workflowOptionsFlags, stoppingToken);
+                    await ProcessIdentifier(processParam, workflowOptionsFlags, stoppingToken);
                     return;
                 }
 
@@ -397,14 +397,14 @@ namespace WorkflowProcessor
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
         }
 
-        private async Task ProcessBNumber(string bnumber, int? workflowOptions, CancellationToken stoppingToken)
+        private async Task ProcessIdentifier(string identifier, int? workflowOptions, CancellationToken stoppingToken)
         {
             try
             {
                 using var scope = serviceScopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
                 
-                var workflowJob = await dbContext.PutJob(bnumber, true, true, workflowOptions, false, false);
+                var workflowJob = await dbContext.PutJob(identifier, true, true, workflowOptions, false, false);
                 
                 var runner = GetWorkflowRunner(scope);
                 await runner.ProcessJob(workflowJob, stoppingToken);
@@ -421,7 +421,7 @@ namespace WorkflowProcessor
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error Processing BNumber {BNumber}", bnumber);
+                logger.LogError(ex, "Error Processing Identifier {identifier}", identifier);
             }
         }
 

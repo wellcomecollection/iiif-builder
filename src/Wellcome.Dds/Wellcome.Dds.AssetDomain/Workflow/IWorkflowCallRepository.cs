@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain.Workflow
 {
@@ -51,6 +52,14 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <returns>Created <see cref="WorkflowJob"/> object.</returns>
         /// <remarks>See Wellcome.Dds.Common.RunnerOptions and associated tests for workflowOptions values</remarks>
         Task<WorkflowJob> CreateExpeditedWorkflowJob(string id, int? workflowOptions, bool invalidateCache);
+
+        /// <summary>
+        /// Create a new job from a received message (e.g., from an external queue)
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="expedite"></param>
+        /// <returns></returns>
+        Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false);
 
         int FinishAllJobs();
         
