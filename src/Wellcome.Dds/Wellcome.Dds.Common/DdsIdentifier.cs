@@ -27,6 +27,12 @@
         public string PackageIdentifierPathElementSafe { get; }
         
         /// <summary>
+        /// Sometimes a caller doesn't know whether the identfier is a package identifier or a sub part,
+        /// but wants a path-safe form anyway.
+        /// </summary>
+        public string PathElementSafe { get; }
+        
+        /// <summary>
         /// What prefix in the storage service API is required to locate this object's files
         /// Currently either "digitised" or "born-digital"
         /// </summary>
@@ -132,6 +138,7 @@
                 IdentifierType = IdentifierType.Issue;
             }
 
+            PathElementSafe = value;
             if (IdentifierType == IdentifierType.NonBNumber)
             {
                 // The supplied value was not a b number, or something that started with a b number.
@@ -150,7 +157,8 @@
                 PackageIdentifierPathElementSafe = PackageIdentifier.Replace(Slash, Underscore);
                 
                 // used for ToString()... callers will need to ask for the path element safe version explicitly
-                this.value = PackageIdentifier; 
+                this.value = PackageIdentifier;
+                PathElementSafe = PackageIdentifierPathElementSafe;
             }
         }
 

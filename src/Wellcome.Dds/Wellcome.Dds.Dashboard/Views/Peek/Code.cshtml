@@ -23,7 +23,7 @@
             <a href="@Model.Raw">Raw</a> 
             |
             @Html.ActionLink( "Manifestation", "Manifestation", "Dash", 
-                new {id = Model.Identifier.PackageIdentifierPathElementSafe})
+                new {id = Model.Identifier.PathElementSafe})
             @if (Model.AnchorFile.HasText())
             {
                 @: | <a href="@Model.AnchorFile">Anchor file</a>
