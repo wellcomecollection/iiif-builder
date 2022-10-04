@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -49,12 +50,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> WorkflowCall(string id)
         {
-            var job = await workflowCallRepository.GetWorkflowJob(id);
+            var ddsId = new DdsIdentifier(id);
+            var job = await workflowCallRepository.GetWorkflowJob(ddsId);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = id,
+                    Identifier = ddsId,
                     Created = null
                 };
             }
