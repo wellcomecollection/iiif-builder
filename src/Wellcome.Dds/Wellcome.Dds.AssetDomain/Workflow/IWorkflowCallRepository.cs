@@ -37,21 +37,21 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <summary>
         /// Create a new workflow_job with specified workflowOptions.
         /// </summary>
-        /// <param name="id">Identifier of work to create job for.</param>
+        /// <param name="ddsId">Identifier of work to create job for.</param>
         /// <param name="workflowOptions">Workflow options to use when processing job</param>
         /// <returns>Created <see cref="WorkflowJob"/> object.</returns>
         /// <remarks>See Wellcome.Dds.Common.RunnerOptions and associated tests for workflowOptions values</remarks>
-        Task<WorkflowJob> CreateWorkflowJob(string id, int? workflowOptions);
+        Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions);
 
         /// <summary>
         /// Create a new expedited workflow_job with specified workflowOptions.
         /// </summary>
-        /// <param name="id">Identifier of work to create job for.</param>
+        /// <param name="ddsId">Identifier of work to create job for.</param>
         /// <param name="workflowOptions">Workflow options to use when processing job</param>
         /// <param name="invalidateCache">If true, caches for this object will be invalidated after processing</param>
         /// <returns>Created <see cref="WorkflowJob"/> object.</returns>
         /// <remarks>See Wellcome.Dds.Common.RunnerOptions and associated tests for workflowOptions values</remarks>
-        Task<WorkflowJob> CreateExpeditedWorkflowJob(string id, int? workflowOptions, bool invalidateCache);
+        Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache);
 
         /// <summary>
         /// Create a new job from a received message (e.g., from an external queue)

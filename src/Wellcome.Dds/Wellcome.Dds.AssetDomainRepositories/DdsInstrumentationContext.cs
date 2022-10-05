@@ -51,10 +51,9 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public async Task<WorkflowJob> PutJob(string identifier, bool forceRebuild, bool take, int? workflowOptions,
+        public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
-            var ddsId = new DdsIdentifier(identifier);
             WorkflowJob job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
