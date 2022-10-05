@@ -26,8 +26,8 @@ namespace Wellcome.Dds.Dashboard.Models
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
         public IDigitalManifestation DigitisedManifestation { get; set; }
-        public IDigitisedCollection Parent { get; set; }
-        public IDigitisedCollection GrandParent { get; set; }
+        public IDigitalCollection Parent { get; set; }
+        public IDigitalCollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
         public DlcsOptions DlcsOptions { get; set; }
 

@@ -65,7 +65,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
 
         [Fact]
-        public async Task GetDigitisedResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
+        public async Task GetDigitalResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
         {
             // Arrange
             const string identifier = "b1231231";
@@ -75,11 +75,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Assert
             (await action.Should().ThrowAsync<ArgumentException>()).And
                 .Message.Should().Be(
-                    "Cannot get a digitised resource from METS for identifier b1231231 (Parameter 'identifier')");
+                    "Cannot get a digital resource from METS for identifier b1231231 (Parameter 'identifier')");
         }
 
         [Fact]
-        public async Task GetDigitisedResource_HandlesIManifestation_WithoutPdf()
+        public async Task GetDigitalResource_HandlesIManifestation_WithoutPdf()
         {
             // Arrange
             const string identifier = "b1231231";
@@ -94,7 +94,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier);
+            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier);
 
             // Assert
             result.Identifier.Should().Be("manifest_id");
@@ -104,7 +104,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesIManifestation_WithPdf()
+        public async Task GetDigitalResource_HandlesIManifestation_WithPdf()
         {
             // Arrange
             const string identifier = "b1231231";
@@ -122,7 +122,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetPdfDetails("manifest_id")).Returns(pdf);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier, true);
+            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier, true);
 
             // Assert
             result.Identifier.Should().Be("manifest_id");
@@ -132,7 +132,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesICollection_WithoutPdf()
+        public async Task GetDigitalResource_HandlesICollection_WithoutPdf()
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
@@ -165,7 +165,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier);
+            var result = (DigitalCollection)await sut.GetDigitalObject(identifier);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
@@ -182,7 +182,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesICollection_WithPdf()
+        public async Task GetDigitalResource_HandlesICollection_WithPdf()
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
@@ -215,7 +215,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier, true);
+            var result = (DigitalCollection)await sut.GetDigitalObject(identifier, true);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);

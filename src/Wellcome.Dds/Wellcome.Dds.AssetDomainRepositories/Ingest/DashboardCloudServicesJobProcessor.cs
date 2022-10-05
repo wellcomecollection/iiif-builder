@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
@@ -10,6 +11,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
@@ -140,7 +142,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         /// <param name="forceReingest">Optional flag to force a complete re-ingest of the identifier</param>
         /// <param name="usePriorityQueue"></param>
         /// <returns></returns>
-        public async Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false)
+        public async Task<ImageIngestResult> ProcessJob(
+            DlcsIngestJob job, 
+            Func<Image, bool> includeIngestingImage, 
+            bool forceReingest = false, 
+            bool usePriorityQueue = false)
         {
             // TODO
             // var runningJobs... // Look at what is already running
@@ -232,8 +238,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             job.ImageCount = manifestation.SynchronisableFiles.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 
-            bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);
-            if (!jobCanBeProcessedNow)
+            if (!JobCanBeProcessedNow(job, manifestation))
             {
                 const string deferred = "deferred_format";
                 job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
@@ -299,6 +304,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             await ddsInstrumentationContext.SaveChangesAsync();
             return result;
+        }
+
+        private static bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation)
+        {
+            if (job.AssetType.IsNullOrEmpty())
+            {
+                return false;
+            }
+
+            var ddsId = new DdsIdentifier(job.GetManifestationIdentifier());
+
+            if (ddsId.HasBNumber)
+            {
+                return SupportedFormats.Contains(job.AssetType);
+            }
+            
+            // If it's not a b number, we'll just have to try and process it!
+            // But we will make sure that EVERY file has a mimetype.
+            if (manifestation.Sequence.Any(pf => pf.MimeType.IsNullOrEmpty()))
+            {
+                return false;
+            }
+            
+            return true;
         }
 
         private void WriteErrorJobData(int jobId, string dataMessage, Exception ex)

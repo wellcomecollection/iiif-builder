@@ -13,7 +13,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// The manifestation's logical position within a sequence; THIS MIGHT NOT BE SET
         /// </summary>
         int SequenceIndex { get; set; }
-        string BNumber { get; set; }
+        string PackageIdentifier { get; set; }
         string VolumeIdentifier { get; set; }
         string IssueIdentifier { get; set; }
     }

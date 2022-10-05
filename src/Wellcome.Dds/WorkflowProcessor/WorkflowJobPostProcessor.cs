@@ -44,8 +44,9 @@ namespace WorkflowProcessor
             var cacheInvalidationOptions = options.Value;
 
             // api.wc.org cache is only invalidated if text has been rebuilt 
-            if (runnerOptions.RebuildTextCaches)
+            if (runnerOptions.RebuildTextCaches && new DdsIdentifier(job.Identifier).HasBNumber)
             {
+                // Only bnumbers will have text that needs flushing, for now, so don't bother calling if not a bnumber.
                 var apiPaths =
                     uriPatterns.GetCacheInvalidationPaths(job.Identifier, InvalidationPathType.Text);
                 await PublishInvalidationTopic(job.Identifier, cacheInvalidationOptions.InvalidateApiTopicArn,

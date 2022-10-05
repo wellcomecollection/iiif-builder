@@ -15,7 +15,7 @@ public class BornDigitalManifestation : IManifestation
     public int? Order { get; set; }
     public ISectionMetadata SectionMetadata { get; set; }
     public ISectionMetadata ParentSectionMetadata { get; }
-    public bool Partial { get; }
+    public bool Partial => false; // never partial  
     public string GetRootId()
     {
         throw new NotImplementedException();

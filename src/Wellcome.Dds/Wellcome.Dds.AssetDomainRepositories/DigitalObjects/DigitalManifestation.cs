@@ -7,7 +7,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
-    public class DigitisedManifestation : BaseDigitalObject, IDigitalManifestation
+    public class DigitalManifestation : BaseDigitalObject, IDigitalManifestation
     {
         public IManifestation MetsManifestation { get; set; }
         

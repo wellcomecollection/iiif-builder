@@ -163,14 +163,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Collection(string id)
         {
             var json = AskedForJson();
-            IDigitisedCollection collection = null;
+            IDigitalCollection collection = null;
             DdsIdentifier ddsId = null;
             bool showError = false;
             try
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await digitalObjectRepository.GetDigitalObject(id)) as IDigitisedCollection;
+                collection = (await digitalObjectRepository.GetDigitalObject(id)) as IDigitalCollection;
             }
             catch (Exception metsEx)
             {
@@ -198,7 +198,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Collection", collection);
         }
 
-        private SimpleCollectionModel MakeSimpleCollectionModel(IDigitisedCollection collection)
+        private SimpleCollectionModel MakeSimpleCollectionModel(IDigitalCollection collection)
         {
             var simpleCollection = new SimpleCollectionModel();
             if (collection.Collections.HasItems())

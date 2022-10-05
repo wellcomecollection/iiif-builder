@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
@@ -103,7 +104,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         // TODO: Making this async needs a code review (compare CloudServicesIngestRegistry and its interface with dds-ecosystem)
         // The following few mthods all need reviewing
-        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier)
+        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentifier identifier)
         {
             await foreach (var job in RegisterImagesInternal(identifier, false, true))
             {
@@ -111,7 +112,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public async Task<DlcsIngestJob[]> RegisterImages(string identifier, bool useInitialOrigin = false)
+        public async Task<DlcsIngestJob[]> RegisterImages(DdsIdentifier identifier, bool useInitialOrigin = false)
         {
             // Can this not return an array? Why does it need to?
             var jobs = new List<DlcsIngestJob>();
@@ -122,16 +123,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return jobs.ToArray();
         }
 
-        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(string identifier, bool useInitialOrigin, bool immediateStart)
+        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(DdsIdentifier identifier, bool useInitialOrigin, bool immediateStart)
         {
-            // TODO - The unstarted old jobs are cleaned out in AddNewJob(..)
-            // But wouldn't it be better to clean them all out here? Before creating the set of new
-            // jobs for this b number (will be a set of jobs if multi volume)?
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var job = NewJob(
-                    manifestationInContext.BNumber,
-                    manifestationInContext.Manifestation?.Label ?? manifestationInContext.BNumber,
+                    manifestationInContext.PackageIdentifier,
+                    manifestationInContext.Manifestation?.Label ?? manifestationInContext.PackageIdentifier,
                     manifestationInContext.SequenceIndex,
                     manifestationInContext.VolumeIdentifier,
                     manifestationInContext.IssueIdentifier,

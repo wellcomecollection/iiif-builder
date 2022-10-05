@@ -50,18 +50,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="identifier">Same as used for METS</param>
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
-        public async Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false)
+        public async Task<IDigitalObject> GetDigitalObject(DdsIdentifier identifier, bool includePdfDetails = false)
         {
             logger.LogInformation($"GetDigitisedResource will get MetsResource for {identifier}", identifier);
             IDigitalObject digObject;
             var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation resource)
             {
-                digObject = await MakeDigitisedManifestation(resource, includePdfDetails);
+                digObject = await MakeDigitalManifestation(resource, includePdfDetails);
             }
             else if (metsResource is ICollection collection)
             {
-                digObject = await MakeDigitisedCollection(collection, includePdfDetails);
+                digObject = await MakeDigitalCollection(collection, includePdfDetails);
             }
             else
             {
@@ -196,9 +196,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return syncOperation;
         }
         
-        private async Task<DigitisedCollection> MakeDigitisedCollection(ICollection metsCollection, bool includePdf)
+        private async Task<DigitalCollection> MakeDigitalCollection(ICollection metsCollection, bool includePdf)
         {
-            var dc = new DigitisedCollection
+            var dc = new DigitalCollection
             {
                 MetsCollection = metsCollection,
                 Identifier = metsCollection.Id
@@ -208,7 +208,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             if (metsCollection.Collections.HasItems())
             {
                 var collections = metsCollection.Collections
-                    .Select(m => MakeDigitisedCollection(m, includePdf))
+                    .Select(m => MakeDigitalCollection(m, includePdf))
                     .ToList();
 
                 await Task.WhenAll(collections);
@@ -217,7 +217,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             if (metsCollection.Manifestations.HasItems())
             {
                 var manifestations = metsCollection.Manifestations
-                    .Select(m => MakeDigitisedManifestation(m, includePdf))
+                    .Select(m => MakeDigitalManifestation(m, includePdf))
                     .ToList();
                 await Task.WhenAll(manifestations);
                 dc.Manifestations = manifestations.Select(m => m.Result);
@@ -226,14 +226,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return dc;
         }
 
-        private async Task<DigitisedManifestation> MakeDigitisedManifestation(IManifestation metsManifestation, bool includePdf)
+        private async Task<DigitalManifestation> MakeDigitalManifestation(IManifestation metsManifestation, bool includePdf)
         {
             var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Id);
             var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Id) : Task.FromResult<IPdf>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
             
-            return new DigitisedManifestation
+            return new DigitalManifestation
             {
                 MetsManifestation = metsManifestation,
                 Identifier = metsManifestation.Id,

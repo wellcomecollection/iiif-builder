@@ -79,7 +79,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             
             
-            var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
+            var jobs = jobRegistry.RegisterImagesForImmediateStart(ddsId);
             await foreach (var job in jobs)
             {
                 digitalObjectRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
@@ -88,7 +88,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
             try
             {
-                await synchroniser.RefreshDdsManifestations(id);
+                await synchroniser.RefreshDdsManifestations(ddsId);
             }
             catch (ArgumentException ae)
             {

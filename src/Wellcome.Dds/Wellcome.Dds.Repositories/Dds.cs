@@ -42,9 +42,9 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetTotalsByAssetType();
         }
 
-        public async Task RefreshManifestations(string id, Work work = null)
+        public async Task RefreshManifestations(DdsIdentifier ddsId, Work work = null)
         {
-            await synchroniser.RefreshDdsManifestations(id, work);
+            await synchroniser.RefreshDdsManifestations(ddsId, work);
         }
 
         public ManifestationMetadata GetManifestationMetadata(string identifier)

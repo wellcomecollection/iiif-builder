@@ -33,7 +33,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             this.logger = logger;
         }
 
-        public async Task<IMetsResource> GetAsync(string identifier)
+        public async Task<IMetsResource> GetAsync(DdsIdentifier identifier)
         {
             // forms:
             // b12345678 - could be an anchor file or a single manifestation work. 
@@ -46,22 +46,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // Returns IManifestation
 
             // b12345678/0 - old form, must be an IManifestation
-            var ddsId = new DdsIdentifier(identifier);
-
-            IWorkStore workStore = await workStorageFactory.GetWorkStore(ddsId);
+            IWorkStore workStore = await workStorageFactory.GetWorkStore(identifier);
             ILogicalStructDiv structMap;
-            switch (ddsId.IdentifierType)
+            switch (identifier.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = await GetFileStructMap(ddsId.BNumber, workStore);
+                    structMap = await GetFileStructMap(identifier.BNumber, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.Volume:
-                    structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
+                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart, workStore);
                     return GetMetsResource(structMap, workStore);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndex(ddsId.BNumber, ddsId.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndex(identifier.BNumber, identifier.SequenceIndex, workStore);
                 case IdentifierType.Issue:
-                    structMap = await GetLinkedStructMapAsync(ddsId.VolumePart, workStore);
+                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart, workStore);
                     // we only want a specific issue
                     var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
                     return new MetsManifestation(issueStruct, structMap);
@@ -338,31 +336,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
         }
 
-        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(string identifier)
+        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(DdsIdentifier identifier)
         {
             logger.LogInformation($"Get all manifestations in context for {identifier}", identifier);
             var rootMets = await GetAsync(identifier);
             int sequenceIndex = 0;
             if (rootMets is IManifestation mets)
             {
-                var ddsId = new DdsIdentifier(identifier);
                 string volumeIdentifier = null, issueIdentifier = null;
-                switch (ddsId.IdentifierType)
+                switch (identifier.IdentifierType)
                 {
                     case IdentifierType.Volume:
                         volumeIdentifier = identifier;
-                        sequenceIndex = await FindSequenceIndex(ddsId);
+                        sequenceIndex = await FindSequenceIndex(identifier);
                         break;
                     case IdentifierType.Issue:
-                        volumeIdentifier = ddsId.VolumePart;
+                        volumeIdentifier = identifier.VolumePart;
                         issueIdentifier = identifier;
-                        sequenceIndex = await FindSequenceIndex(ddsId);
+                        sequenceIndex = await FindSequenceIndex(identifier);
                         break;
                 }
                 yield return new ManifestationInContext
                 {
                     Manifestation = mets,
-                    BNumber = ddsId.BNumber,
+                    PackageIdentifier = identifier.PackageIdentifier,
                     SequenceIndex = sequenceIndex,
                     VolumeIdentifier = volumeIdentifier,
                     IssueIdentifier = issueIdentifier
@@ -382,7 +379,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                             yield return new ManifestationInContext
                             {
                                 Manifestation = manifestation,
-                                BNumber = identifier,
+                                PackageIdentifier = identifier,
                                 SequenceIndex = sequenceIndex++,
                                 VolumeIdentifier = volume.Id,
                                 IssueIdentifier = manifestation.Id
@@ -397,7 +394,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         yield return new ManifestationInContext
                         {
                             Manifestation = manifestation,
-                            BNumber = identifier,
+                            PackageIdentifier = identifier,
                             SequenceIndex = sequenceIndex++,
                             VolumeIdentifier = manifestation.Id,
                             IssueIdentifier = null
@@ -454,17 +451,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return null;
         }
 
-        public async Task<int> FindSequenceIndex(string identifier)
+        public async Task<int> FindSequenceIndex(DdsIdentifier identifier)
         {
             int sequenceIndex = 0;
-            var ddsId = new DdsIdentifier(identifier);
-            switch (ddsId.IdentifierType)
+            switch (identifier.IdentifierType)
             {
                 case IdentifierType.BNumber:
                 case IdentifierType.NonBNumber:
                     return 0;
                 case IdentifierType.Volume:
-                    var anchor = await GetAsync(ddsId.PackageIdentifier) as ICollection;
+                    var anchor = await GetAsync(identifier.PackageIdentifier) as ICollection;
                     if (anchor == null) return -1;
                     foreach (var manifestation in anchor.Manifestations)
                     {

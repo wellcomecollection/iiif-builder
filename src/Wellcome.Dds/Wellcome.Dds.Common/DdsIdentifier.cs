@@ -167,6 +167,9 @@
         public static implicit operator DdsIdentifier(string di) => new(di);
 
         public override string ToString() => value;
+
+        public bool IsPackageLevelIdentifier =>
+            IdentifierType is IdentifierType.BNumber or IdentifierType.NonBNumber;
     }
 
     public enum IdentifierType
