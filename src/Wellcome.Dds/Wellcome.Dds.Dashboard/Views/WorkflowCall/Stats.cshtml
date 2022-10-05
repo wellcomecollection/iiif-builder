@@ -1,14 +1,14 @@
 ﻿@model WorkflowCallStats
 
 @{
-    ViewBag.Title = "Goobi Call Stats";
+    ViewBag.Title = "Workflow call stats";
 }
 
 <a id="top"></a>
 
 
 <div class="col-md-12">
-    <h3 style="margin: 25px 0 20px 0">Goobi call stats</h3>
+    <h3 style="margin: 25px 0 20px 0">Workflow call stats</h3>
 </div>
 
 <table class="table">
@@ -46,9 +46,9 @@
             <strong>@Model.EstimatedCompletion</strong>
             <p>
                 <br/>
-                @Html.ActionLink("Recent workflow calls", "Recent", "GoobiCall")
+                @Html.ActionLink("Recent workflow calls", "Recent", "WorkflowCall")
                 |
-                @Html.ActionLink("Errors", "Errors", "GoobiCall")
+                @Html.ActionLink("Errors", "Errors", "WorkflowCall")
             </p>
         </td>
     </tr>

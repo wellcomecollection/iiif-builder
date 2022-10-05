@@ -8,6 +8,7 @@ using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Control;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories
 {
@@ -50,13 +51,13 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take, int? workflowOptions,
+        public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
-            WorkflowJob job = await WorkflowJobs.FindAsync(bNumber);
+            WorkflowJob job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
-                job = new WorkflowJob {Identifier = bNumber};
+                job = new WorkflowJob {Identifier = ddsId.PackageIdentifier};
                 await WorkflowJobs.AddAsync(job);
             }
 

@@ -164,7 +164,7 @@
                         <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
                         if (latest.Submitted < DateTime.Now.AddMinutes(-10))
                         {
-                            <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
+                            <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
                         }
                     }
                 </div>
@@ -199,7 +199,7 @@
                             }
                         </tbody>
                     </table>
-                    <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
                 </div>
             </div>
             @* END Information about synchronisation status *@
@@ -216,25 +216,25 @@
                     <ul class="list-unstyled">
                         @if (Model.DdsIdentifier.StorageSpace != DdsIdentifier.BornDigital)
                         {
-                            <li>@Html.ActionLink("View IIIF 2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
-                            <li>@Html.ActionLink("View IIIF 2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=2}, new {target="_blank"}) </li>
+                            <li>@Html.ActionLink("View IIIF 2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
+                            <li>@Html.ActionLink("View IIIF 2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
                         }
-                        <li>@Html.ActionLink("View IIIF 3 in Universal Viewer", "UV", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View IIIF 3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier.PackageIdentifierPathElementSafe}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View IIIF 3 in Universal Viewer", "UV", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("View IIIF 3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.WorkPage">Work page</a></li>
-                        <li><a href="@Model.CatalogueApi">Catalogue API</a></li>
+                        <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})">IIIF Manifest (preview)</a></li>
+                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier.PathElementSafe})">IIIF Manifest (preview)</a></li>
                         <li><a href="@Model.ManifestUrl">IIIF Manifest (live)</a></li>
                     </ul>
                 </li>
@@ -334,10 +334,10 @@
         <h3>Jobs</h3>
         <ul class="list-group">
             <li class="list-group-item">
-                <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
+                <a href="@Url.Action("WorkflowCall", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-info-sign"></span> Workflow call info</a>
             </li>    
             <li class="list-group-item">
-                <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
+                <a href="@Url.Action("Create", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate workflow message</a>
             </li>
             @foreach (var job in Model.IngestJobs)
             {
@@ -358,13 +358,13 @@
             @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
             {
                 <li class="list-group-item">
-                    <a href="@Url.Action("CleanOldJobs", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
+                    <a href="@Url.Action("CleanOldJobs", "Job", new {id = Model.DdsIdentifier.PathElementSafe})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
                 </li>
             }
             @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
             {
                 <li class="list-group-item">
-                    <a href="@Url.Action("ForceReingest", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
+                    <a href="@Url.Action("ForceReingest", "Job", new {id = Model.DdsIdentifier.PathElementSafe})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
                 </li>
             }
         </ul>
@@ -393,7 +393,7 @@
 
             <ul class="list-group">
                 <li class="list-group-item">
-                    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe}, FormMethod.Post))
+                    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = Model.DdsIdentifier.PathElementSafe}, FormMethod.Post))
                     {
                         <button type="submit" class="btn btn-link" title="Refresh Manifestations and IIIF">
                             <span class="glyphicon glyphicon-refresh"></span> Rebuild IIIF
@@ -411,7 +411,7 @@
                 @if (metsManifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText()))
                 {
                     <li class="list-group-item">
-                        @using (Html.BeginForm("RefreshAll", "WorkflowJob", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe}, FormMethod.Post))
+                        @using (Html.BeginForm("RefreshAll", "WorkflowJob", new {id = Model.DdsIdentifier.PathElementSafe}, FormMethod.Post))
                         {
                             <button type="submit" class="btn btn-link" title="Refresh All Resources">
                                 <span class="glyphicon glyphicon-refresh"></span> Rebuild All
@@ -495,7 +495,7 @@
                             }
                         </li>
                         <li class="list-group-item">
-                            <a href="@Url.Action("DeletePdf", "Dash", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})" class="btn btn-warning"><span class="glyphicon glyphicon-file"></span> Delete PDF</a>
+                            <a href="@Url.Action("DeletePdf", "Dash", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-warning"><span class="glyphicon glyphicon-file"></span> Delete PDF</a>
                         </li>
                     </ul>
                 </div>
@@ -579,7 +579,7 @@
                             }
                             else
                             {
-                                <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
+                                <td>@StringUtils.FormatFileSize(pf.AssetMetadata.GetFileSize())</td>
                                 <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
@@ -659,7 +659,7 @@
                                 }
                                 else
                                 {
-                                    <td>@Model.FormatSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                    <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
                                     <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
@@ -711,7 +711,7 @@
                 (e.g., the METS structure has been rearranged across manifestations and not yet synchronised for all manifestations).
                 However, they might also represent images that have been replaced in Preservica but not deleted from the DLCS.
             </p>
-            <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
+            <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
             <table class="table table-hover table-condensed">
                 <thead>
                     <tr>
@@ -856,7 +856,7 @@
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
                 <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
-                    <span class="badge">@Model.FormatSize(file.AssetMetadata.GetFileSize(), true)</span>
+                    <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>

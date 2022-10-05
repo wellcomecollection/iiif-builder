@@ -4,17 +4,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
-    public class GoobiCallController : Controller
+    public class WorkflowCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
-        private readonly ILogger<GoobiCallController> logger;
+        private readonly ILogger<WorkflowCallController> logger;
 
-        public GoobiCallController(
+        public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
-            ILogger<GoobiCallController> logger)
+            ILogger<WorkflowCallController> logger)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
@@ -24,14 +25,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             ViewBag.IsErrorList = false;
             var recent = await workflowCallRepository.GetRecent(100);
-            return View("GoobiCallList", recent);
+            return View("WorkflowCallList", recent);
         }
         
         public async Task<ActionResult> Errors()
         {
             ViewBag.IsErrorList = true;
             var errors = await workflowCallRepository.GetRecentErrors(100);
-            return View("GoobiCallList", errors);
+            return View("WorkflowCallList", errors);
         }
         
         public async Task<ActionResult> MatchingErrors(string msg)
@@ -47,14 +48,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(stats);
         }
 
-        public async Task<ActionResult> GoobiCall(string id)
+        public async Task<ActionResult> WorkflowCall(string id)
         {
-            var job = await workflowCallRepository.GetWorkflowJob(id);
+            var ddsId = new DdsIdentifier(id);
+            var job = await workflowCallRepository.GetWorkflowJob(ddsId);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = id,
+                    Identifier = ddsId,
                     Created = null
                 };
             }
@@ -77,13 +79,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var workflowJob = await workflowCallRepository.CreateWorkflowJob(id, workflowOptions);
                 TempData["new-workflow-job"] = $"Job Created: {workflowJob.Created}";
-                return RedirectToAction("GoobiCall", new {id});
+                return RedirectToAction("WorkflowCall", new {id});
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error simulating Goobi call for '{id}'", id);
+                logger.LogError(e, "Error simulating workflow call for '{id}'", id);
                 TempData["new-workflow-job-error"] = e.Message;
-                return RedirectToAction("GoobiCall", new {id});
+                return RedirectToAction("WorkflowCall", new {id});
             }
         }
 

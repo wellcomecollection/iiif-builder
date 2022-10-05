@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 {
@@ -25,16 +26,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 
         private const int RecentSampleHours = 2;
 
-        public async Task<WorkflowJob> CreateWorkflowJob(string id, int? workflowOptions)
+        public async Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions)
         {
-            var workflowJob = await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions, false, false);
+            var workflowJob = await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, false, false);
             return workflowJob;
         }
 
-        public async Task<WorkflowJob> CreateExpeditedWorkflowJob(string id, int? workflowOptions, bool invalidateCache)
+        public async Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache)
         {
             var workflowJob =
-                await ddsInstrumentationContext.PutJob(id, true, false, workflowOptions, true, invalidateCache);
+                await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, true, invalidateCache);
+            return workflowJob;
+        }
+
+        public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
+        {
+            logger.LogInformation("Creating workflow job from message: {Message}", message);
+            var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier, true, false, -1, false, false);
             return workflowJob;
         }
 

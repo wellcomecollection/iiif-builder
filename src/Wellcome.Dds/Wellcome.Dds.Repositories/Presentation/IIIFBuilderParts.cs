@@ -178,8 +178,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 }
                 else
                 {
-                    manifest.Metadata ??= new List<LabelValuePair>();
-                    manifest.Metadata.Add(attributionAndUsage);
+                    manifest.AddMetadataPair(attributionAndUsage);
                 }
             }
             // TODO - what do we want to do with this?
@@ -504,6 +503,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                             var bornDigitalFile = physicalFile.Files.FirstOrDefault();
                             if (bornDigitalFile != null)
                             {
+                                canvas.AddNonLangMetadata("File format", physicalFile.AssetMetadata.GetFormatName());
+                                canvas.AddNonLangMetadata("File size", StringUtils.FormatFileSize(physicalFile.AssetMetadata.GetFileSize(), true));
+                                canvas.AddNonLangMetadata("Pronom key", physicalFile.AssetMetadata.GetPronomKey());
                                 // AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
                                 //    "pdf", manifest.Label.ToString());
 
@@ -521,22 +523,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 canvas.Behavior = PlaceholderBehavior;
                                 AddBornDigitalCanvasPlaceholderImage(canvas, physicalFile, manifestIdentifier, assetIdentifier);
                                 var pageCountMetadata = GetPageCountMetadata(physicalFile);
-                                if (pageCountMetadata != null)
-                                {
-                                    canvas.Metadata ??= new List<LabelValuePair>();
-                                    canvas.Metadata.Add(pageCountMetadata);
-                                }
+                                canvas.AddMetadataPair(pageCountMetadata);
+                                
                                 // TODO - other file characteristics
                                 
                                 if (metsManifestation.Type == "Monograph")
                                 {
                                     // The previous model added some info to the Manifest; for Goobi PDFs,
                                     // there will only be one file in the Manifest.
-                                    if (pageCountMetadata != null)
-                                    {
-                                        manifest.Metadata ??= new List<LabelValuePair>();
-                                        manifest.Metadata.Add(pageCountMetadata);
-                                    }
+                                    manifest.AddMetadataPair(pageCountMetadata);
                                     manifest.Behavior = null;
                                     manifest.Thumbnail = new List<ExternalResource>
                                     {
@@ -565,10 +560,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 if (isBornDigitalManifestation)
                 {
                     var originalName = physicalFile.AssetMetadata.GetOriginalName();
-                    canvas.Metadata ??= new List<LabelValuePair>();
-                    var label = Lang.Map("en", "Full path");
-                    var value = Lang.Map("none", originalName);
-                    canvas.Metadata.Add(new LabelValuePair(label, value));
+                    canvas.AddNonLangMetadata("Full path", originalName);
                     var possibleNavDate = physicalFile.AssetMetadata.GetCreatedDate();
                     if (possibleNavDate.HasValue)
                     {

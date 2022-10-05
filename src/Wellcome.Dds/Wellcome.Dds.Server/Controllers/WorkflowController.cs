@@ -4,19 +4,21 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Utils.Web;
-using Wellcome.Dds.AssetDomainRepositories;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Server.Controllers
 {
     public class WorkflowController : ControllerBase
     {
-        private readonly DdsInstrumentationContext instrumentationContext;
         private readonly ILogger<WorkflowController> logger;
+        private readonly IWorkflowCallRepository workflowCallRepository;
 
-        public WorkflowController(DdsInstrumentationContext instrumentationContext, ILogger<WorkflowController> logger)
+        public WorkflowController(
+            IWorkflowCallRepository workflowCallRepository,
+            ILogger<WorkflowController> logger)
         {
-            this.instrumentationContext = instrumentationContext;
+            this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
         }
 
@@ -34,15 +36,9 @@ namespace Wellcome.Dds.Server.Controllers
         /// <returns>202 if accepted, else error.</returns>
         [HttpGet]
         [ProducesResponseType(202)]
-        public async Task<ActionResult> Process(string id, bool forceRebuild = true)
+        public async Task<ActionResult> Process(string id)
         {
             logger.LogInformation($"Received workflow/process instruction for {id}");
-            if (!id.IsBNumber())
-            {
-                var message = $"{id} is not a b number.";
-                logger.LogError(message);
-                return StatusCode(500, message);
-            }
 
             if (id.Equals(KnownIdentifiers.ChemistAndDruggist, StringComparison.InvariantCultureIgnoreCase))
             {
@@ -52,7 +48,15 @@ namespace Wellcome.Dds.Server.Controllers
             }
             try
             {
-                var workflowJob = await instrumentationContext.PutJob(id, forceRebuild, false, -1, false, false);
+                var ddsId = new DdsIdentifier(id);
+                var message = new WorkflowMessage
+                {
+                    Identifier = ddsId.PackageIdentifier,
+                    Origin = "workflow-controller",
+                    Space = ddsId.StorageSpace,
+                    TimeSent = DateTime.Now
+                };
+                var workflowJob = await workflowCallRepository.CreateWorkflowJob(message);
                 Response.AppendStandardNoCacheHeaders();
                 logger.LogInformation($"Accepted workflow/process instruction for {id}");
                 return StatusCode(202, workflowJob);

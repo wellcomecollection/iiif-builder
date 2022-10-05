@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -131,6 +132,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
                         // We can't make IIIF for it, though.
                         model.CatalogueApi = uriPatterns.CatalogueApi(work.Id);
+                        model.CatalogueApiFull = catalogue.GetCatalogueApiUrl(work.Id);
                         model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
                     }
 

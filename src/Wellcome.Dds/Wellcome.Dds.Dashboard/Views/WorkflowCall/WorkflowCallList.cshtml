@@ -1,7 +1,7 @@
 ﻿@model List<WorkflowJob>
 
 @{
-    ViewBag.Title = "RecentGoobiCalls";
+    ViewBag.Title = "Recent Workflow Calls";
 }
 
 <a id="top"></a>
@@ -16,18 +16,18 @@
             <strong>@TempData["reset-errors"]</strong>
         </div>
     }
-    <h3 style="margin: 25px 0 20px 0">Recent Goobi calls</h3>
+    <h3 style="margin: 25px 0 20px 0">Recent workflow calls</h3>
 </div>
 
 <p>
 @if (ViewBag.IsErrorList)
 {
-    <text>(showing errors only) @Html.ActionLink("Show all", "Recent", "GoobiCall")</text>
+    @:(showing errors only) @Html.ActionLink("Show all", "Recent", "WorkflowCall")
 }
 else
 {
-    <text>@Html.ActionLink("Show errors only", "Errors", "GoobiCall")</text>
+    @Html.ActionLink("Show errors only", "Errors", "WorkflowCall")
 }
- | @Html.ActionLink("Workflow statistics", "Stats", "GoobiCall") 
+ | @Html.ActionLink("Workflow statistics", "Stats", "WorkflowCall")
 </p>
 <partial name="_WorkflowJobList" model="Model" />

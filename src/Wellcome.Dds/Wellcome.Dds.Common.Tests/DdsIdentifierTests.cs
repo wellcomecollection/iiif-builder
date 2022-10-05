@@ -277,13 +277,28 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
+        public void BNumber_Forms_Yield_BNumber_PackageIdentifierPathElementSafe(string value)
         {
             // Arrange
             var identifier = new DdsIdentifier(value);
             
             // Assert
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+        }
+        
+                
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PathElementSafe.Should().Be(value);
         }
         
         [Theory]
@@ -299,7 +314,22 @@ namespace Wellcome.Dds.Common.Tests
             // Assert
             identifier.StorageSpace.Should().Be("digitised");
         }
-
+        
+        [Theory]
+        [InlineData(MsForm, MsForm)]
+        [InlineData(ArchiveFormWithSlashes, ArchiveFormNoSlashes)]
+        [InlineData(ArchiveFormNoSlashes, ArchiveFormNoSlashes)]
+        [InlineData(NotBNumberButHasParts, NotBNumberButHasParts)]
+        [InlineData(MixedSlashesAndUnderscores, "PPCRI_2_b12312345__a")]
+        public void Non_BNumbers_Yields_Same_PathElementSafe(string value, string expected)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PackageIdentifierPathElementSafe.Should().Be(expected);
+            identifier.PathElementSafe.Should().Be(expected);
+        }
 
         [Theory]
         [InlineData(MsForm)]
