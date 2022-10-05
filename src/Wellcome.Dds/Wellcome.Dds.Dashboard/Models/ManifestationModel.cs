@@ -209,16 +209,6 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public string FormatSize(string rawSize, bool withSpace = false)
-        {
-            long asLong;
-            if (long.TryParse(rawSize, out asLong))
-            {
-                return StringUtils.FormatFileSize(asLong, withSpace);
-            }
-            return rawSize;
-        }
-
         public string GetDropDownClass(IManifestation manifestation)
         {
             if (manifestation.Id == DigitisedManifestation.Identifier)

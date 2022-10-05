@@ -579,7 +579,7 @@
                             }
                             else
                             {
-                                <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
+                                <td>@StringUtils.FormatFileSize(pf.AssetMetadata.GetFileSize())</td>
                                 <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
@@ -659,7 +659,7 @@
                                 }
                                 else
                                 {
-                                    <td>@Model.FormatSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                    <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
                                     <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
@@ -856,7 +856,7 @@
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
                 <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
-                    <span class="badge">@Model.FormatSize(file.AssetMetadata.GetFileSize(), true)</span>
+                    <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>

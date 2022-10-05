@@ -284,6 +284,20 @@ namespace Utils
             return (Math.Sign(sizeInBytes) * num) + spacer +  FileSizeSuffixes[place];
         }
 
+        /// <summary> 
+        /// Create a nice display format for file size given a raw string value
+        /// </summary>
+        /// <param name="rawSize"></param>
+        /// <param name="withSpace"></param>
+        /// <returns></returns>
+        public static string FormatFileSize(string rawSize, bool withSpace = false)
+        {
+            if (long.TryParse(rawSize, out var asLong))
+            {
+                return FormatFileSize(asLong, withSpace);
+            }
+            return rawSize;
+        }
 
         /// <summary>
         /// like String.Replace, but only replaces the first instance of search in str
