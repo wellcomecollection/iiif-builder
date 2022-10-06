@@ -1,5 +1,6 @@
 ﻿using System;
 using Amazon.SimpleNotificationService;
+using Amazon.SQS;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
@@ -63,9 +64,13 @@ namespace WorkflowProcessor
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
+
+            var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var platformAwsOptions = Configuration.GetAWSOptions("Platform-AWS");
+            services.AddDefaultAWSOptions(ddsAwsOptions);   
+            services.AddAWSService<IAmazonSimpleNotificationService>(platformAwsOptions);
+            services.AddAWSService<IAmazonSQS>(ddsAwsOptions); // the right one?
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));   
-            services.AddAWSService<IAmazonSimpleNotificationService>(Configuration.GetAWSOptions("Platform-AWS"));
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));

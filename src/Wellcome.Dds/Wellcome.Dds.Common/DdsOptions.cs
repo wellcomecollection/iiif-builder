@@ -30,9 +30,16 @@
         
         public string DlcsReturnUrl { get; set; }
         
+        // TODO: Move the following 5 AWS settings to separate class
+        // Buckets
         public string PresentationContainer { get; set; }
         public string TextContainer { get; set; }
         public string AnnotationContainer { get; set; }
+        
+        // Workflow
+        public string WorkflowMessageTopic { get; set; }
+        public string WorkflowMessageQueue { get; set; }
+        
         public bool ReferenceV0SearchService { get; set; }
         public bool UseRequiredStatement { get; set; }
         public bool BuildWholeManifestLineAnnotations { get; set; }

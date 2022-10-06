@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.1.167" />
     <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.3.74" />
+    <PackageReference Include="AWSSDK.SQS" Version="3.7.2.115" />
     <PackageReference Include="CsvHelper" Version="27.2.1" />
     <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="6.0.6" />
