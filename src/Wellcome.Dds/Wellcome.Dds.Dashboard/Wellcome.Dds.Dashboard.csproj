@@ -216,4 +216,10 @@
     <Folder Include="Pages" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="AWSSDK.SimpleNotificationService">
+      <HintPath>..\..\..\..\..\..\.nuget\packages\awssdk.simplenotificationservice\3.7.3.74\lib\netcoreapp3.1\AWSSDK.SimpleNotificationService.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
  </Project>

@@ -338,6 +338,9 @@
             </li>    
             <li class="list-group-item">
                 <a href="@Url.Action("Create", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate workflow message</a>
+            </li>   
+            <li class="list-group-item">
+                <a href="@Url.Action("NotifyTopic", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Notify workflow topic (SNS)</a>
             </li>
             @foreach (var job in Model.IngestJobs)
             {

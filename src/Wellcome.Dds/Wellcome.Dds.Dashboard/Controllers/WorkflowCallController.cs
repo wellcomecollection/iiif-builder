@@ -1,7 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using Amazon.SimpleNotificationService;
+using Amazon.SimpleNotificationService.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
@@ -12,13 +17,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowCallController> logger;
+        private readonly DdsOptions ddsOptions;
+        private readonly IAmazonSimpleNotificationService simpleNotificationService;
 
         public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
-            ILogger<WorkflowCallController> logger)
+            ILogger<WorkflowCallController> logger,
+            IOptions<DdsOptions> options,
+            IAmazonSimpleNotificationService simpleNotificationService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
+            this.ddsOptions = options.Value;
+            this.simpleNotificationService = simpleNotificationService;
         }
 
         public async Task<ActionResult> Recent()
@@ -85,6 +96,52 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 logger.LogError(e, "Error simulating workflow call for '{id}'", id);
                 TempData["new-workflow-job-error"] = e.Message;
+                return RedirectToAction("WorkflowCall", new {id});
+            }
+        }
+
+
+        public async Task<ActionResult> NotifyTopic(string id)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var topic = ddsOptions.WorkflowMessageTopic;
+            if (topic.IsNullOrWhiteSpace())
+            {
+                var errorMessage = $"No topic specified for workflow; could not notify for '{ddsId}'";
+                logger.LogError(errorMessage);
+                TempData["new-workflow-notification-error"] = errorMessage;
+                return RedirectToAction("WorkflowCall", new {id});
+            }
+
+            try
+            {
+                var message = new WorkflowMessage
+                {
+                    Identifier = ddsId,
+                    Origin = "dashboard",
+                    Space = ddsId.StorageSpace,
+                    TimeSent = DateTime.Now
+                };
+            
+                logger.LogDebug("Simulating workflow SNS call from dashboard for {Identifier}", ddsId);
+                var serialiserSettings = new JsonSerializerSettings
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                };
+                var request = new PublishRequest(topic, JsonConvert.SerializeObject(message, serialiserSettings));
+                var response = await simpleNotificationService.PublishAsync(request);
+                logger.LogDebug(
+                    "Received statusCode {StatusCode} for publishing invalidation for {Identifier} - {MessageId}",
+                    response.HttpStatusCode, ddsId, response.MessageId);
+                
+                TempData["new-workflow-notification"] = $"Workflow notification sent for '{ddsId}'";
+                return RedirectToAction("WorkflowCall", new {id});
+
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error making workflow topic notification for '{id}'", id);
+                TempData["new-workflow-notification-error"] = e.Message;
                 return RedirectToAction("WorkflowCall", new {id});
             }
         }

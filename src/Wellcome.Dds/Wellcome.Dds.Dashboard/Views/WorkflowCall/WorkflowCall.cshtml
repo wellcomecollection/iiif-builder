@@ -26,6 +26,24 @@
             <strong>Failed to create new workflow job!</strong> @TempData["new-workflow-job-error"]
         </div>
     }
+    @if (TempData["new-workflow-notification"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Success!</strong> A notification has been sent to the Workflow topic, and the job will be picked up by the workflow processor.
+            @if (Model.Created.HasValue)
+            {
+                <span>(The workflow call below is the previous call for this item.)</span>
+            }
+        </div>
+    }
+    @if (TempData["new-workflow-notification-error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>Failed to notify workflow topic!</strong> @TempData["new-workflow-notification-error"]
+        </div>
+    }
 
 @if (!Model.Created.HasValue)
 {
@@ -38,6 +56,7 @@ else
 
 <ul class="list-group">
     <li class="list-group-item"><a href="@Url.Action("Create", "WorkflowCall", new {id = ddsId.PathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Workflow Call</a></li>
+    <li class="list-group-item"><a href="@Url.Action("NotifyTopic", "WorkflowCall", new {id = ddsId.PathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Notify workflow topic (SNS)</a></li>
     <li class="list-group-item">@Html.ActionLink("DDS View of " + ddsId, "Manifestation", "Dash", new {id = ddsId.PathElementSafe}, new {})</li>
     <li class="list-group-item"><a href="@Url.Action("StorageManifest", "Peek", new {id = ddsId.PathElementSafe})">Storage Manifest</a></li>
     <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = ddsId.PathElementSafe, parts = ddsId.PathElementSafe + ".xml"})">METS file</a></li>

@@ -67,3 +67,7 @@ td.adjunct span {
 button.btn-link{
     padding: 0;
 }
+
+.alert {
+    margin-top: 20px;
+}

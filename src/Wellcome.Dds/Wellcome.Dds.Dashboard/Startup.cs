@@ -1,4 +1,5 @@
 using System;
+using Amazon.SimpleNotificationService;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -68,7 +69,11 @@ namespace Wellcome.Dds.Dashboard
 
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
+            var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var platformAwsOptions = Configuration.GetAWSOptions("Platform-AWS");
+            var storageAwsOptions = Configuration.GetAWSOptions("Storage-AWS");
+            services.AddDefaultAWSOptions(ddsAwsOptions);   
+            services.AddAWSService<IAmazonSimpleNotificationService>(storageAwsOptions);
 
             var dlcsSection = Configuration.GetSection("Dlcs");
             var dlcsOptions = dlcsSection.Get<DlcsOptions>();
