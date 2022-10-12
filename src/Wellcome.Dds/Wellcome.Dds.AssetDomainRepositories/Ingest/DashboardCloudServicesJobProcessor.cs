@@ -148,13 +148,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             bool forceReingest = false, 
             bool usePriorityQueue = false)
         {
-            // TODO
-            // var runningJobs... // Look at what is already running
-            // digitisedManifestation.GetMostRecentIngestJobs(99) // use datetime
-
-            // start the job
-
-            // diagnostics to prevent HALT of WT-HAVANA
             int jobId = job.Id;
             // this should be ctx.DlcsIngestJobs.Single(j => j.Id == job.Id);
             var jobs = ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.Id == jobId).ToList();
@@ -182,35 +175,35 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // we expect a job to correspond to a manifestation
-            IDigitalManifestation digitisedManifestation = null;
+            IDigitalManifestation digitalManifestation = null;
             Exception error = null;
             string errorDataMessage = null;
             IManifestation manifestation = null;
 
             try
             {
-                digitisedManifestation = await digitalObjectRepository
+                digitalManifestation = await digitalObjectRepository
                         .GetDigitalObject(job.GetManifestationIdentifier())
                     as IDigitalManifestation;
             }
             catch (Exception ex)
             {
-                errorDataMessage = $"Error received during GetDigitisedResource. Abandoning job for {job.Identifier}.";
+                errorDataMessage = $"Error received during GetDigitalObject. Abandoning job for {job.Identifier}.";
                 error = ex;
             }
 
-            if (digitisedManifestation == null)
+            if (digitalManifestation == null)
             {
-                errorDataMessage = $"digitisedManifestation is null for {job.Identifier}";
+                errorDataMessage = $"digitalManifestation is null for {job.Identifier}";
             }
             else
             {
-                manifestation = digitisedManifestation.MetsManifestation;
+                manifestation = digitalManifestation.MetsManifestation;
                 if (manifestation == null)
                 {
-                    errorDataMessage = $"digitisedManifestation.MetsManifestation is null for {job.Identifier}";
+                    errorDataMessage = $"digitalManifestation.MetsManifestation is null for {job.Identifier}";
                 }
-                else if (!digitisedManifestation.JobExactMatchForManifestation(job))
+                else if (!digitalManifestation.JobExactMatchForManifestation(job))
                 {
                     errorDataMessage =
                         $"Job data doesn't match retrieved manifestation. Abandoning job for {job.Identifier}";
@@ -249,7 +242,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // TODO - consider any running processes....
-            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitisedManifestation, true);
+            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitalManifestation, true);
             if (forceReingest)
             {
                 foreach (var image in syncOperation.ImagesAlreadyOnDlcs.Values)

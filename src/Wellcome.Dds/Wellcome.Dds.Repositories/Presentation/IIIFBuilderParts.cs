@@ -278,7 +278,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state)
+        public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state, BuildResult buildResult)
         {
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
@@ -319,6 +319,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
+                        buildResult.ImageCount += 1;
                         var size = physicalFile.GetWhSize();
                         if (size == null)
                         {
@@ -370,7 +371,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
+                    
                     case AssetFamily.TimeBased:
+                        buildResult.TimeBasedCount += 1;
                         if (!isBornDigitalManifestation && state == null)
                         {
                             // We need this state to build OLD workflow videos, because we need to consider
@@ -490,7 +493,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
-                        
+                        buildResult.FileCount += 1;
                         if (isBornDigitalManifestation || metsManifestation.Type == "Monograph")
                         {
                             // We need our born-digital extensions

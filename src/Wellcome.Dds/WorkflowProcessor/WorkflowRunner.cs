@@ -204,8 +204,16 @@ namespace WorkflowProcessor
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
             var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
-            var iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
-
+            MultipleBuildResult iiif2BuildResults;
+            if (iiif3BuildResults.MayBeConvertedToV2)
+            {
+                iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
+            }
+            else
+            {
+                iiif2BuildResults = new MultipleBuildResult(); // empty.
+            }
+            
             // Now we save them all to S3.
             await WriteResultToS3(iiif3BuildResults);
             await WriteResultToS3(iiif2BuildResults);

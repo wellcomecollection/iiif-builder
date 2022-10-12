@@ -383,7 +383,7 @@ namespace WorkflowProcessor
                         if (jobId == null)
                         {
                             waitMs = GetWaitMs(waitMs);
-                            if (waitMs > 30000)
+                            if (waitMs > 10000)
                             {
                                 // idle more than 30s
                                 await PollQueue(queueUrl, dbContext, cancellationToken);

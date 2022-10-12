@@ -36,6 +36,11 @@ namespace Wellcome.Dds.IIIFBuilding
         /// </summary>
         public JsonLdBase IIIFResource { get; set; }
 
+        // Track what kinds of assets we are building Manifests for
+        public int ImageCount { get; set; } = 0;
+        public int TimeBasedCount { get; set; } = 0;
+        public int FileCount { get; set; } = 0;
+
         /// <summary>
         /// Get storage key where this build result would be stored.
         /// </summary>
@@ -53,12 +58,27 @@ namespace Wellcome.Dds.IIIFBuilding
     public class MultipleBuildResult : IEnumerable<BuildResult>
     {
         /// <summary>
-        /// The b number
+        /// The package identifier
         /// </summary>
         public string Identifier { get; set; }
         
         private readonly Dictionary<string, BuildResult> resultDict = new();
         private readonly List<string> buildOrder = new();
+
+        public bool MayBeConvertedToV2
+        {
+            get
+            {
+                foreach (var buildResult in this)
+                {
+                    if (buildResult.TimeBasedCount > 0 || buildResult.FileCount > 0)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
 
         public void Add(BuildResult buildResult)
         {

@@ -24,9 +24,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     /// </summary>
     public class ConverterHelpers
     {
-        // Remove this as soon as we can!
-        const bool DuplicateAuthServices = true;
-        
         public static T GetIIIFPresentationBase<T>(Presi3.StructureBase resourceBase, Func<string, bool>? labelFilter = null)
             where T : IIIFPresentationBase, new()
         {
@@ -54,12 +51,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         // which uses a precursor v0 Search API
                         var v0Context = SearchService.Search1Context.Replace("/search/1/", "/search/0/");
                         searchService.EnsureContext(v0Context);
+                        searchService.Id = searchService.Id?.Replace("/search/v1/", "/search/v0/");
+                        searchService.Profile = searchService.Profile?.Replace("/search/1/", "/search/0/");
                         if (searchService.Service != null)
+                        {
                             searchService.Service.Type = null;
-                        searchService.Id = searchService.Id.Replace("/search/v1/", "/search/v0/");
-                        searchService.Profile = searchService.Profile.Replace("/search/1/", "/search/0/");
-                        searchService.Service.Id = searchService.Service.Id.Replace("/autocomplete/1/", "/autocomplete/0/");
-                        searchService.Service.Profile = searchService.Service.Profile.Replace("/search/1/", "/search/0/");
+                            searchService.Service.Id = searchService.Service.Id?.Replace("/autocomplete/1/", "/autocomplete/0/");
+                            searchService.Service.Profile = searchService.Service.Profile?.Replace("/search/1/", "/search/0/");
+                        }
                     }
                 })!).ToList();
             }
@@ -147,7 +146,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Format = externalResource.Format,
                     Service = copiedServices,
                 };
-                PopulateAuthServices(authServiceManager, avResource.Service, true, DuplicateAuthServices);
+                PopulateAuthServices(authServiceManager, avResource.Service, true);
                 annoListForMedia.Rendering.Add(avResource);
                 annoListForMedia.Service = avResource.Service;
 
@@ -204,7 +203,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 }))
                 .ToList();
 
-            var addedAuthServices = PopulateAuthServices(authServiceManager, imageService.Service, false, DuplicateAuthServices);
+            var addedAuthServices = PopulateAuthServices(authServiceManager, imageService.Service, false);
             // in wl.org manifests, if the image resource's image service has auth services,
             // then so does the image itself.
             if (addedAuthServices != null)
@@ -230,7 +229,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             => p3Manifest.Items.HasItems() && p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
         
         private static List<IService>? PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
-            List<IService>? candidateServices, bool forceFullService, bool duplicateAuthServices)
+            List<IService>? candidateServices, bool forceFullService)
         {
             // If we don't have auth services then bail out..
             if (!authServiceManager.HasItems) return null;
@@ -254,22 +253,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     // if we have a wellcomeAuthService add the "AuthService" only
                     candidateServices?.AddRange(was.AuthService);
                     addedAuthServices.AddRange(was.AuthService);
-                    if (duplicateAuthServices)
-                    {
-                        candidateServices?.AddRange(was.AuthService);
-                        addedAuthServices.AddRange(was.AuthService);
-                    }
                 }
                 else
                 {
                     // else just re-add the reference
                     candidateServices?.Add(service);
                     addedAuthServices.Add(service);
-                    if (duplicateAuthServices)
-                    {
-                        candidateServices?.Add(service);
-                        addedAuthServices.Add(service);
-                    }
                 }
             }
 

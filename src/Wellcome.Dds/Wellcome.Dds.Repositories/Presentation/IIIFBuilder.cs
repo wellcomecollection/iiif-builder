@@ -236,7 +236,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
-                    metsResource, partOfCollection, work, manifestationMetadata, state);
+                    metsResource, partOfCollection, work, manifestationMetadata, state, result);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
@@ -254,12 +254,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             return result;
         }
         
-        private StructureBase MakePresentation3Resource(
-            IMetsResource metsResource,
+        private StructureBase MakePresentation3Resource(IMetsResource metsResource,
             ICollection? partOfCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
-            State? state)
+            State? state, BuildResult buildResult)
         {
             switch (metsResource)
             {
@@ -291,7 +290,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, metsManifestation, manifestationMetadata, state);
+                    BuildManifest(manifest, metsManifestation, manifestationMetadata, state, buildResult);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
@@ -382,11 +381,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void BuildManifest(
-            Manifest manifest, 
+        private void BuildManifest(Manifest manifest,
             IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata,
-            State? state)
+            State? state, BuildResult buildResult)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);
@@ -395,7 +393,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ViewingDirection(manifest, metsManifestation); // do we do this?
             build.Rendering(manifest, metsManifestation);
             build.SearchServices(manifest, metsManifestation);
-            build.Canvases(manifest, metsManifestation, state);
+            build.Canvases(manifest, metsManifestation, state, buildResult);
             // do this next... both the next two use the manifestStructureHelper
             build.Structures(manifest, metsManifestation); // ranges
             build.ImprovePagingSequence(manifest);
