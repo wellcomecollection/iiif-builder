@@ -193,16 +193,16 @@ namespace Wellcome.Dds.Dashboard.Models
                 NextLink = "#";
                 for (int i = 0; i < Siblings.Count; i++)
                 {
-                    if (Siblings[i].Id == DdsIdentifier)
+                    if (Siblings[i].Identifier == DdsIdentifier)
                     {
                         Index = i + 1;
                         if (i > 0)
                         {
-                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Id });
+                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Identifier.PathElementSafe });
                         }
                         if (i < Siblings.Count - 1)
                         {
-                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Id });
+                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Identifier.PathElementSafe });
                         }
                     }
                 }
@@ -211,7 +211,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public string GetDropDownClass(IManifestation manifestation)
         {
-            if (manifestation.Id == DigitisedManifestation.Identifier)
+            if (manifestation.Identifier == DigitisedManifestation.Identifier)
             {
                 return "disabled";
             }

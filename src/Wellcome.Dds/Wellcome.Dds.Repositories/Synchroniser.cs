@@ -93,7 +93,7 @@ namespace Wellcome.Dds.Repositories
                 
                 // remove any error manifestations, we can recreate them
                 var errors = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == identifier && fm.Index < 0);
+                    .Where(fm => fm.PackageIdentifier == identifier.ToString() && fm.Index < 0);
                 foreach (var error in errors)
                 {
                     ddsContext.Manifestations.Remove(error);
@@ -114,11 +114,10 @@ namespace Wellcome.Dds.Repositories
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var metsManifestation = mic.Manifestation;
-                var manifestationIdentifier = new DdsIdentifier(metsManifestation.Id);
                 if (metsManifestation.Partial)
                 {
-                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
-                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
+                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Identifier);
+                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Identifier);
                 }
                 if (identifier.IsPackageLevelIdentifier)
                 {
@@ -126,10 +125,10 @@ namespace Wellcome.Dds.Repositories
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIdsProcessed.Add(manifestationIdentifier);
+                    manifestationIdsProcessed.Add(metsManifestation.Identifier);
                 }
 
-                var ddsManifestation = await ddsContext.Manifestations.FindAsync(manifestationIdentifier.ToString());
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier.ToString());
                 var assets = metsManifestation.Sequence;
                 
                 // (some Change code removed here) - we're not going to implement this for now
@@ -137,9 +136,9 @@ namespace Wellcome.Dds.Repositories
                 {
                     ddsManifestation = new Manifestation
                     {
-                        Id = manifestationIdentifier,
-                        PackageIdentifier = manifestationIdentifier.PackageIdentifier,
-                        PackageShortBNumber = manifestationIdentifier.PackageIdentifier.ToShortBNumber(),
+                        Id = metsManifestation.Identifier,
+                        PackageIdentifier = metsManifestation.Identifier.PackageIdentifier,
+                        PackageShortBNumber = metsManifestation.Identifier.PackageIdentifier.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
@@ -244,9 +243,9 @@ namespace Wellcome.Dds.Repositories
 
                 // extra fields that only the new dash knows about
                 ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
-                ddsManifestation.ManifestationIdentifier = manifestationIdentifier;
-                ddsManifestation.VolumeIdentifier = manifestationIdentifier.IdentifierType == IdentifierType.Volume
-                    ? manifestationIdentifier.VolumePart
+                ddsManifestation.ManifestationIdentifier = metsManifestation.Identifier;
+                ddsManifestation.VolumeIdentifier = metsManifestation.Identifier.IdentifierType == IdentifierType.Volume
+                    ? metsManifestation.Identifier.VolumePart
                     : null;
                 if (identifier.IsPackageLevelIdentifier)
                 {
@@ -281,7 +280,7 @@ namespace Wellcome.Dds.Repositories
                 
                 // See what's already present in the manifestations table for this b number
                 foreach (var ddsManifestation in ddsContext.Manifestations.Where(
-                    fm => fm.PackageIdentifier == identifier))
+                    fm => fm.PackageIdentifier == identifier.ToString()))
                 {
                     if (!manifestationIdsProcessed.Contains(ddsManifestation.Id))
                     {

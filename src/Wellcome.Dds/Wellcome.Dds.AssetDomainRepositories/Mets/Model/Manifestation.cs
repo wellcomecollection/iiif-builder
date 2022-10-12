@@ -120,7 +120,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv parentStructDiv = null)
         {
             logicalStructDiv = structDiv;
-            Id = logicalStructDiv.ExternalId;
+            Identifier = new DdsIdentifier(logicalStructDiv.ExternalId);
             SectionMetadata = logicalStructDiv.GetSectionMetadata();
             parentLogicalStructDiv = parentStructDiv;
             if (parentLogicalStructDiv != null)

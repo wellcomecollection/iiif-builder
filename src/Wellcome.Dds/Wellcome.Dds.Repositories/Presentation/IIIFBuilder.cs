@@ -81,7 +81,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
             var buildResults = new MultipleBuildResult {Identifier = ddsId.PackageIdentifier};
-            var manifestationId = "start";
+            DdsIdentifier manifestationId = "start";
             try
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
@@ -95,10 +95,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId.PackageIdentifier))
                     {
                         var manifestation = manifestationInContext.Manifestation;
-                        manifestationId = manifestation.Id;
+                        manifestationId = manifestation.Identifier;
                         logger.LogInformation("Build all Manifestations looping through manifestations: {identifier}", manifestationId);
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
-                        logger.LogInformation("Will now build " + metsManifestation.Id);
+                        logger.LogInformation("Will now build " + metsManifestation.Identifier);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
@@ -231,7 +231,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IMetsResource metsResource, ICollection? partOfCollection,
             ManifestationMetadata manifestationMetadata, State? state)
         {
-            var result = new BuildResult(metsResource.Id, Version.V3);
+            var result = new BuildResult(metsResource.Identifier, Version.V3);
             try
             {
                 // build the Presentation 3 version from the source materials
@@ -265,7 +265,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case ICollection metsCollection:
                     var collection = new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(metsCollection.Id)
+                        Id = uriPatterns.CollectionForWork(metsCollection.Identifier)
                     };
                     AddCommonMetadata(collection, work, manifestationMetadata);
                     BuildCollection(collection, metsCollection, work, manifestationMetadata, state);
@@ -273,7 +273,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case IManifestation metsManifestation:
                     var manifest = new Manifest
                     {
-                        Id = uriPatterns.Manifest(metsManifestation.Id)
+                        Id = uriPatterns.Manifest(metsManifestation.Identifier)
                     };
                     if (partOfCollection != null)
                     {
@@ -283,7 +283,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOfCollection.Id),
+                                Id = uriPatterns.CollectionForWork(partOfCollection.Identifier),
                                 Label = Lang.Map(work.Title),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
@@ -322,7 +322,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     collection.Items.Add(new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(coll.Id),
+                        Id = uriPatterns.CollectionForWork(coll.Identifier),
                         Label = Lang.Map(metsCollection.Label)
                     });
                 }
@@ -353,7 +353,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         state.AVState ??= new AVState();
                         state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
                         {
-                            Id = metsManifestation.Id,
+                            Id = metsManifestation.Identifier,
                             Type = type
                         });
                     }
@@ -365,7 +365,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                     collection.Items.Add(new Manifest
                     {
-                        Id = uriPatterns.Manifest(metsManifestation.Id),
+                        Id = uriPatterns.Manifest(metsManifestation.Identifier),
                         Label = new LanguageMap
                         {
                             ["en"] = new()
@@ -374,7 +374,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 work.Title
                             }
                         },
-                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id)
+                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier)
                     });
                     counter++;
                 }
@@ -386,7 +386,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata,
             State? state, BuildResult buildResult)
         {
-            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Id);
+            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);
             build.Rights(manifest, metsManifestation);
             build.PagedBehavior(manifest, metsManifestation);
@@ -450,14 +450,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // W3C
                 ImageAnnotations = new()
                 {
-                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 3),
+                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Identifier, 3),
                     Items = new List<IAnnotation>()
                 },
                 PageAnnotations = new IIIF.Presentation.V3.Annotation.AnnotationPage[annotationPages.Count],
                 // OA
                 OpenAnnotationImageAnnotations = new ()
                 {
-                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Id, 2),
+                    Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(manifestation.Identifier, 2),
                     Resources = new List<IAnnotation>()
                 }
             };
@@ -465,13 +465,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 result.AllContentAnnotations = new()
                 {
-                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 3),
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Identifier, 3),
                     Items = new List<IAnnotation>()
                 };
                 result.AllContentAnnotations.EnsurePresentation3Context();
                 result.OpenAnnotationAllContentAnnotations = new()
                 {
-                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Id, 2),
+                    Id = uriPatterns.ManifestAnnotationPageAllWithVersion(manifestation.Identifier, 2),
                     Resources = new List<IAnnotation>()
                 };
                 result.OpenAnnotationAllContentAnnotations.EnsurePresentation2Context();
@@ -484,11 +484,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var altoPage = annotationPages[i];
                 var w3CPage = new IIIF.Presentation.V3.Annotation.AnnotationPage
                 {
-                    Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestation.Id, altoPage.AssetIdentifier, 3),
+                    Id = uriPatterns.CanvasOtherAnnotationPageWithVersion(manifestation.Identifier, altoPage.AssetIdentifier, 3),
                     Items = new List<IAnnotation>()
                 };
                 w3CPage.EnsurePresentation3Context();
-                string canvasId = uriPatterns.Canvas(manifestation.Id, altoPage.AssetIdentifier);
+                string canvasId = uriPatterns.Canvas(manifestation.Identifier, altoPage.AssetIdentifier);
 
                 // Do the W3C conversions
                 var w3CTextLines = altoPage.TextLines
@@ -508,7 +508,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // NB this won't have any effect if the TargetConverter Serialiser is in use
                     firstAnnoCanvas.PartOf = new List<ResourceBase>
                     {
-                        new Manifest {Id = uriPatterns.Manifest(manifestation.Id)}
+                        new Manifest {Id = uriPatterns.Manifest(manifestation.Identifier)}
                     };
                 }
                 result.AllContentAnnotations?.Items.AddRange(allW3CPageAnnotations);

@@ -129,7 +129,7 @@
                         @foreach (var manif in Model.Siblings)
                         {
                             <li class="@Model.GetDropDownClass(manif)">
-                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Id })
+                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Identifier.PathElementSafe })
                             </li>
                         }
                     </ul>

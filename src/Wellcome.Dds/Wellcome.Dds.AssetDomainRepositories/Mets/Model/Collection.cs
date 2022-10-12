@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
@@ -7,7 +8,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     {
         public Collection(ILogicalStructDiv structDiv)
         {
-            Id = structDiv.ExternalId;
+            Identifier = new DdsIdentifier(structDiv.ExternalId);
             SectionMetadata = structDiv.GetSectionMetadata();
             Label = GetLabel(structDiv, SectionMetadata);
             Type = structDiv.Type;

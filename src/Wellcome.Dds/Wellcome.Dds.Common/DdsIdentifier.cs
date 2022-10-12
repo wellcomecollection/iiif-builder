@@ -162,6 +162,36 @@
             }
         }
 
+        public static bool operator ==(DdsIdentifier d1, DdsIdentifier d2)
+        {
+            if (d1 is null)
+            {
+                return d2 is null;
+            }
+
+            if (ReferenceEquals(d1, d2))
+            {
+                return true;
+            }
+
+            return d2 != null && d1.value == d2.value;
+        }
+
+        public static bool operator !=(DdsIdentifier d1, DdsIdentifier d2)
+        {
+            return !(d1 == d2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is DdsIdentifier identifier && this == identifier;
+        }
+
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
+
         public static implicit operator string(DdsIdentifier di) => di.ToString();
 
         public static implicit operator DdsIdentifier(string di) => new(di);

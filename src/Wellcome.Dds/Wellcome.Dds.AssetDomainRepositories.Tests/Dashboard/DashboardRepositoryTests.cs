@@ -86,18 +86,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Id = "manifest_id",
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
             var images = Builder<Image>.CreateListOfSize(3).Build().ToArray();
-            A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
+            A.CallTo(() => dlcs.GetImagesForString3("manifest-id")).Returns(images);
 
             // Act
             var result = (DigitalManifestation)await sut.GetDigitalObject(identifier);
 
             // Assert
-            result.Identifier.Should().Be("manifest_id");
+            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
@@ -111,21 +111,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Id = "manifest_id",
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
             var images = Builder<Image>.CreateListOfSize(3).Build().ToArray();
-            A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
+            A.CallTo(() => dlcs.GetImagesForString3("manifest-id")).Returns(images);
 
             var pdf = new Pdf {Url = "http://example.com/pdf123"};
-            A.CallTo(() => dlcs.GetPdfDetails("manifest_id")).Returns(pdf);
+            A.CallTo(() => dlcs.GetPdfDetails("manifest-id")).Returns(pdf);
 
             // Act
             var result = (DigitalManifestation)await sut.GetDigitalObject(identifier, true);
 
             // Assert
-            result.Identifier.Should().Be("manifest_id");
+            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             result.PdfControlFile.Should().Be(pdf);
@@ -139,23 +139,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             const string identifier = "b1231231";
             var testCollection = new TestCollection
             {
-                Id = "the_main_one",
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Id = "coll_1",
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Id = "coll_1_man_1"}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Id = "coll_2",}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Id = "man_1"}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
             
@@ -169,14 +169,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be("the_main_one");
+            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll_1" || m.Identifier == "coll_2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man_1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll_1_man_1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
             
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
         }
@@ -189,23 +189,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             const string identifier = "b1231231";
             var testCollection = new TestCollection
             {
-                Id = "the_main_one",
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Id = "coll_1",
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Id = "coll_1_man_1"}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Id = "coll_2",}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Id = "man_1"}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
             
@@ -219,14 +219,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be("the_main_one");
+            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll_1" || m.Identifier == "coll_2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man_1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll_1_man_1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
 
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustHaveHappened(2, Times.Exactly);
         }
@@ -302,7 +302,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestManifestation : IManifestation
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public string Id { get; set; }
+            public DdsIdentifier Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; set; }
@@ -326,7 +326,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestCollection : ICollection
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public string Id { get; set; }
+            public DdsIdentifier Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; }

@@ -148,7 +148,7 @@ namespace Wellcome.Dds.Server.Controllers
             Response.CacheForDays(1);
             if (avManifestation.Partial)
             {
-                avManifestation = (IManifestation) await metsRepository.GetAsync(avManifestation.Id);
+                avManifestation = (IManifestation) await metsRepository.GetAsync(avManifestation.Identifier);
             }
 
             var poster = avManifestation.PosterImage;

@@ -65,10 +65,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
             else
             {
-                throw new ArgumentException($"Cannot get a digitised resource from METS for identifier {identifier}",
+                throw new ArgumentException($"Cannot get a digital resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
-            digObject.Identifier = metsResource.Id;
+            digObject.Identifier = metsResource.Identifier;
             digObject.Partial = metsResource.Partial;
 
             //// DEBUG step - force evaluation of DLCS query
@@ -116,7 +116,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var dlcsImages = digitisedManifestation.DlcsImages.ToList();
             var syncOperation = new SyncOperation
             {
-                ManifestationIdentifier = metsManifestation.Id,
+                ManifestationIdentifier = metsManifestation.Identifier,
                 ImagesAlreadyOnDlcs = await GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
@@ -145,8 +145,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // Get the manifestation level metadata that each image is going to need
-            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Id);
-            var ddsId = new DdsIdentifier(metsManifestation.Id);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
@@ -169,7 +168,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
-                var newDlcsImage = MakeDlcsImage(storedFile, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
+                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
                 var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier];
 
                 if (assetsToIngest.Contains(storedFile))
@@ -201,7 +200,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var dc = new DigitalCollection
             {
                 MetsCollection = metsCollection,
-                Identifier = metsCollection.Id
+                Identifier = metsCollection.Identifier
             };
             
             // There are currently 0 instances of an item with both collection + manifestation here.
@@ -228,15 +227,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private async Task<DigitalManifestation> MakeDigitalManifestation(IManifestation metsManifestation, bool includePdf)
         {
-            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Id);
-            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Id) : Task.FromResult<IPdf>(null);
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
             
             return new DigitalManifestation
             {
                 MetsManifestation = metsManifestation,
-                Identifier = metsManifestation.Id,
+                Identifier = metsManifestation.Identifier,
                 DlcsImages = getDlcsImages.Result,
                 PdfControlFile = getPdf.Result
             };

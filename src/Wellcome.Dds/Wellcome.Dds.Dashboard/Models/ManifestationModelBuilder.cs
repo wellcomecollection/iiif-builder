@@ -197,7 +197,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     if (dgCollection.MetsCollection.Manifestations.HasItems())
                     {
                         // a normal multiple manifestation, or possibly a periodical volume?
-                        redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
+                        redirectId = dgCollection.MetsCollection.Manifestations.First().Identifier;
                         return new OverallResult
                         {
                             RedirectToManifest = true,

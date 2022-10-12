@@ -38,7 +38,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     //    job.IssuePart, job.VolumePart);
                     return false;
                 }
-                if (job.IssuePart != MetsManifestation.Id)
+                if (job.IssuePart != MetsManifestation.Identifier)
                 {
                     //Log.ErrorFormat("Job has issuePart {0} that does not match manifestation ID {1}",
                     //    job.IssuePart, MetsManifestation.Id);
@@ -49,7 +49,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             else if (job.VolumePart.HasText())
             {
                 // a multiple manifestation volume
-                if (job.VolumePart != MetsManifestation.Id)
+                if (job.VolumePart != MetsManifestation.Identifier)
                 {
                     //Log.ErrorFormat("Job has VolumePart {0} that does not match manifestation ID {1}",
                     //    job.VolumePart, MetsManifestation.Id);
@@ -59,7 +59,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             else
             {
                 // a single manifestation
-                if (job.Identifier != MetsManifestation.Id)
+                if (job.Identifier != MetsManifestation.Identifier)
                 {
                     //Log.ErrorFormat("Job has Identifier {0} that does not match manifestation ID {1}",
                     //    job.Identifier, MetsManifestation.Id);

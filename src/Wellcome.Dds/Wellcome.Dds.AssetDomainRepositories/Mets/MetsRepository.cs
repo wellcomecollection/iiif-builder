@@ -149,7 +149,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 // Many props still to assigned 
                 Label = workStore.Identifier, // we have no descriptive metadata!
-                Id = workStore.Identifier,
+                Identifier = workStore.Identifier,
                 Type = "Born Digital",
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),
@@ -372,7 +372,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections)
                     {
-                        var volume = await GetAsync(partialVolume.Id) as ICollection;
+                        var volume = await GetAsync(partialVolume.Identifier) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations)
                         {
@@ -381,8 +381,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                                 Manifestation = manifestation,
                                 PackageIdentifier = identifier,
                                 SequenceIndex = sequenceIndex++,
-                                VolumeIdentifier = volume.Id,
-                                IssueIdentifier = manifestation.Id
+                                VolumeIdentifier = volume.Identifier,
+                                IssueIdentifier = manifestation.Identifier
                             };
                         }
                     }
@@ -396,7 +396,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                             Manifestation = manifestation,
                             PackageIdentifier = identifier,
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = manifestation.Id,
+                            VolumeIdentifier = manifestation.Identifier,
                             IssueIdentifier = null
                         };
                     }
@@ -464,7 +464,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     if (anchor == null) return -1;
                     foreach (var manifestation in anchor.Manifestations)
                     {
-                        if (manifestation.Id == identifier)
+                        if (manifestation.Identifier == identifier)
                         {
                             return sequenceIndex;
                         }

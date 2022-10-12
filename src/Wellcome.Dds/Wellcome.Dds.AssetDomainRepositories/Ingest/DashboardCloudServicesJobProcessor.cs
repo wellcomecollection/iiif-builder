@@ -227,7 +227,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
             var assetType = manifestation.FirstInternetType;
             if (assetType != null)
+            {
+                // This doesn't really mean anything for born digital
                 job.AssetType = assetType;
+            }
             job.ImageCount = manifestation.SynchronisableFiles.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 

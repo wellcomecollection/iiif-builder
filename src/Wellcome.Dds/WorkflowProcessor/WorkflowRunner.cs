@@ -171,8 +171,8 @@ namespace WorkflowProcessor
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
-                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Id);
-                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Id);
+                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Identifier);
+                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Identifier);
                 }
                 else
                 {
