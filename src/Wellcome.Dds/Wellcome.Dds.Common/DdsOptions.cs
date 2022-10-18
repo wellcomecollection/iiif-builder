@@ -37,8 +37,8 @@
         public string AnnotationContainer { get; set; }
         
         // Workflow
-        public string WorkflowMessageTopic { get; set; }
         public string WorkflowMessageQueue { get; set; }
+        public bool WorkflowMessagePoll { get; set; }
         
         public bool ReferenceV0SearchService { get; set; }
         public bool UseRequiredStatement { get; set; }

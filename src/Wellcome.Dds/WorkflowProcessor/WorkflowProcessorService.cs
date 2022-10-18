@@ -356,7 +356,7 @@ namespace WorkflowProcessor
         {
             int waitMs = 2;
             string queueUrl = null;
-            if (ddsOptions.WorkflowMessageQueue.HasText())
+            if (ddsOptions.WorkflowMessagePoll && ddsOptions.WorkflowMessageQueue.HasText())
             {
                 var result = await sqsClient.GetQueueUrlAsync(ddsOptions.WorkflowMessageQueue, cancellationToken);
                 queueUrl = result.QueueUrl;
@@ -417,6 +417,11 @@ namespace WorkflowProcessor
 
         private async Task PollQueue(string queueUrl, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
         {
+            if (queueUrl.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+            
             var response = await sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
             {
                 QueueUrl = queueUrl,

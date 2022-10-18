@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Dashboard.Controllers
@@ -17,18 +18,18 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowCallController> logger;
-        private readonly DdsOptions ddsOptions;
+        private readonly StorageOptions storageOptions;
         private readonly IAmazonSimpleNotificationService simpleNotificationService;
 
         public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowCallController> logger,
-            IOptions<DdsOptions> options,
+            IOptions<StorageOptions> options,
             IAmazonSimpleNotificationService simpleNotificationService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
-            this.ddsOptions = options.Value;
+            this.storageOptions = options.Value;
             this.simpleNotificationService = simpleNotificationService;
         }
 
@@ -104,7 +105,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> NotifyTopic(string id)
         {
             var ddsId = new DdsIdentifier(id);
-            var topic = ddsOptions.WorkflowMessageTopic;
+            var topic = storageOptions.WorkflowMessageTopic;
             if (topic.IsNullOrWhiteSpace())
             {
                 var errorMessage = $"No topic specified for workflow; could not notify for '{ddsId}'";
