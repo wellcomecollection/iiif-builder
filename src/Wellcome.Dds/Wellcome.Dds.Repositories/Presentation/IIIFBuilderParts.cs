@@ -311,16 +311,20 @@ namespace Wellcome.Dds.Repositories.Presentation
                 };
                 manifest.Items.Add(canvas);
 
-                bool includeInManifest = 
-                    AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition) || 
-                    extraAccessConditions.Contains(physicalFile.AccessCondition);
+                bool isForIIIFManifest = AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition);
+                bool includeBecauseExtraConfig = extraAccessConditions.Contains(physicalFile.AccessCondition);
 
-                if (!includeInManifest)
+                if (!(isForIIIFManifest || includeBecauseExtraConfig))
                 {
                     // has an unknown or forbidden access condition, and config hasn't overridden this
                     canvas.Label["en"] = new List<string>{$"Excluded access condition: {physicalFile.AccessCondition}"};
                     canvas.Summary = Lang.Map("This asset is not currently available online");
                     continue;
+                }
+
+                if (includeBecauseExtraConfig)
+                {
+                    canvas.Label["en"] = new List<string>{$"WARNING: Access Condition {physicalFile.AccessCondition}"};
                 }
                 
                 var assetIdentifier = physicalFile.StorageIdentifier;
