@@ -1,16 +1,15 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
-using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models.Fixtures;
 
 namespace Wellcome.Dds.Dashboard.Controllers;
 
 public class FixturesController : Controller
 {
-    private StorageOptions storageOptions;
+    private readonly StorageOptions storageOptions;
     
     public FixturesController(IOptions<StorageOptions> options)
     {
@@ -27,21 +26,16 @@ public class FixturesController : Controller
         return View("Fixtures", GetBornDigital());
     }
 
-    private IEnumerable<DdsIdentifier> GetDigitised()
+    private (string, string)[] GetDigitised()
     {
-        if (storageOptions.StorageApiTemplate.Contains("api-stage"))
-        {
-            return new DigitisedStaging().Identifiers.Select(id => new DdsIdentifier(id));
-        }
-        return new DigitisedProduction().Identifiers.Select(id => new DdsIdentifier(id));
+        return new DigitisedProduction().Identifiers;
     }
 
-    private IEnumerable<DdsIdentifier> GetBornDigital()
+    private (string, string)[] GetBornDigital()
     {
-        if (storageOptions.StorageApiTemplate.Contains("api-stage"))
-        {
-            return new BornDigitalStaging().Identifiers.Select(id => new DdsIdentifier(id));
-        }
-        return new BornDigitalProduction().Identifiers.Select(id => new DdsIdentifier(id));
+        string[] identifiers = storageOptions.StorageApiTemplate.Contains("api-stage")
+            ? new BornDigitalStaging().Identifiers
+            : new BornDigitalProduction().Identifiers;
+        return identifiers.Select(identifier => new ValueTuple<string, string>(identifier, string.Empty)).ToArray();
     }
 }

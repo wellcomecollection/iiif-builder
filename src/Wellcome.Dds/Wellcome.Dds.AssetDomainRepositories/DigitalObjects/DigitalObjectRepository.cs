@@ -168,6 +168,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
+
+                if (!AccessCondition.IsValid(storedFile.PhysicalFile.AccessCondition))
+                {
+                    // This does not have an access condition that we can sync wth the DLCS
+                    continue;
+                }
+                
                 var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
                 var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier];
 
@@ -647,7 +654,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         {
             if (asset.AccessCondition == AccessCondition.Open)
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             var acUri = dlcs.GetRoleUri(asset.AccessCondition);
             logger.LogInformation("Asset will be registered with role {0}", acUri);

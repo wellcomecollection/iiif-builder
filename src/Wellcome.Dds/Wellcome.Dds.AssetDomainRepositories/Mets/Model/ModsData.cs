@@ -75,6 +75,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 AccessCondition = Common.AccessCondition.Open;
             }
+            // TODO: revisit this behaviour for https://github.com/wellcomecollection/platform/issues/5619
+            // e.g., AccessCondition = Common.AccessCondition.Missing;
 
             var dzAccessConditionElements = accessConditions
                 .Where(x => (string)x.Attribute("type") == "dz").ToList();

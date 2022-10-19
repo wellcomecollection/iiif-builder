@@ -39,14 +39,16 @@
         {
             <p>@Model.Description</p>
         }
+        @if (Model.ErrorMessage.HasText())
+        {
+            <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+        }
     </div>
 </div>
 
 <div class="row" style="height:100%">
     <div class="col-md-12">
         <div id="aceView">@Model.CodeAsString</div>
-
-        @Model.ErrorMessage
     </div>
 </div>
 

@@ -66,10 +66,12 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.logger = logger;
+
             build = new IIIFBuilderParts(
                 uriPatterns,
                 dlcsOptions.Value.ResourceEntryPoint,
-                ddsOptions.Value.ReferenceV0SearchService);
+                ddsOptions.Value.ReferenceV0SearchService,
+                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(','));
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 

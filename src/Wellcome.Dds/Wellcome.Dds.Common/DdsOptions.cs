@@ -43,5 +43,7 @@
         public bool ReferenceV0SearchService { get; set; }
         public bool UseRequiredStatement { get; set; }
         public bool BuildWholeManifestLineAnnotations { get; set; }
+        
+        public string IncludeExtraAccessConditionsInManifest { get; set; }
     }
 }

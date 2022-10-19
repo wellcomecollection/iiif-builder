@@ -401,7 +401,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 {
                     Basis = "No Rights Statement",
                     Identifier = "no-rights",
-                    AccessCondition = Common.AccessCondition.Restricted, // so that we still generate IIIF
+                    AccessCondition = Common.AccessCondition.Missing,
                     Statement = "No Rights"
                 };
             }
@@ -411,11 +411,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 return rightsStatement;
             }
 
+            var accessCondition =
+                premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote);
+
+            if (!Common.AccessCondition.IsValid(accessCondition))
+            {
+                accessCondition = Common.AccessCondition.Unknown;
+            }
             rightsStatement = new PremisRightsStatement
             {
                 Identifier = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
                 Basis = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsBasis),
-                AccessCondition = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
+                AccessCondition = accessCondition
             };
 
             switch (rightsStatement.Basis)

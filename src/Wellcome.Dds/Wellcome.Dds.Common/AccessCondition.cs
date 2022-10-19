@@ -1,18 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Wellcome.Dds.Common
 {
     public static class AccessCondition
     {
+        // Access conditions that are known and expected in METS
         public const string Open = "Open";
         public const string RequiresRegistration = "Requires registration";
         public const string OpenWithAdvisory = "Open with advisory";
         public const string ClinicalImages = "Clinical images";
-        public const string Restricted = "Restricted"; // TODO - temporary addition, will be replaced by "Restricted files" in Archivematica METS"
         public const string RestrictedFiles = "Restricted files";
         public const string Closed = "Closed";
+        
+        // Pseudo access conditions
+        public const string Unknown = "Unknown"; // An access condition is present but it's not one of the above
+        public const string Missing = "Missing"; // The METS contained no PREMIS rights statement, or MODS access condition
+
 
         public const string ClosedSectionError = "I will not serve a b number that has a closed section";
 
@@ -27,20 +33,47 @@ namespace Wellcome.Dds.Common
                 new(OpenWithAdvisory, 2),
                 new(ClinicalImages, 3),
                 new(RestrictedFiles, 4),
-                new(Restricted, 4), // TODO: temporary, see above
+                new(Unknown, 5), 
+                new(Missing, 5), 
                 new(Closed, 5)
             };
 
+        /// <summary>
+        /// Is this access condition known to the DDS?
+        /// </summary>
+        /// <param name="s">The access condition in string form</param>
+        /// <returns></returns>
         public static bool IsValid(string s)
         {
-            return (s == Open || 
-                    s == RequiresRegistration || 
-                    s == OpenWithAdvisory ||
-                    s == ClinicalImages || 
-                    s == RestrictedFiles || 
-                    s == Restricted ||  // TODO: temporary, see above
-                    s == Closed || 
-                    s == Degraded);
+            return s is 
+                Open or 
+                RequiresRegistration or 
+                OpenWithAdvisory or 
+                ClinicalImages or 
+                RestrictedFiles or 
+                Closed or 
+                Degraded;
+        }
+
+        /// <summary>
+        /// Should the asset be included in a generated IIIF Manifest?
+        /// NB an asset may be included in a Manifest even if it's not deliverable (not synced with DLCS)
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static bool IsForIIIFManifest(string s)
+        {
+            if (!IsValid(s))
+            {
+                return false;
+            }
+
+            if (s == Closed)
+            {
+                return false;
+            }
+
+            return true;
         }
 
 

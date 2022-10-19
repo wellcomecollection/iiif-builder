@@ -193,23 +193,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             return false;
         }
-
-        public static bool ExcludeDlcsAssetFromManifest(this IPhysicalFile physicalFile)
-        {
-            switch (physicalFile.AccessCondition)
-            {
-                case AccessCondition.Open:
-                case AccessCondition.RequiresRegistration:
-                case AccessCondition.OpenWithAdvisory:
-                case AccessCondition.Degraded:
-                case AccessCondition.ClinicalImages:
-                case AccessCondition.RestrictedFiles:
-                case AccessCondition.Restricted:
-                    return false;
-                default:
-                    return true;
-            }
-        }
         
         /// <summary>
         /// Is there more than one copy of the work? 

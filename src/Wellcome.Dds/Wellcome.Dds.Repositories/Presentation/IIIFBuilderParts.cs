@@ -36,6 +36,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly UriPatterns uriPatterns;
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
+        private readonly string[] extraAccessConditions;
         private readonly ManifestStructureHelper manifestStructureHelper;
 
         private readonly IService clickthroughService;
@@ -54,13 +55,16 @@ namespace Wellcome.Dds.Repositories.Presentation
         private static readonly Size PlaceholderCanvasSize = new Size(5000, 5000);
         private static readonly Size PlaceholderThumbnailSize = new Size(500, 500);
         
-        public IIIFBuilderParts(UriPatterns uriPatterns,
+        public IIIFBuilderParts(
+            UriPatterns uriPatterns,
             string dlcsEntryPoint,
-            bool referenceV0SearchService)
+            bool referenceV0SearchService, 
+            string[] extraAccessConditions)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
+            this.extraAccessConditions = extraAccessConditions;
             manifestStructureHelper = new ManifestStructureHelper();
             IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider();
 
@@ -306,11 +310,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = canvasLabel
                 };
                 manifest.Items.Add(canvas);
-                if (physicalFile.ExcludeDlcsAssetFromManifest())
+
+                bool includeInManifest = 
+                    AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition) || 
+                    extraAccessConditions.Contains(physicalFile.AccessCondition);
+
+                if (!includeInManifest)
                 {
-                    // has an unknown or forbidden access condition
-                    canvas.Label = Lang.Map("Closed");
-                    canvas.Summary = Lang.Map("This image is not currently available online");
+                    // has an unknown or forbidden access condition, and config hasn't overridden this
+                    canvas.Label["en"] = new List<string>{$"Excluded access condition: {physicalFile.AccessCondition}"};
+                    canvas.Summary = Lang.Map("This asset is not currently available online");
                     continue;
                 }
                 
@@ -936,13 +945,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddAuthServiceToDictionary(foundAuthServices, loginService);
                     AddAuthServiceToMedia(media, loginServiceReference);
                     break;
-                case AccessCondition.Restricted: 
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
                     AddAuthServiceToMedia(media, externalAuthServiceReference);
                     break;
                 default:
-                    throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
+                    if (!extraAccessConditions.Contains(physicalFile.AccessCondition))
+                    {
+                        throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
+                    }
+                    break;
             }
         }
 

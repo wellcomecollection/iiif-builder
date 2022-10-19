@@ -1,4 +1,4 @@
-@model IEnumerable<DdsIdentifier>
+@model ValueTuple<string, string>[]
 
 @{
     ViewBag.Title = "Test Identifiers";
@@ -8,7 +8,7 @@
 
 
 <div class="col-md-12">
-    <h3 style="margin: 25px 0 20px 0">@Html.Raw(Model.First().HasBNumber ? "Digitised" : "Born Digital") Identifiers</h3>
+    <h3 style="margin: 25px 0 20px 0">@Html.Raw(((DdsIdentifier)Model.First().Item1).HasBNumber ? "Digitised" : "Born Digital") Identifiers</h3>
 </div>
 
 <table class="table">
@@ -18,13 +18,17 @@
             <th></th>
             <th></th>
             <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-    @foreach (var identifier in Model)
+    @foreach (var pair in Model)
     {
+        var identifier = new DdsIdentifier(pair.Item1);
+        var label = pair.Item2;
         <tr>
             <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@label</td>
             <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
             <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
             <td>@Html.ActionLink("Workflow call", "WorkflowCall", "WorkflowCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
