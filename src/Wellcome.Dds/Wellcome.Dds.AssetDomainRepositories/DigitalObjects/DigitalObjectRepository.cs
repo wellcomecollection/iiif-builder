@@ -111,7 +111,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         public async Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages)
         {
-            // TODO - some of this can go inside IDigitisedManifestation
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var dlcsImages = digitisedManifestation.DlcsImages.ToList();
             var syncOperation = new SyncOperation
@@ -157,6 +156,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // What do we need to patch? List of existing DLCS images that don't have the correct metadata
+            // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
             syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
@@ -172,6 +172,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 if (!AccessCondition.IsValid(storedFile.PhysicalFile.AccessCondition))
                 {
                     // This does not have an access condition that we can sync wth the DLCS
+                    syncOperation.HasInvalidAccessCondition = true;
+                    syncOperation.Message = "Sync operation found at least one invalid access condition";
                     continue;
                 }
                 

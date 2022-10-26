@@ -26,7 +26,8 @@ def make_data_class(path, name):
 if __name__ == "__main__":
     make_data_class('born-digital/production.txt', 'BornDigitalProduction')
     make_data_class('born-digital/staging.txt', 'BornDigitalStaging')
-    make_data_class('digitised/production.txt', 'DigitisedProduction')
-    make_data_class('digitised/staging.txt', 'DigitisedStaging')
+    # don't rebuild these, edit them in C# 
+    # make_data_class('digitised/production.txt', 'DigitisedProduction')
+    # make_data_class('digitised/staging.txt', 'DigitisedStaging')
     
     

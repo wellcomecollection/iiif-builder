@@ -264,32 +264,34 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            var result = new ImageIngestResult();
+            if (!syncOperation.HasInvalidAccessCondition)
+            {
+                await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
-            var result = new ImageIngestResult
-            {
-                CloudBatchRegistrationResponse = syncOperation.Batches.ToArray()
-            };
+                result.CloudBatchRegistrationResponse = syncOperation.Batches.ToArray();
 
-            var batchesForDb = new List<DlcsBatch>();
-            if (syncOperation.BatchIngestOperationInfos.HasItems())
-            {
-                batchesForDb.AddRange(syncOperation.BatchIngestOperationInfos);
-            }
-            if (syncOperation.BatchPatchOperationInfos.HasItems())
-            {
-                batchesForDb.AddRange(syncOperation.BatchPatchOperationInfos);
-            }
-            if (batchesForDb.HasItems())
-            {
-                // add the db batches back to the database
-                foreach (var batchOperationInfo in batchesForDb)
+                var batchesForDb = new List<DlcsBatch>();
+                if (syncOperation.BatchIngestOperationInfos.HasItems())
                 {
-                    // give them the correct ID
-                    batchOperationInfo.DlcsIngestJobId = job.Id;
+                    batchesForDb.AddRange(syncOperation.BatchIngestOperationInfos);
                 }
-                await ddsInstrumentationContext.DlcsBatches.AddRangeAsync(batchesForDb);
+                if (syncOperation.BatchPatchOperationInfos.HasItems())
+                {
+                    batchesForDb.AddRange(syncOperation.BatchPatchOperationInfos);
+                }
+                if (batchesForDb.HasItems())
+                {
+                    // add the db batches back to the database
+                    foreach (var batchOperationInfo in batchesForDb)
+                    {
+                        // give them the correct ID
+                        batchOperationInfo.DlcsIngestJobId = job.Id;
+                    }
+                    await ddsInstrumentationContext.DlcsBatches.AddRangeAsync(batchesForDb);
+                }
             }
+            
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
             job.EndProcessed = DateTime.Now;
             job.Succeeded = syncOperation.Succeeded;

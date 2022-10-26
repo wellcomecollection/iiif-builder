@@ -106,7 +106,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         accessConditionCounts[sf.PhysicalFile.AccessCondition] = 0;
                         accessConditionLinks[sf.PhysicalFile.AccessCondition] = GetTableId(sf.StorageIdentifier);
                     }
-                    accessConditionCounts[sf.PhysicalFile.AccessCondition] = accessConditionCounts[sf.PhysicalFile.AccessCondition] + 1;
+                    accessConditionCounts[sf.PhysicalFile.AccessCondition] += 1;
                 }
                 syncSummary.Categories = countsdict.Select(kvp => new SyncCategory
                 {
@@ -466,6 +466,14 @@ namespace Wellcome.Dds.Dashboard.Models
                 f.Use != "original");  // Born digital  
         }
 
+        public string GetAccessConditionStyle(string accessCondition)
+        {
+            if (accessCondition == "Unknown" || accessCondition == "Missing")
+            {
+                return "color:#b94a48; background-color:white; border:1px solid";
+            }    
+            return String.Empty;
+        }
     }
 
 

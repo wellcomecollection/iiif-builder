@@ -2,10 +2,11 @@ namespace Wellcome.Dds.Dashboard.Models.Fixtures;
 
 public class BornDigitalStaging
 {
-    public readonly string[] Identifiers = {
-        "GRLDUR/A/6/1",
+    public string[] Identifiers = new[]
+    {
+        "SABIO/M/8",
+        "SAILE/L/3/17/2/1",
         "AR/TST/9/27",
-        "PPROS/K/3/2",
         "SAFPA/C/D/5/15/1",
         "SA/REN/B/21/1",
         "PPSML/Z/11/4",

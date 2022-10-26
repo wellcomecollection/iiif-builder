@@ -41,10 +41,12 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// </summary>
         public List<string> StorageIdentifiersToIgnore { get; set; }
 
-        public bool RequiresSync
-        {
-            get { return DlcsImagesToIngest.HasItems() || DlcsImagesToPatch.HasItems(); }
-        }
+        public bool RequiresSync => DlcsImagesToIngest.HasItems() || DlcsImagesToPatch.HasItems();
+
+        /// <summary>
+        /// The sync operation has at least one invalid access condition and should not be synced
+        /// </summary>
+        public bool HasInvalidAccessCondition { get; set; }
 
         public SyncOperation()
         {
