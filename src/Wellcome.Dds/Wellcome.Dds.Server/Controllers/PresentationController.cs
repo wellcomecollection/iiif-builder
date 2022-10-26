@@ -36,10 +36,10 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly DdsOptions ddsOptions;
         private readonly Helpers helpers;
-        private UriPatterns uriPatterns;
-        private DdsContext ddsContext;
-        private IIIIFBuilder iiifBuilder;
-        private ICatalogue catalogue;
+        private readonly UriPatterns uriPatterns;
+        private readonly DdsContext ddsContext;
+        private readonly IIIIFBuilder iiifBuilder;
+        private readonly ICatalogue catalogue;
 
         public PresentationController(
             IOptions<DdsOptions> options,
@@ -66,17 +66,29 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("{id}")] 
+        [HttpGet("{*id}")] 
         public Task<IActionResult> Index(string id)
         {
-            var redirect = RequiredRedirect(id, uriPatterns.Manifest);
+            var ddsId = new DdsIdentifier(id);
+            var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
                 return Task.FromResult<IActionResult>(redirect);
             }
             // Return requested version if headers present, or fallback to known version
             var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
-            return iiifVersion == Version.V2 ? V2(id) : V3(id);
+            return iiifVersion == Version.V2 ? V2(ddsId) : V3(ddsId);
+        }
+
+        private string ManifestTransformer(string s)
+        {
+            var manifest = uriPatterns.Manifest(s);
+            if (ddsOptions.RewriteDomainLinksTo.HasText())
+            {
+                manifest = manifest.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            }
+
+            return manifest;
         }
 
         /// <summary>
@@ -84,7 +96,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
-        [HttpGet("v2/{id}")]
+        [HttpGet("v2/{*id}")]
         public Task<IActionResult> V2(string id) => GetIIIFResource($"v2/{id}", IIIFPresentation.ContentTypes.V2);
 
         /// <summary>
@@ -92,7 +104,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
-        [HttpGet("v3/{id}")]
+        [HttpGet("v3/{*id}")]
         public Task<IActionResult> V3(string id) => GetIIIFResource($"v3/{id}", IIIFPresentation.ContentTypes.V3);
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
@@ -535,33 +547,42 @@ namespace Wellcome.Dds.Server.Controllers
 
         }
         
-        private RedirectResult RequiredRedirect(string bNumberLikeString, Func<string, string> transformer)
+        private RedirectResult RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
         {
-            // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
-            if (bNumberLikeString.Contains('_'))
+            if (ddsId.HasBNumber)
             {
-                // Likely a manifestation identifier, proceed
-                return null;
-            }
-
-            if (bNumberLikeString.StartsWith('b') && bNumberLikeString.Length == 9)
-            {
-                // looks like a normal b-number
-                char checkDigit = bNumberLikeString[8];
-                if (Char.IsDigit(checkDigit) || 'x' == checkDigit)
+                // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
+                if (requestedForm.Contains('_'))
                 {
-                    // still looks like a normal b number. In the new DDS, where we don't expect 
-                    // Sierra links directly, we WON'T normalise these. An incorrect check digit is a 404,
-                    // rather than something we correct. However, if the check digit is `a` we will correct it.
+                    // Likely a manifestation identifier, proceed
                     return null;
+                }
+                if (requestedForm.StartsWith('b') && requestedForm.Length == 9)
+                {
+                    // looks like a normal b-number
+                    char checkDigit = requestedForm[8];
+                    if (Char.IsDigit(checkDigit) || 'x' == checkDigit)
+                    {
+                        // still looks like a normal b number. In the new DDS, where we don't expect 
+                        // Sierra links directly, we WON'T normalise these. An incorrect check digit is a 404,
+                        // rather than something we correct. However, if the check digit is `a` we will correct it.
+                        return null;
+                    }
+                }
+                var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(requestedForm, false);
+                if (normalised != requestedForm)
+                {
+                    return RedirectPermanent(transformer(normalised));
                 }
             }
 
-            var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(bNumberLikeString, false);
-            if (normalised != bNumberLikeString)
+            if (ddsId.ToString() != requestedForm)
             {
-                return RedirectPermanent(transformer(normalised));
+                // We want the normalised form of the identifier
+                return RedirectPermanent(transformer(ddsId.ToString()));
             }
+
+
 
             return null;
         }
