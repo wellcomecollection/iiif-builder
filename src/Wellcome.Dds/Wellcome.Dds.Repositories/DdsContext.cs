@@ -99,6 +99,15 @@ namespace Wellcome.Dds.Repositories
             return Manifestations.SingleOrDefault(
                 m => m.PackageIdentifier == identifier && m.Index == index);
         }
+
+        public Manifestation? GetManifestationByAnyIdentifier(string identifier)
+        {
+            return Manifestations.FirstOrDefault(mf => 
+                mf.ManifestationIdentifier == identifier ||
+                mf.WorkId == identifier ||
+                mf.CalmRef == identifier ||
+                mf.CalmAltRef == identifier);
+        }
         
     }
 

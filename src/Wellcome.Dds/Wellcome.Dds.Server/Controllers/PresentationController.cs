@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
@@ -67,17 +68,51 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{*id}")] 
-        public Task<IActionResult> Index(string id)
+        public async Task<IActionResult> Index(string id)
         {
             var ddsId = new DdsIdentifier(id);
             var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
-                return Task.FromResult<IActionResult>(redirect);
+                return Redirect(redirect);
             }
             // Return requested version if headers present, or fallback to known version
             var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
-            return iiifVersion == Version.V2 ? V2(ddsId) : V3(ddsId);
+            if (iiifVersion == Version.V3)
+            {
+                if (! await helpers.ExistsInStorage(ddsOptions.PresentationContainer, $"v3/{ddsId}"))
+                {
+                    return await HandleMissingPresentationResource(ddsId);
+                }
+            }
+            return iiifVersion == Version.V2 ? await V2(ddsId) : await V3(ddsId);
+        }
+
+        /// <summary>
+        /// The JSON is not in storage
+        /// </summary>
+        /// <param name="ddsId"></param>
+        /// <returns></returns>
+        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentifier ddsId)
+        {
+            var id = ddsId.ToString();
+            // The requested identifier does not exist in storage (e.g., in S3 bucket).
+            // But we might have been asked for a different form of identifier, and we can redirect to the correct form.
+            var alternative = ddsContext.GetManifestationByAnyIdentifier(id);
+            if (alternative != null)
+            {
+                if (alternative.ManifestationIdentifier != id)
+                {
+                    // This was requested with an alternative identifier
+                    return RedirectPermanent(uriPatterns.Manifest(alternative.ManifestationIdentifier));
+                }
+
+                return NotFound();
+            }
+            
+            // It's not a manifestation, but is it actually a collection?
+            // There won't be JSON for that...
+            return await ArchivesReference(id, true);
         }
 
         private string ManifestTransformer(string s)
@@ -133,6 +168,7 @@ namespace Wellcome.Dds.Server.Controllers
                     MakeAggregationCollection("archives", "Archive collections")
                 }
             };
+            tlc.EnsurePresentation3Context();
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
@@ -156,6 +192,7 @@ namespace Wellcome.Dds.Server.Controllers
                     MakeAggregationCollectionV2("archives", "Archive collections")
                 }
             };
+            tlc.EnsurePresentation2Context();
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -203,7 +240,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new LanguageMap("en", noCollection.Title)
                 });
             }
-            
+            coll.EnsurePresentation3Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
 
@@ -249,7 +286,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new MetaDataValue(noCollection.Title)
                 });
             }
-            
+            coll.EnsurePresentation2Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
         
@@ -260,7 +297,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <returns></returns>
         [HttpGet("collections/archives/{*referenceNumber}")]
         [HttpGet("v3/collections/archives/{*referenceNumber}")]
-        public async Task<IActionResult> ArchivesReference(string referenceNumber)
+        public async Task<IActionResult> ArchivesReference(string referenceNumber, bool fromPresentationPath = false)
         {
             Collection collection;
             if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
@@ -270,15 +307,52 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work == null)
+                {
+                    return NotFound();
+                }
                 if (work.HasIIIFDigitalLocation())
                 {
-                    var bNumber = work.GetSierraSystemBNumbers().First();
-                    return Redirect(uriPatterns.Manifest(bNumber));
+                    var refAsDdsId = new DdsIdentifier(referenceNumber);
+                    // Should we instead get the work from the Manifestations table at this point?
+                    var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
+                    if (bNumber.HasText())
+                    {
+                        var bNumberAsDdsId = new DdsIdentifier(bNumber);
+                        // There's a slim chance of a circular redirect without checking this;
+                        // don't redirect if it's already a b-number. It shouldn't be! 
+                        if (refAsDdsId != bNumberAsDdsId)
+                        {
+                            return Redirect(uriPatterns.Manifest(bNumber));
+                        }
+                        return NotFound();
+                    }
+                    
+                    // TODO - need to decide whether to use the manifestations data or the digital location from the work
+                    // we already have the digital location, what does it look like for born digital?
+                    // or we can do this:
+                    // ddsContext.GetManifestationByAnyIdentifier(referenceNumber);
+                    // ... redirect... avoiding circular ref.
+                    
+                    // but for now:
+                    return NotFound();
                 }
 
+                if (fromPresentationPath)
+                {
+                    // The user has likely hacked back the URL path to get here, so redirect to the archives path
+                    return Redirect(uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber));
+                }
                 collection = iiifBuilder.BuildArchiveNode(work);
                 
             }
+
+            if (collection == null)
+            {
+                return NotFound();
+            }
+            
+            collection.EnsurePresentation3Context();
             return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
@@ -313,6 +387,7 @@ namespace Wellcome.Dds.Server.Controllers
                     collection.Members = v3Coll.Items.Select(ConvertArchiveCollectionMemberToV2).ToList();
                 }
             }
+            collection.EnsurePresentation2Context();
             return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -405,6 +480,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new LanguageMap("none", aggregationMetadata.Label)
                 });
             }
+            coll.EnsurePresentation3Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
@@ -432,6 +508,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new MetaDataValue(aggregationMetadata.Label)
                 });
             }
+            coll.EnsurePresentation2Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -467,6 +544,7 @@ namespace Wellcome.Dds.Server.Controllers
                     manifest.Thumbnail = result.Manifestation.GetThumbnail();
                 }
             }
+            coll.EnsurePresentation3Context();
             Response.CacheForDays(30);
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
@@ -496,6 +574,7 @@ namespace Wellcome.Dds.Server.Controllers
                 coll.Members.Add(manifest);
                 coll.Label ??= new MetaDataValue($"{result.CollectionLabel}: {result.CollectionStringValue}");
             }
+            coll.EnsurePresentation2Context();
             Response.CacheForDays(30);
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
@@ -547,7 +626,7 @@ namespace Wellcome.Dds.Server.Controllers
 
         }
         
-        private RedirectResult RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
+        private string RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
         {
             if (ddsId.HasBNumber)
             {
@@ -572,14 +651,14 @@ namespace Wellcome.Dds.Server.Controllers
                 var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(requestedForm, false);
                 if (normalised != requestedForm)
                 {
-                    return RedirectPermanent(transformer(normalised));
+                    return transformer(normalised);
                 }
             }
 
             if (ddsId.ToString() != requestedForm)
             {
                 // We want the normalised form of the identifier
-                return RedirectPermanent(transformer(ddsId.ToString()));
+                return transformer(ddsId.ToString());
             }
 
 

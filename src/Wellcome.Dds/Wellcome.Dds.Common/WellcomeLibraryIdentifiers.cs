@@ -162,5 +162,15 @@ namespace Wellcome.Dds.Common
             var asString = idWithoutCheckDigit.ToString(CultureInfo.InvariantCulture);
             return Convert.ToInt64($"{idWithoutCheckDigit}{GetExpectedBNumberCheckDigit(asString)}");
         }
+
+        public static bool MayBeWorkIdentifier(string s)
+        {
+            if (s.IsNullOrWhiteSpace() || s.Length != 8)
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(s, "^[a-z1-9]*$");
+        }
     }
 }
