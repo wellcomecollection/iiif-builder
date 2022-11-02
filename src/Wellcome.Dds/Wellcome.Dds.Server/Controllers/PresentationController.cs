@@ -581,8 +581,6 @@ namespace Wellcome.Dds.Server.Controllers
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
-        ///
-        /// No longer explicitly linked but still available
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/{aggregator}/{value}")]
@@ -620,8 +618,6 @@ namespace Wellcome.Dds.Server.Controllers
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
-        /// 
-        /// No longer explicitly linked but still available
         /// </summary>
         /// <returns></returns>
         [HttpGet("v2/collections/{aggregator}/{value}")]
