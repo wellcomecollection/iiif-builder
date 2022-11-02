@@ -468,21 +468,55 @@ namespace Wellcome.Dds.Server.Controllers
             var coll = new Collection
             {
                 Id = CollectionForAggregationId(aggregator),
-                Label = new LanguageMap("en", "Works by " + apiType),
+                Label = new LanguageMap("en", $"Works by {apiType}, by initial"),
                 Items = new List<ICollectionItem>()
             };
-            var aggregation = ddsContext.GetAggregation(apiType);
-            foreach (var aggregationMetadata in aggregation)
+            var chunkInitials = ddsContext.GetChunkInitials(apiType);
+            foreach (char initial in chunkInitials)
             {
                 coll.Items.Add(new Collection
                 {
-                    Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier),
-                    Label = new LanguageMap("none", aggregationMetadata.Label)
+                    Id = CollectionForAggregationId(aggregator, null, initial),
+                    Label = new LanguageMap("en", $"{apiType}s starting with {initial}")
                 });
             }
             coll.EnsurePresentation3Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
+        
+        
+        /// <summary>
+        /// A partitioned aggregation - subjects, contributors etc
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("collections/chunked/{aggregator}/{chunk}")]
+        [HttpGet("v3/collections/chunked/{aggregator}/{chunk}")]        
+        public IActionResult ChunkedAggregation(string aggregator, char chunk)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new Collection
+            {
+                Id = CollectionForAggregationId(aggregator),
+                Label = new LanguageMap("en", "Works by " + apiType),
+                Items = new List<ICollectionItem>()
+            };
+            var aggregation = ddsContext.GetChunkedAggregation(apiType, chunk);
+            foreach (var aggregationMetadata in aggregation)
+            {
+                if (aggregationMetadata.Identifier != "Electronic_books.")
+                {
+                    coll.Items.Add(new Collection
+                    {
+                        Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier),
+                        Label = new LanguageMap("none", aggregationMetadata.Label)
+                    });
+                }
+            }
+            coll.EnsurePresentation3Context();
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+        
+        
         
         
         /// <summary>
@@ -496,17 +530,48 @@ namespace Wellcome.Dds.Server.Controllers
             var coll = new IIIF.Presentation.V2.Collection
             {
                 Id = CollectionForAggregationId(aggregator).AsV2(),
-                Label = new MetaDataValue("Works by " + apiType),
+                Label = new MetaDataValue($"Works by {apiType}, by initial"),
                 Members = new List<IIIFPresentationBase>()
             };
-            var aggregation = ddsContext.GetAggregation(apiType);
-            foreach (var aggregationMetadata in aggregation)
+            
+            var chunkInitials = ddsContext.GetChunkInitials(apiType);
+            foreach (char initial in chunkInitials)
             {
                 coll.Members.Add(new IIIF.Presentation.V2.Collection
                 {
-                    Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier).AsV2(),
-                    Label = new MetaDataValue(aggregationMetadata.Label)
+                    Id = CollectionForAggregationId(aggregator, null, initial).AsV2(),
+                    Label = new MetaDataValue($"{apiType}s starting with {initial}")
                 });
+            }
+            coll.EnsurePresentation2Context();
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+        
+        /// <summary>
+        /// A partitioned aggregation - subjects, contributors etc
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/chunked/{aggregator}/{chunk}")]        
+        public IActionResult ChunkedAggregationV2(string aggregator, char chunk)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new IIIF.Presentation.V2.Collection
+            {
+                Id = CollectionForAggregationId(aggregator).AsV2(),
+                Label = new MetaDataValue("Works by " + apiType),
+                Members = new List<IIIFPresentationBase>()
+            };
+            var aggregation = ddsContext.GetChunkedAggregation(apiType, chunk);
+            foreach (var aggregationMetadata in aggregation)
+            {
+                if (aggregationMetadata.Identifier != "Electronic_books.")
+                {
+                    coll.Members.Add(new IIIF.Presentation.V2.Collection
+                    {
+                        Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier).AsV2(),
+                        Label = new MetaDataValue(aggregationMetadata.Label)
+                    });
+                }
             }
             coll.EnsurePresentation2Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
@@ -516,6 +581,8 @@ namespace Wellcome.Dds.Server.Controllers
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
+        ///
+        /// No longer explicitly linked but still available
         /// </summary>
         /// <returns></returns>
         [HttpGet("collections/{aggregator}/{value}")]
@@ -553,6 +620,8 @@ namespace Wellcome.Dds.Server.Controllers
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
+        /// 
+        /// No longer explicitly linked but still available
         /// </summary>
         /// <returns></returns>
         [HttpGet("v2/collections/{aggregator}/{value}")]
@@ -606,10 +675,14 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="aggregator"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        private string CollectionForAggregationId(string aggregator, string value = null)
+        private string CollectionForAggregationId(string aggregator, string value = null, char chunk = Char.MinValue)
         {
             string id;
-            if (value != null)
+            if (chunk != char.MinValue)
+            {
+                id = uriPatterns.CollectionForAggregation(aggregator, chunk);
+            }
+            else if (value != null)
             {
                 id = uriPatterns.CollectionForAggregation(aggregator, value);
             }
