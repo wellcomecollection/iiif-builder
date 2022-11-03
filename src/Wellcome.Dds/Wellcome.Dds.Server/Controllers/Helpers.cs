@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Utils;
 using Utils.Storage;
 using Wellcome.Dds.Common;
 
@@ -69,6 +68,12 @@ namespace Wellcome.Dds.Server.Controllers
             var pass2 = pass1.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
             var rewritten = pass2.Replace(placeholder, ddsOptions.LinkedDataDomain);
             return controller.Content(rewritten, contentType);
+        }
+
+        public async Task<bool> ExistsInStorage(string container, string path)
+        {
+            var file = storage.GetCachedFileInfo(container, path);
+            return await file.DoesExist();
         }
 
         private string GetRegexPattern(string domainPart)

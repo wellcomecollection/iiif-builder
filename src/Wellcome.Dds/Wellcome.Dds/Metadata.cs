@@ -47,6 +47,7 @@ namespace Wellcome.Dds
             // subjects, genres, contributor all work simply for now
             var initial = pathElement[0].ToString();
             return pathElement.Chomp("s").ReplaceFirst(initial, initial.ToUpperInvariant());
+            
         }
     }
 }

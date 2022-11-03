@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3;
@@ -36,10 +37,10 @@ namespace Wellcome.Dds.Server.Controllers
     {
         private readonly DdsOptions ddsOptions;
         private readonly Helpers helpers;
-        private UriPatterns uriPatterns;
-        private DdsContext ddsContext;
-        private IIIIFBuilder iiifBuilder;
-        private ICatalogue catalogue;
+        private readonly UriPatterns uriPatterns;
+        private readonly DdsContext ddsContext;
+        private readonly IIIIFBuilder iiifBuilder;
+        private readonly ICatalogue catalogue;
 
         public PresentationController(
             IOptions<DdsOptions> options,
@@ -66,17 +67,63 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("{id}")] 
-        public Task<IActionResult> Index(string id)
+        [HttpGet("{*id}")] 
+        public async Task<IActionResult> Index(string id)
         {
-            var redirect = RequiredRedirect(id, uriPatterns.Manifest);
+            var ddsId = new DdsIdentifier(id);
+            var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
-                return Task.FromResult<IActionResult>(redirect);
+                return Redirect(redirect);
             }
             // Return requested version if headers present, or fallback to known version
             var iiifVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
-            return iiifVersion == Version.V2 ? V2(id) : V3(id);
+            if (iiifVersion == Version.V3)
+            {
+                if (! await helpers.ExistsInStorage(ddsOptions.PresentationContainer, $"v3/{ddsId}"))
+                {
+                    return await HandleMissingPresentationResource(ddsId);
+                }
+            }
+            return iiifVersion == Version.V2 ? await V2(ddsId) : await V3(ddsId);
+        }
+
+        /// <summary>
+        /// The JSON is not in storage
+        /// </summary>
+        /// <param name="ddsId"></param>
+        /// <returns></returns>
+        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentifier ddsId)
+        {
+            var id = ddsId.ToString();
+            // The requested identifier does not exist in storage (e.g., in S3 bucket).
+            // But we might have been asked for a different form of identifier, and we can redirect to the correct form.
+            var alternative = ddsContext.GetManifestationByAnyIdentifier(id);
+            if (alternative != null)
+            {
+                if (alternative.ManifestationIdentifier != id)
+                {
+                    // This was requested with an alternative identifier
+                    return RedirectPermanent(uriPatterns.Manifest(alternative.ManifestationIdentifier));
+                }
+
+                return NotFound();
+            }
+            
+            // It's not a manifestation, but is it actually a collection?
+            // There won't be JSON for that...
+            return await ArchivesReference(id, true);
+        }
+
+        private string ManifestTransformer(string s)
+        {
+            var manifest = uriPatterns.Manifest(s);
+            if (ddsOptions.RewriteDomainLinksTo.HasText())
+            {
+                manifest = manifest.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            }
+
+            return manifest;
         }
 
         /// <summary>
@@ -84,7 +131,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
-        [HttpGet("v2/{id}")]
+        [HttpGet("v2/{*id}")]
         public Task<IActionResult> V2(string id) => GetIIIFResource($"v2/{id}", IIIFPresentation.ContentTypes.V2);
 
         /// <summary>
@@ -92,7 +139,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
-        [HttpGet("v3/{id}")]
+        [HttpGet("v3/{*id}")]
         public Task<IActionResult> V3(string id) => GetIIIFResource($"v3/{id}", IIIFPresentation.ContentTypes.V3);
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
@@ -121,6 +168,7 @@ namespace Wellcome.Dds.Server.Controllers
                     MakeAggregationCollection("archives", "Archive collections")
                 }
             };
+            tlc.EnsurePresentation3Context();
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
@@ -144,6 +192,7 @@ namespace Wellcome.Dds.Server.Controllers
                     MakeAggregationCollectionV2("archives", "Archive collections")
                 }
             };
+            tlc.EnsurePresentation2Context();
             return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -191,7 +240,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new LanguageMap("en", noCollection.Title)
                 });
             }
-            
+            coll.EnsurePresentation3Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
 
@@ -237,7 +286,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Label = new MetaDataValue(noCollection.Title)
                 });
             }
-            
+            coll.EnsurePresentation2Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
         
@@ -248,7 +297,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <returns></returns>
         [HttpGet("collections/archives/{*referenceNumber}")]
         [HttpGet("v3/collections/archives/{*referenceNumber}")]
-        public async Task<IActionResult> ArchivesReference(string referenceNumber)
+        public async Task<IActionResult> ArchivesReference(string referenceNumber, bool fromPresentationPath = false)
         {
             Collection collection;
             if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
@@ -258,15 +307,52 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work == null)
+                {
+                    return NotFound();
+                }
                 if (work.HasIIIFDigitalLocation())
                 {
-                    var bNumber = work.GetSierraSystemBNumbers().First();
-                    return Redirect(uriPatterns.Manifest(bNumber));
+                    var refAsDdsId = new DdsIdentifier(referenceNumber);
+                    // Should we instead get the work from the Manifestations table at this point?
+                    var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
+                    if (bNumber.HasText())
+                    {
+                        var bNumberAsDdsId = new DdsIdentifier(bNumber);
+                        // There's a slim chance of a circular redirect without checking this;
+                        // don't redirect if it's already a b-number. It shouldn't be! 
+                        if (refAsDdsId != bNumberAsDdsId)
+                        {
+                            return Redirect(uriPatterns.Manifest(bNumber));
+                        }
+                        return NotFound();
+                    }
+                    
+                    // TODO - need to decide whether to use the manifestations data or the digital location from the work
+                    // we already have the digital location, what does it look like for born digital?
+                    // or we can do this:
+                    // ddsContext.GetManifestationByAnyIdentifier(referenceNumber);
+                    // ... redirect... avoiding circular ref.
+                    
+                    // but for now:
+                    return NotFound();
                 }
 
+                if (fromPresentationPath)
+                {
+                    // The user has likely hacked back the URL path to get here, so redirect to the archives path
+                    return Redirect(uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber));
+                }
                 collection = iiifBuilder.BuildArchiveNode(work);
                 
             }
+
+            if (collection == null)
+            {
+                return NotFound();
+            }
+            
+            collection.EnsurePresentation3Context();
             return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
@@ -301,6 +387,7 @@ namespace Wellcome.Dds.Server.Controllers
                     collection.Members = v3Coll.Items.Select(ConvertArchiveCollectionMemberToV2).ToList();
                 }
             }
+            collection.EnsurePresentation2Context();
             return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -381,20 +468,55 @@ namespace Wellcome.Dds.Server.Controllers
             var coll = new Collection
             {
                 Id = CollectionForAggregationId(aggregator),
-                Label = new LanguageMap("en", "Works by " + apiType),
+                Label = new LanguageMap("en", $"Works by {apiType}, by initial"),
                 Items = new List<ICollectionItem>()
             };
-            var aggregation = ddsContext.GetAggregation(apiType);
-            foreach (var aggregationMetadata in aggregation)
+            var chunkInitials = ddsContext.GetChunkInitials(apiType);
+            foreach (char initial in chunkInitials)
             {
                 coll.Items.Add(new Collection
                 {
-                    Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier),
-                    Label = new LanguageMap("none", aggregationMetadata.Label)
+                    Id = CollectionForAggregationId(aggregator, null, initial),
+                    Label = new LanguageMap("en", $"{apiType}s starting with {initial}")
                 });
             }
+            coll.EnsurePresentation3Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
+        
+        
+        /// <summary>
+        /// A partitioned aggregation - subjects, contributors etc
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("collections/chunked/{aggregator}/{chunk}")]
+        [HttpGet("v3/collections/chunked/{aggregator}/{chunk}")]        
+        public IActionResult ChunkedAggregation(string aggregator, char chunk)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new Collection
+            {
+                Id = CollectionForAggregationId(aggregator),
+                Label = new LanguageMap("en", "Works by " + apiType),
+                Items = new List<ICollectionItem>()
+            };
+            var aggregation = ddsContext.GetChunkedAggregation(apiType, chunk);
+            foreach (var aggregationMetadata in aggregation)
+            {
+                if (aggregationMetadata.Identifier != "Electronic_books.")
+                {
+                    coll.Items.Add(new Collection
+                    {
+                        Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier),
+                        Label = new LanguageMap("none", aggregationMetadata.Label)
+                    });
+                }
+            }
+            coll.EnsurePresentation3Context();
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+        
+        
         
         
         /// <summary>
@@ -408,18 +530,50 @@ namespace Wellcome.Dds.Server.Controllers
             var coll = new IIIF.Presentation.V2.Collection
             {
                 Id = CollectionForAggregationId(aggregator).AsV2(),
-                Label = new MetaDataValue("Works by " + apiType),
+                Label = new MetaDataValue($"Works by {apiType}, by initial"),
                 Members = new List<IIIFPresentationBase>()
             };
-            var aggregation = ddsContext.GetAggregation(apiType);
-            foreach (var aggregationMetadata in aggregation)
+            
+            var chunkInitials = ddsContext.GetChunkInitials(apiType);
+            foreach (char initial in chunkInitials)
             {
                 coll.Members.Add(new IIIF.Presentation.V2.Collection
                 {
-                    Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier).AsV2(),
-                    Label = new MetaDataValue(aggregationMetadata.Label)
+                    Id = CollectionForAggregationId(aggregator, null, initial).AsV2(),
+                    Label = new MetaDataValue($"{apiType}s starting with {initial}")
                 });
             }
+            coll.EnsurePresentation2Context();
+            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+        
+        /// <summary>
+        /// A partitioned aggregation - subjects, contributors etc
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v2/collections/chunked/{aggregator}/{chunk}")]        
+        public IActionResult ChunkedAggregationV2(string aggregator, char chunk)
+        {
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            var coll = new IIIF.Presentation.V2.Collection
+            {
+                Id = CollectionForAggregationId(aggregator).AsV2(),
+                Label = new MetaDataValue("Works by " + apiType),
+                Members = new List<IIIFPresentationBase>()
+            };
+            var aggregation = ddsContext.GetChunkedAggregation(apiType, chunk);
+            foreach (var aggregationMetadata in aggregation)
+            {
+                if (aggregationMetadata.Identifier != "Electronic_books.")
+                {
+                    coll.Members.Add(new IIIF.Presentation.V2.Collection
+                    {
+                        Id = CollectionForAggregationId(aggregator, aggregationMetadata.Identifier).AsV2(),
+                        Label = new MetaDataValue(aggregationMetadata.Label)
+                    });
+                }
+            }
+            coll.EnsurePresentation2Context();
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -455,6 +609,7 @@ namespace Wellcome.Dds.Server.Controllers
                     manifest.Thumbnail = result.Manifestation.GetThumbnail();
                 }
             }
+            coll.EnsurePresentation3Context();
             Response.CacheForDays(30);
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
@@ -484,6 +639,7 @@ namespace Wellcome.Dds.Server.Controllers
                 coll.Members.Add(manifest);
                 coll.Label ??= new MetaDataValue($"{result.CollectionLabel}: {result.CollectionStringValue}");
             }
+            coll.EnsurePresentation2Context();
             Response.CacheForDays(30);
             return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
@@ -515,10 +671,14 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="aggregator"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        private string CollectionForAggregationId(string aggregator, string value = null)
+        private string CollectionForAggregationId(string aggregator, string value = null, char chunk = Char.MinValue)
         {
             string id;
-            if (value != null)
+            if (chunk != char.MinValue)
+            {
+                id = uriPatterns.CollectionForAggregation(aggregator, chunk);
+            }
+            else if (value != null)
             {
                 id = uriPatterns.CollectionForAggregation(aggregator, value);
             }
@@ -535,33 +695,42 @@ namespace Wellcome.Dds.Server.Controllers
 
         }
         
-        private RedirectResult RequiredRedirect(string bNumberLikeString, Func<string, string> transformer)
+        private string RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
         {
-            // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
-            if (bNumberLikeString.Contains('_'))
+            if (ddsId.HasBNumber)
             {
-                // Likely a manifestation identifier, proceed
-                return null;
-            }
-
-            if (bNumberLikeString.StartsWith('b') && bNumberLikeString.Length == 9)
-            {
-                // looks like a normal b-number
-                char checkDigit = bNumberLikeString[8];
-                if (Char.IsDigit(checkDigit) || 'x' == checkDigit)
+                // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
+                if (requestedForm.Contains('_'))
                 {
-                    // still looks like a normal b number. In the new DDS, where we don't expect 
-                    // Sierra links directly, we WON'T normalise these. An incorrect check digit is a 404,
-                    // rather than something we correct. However, if the check digit is `a` we will correct it.
+                    // Likely a manifestation identifier, proceed
                     return null;
+                }
+                if (requestedForm.StartsWith('b') && requestedForm.Length == 9)
+                {
+                    // looks like a normal b-number
+                    char checkDigit = requestedForm[8];
+                    if (Char.IsDigit(checkDigit) || 'x' == checkDigit)
+                    {
+                        // still looks like a normal b number. In the new DDS, where we don't expect 
+                        // Sierra links directly, we WON'T normalise these. An incorrect check digit is a 404,
+                        // rather than something we correct. However, if the check digit is `a` we will correct it.
+                        return null;
+                    }
+                }
+                var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(requestedForm, false);
+                if (normalised != requestedForm)
+                {
+                    return transformer(normalised);
                 }
             }
 
-            var normalised = WellcomeLibraryIdentifiers.GetNormalisedBNumber(bNumberLikeString, false);
-            if (normalised != bNumberLikeString)
+            if (ddsId.ToString() != requestedForm)
             {
-                return RedirectPermanent(transformer(normalised));
+                // We want the normalised form of the identifier
+                return transformer(ddsId.ToString());
             }
+
+
 
             return null;
         }
