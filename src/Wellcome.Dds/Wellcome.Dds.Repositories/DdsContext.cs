@@ -94,10 +94,10 @@ namespace Wellcome.Dds.Repositories
 
 
 
-        public Manifestation? GetManifestationByIndex(string identfier, int index)
+        public Manifestation? GetManifestationByIndex(string identifier, int index)
         {
             return Manifestations.SingleOrDefault(
-                m => m.PackageIdentifier == identfier && m.Index == index);
+                m => m.PackageIdentifier == identifier && m.Index == index);
         }
         
     }

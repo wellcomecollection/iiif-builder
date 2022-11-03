@@ -85,8 +85,8 @@ namespace Wellcome.Dds.Dashboard.Models
                     var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true);
                     jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
-                    IDigitisedCollection parent;
-                    IDigitisedCollection grandparent;
+                    IDigitalCollection parent;
+                    IDigitalCollection grandparent;
                     // We need to show the manifestation with information about its parents, it it has any.
                     // this allows navigation through multiple manifs
                     switch (identifier.IdentifierType)
@@ -186,7 +186,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     };
                 }
 
-                if (dgResource is IDigitisedCollection dgCollection)
+                if (dgResource is IDigitalCollection dgCollection)
                 {
                     // This is the manifestation controller, not the volume or issue controller.
                     // So redirect to the first manifestation that we can find for this collection.
@@ -197,7 +197,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     if (dgCollection.MetsCollection.Manifestations.HasItems())
                     {
                         // a normal multiple manifestation, or possibly a periodical volume?
-                        redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
+                        redirectId = dgCollection.MetsCollection.Manifestations.First().Identifier;
                         return new OverallResult
                         {
                             RedirectToManifest = true,
@@ -229,7 +229,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public List<Tuple<long, long, string>> GetLoggingEvents() => jobLogger.GetEvents();
         
-        private void PutCollectionInShortTermCache(IDigitisedCollection collection)
+        private void PutCollectionInShortTermCache(IDigitalCollection collection)
         {
             // (in order to PUT this in the cache, we need to retrieve it...
             var key = CacheKeyPrefix + collection.Identifier;
@@ -239,7 +239,7 @@ namespace Wellcome.Dds.Dashboard.Models
             cache.GetCached(CacheSeconds, key, () => collection); 
         }
         
-        private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
+        private async Task<IDigitalCollection> GetCachedCollectionAsync(string identifier)
         {
             // The cache is caching a Task<IDigitisedResource> (from the callback)
             // this works... but we need to revisit
@@ -251,7 +251,7 @@ namespace Wellcome.Dds.Dashboard.Models
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
                 async () => await digitalObjectRepository.GetDigitalObject(identifier, identifier.IsBNumber()));
-            return (IDigitisedCollection)coll;
+            return (IDigitalCollection)coll;
         }
 
         private async Task PopulateLastWriteTimes(ManifestationModel model)

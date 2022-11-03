@@ -126,7 +126,23 @@ namespace DlcsWebClient.Dlcs
                 }
 
                 logger.LogInformation("Response object received");
-                operation.ResponseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+
+                try
+                {
+                    operation.ResponseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+                }
+                catch (Exception deserializeEx)
+                {
+                    // TODO: for protagonist, this is where we would now try:
+                    // var hydraError = JsonConvert.DeserializeObject<Hydra.Model.Error>(operation.ResponseJson);
+                    // ... and deal with a proper error.
+                    // But we should only do that once we are using the Hydra and DLCS API Client libraries as used by
+                    // protagonist - they need to be nuget packages.
+                    
+                    // So for now, just do what was happening already in the catch below:
+                    operation.Error = GetError(deserializeEx, response);
+                    logger.LogError(deserializeEx, "Error in dlcs request client - {message}", deserializeEx.Message);
+                }
             }
             catch (Exception ex)
             {

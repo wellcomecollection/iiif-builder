@@ -50,25 +50,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="identifier">Same as used for METS</param>
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
-        public async Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false)
+        public async Task<IDigitalObject> GetDigitalObject(DdsIdentifier identifier, bool includePdfDetails = false)
         {
             logger.LogInformation($"GetDigitisedResource will get MetsResource for {identifier}", identifier);
             IDigitalObject digObject;
             var metsResource = await metsRepository.GetAsync(identifier);
             if (metsResource is IManifestation resource)
             {
-                digObject = await MakeDigitisedManifestation(resource, includePdfDetails);
+                digObject = await MakeDigitalManifestation(resource, includePdfDetails);
             }
             else if (metsResource is ICollection collection)
             {
-                digObject = await MakeDigitisedCollection(collection, includePdfDetails);
+                digObject = await MakeDigitalCollection(collection, includePdfDetails);
             }
             else
             {
-                throw new ArgumentException($"Cannot get a digitised resource from METS for identifier {identifier}",
+                throw new ArgumentException($"Cannot get a digital resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
-            digObject.Identifier = metsResource.Id;
+            digObject.Identifier = metsResource.Identifier;
             digObject.Partial = metsResource.Partial;
 
             //// DEBUG step - force evaluation of DLCS query
@@ -111,12 +111,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         public async Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages)
         {
-            // TODO - some of this can go inside IDigitisedManifestation
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var dlcsImages = digitisedManifestation.DlcsImages.ToList();
             var syncOperation = new SyncOperation
             {
-                ManifestationIdentifier = metsManifestation.Id,
+                ManifestationIdentifier = metsManifestation.Identifier,
                 ImagesAlreadyOnDlcs = await GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
@@ -145,8 +144,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // Get the manifestation level metadata that each image is going to need
-            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Id);
-            var ddsId = new DdsIdentifier(metsManifestation.Id);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
@@ -158,6 +156,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // What do we need to patch? List of existing DLCS images that don't have the correct metadata
+            // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
             syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
@@ -169,7 +168,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
-                var newDlcsImage = MakeDlcsImage(storedFile, ddsId, syncOperation.LegacySequenceIndex, maxUnauthorised);
+
+                if (!AccessCondition.IsValid(storedFile.PhysicalFile.AccessCondition))
+                {
+                    // This does not have an access condition that we can sync wth the DLCS
+                    syncOperation.HasInvalidAccessCondition = true;
+                    syncOperation.Message = "Sync operation found at least one invalid access condition";
+                    continue;
+                }
+                
+                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
                 var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier];
 
                 if (assetsToIngest.Contains(storedFile))
@@ -196,19 +204,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return syncOperation;
         }
         
-        private async Task<DigitisedCollection> MakeDigitisedCollection(ICollection metsCollection, bool includePdf)
+        private async Task<DigitalCollection> MakeDigitalCollection(ICollection metsCollection, bool includePdf)
         {
-            var dc = new DigitisedCollection
+            var dc = new DigitalCollection
             {
                 MetsCollection = metsCollection,
-                Identifier = metsCollection.Id
+                Identifier = metsCollection.Identifier
             };
             
             // There are currently 0 instances of an item with both collection + manifestation here.
             if (metsCollection.Collections.HasItems())
             {
                 var collections = metsCollection.Collections
-                    .Select(m => MakeDigitisedCollection(m, includePdf))
+                    .Select(m => MakeDigitalCollection(m, includePdf))
                     .ToList();
 
                 await Task.WhenAll(collections);
@@ -217,7 +225,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             if (metsCollection.Manifestations.HasItems())
             {
                 var manifestations = metsCollection.Manifestations
-                    .Select(m => MakeDigitisedManifestation(m, includePdf))
+                    .Select(m => MakeDigitalManifestation(m, includePdf))
                     .ToList();
                 await Task.WhenAll(manifestations);
                 dc.Manifestations = manifestations.Select(m => m.Result);
@@ -226,17 +234,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return dc;
         }
 
-        private async Task<DigitisedManifestation> MakeDigitisedManifestation(IManifestation metsManifestation, bool includePdf)
+        private async Task<DigitalManifestation> MakeDigitalManifestation(IManifestation metsManifestation, bool includePdf)
         {
-            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Id);
-            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Id) : Task.FromResult<IPdf>(null);
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
             
-            return new DigitisedManifestation
+            return new DigitalManifestation
             {
                 MetsManifestation = metsManifestation,
-                Identifier = metsManifestation.Id,
+                Identifier = metsManifestation.Identifier,
                 DlcsImages = getDlcsImages.Result,
                 PdfControlFile = getPdf.Result
             };
@@ -648,7 +656,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         {
             if (asset.AccessCondition == AccessCondition.Open)
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             var acUri = dlcs.GetRoleUri(asset.AccessCondition);
             logger.LogInformation("Asset will be registered with role {0}", acUri);

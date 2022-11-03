@@ -1,8 +1,10 @@
-﻿namespace Wellcome.Dds.AssetDomain.Mets
+﻿using Wellcome.Dds.Common;
+
+namespace Wellcome.Dds.AssetDomain.Mets
 {
     public interface IMetsResource : IFileBasedResource
     {
-        string Id { get; }
+        DdsIdentifier Identifier { get; }
         string Label { get; }
         string Type { get; }
         int? Order { get; }

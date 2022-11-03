@@ -26,8 +26,8 @@ namespace Wellcome.Dds.Dashboard.Models
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
         public IDigitalManifestation DigitisedManifestation { get; set; }
-        public IDigitisedCollection Parent { get; set; }
-        public IDigitisedCollection GrandParent { get; set; }
+        public IDigitalCollection Parent { get; set; }
+        public IDigitalCollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
         public DlcsOptions DlcsOptions { get; set; }
 
@@ -106,7 +106,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         accessConditionCounts[sf.PhysicalFile.AccessCondition] = 0;
                         accessConditionLinks[sf.PhysicalFile.AccessCondition] = GetTableId(sf.StorageIdentifier);
                     }
-                    accessConditionCounts[sf.PhysicalFile.AccessCondition] = accessConditionCounts[sf.PhysicalFile.AccessCondition] + 1;
+                    accessConditionCounts[sf.PhysicalFile.AccessCondition] += 1;
                 }
                 syncSummary.Categories = countsdict.Select(kvp => new SyncCategory
                 {
@@ -193,16 +193,16 @@ namespace Wellcome.Dds.Dashboard.Models
                 NextLink = "#";
                 for (int i = 0; i < Siblings.Count; i++)
                 {
-                    if (Siblings[i].Id == DdsIdentifier)
+                    if (Siblings[i].Identifier == DdsIdentifier)
                     {
                         Index = i + 1;
                         if (i > 0)
                         {
-                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Id });
+                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Identifier.PathElementSafe });
                         }
                         if (i < Siblings.Count - 1)
                         {
-                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Id });
+                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Identifier.PathElementSafe });
                         }
                     }
                 }
@@ -211,7 +211,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public string GetDropDownClass(IManifestation manifestation)
         {
-            if (manifestation.Id == DigitisedManifestation.Identifier)
+            if (manifestation.Identifier == DigitisedManifestation.Identifier)
             {
                 return "disabled";
             }
@@ -466,6 +466,14 @@ namespace Wellcome.Dds.Dashboard.Models
                 f.Use != "original");  // Born digital  
         }
 
+        public string GetAccessConditionStyle(string accessCondition)
+        {
+            if (accessCondition == "Unknown" || accessCondition == "Missing")
+            {
+                return "color:#b94a48; background-color:white; border:1px solid";
+            }    
+            return String.Empty;
+        }
     }
 
 

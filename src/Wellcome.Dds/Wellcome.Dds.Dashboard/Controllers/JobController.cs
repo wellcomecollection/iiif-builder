@@ -71,15 +71,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
-            // TODO: handle different ID forms in jobs table; at present this goes in as null because uses .BNumber
             var ddsId = new DdsIdentifier(id);
-            if (!ddsId.HasBNumber)
-            {
-                throw new NotSupportedException("You can only create jobs for b numbers at the moment.");
-            }
             
-            
-            var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
+            var jobs = jobRegistry.RegisterImagesForImmediateStart(ddsId);
             await foreach (var job in jobs)
             {
                 digitalObjectRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
@@ -88,7 +82,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
             try
             {
-                await synchroniser.RefreshDdsManifestations(id);
+                await synchroniser.RefreshDdsManifestations(ddsId);
             }
             catch (ArgumentException ae)
             {

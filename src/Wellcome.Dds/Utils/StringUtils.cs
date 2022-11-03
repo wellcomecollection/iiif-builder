@@ -203,7 +203,7 @@ namespace Utils
             var strings = SplitByDelimiter(source, delimiter);
             if (strings == null)
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             return strings.ToArray();
         }

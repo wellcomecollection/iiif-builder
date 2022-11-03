@@ -77,11 +77,11 @@ namespace WorkflowProcessor
                     if (manifestation != null && HasAltoFiles(manifestation))
                     {
                         job.ExpectedTexts++;
-                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Id);
+                        var textFileInfo = cachingSearchTextProvider.GetFileInfo(manifestation.Identifier);
 
                         if (await textFileInfo.DoesExist() && !job.ForceTextRebuild)
                         {
-                            logger.LogInformation("Text already on disk for {ManifestationId}", manifestation.Id);
+                            logger.LogInformation("Text already on disk for {ManifestationId}", manifestation.Identifier);
                             wordCountInvalid = true;
                             job.TextsAlreadyOnDisk++;
                         }
@@ -92,11 +92,11 @@ namespace WorkflowProcessor
                         }
 
                         //  How do the all-annos file and the images file get built?
-                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Id);
+                        var allAnnoFileInfo = cachingAllAnnotationProvider.GetFileInfo(manifestation.Identifier);
                         if (await allAnnoFileInfo.DoesExist() && !job.ForceTextRebuild)
                         {
                             logger.LogInformation("All anno file already on disk for {ManifestationId}",
-                                manifestation.Id);
+                                manifestation.Identifier);
                             job.AnnosAlreadyOnDisk++;
                         }
                         else
@@ -117,20 +117,20 @@ namespace WorkflowProcessor
                                 // This would be more efficient but is a substantial change.
                                 
                                 var annotationPages = await
-                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Id,
+                                    cachingAllAnnotationProvider.ForcePagesRebuild(manifestation.Identifier,
                                         manifestation.Sequence);
                                 // Now convert them to W3C Web Annotations
                                 var result = iiifBuilder.BuildW3CAndOaAnnotations(manifestation, annotationPages);
                                 await SaveAnnoPagesToS3(result);
                                 logger.LogInformation(
                                     "Rebuilt annotation pages for {ManifestationId}: {PagesCount} pages",
-                                    manifestation.Id, annotationPages.Count);
+                                    manifestation.Identifier, annotationPages.Count);
                                 job.AnnosBuilt++;
                             }
                             else
                             {
                                 logger.LogInformation("Skipping AllAnnoCache rebuild for {ManifestationId}",
-                                    manifestation.Id);
+                                    manifestation.Identifier);
                             }
                         }
                     }
@@ -166,14 +166,14 @@ namespace WorkflowProcessor
         private async Task<int> RebuildText(WorkflowJob job, IManifestation manifestation)
         {
             var startTextTs = DateTime.Now;
-            var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Id);
-            await bucketWriter.SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Id}");
+            var text = await cachingSearchTextProvider.ForceSearchTextRebuild(manifestation.Identifier);
+            await bucketWriter.SaveRawTextToS3(text.RawFullText, $"raw/{manifestation.Identifier}");
 
-            await AddToZip(job.Identifier, manifestation.Id, text);
+            await AddToZip(job.Identifier, manifestation.Identifier, text);
             
             var wordCount = text.Words.Count;
             logger.LogInformation("Rebuilt search text for {ManifestationId}: {WordCount} words",
-                manifestation.Id, wordCount);
+                manifestation.Identifier, wordCount);
             job.TextsBuilt++;
             job.TextPages += text.Images.Length;
             job.TimeSpentOnTextPages += (int) (DateTime.Now - startTextTs).TotalMilliseconds;
@@ -206,11 +206,11 @@ namespace WorkflowProcessor
         private async Task<IManifestation> GetManifestation(IManifestationInContext manifestationInContext)
         {
             var manifestation = manifestationInContext.Manifestation;
-            logger.LogInformation("Getting individual manifestation for Alto-derived asset building, {identifier}", manifestation.Id);
+            logger.LogInformation("Getting individual manifestation for Alto-derived asset building, {identifier}", manifestation.Identifier);
             if (manifestation.Partial)
             {
-                logger.LogInformation("Manifestation is partial, going to fetch full version for {identifier}", manifestation.Id);
-                manifestation = await metsRepository.GetAsync(manifestation.Id) as IManifestation;
+                logger.LogInformation("Manifestation is partial, going to fetch full version for {identifier}", manifestation.Identifier);
+                manifestation = await metsRepository.GetAsync(manifestation.Identifier) as IManifestation;
             }
 
             return manifestation;

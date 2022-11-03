@@ -32,7 +32,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             b16675630.Should().BeOfType<Collection>();
             b16675630.Partial.Should().BeFalse();
             var m0 = ((Collection) b16675630).Manifestations[0];
-            var b16675630_0001 = await metsRepository.GetAsync(m0.Id);
+            var b16675630_0001 = await metsRepository.GetAsync(m0.Identifier);
             b16675630_0001.Should().BeOfType<MetsManifestation>();
             b16675630_0001.Type.Should().Be("Video");
             var mb16675630_0001 = (MetsManifestation) b16675630_0001;

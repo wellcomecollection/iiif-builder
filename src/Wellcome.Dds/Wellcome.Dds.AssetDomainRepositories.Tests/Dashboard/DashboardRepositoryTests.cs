@@ -65,7 +65,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         }
 
         [Fact]
-        public async Task GetDigitisedResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
+        public async Task GetDigitalResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
         {
             // Arrange
             const string identifier = "b1231231";
@@ -75,87 +75,87 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Assert
             (await action.Should().ThrowAsync<ArgumentException>()).And
                 .Message.Should().Be(
-                    "Cannot get a digitised resource from METS for identifier b1231231 (Parameter 'identifier')");
+                    "Cannot get a digital resource from METS for identifier b1231231 (Parameter 'identifier')");
         }
 
         [Fact]
-        public async Task GetDigitisedResource_HandlesIManifestation_WithoutPdf()
+        public async Task GetDigitalResource_HandlesIManifestation_WithoutPdf()
         {
             // Arrange
             const string identifier = "b1231231";
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Id = "manifest_id",
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
             var images = Builder<Image>.CreateListOfSize(3).Build().ToArray();
-            A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
+            A.CallTo(() => dlcs.GetImagesForString3("manifest-id")).Returns(images);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier);
+            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier);
 
             // Assert
-            result.Identifier.Should().Be("manifest_id");
+            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesIManifestation_WithPdf()
+        public async Task GetDigitalResource_HandlesIManifestation_WithPdf()
         {
             // Arrange
             const string identifier = "b1231231";
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Id = "manifest_id",
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
             var images = Builder<Image>.CreateListOfSize(3).Build().ToArray();
-            A.CallTo(() => dlcs.GetImagesForString3("manifest_id")).Returns(images);
+            A.CallTo(() => dlcs.GetImagesForString3("manifest-id")).Returns(images);
 
             var pdf = new Pdf {Url = "http://example.com/pdf123"};
-            A.CallTo(() => dlcs.GetPdfDetails("manifest_id")).Returns(pdf);
+            A.CallTo(() => dlcs.GetPdfDetails("manifest-id")).Returns(pdf);
 
             // Act
-            var result = (DigitisedManifestation)await sut.GetDigitalObject(identifier, true);
+            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier, true);
 
             // Assert
-            result.Identifier.Should().Be("manifest_id");
+            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             result.PdfControlFile.Should().Be(pdf);
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesICollection_WithoutPdf()
+        public async Task GetDigitalResource_HandlesICollection_WithoutPdf()
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
             const string identifier = "b1231231";
             var testCollection = new TestCollection
             {
-                Id = "the_main_one",
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Id = "coll_1",
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Id = "coll_1_man_1"}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Id = "coll_2",}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Id = "man_1"}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
             
@@ -165,47 +165,47 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier);
+            var result = (DigitalCollection)await sut.GetDigitalObject(identifier);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be("the_main_one");
+            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll_1" || m.Identifier == "coll_2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man_1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll_1_man_1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
             
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
         }
         
         [Fact]
-        public async Task GetDigitisedResource_HandlesICollection_WithPdf()
+        public async Task GetDigitalResource_HandlesICollection_WithPdf()
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
             const string identifier = "b1231231";
             var testCollection = new TestCollection
             {
-                Id = "the_main_one",
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Id = "coll_1",
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Id = "coll_1_man_1"}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Id = "coll_2",}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Id = "man_1"}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
             
@@ -215,18 +215,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitisedCollection)await sut.GetDigitalObject(identifier, true);
+            var result = (DigitalCollection)await sut.GetDigitalObject(identifier, true);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be("the_main_one");
+            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll_1" || m.Identifier == "coll_2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man_1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll_1_man_1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
 
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustHaveHappened(2, Times.Exactly);
         }
@@ -302,7 +302,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestManifestation : IManifestation
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public string Id { get; set; }
+            public DdsIdentifier Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; set; }
@@ -326,7 +326,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestCollection : ICollection
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public string Id { get; set; }
+            public DdsIdentifier Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; }

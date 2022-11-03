@@ -14,6 +14,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private XElement premisObjectXElement;
         private XElement premisRightsStatementXElement;
         private MediaDimensions mediaDimensions;
+        private string mimeType;
         private readonly XElement metsRoot;
         private readonly string admId;
         private bool initialised;
@@ -47,39 +48,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private const string DefaultMimeType = "application/octet-stream";
         public string GetMimeType()
         {
-            string mimeType = null;
-            var pronomKey = GetPronomKey();
-            var map = PronomData.Instance.FormatMap;
-            if (pronomKey.HasText() && map.ContainsKey(pronomKey))
+            if (mimeType == null)
             {
-                mimeType = map[pronomKey];
+                EnsureMimeTypeAndMediaDimensions();
             }
-
-            if (mimeType.HasText())
-            {
-                return mimeType;
-            }
+            return mimeType;
             
-            // probably not going to succeed but let's look elsewhere for mime info
-            // The FITS section is present on some files. This could be extended to look in other sections.
-            
-            var objectCharacteristics =
-                premisObjectXElement.Descendants(XNames.PremisObjectCharacteristicsExtension).SingleOrDefault();
-            if (objectCharacteristics != null)
-            {
-                // THIS IS NOT RELIABLE
-                // See https://digirati.slack.com/archives/CBT40CMKQ/p1662485191979289
-                var mimeTypeFromFits = objectCharacteristics.Descendants(XNames.FitsIdentity)
-                    .FirstOrDefault()?
-                    .Attribute("mimetype")?
-                    .Value;
-                if (mimeTypeFromFits.HasText())
-                {
-                    return mimeTypeFromFits;
-                }
-            }
-
-            return DefaultMimeType;
         }
 
         public DateTime? GetCreatedDate()
@@ -151,44 +125,56 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public int GetImageWidth()
         {
-            EnsureMediaDimensions();
+            EnsureMimeTypeAndMediaDimensions();
             return mediaDimensions.Width.GetValueOrDefault();
         }
 
         public int GetImageHeight()
         {
-            EnsureMediaDimensions();
+            EnsureMimeTypeAndMediaDimensions();
             return mediaDimensions.Height.GetValueOrDefault();
         }
         
         public double GetDuration()
         {
-            EnsureMediaDimensions();
+            EnsureMimeTypeAndMediaDimensions();
             return mediaDimensions.Duration.GetValueOrDefault();
         }
         
         public string GetDisplayDuration()
         {
-            EnsureMediaDimensions();
+            EnsureMimeTypeAndMediaDimensions();
             return mediaDimensions.DurationDisplay;
         }
 
         public MediaDimensions GetMediaDimensions()
         {
-            EnsureMediaDimensions();
+            EnsureMimeTypeAndMediaDimensions();
             return mediaDimensions;
         }
 
-        private void EnsureMediaDimensions()
+        private void EnsureMimeTypeAndMediaDimensions()
         {
             if (mediaDimensions != null)
             {
                 return;
             }
+            
+            // provisionally get mime type
+            var pronomKey = GetPronomKey();
+            var map = PronomData.Instance.FormatMap;
+            if (pronomKey.HasText() && map.ContainsKey(pronomKey))
+            {
+                mimeType = map[pronomKey];
+            }
+
+            if (mimeType.IsNullOrEmpty())
+            {
+                mimeType = DefaultMimeType;
+            }
 
             mediaDimensions = new MediaDimensions();
             bool processToolOutputs = false; // If we need to seek this info in Archivematica tool outputs
-            var mimeType = GetMimeType();
             if (mimeType.IsImageMimeType() || mimeType.IsVideoMimeType() || mimeType == DefaultMimeType)
             {
                 // the most common type... and the most common (Goobi) metadata:
@@ -226,6 +212,47 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 // Also for now we won't treat application/* as time-based, or image.
                 PopulateMediaDimensionsFromToolOutputs();
             }
+
+            RefineMimeType(pronomKey);
+        }
+
+        /// <summary>
+        /// Some formats can be either audio or video, and the mime type we have picked
+        /// from the PRONOM lookup may be wrong.
+        /// </summary>
+        private void RefineMimeType(string pronomKey)
+        {
+            // the first version of this method is going to be explicit - we can come back and 
+            // generalise it with more samples.
+            switch (pronomKey)
+            {
+                case "fmt/199":
+                {
+                    // https://www.nationalarchives.gov.uk/PRONOM/fmt/199
+                    int width = mediaDimensions.Width.GetValueOrDefault();
+                    int height = mediaDimensions.Height.GetValueOrDefault();
+                    if (width == 0 || height == 0)
+                    {
+                        mimeType = "audio/mp4"; // will replace video/mp4
+                    }
+
+                    break;
+                }
+                case "x-fmt/183":
+                {
+                    if (long.TryParse(GetFileSize(), out var result))
+                    {
+                        if (result > 512)
+                        {
+                            return;
+                        }
+                    }
+                    // This either has no length, or is suspiciously short, so we're going to
+                    // reassign its mime type, which will have it treated as File.
+                    mimeType = DefaultMimeType;
+                    break;
+                }
+            }
         }
 
         private void PopulateMediaDimensionsFromToolOutputs()
@@ -234,6 +261,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // SA_REN_B_21_1 - video/x-ms-wmv - FITS Exiftool
             // PPSML_Z_11_4 - video/quicktime - ffprobe as above
             // PPCRI_D_4_5A - jpeg - MediaInfo - track type="Image", same for TIFFs
+            // GRLDUR_A_6_1 - lots of examples!!!
             
             var objectCharacteristics = premisObjectXElement
                 .Descendants(XNames.PremisObjectCharacteristicsExtension)
@@ -275,13 +303,37 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 string heightValue = null;
                 
                 // The fields that hold w,h,d information will be different for different media types.
-                // Start with these then rearrange this code when we have more.
-                var playDuration = fitsExifOutput.GetDesendantElementValue("PlayDuration");
-                if (playDuration.HasText())
+                // This code will need updating as we encounter more examples
+
+                Dictionary<string, double> foundDurations = new Dictionary<string, double>();
+                if (mediaDimensions.Duration.GetValueOrDefault() > 0)
                 {
-                    durationValue = playDuration;
+                    // we may already have found one earlier
+                    foundDurations.Add(mediaDimensions.DurationDisplay, mediaDimensions.Duration.GetValueOrDefault());
                 }
                 
+                var durationCandidates = new[] { "PlayDuration", "Duration", "LastTimeStamp"};
+                foreach (var elementName in durationCandidates)
+                {
+                    var stringDuration = fitsExifOutput.GetDesendantElementValue(elementName);
+                    if (stringDuration.HasText())
+                    {
+                        var parsedDuration = ParseDuration(stringDuration);
+                        if (parsedDuration > 0)
+                        {
+                            foundDurations.Add(stringDuration, parsedDuration);
+                        }
+                    }
+                }
+
+                if (foundDurations.Count > 0)
+                {
+                    var longest = foundDurations.MaxBy(kvp => kvp.Value);
+                    
+                    mediaDimensions.DurationDisplay = longest.Key;
+                    mediaDimensions.Duration = longest.Value;
+                }
+
                 var imageWidth = fitsExifOutput.GetDesendantElementValue("ImageWidth");
                 var imageHeight = fitsExifOutput.GetDesendantElementValue("ImageHeight");
                 if (imageWidth.HasText())
@@ -293,13 +345,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 {
                     heightValue = imageHeight;
                 }
-
-                if (durationValue.HasText() && mediaDimensions.Duration.GetValueOrDefault() <= 0)
-                {
-                    mediaDimensions.Duration = ParseDuration(durationValue);
-                    mediaDimensions.DurationDisplay = durationValue;
-                }
-                
+               
                 if(widthValue.HasText() && heightValue.HasText())
                 {
                     if (int.TryParse(widthValue, out var pw))
@@ -310,12 +356,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     {
                         mediaDimensions.Height = ph;
                     }
-                    
                 }
             }
-
-
-
         }
 
         private void GetWidthAndHeightFromMediaInfoTrack(XElement track)
@@ -401,7 +443,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 {
                     Basis = "No Rights Statement",
                     Identifier = "no-rights",
-                    AccessCondition = Common.AccessCondition.Restricted, // so that we still generate IIIF
+                    AccessCondition = Common.AccessCondition.Missing,
                     Statement = "No Rights"
                 };
             }
@@ -411,11 +453,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 return rightsStatement;
             }
 
+            var accessCondition =
+                premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote);
+
+            if (!Common.AccessCondition.IsValid(accessCondition))
+            {
+                accessCondition = Common.AccessCondition.Unknown;
+            }
             rightsStatement = new PremisRightsStatement
             {
                 Identifier = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
                 Basis = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsBasis),
-                AccessCondition = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote)
+                AccessCondition = accessCondition
             };
 
             switch (rightsStatement.Basis)

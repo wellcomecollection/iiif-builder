@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="6.0.3" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.1.167" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.4.23" />
     <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="6.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.6">

@@ -129,7 +129,7 @@
                         @foreach (var manif in Model.Siblings)
                         {
                             <li class="@Model.GetDropDownClass(manif)">
-                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Id })
+                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Identifier.PathElementSafe })
                             </li>
                         }
                     </ul>
@@ -171,7 +171,7 @@
             </div>
             @* END progress bars for currently running batches *@
         }
-        else if (Model.SyncOperation.RequiresSync)
+        else if (Model.SyncOperation.RequiresSync || Model.SyncOperation.HasInvalidAccessCondition)
         {
             @* BEGIN Information about synchronisation status *@
             @* (only shown if not all assets in manifestation are synced with DLCS) *@
@@ -182,24 +182,34 @@
                 <div class="panel-body">
                     <table class="table table-condensed">
                         <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>#</th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th>Description</th>
+                            <th>#</th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
-                            @foreach (var syncCategory in Model.SyncSummary.Categories)
-                            {
-                                <tr>
-                                    <td><a href="#@syncCategory.TableRowId">@syncCategory.Label</a></td>
-                                    <td>@syncCategory.Count</td>
-                                    <td>@Html.Raw(syncCategory.StatusIcon)</td>
-                                </tr>
-                            }
+                        @foreach (var syncCategory in Model.SyncSummary.Categories)
+                        {
+                            <tr>
+                                <td><a href="#@syncCategory.TableRowId">@syncCategory.Label</a></td>
+                                <td>@syncCategory.Count</td>
+                                <td>@Html.Raw(syncCategory.StatusIcon)</td>
+                            </tr>
+                        }
                         </tbody>
                     </table>
-                    <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    @if (Model.SyncOperation.HasInvalidAccessCondition)
+                    {
+                        <p class="text-danger">
+                            This item CANNOT be synced because it has at least one invalid access condition.
+                        </p>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" 
+                           class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    }
                 </div>
             </div>
             @* END Information about synchronisation status *@
@@ -338,6 +348,9 @@
             </li>    
             <li class="list-group-item">
                 <a href="@Url.Action("Create", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate workflow message</a>
+            </li>   
+            <li class="list-group-item">
+                <a href="@Url.Action("NotifyTopic", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Notify workflow topic (SNS)</a>
             </li>
             @foreach (var job in Model.IngestJobs)
             {
@@ -857,7 +870,7 @@
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
                 <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
                     <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
-                    <span class="badge">@file.AccessCondition</span>
+                    <span class="badge" style="@Model.GetAccessConditionStyle(file.AccessCondition)">@file.AccessCondition</span>
                     <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
                        title="@file.OriginalName"><strong>
                         @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
@@ -865,18 +878,31 @@
                     </strong></a>
                     <br/>
                     <div class="small" style="margin-left: 18px;">
-                        @file.MimeType (@file.AssetMetadata.GetFormatName())
-                        @{
+                        @file.MimeType 
+                        @if (file.AssetMetadata.GetPronomKey().HasText())
+                        {
+                            <text>(@file.AssetMetadata.GetFormatName())</text>
                             var pronomKey = file.AssetMetadata.GetPronomKey();
                             var tnaPage = "https://www.nationalarchives.gov.uk/PRONOM/" + pronomKey;
+                            
+                            <a href="@tnaPage" target="_blank">@pronomKey</a>
                         }
-                        <a href="@tnaPage" target="_blank">@pronomKey</a>
+                        else
+                        {
+                            <span class="text-danger">(@file.AssetMetadata.GetFormatName())</span>
+                        }
                         |
                         @file.AssetMetadata.GetMediaDimensions().ToString()
                         <br/>
                         @if (dlcsImage != null)
                         {
                             <a href="@Model.GetPortalPageForImage(dlcsImage)">@file.StorageIdentifier</a>
+                            @if (dlcsImage.Error.HasText())
+                            {
+                                <br/>
+                                <span class="text-danger">@dlcsImage.Error</span>
+                            }
+                                                                                                     
                         }
                         else
                         {

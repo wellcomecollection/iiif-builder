@@ -4,12 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.SQS;
+using Amazon.SQS.Model;
 using CatalogueClient.ToolSupport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Workflow;
@@ -27,6 +31,7 @@ namespace WorkflowProcessor
         private readonly ILogger<WorkflowProcessorService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly DdsOptions ddsOptions;
+        private readonly IAmazonSQS sqsClient;
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
@@ -87,11 +92,13 @@ namespace WorkflowProcessor
         public WorkflowProcessorService(
             ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory,
-            IOptions<DdsOptions> options)
+            IOptions<DdsOptions> options,
+            IAmazonSQS sqsClient)
         {
             this.logger = logger;
             this.serviceScopeFactory = serviceScopeFactory;
             this.ddsOptions = options.Value;
+            this.sqsClient = sqsClient;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -345,20 +352,26 @@ namespace WorkflowProcessor
             logger.LogInformation($"Job {job.Identifier} created with options {displayString}");
         }
 
-        private async Task PollForWorkflowJobs(CancellationToken stoppingToken)
+        private async Task PollForWorkflowJobs(CancellationToken cancellationToken)
         {
             int waitMs = 2;
-            while (!stoppingToken.IsCancellationRequested)
+            string queueUrl = null;
+            if (ddsOptions.WorkflowMessagePoll && ddsOptions.WorkflowMessageQueue.HasText())
+            {
+                var result = await sqsClient.GetQueueUrlAsync(ddsOptions.WorkflowMessageQueue, cancellationToken);
+                queueUrl = result.QueueUrl;
+            }
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     logger.LogDebug("Waiting for {wait} ms..", waitMs);
-                    await Task.Delay(TimeSpan.FromMilliseconds(waitMs), stoppingToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(waitMs), cancellationToken);
                     
                     using var scope = serviceScopeFactory.CreateScope();
 
                     var statusProvider = scope.ServiceProvider.GetRequiredService<IStatusProvider>();
-                    if (!await statusProvider.ShouldRunProcesses(stoppingToken))
+                    if (!await statusProvider.ShouldRunProcesses(cancellationToken))
                     {
                         logger.LogWarning("Status provider returned false, will not attempt to process");
                     }
@@ -370,17 +383,22 @@ namespace WorkflowProcessor
                         if (jobId == null)
                         {
                             waitMs = GetWaitMs(waitMs);
+                            if (waitMs > 10000)
+                            {
+                                // idle more than 30s
+                                await PollQueue(queueUrl, dbContext, cancellationToken);
+                            }
                             continue;
                         }
 
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
                         var job = await dbContext.WorkflowJobs.FindAsync(jobId);
-                        await runner.ProcessJob(job, stoppingToken);
+                        await runner.ProcessJob(job, cancellationToken);
                         job.Finished = true;
                         try
                         {
-                            await dbContext.SaveChangesAsync(stoppingToken);
+                            await dbContext.SaveChangesAsync(cancellationToken);
                         }
                         catch (DbUpdateException e)
                         {
@@ -395,6 +413,49 @@ namespace WorkflowProcessor
             }
 
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
+        }
+
+        private async Task PollQueue(string queueUrl, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        {
+            if (queueUrl.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+            
+            var response = await sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
+            {
+                QueueUrl = queueUrl,
+                WaitTimeSeconds = 5,
+                MaxNumberOfMessages = 10,
+            }, cancellationToken);
+            var messageCount = response.Messages?.Count ?? 0;
+            if (messageCount > 0)
+            {
+                try
+                {
+                    foreach (var message in response!.Messages!)
+                    {
+                        if (cancellationToken.IsCancellationRequested) return;
+                        var body = JObject.Parse(message.Body)["Message"]!.ToString();
+                        var workflowMessage = JsonConvert.DeserializeObject<WorkflowMessage>(body);
+                        if (workflowMessage != null)
+                        {
+                            await dbContext.PutJob(workflowMessage.Identifier, 
+                                true, false, null, false, false);
+                            await dbContext.SaveChangesAsync(cancellationToken);
+                        }
+                        await sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                        {
+                            QueueUrl = queueUrl,
+                            ReceiptHandle = message.ReceiptHandle
+                        }, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in listen loop for queue {Queue}", queueUrl);
+                }
+            }
         }
 
         private async Task ProcessIdentifier(string identifier, int? workflowOptions, CancellationToken stoppingToken)

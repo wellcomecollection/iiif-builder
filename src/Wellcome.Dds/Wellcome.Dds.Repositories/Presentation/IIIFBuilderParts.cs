@@ -36,6 +36,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly UriPatterns uriPatterns;
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
+        private readonly string[] extraAccessConditions;
         private readonly ManifestStructureHelper manifestStructureHelper;
 
         private readonly IService clickthroughService;
@@ -54,13 +55,16 @@ namespace Wellcome.Dds.Repositories.Presentation
         private static readonly Size PlaceholderCanvasSize = new Size(5000, 5000);
         private static readonly Size PlaceholderThumbnailSize = new Size(500, 500);
         
-        public IIIFBuilderParts(UriPatterns uriPatterns,
+        public IIIFBuilderParts(
+            UriPatterns uriPatterns,
             string dlcsEntryPoint,
-            bool referenceV0SearchService)
+            bool referenceV0SearchService, 
+            string[] extraAccessConditions)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
+            this.extraAccessConditions = extraAccessConditions;
             manifestStructureHelper = new ManifestStructureHelper();
             IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider();
 
@@ -236,7 +240,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // At the moment, "Text" is not really a good Type for the PDF - but what else?
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Id),
+                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Identifier),
                     Label = Lang.Map("View as PDF"),
                     Format = "application/pdf"
                 });
@@ -247,7 +251,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.Rendering ??= new List<ExternalResource>();
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    Id = uriPatterns.RawText(metsManifestation.Id),
+                    Id = uriPatterns.RawText(metsManifestation.Identifier),
                     Label = Lang.Map("View raw text"),
                     Format = "text/plain"
                 });
@@ -261,8 +265,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
                 var searchServiceId = referenceV0SearchService ? 
-                    uriPatterns.IIIFContentSearchService0(metsManifestation.Id) : 
-                    uriPatterns.IIIFContentSearchService1(metsManifestation.Id);
+                    uriPatterns.IIIFContentSearchService0(metsManifestation.Identifier) : 
+                    uriPatterns.IIIFContentSearchService1(metsManifestation.Identifier);
                 manifest.Service.Add(new SearchService
                 {
                     Id = searchServiceId,
@@ -270,7 +274,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = new MetaDataValue("Search within this manifest"),
                     Service = new AutoCompleteService
                     {
-                        Id = uriPatterns.IIIFAutoCompleteService1(metsManifestation.Id),
+                        Id = uriPatterns.IIIFAutoCompleteService1(metsManifestation.Identifier),
                         Profile = AutoCompleteService.AutoCompleteService1Profile,
                         Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
@@ -278,11 +282,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state)
+        public void Canvases(Manifest manifest, IManifestation metsManifestation, State? state, BuildResult buildResult)
         {
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
-            var manifestIdentifier = metsManifestation.Id;
+            var manifestIdentifier = metsManifestation.Identifier.ToString();
             manifest.Items = new List<Canvas>();
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence)
@@ -306,12 +310,21 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = canvasLabel
                 };
                 manifest.Items.Add(canvas);
-                if (physicalFile.ExcludeDlcsAssetFromManifest())
+
+                bool isForIIIFManifest = AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition);
+                bool includeBecauseExtraConfig = extraAccessConditions.Contains(physicalFile.AccessCondition);
+
+                if (!(isForIIIFManifest || includeBecauseExtraConfig))
                 {
-                    // has an unknown or forbidden access condition
-                    canvas.Label = Lang.Map("Closed");
-                    canvas.Summary = Lang.Map("This image is not currently available online");
+                    // has an unknown or forbidden access condition, and config hasn't overridden this
+                    canvas.Label["en"] = new List<string>{$"Excluded access condition: {physicalFile.AccessCondition}"};
+                    canvas.Summary = Lang.Map("This asset is not currently available online");
                     continue;
+                }
+
+                if (includeBecauseExtraConfig)
+                {
+                    canvas.Label["en"] = new List<string>{$"WARNING: Access Condition {physicalFile.AccessCondition}"};
                 }
                 
                 var assetIdentifier = physicalFile.StorageIdentifier;
@@ -319,6 +332,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 switch (physicalFile.Family)
                 {
                     case AssetFamily.Image:
+                        buildResult.ImageCount += 1;
                         var size = physicalFile.GetWhSize();
                         if (size == null)
                         {
@@ -370,7 +384,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
+                    
                     case AssetFamily.TimeBased:
+                        buildResult.TimeBasedCount += 1;
                         if (!isBornDigitalManifestation && state == null)
                         {
                             // We need this state to build OLD workflow videos, because we need to consider
@@ -490,7 +506,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         break;
                         
                     case AssetFamily.File:
-                        
+                        buildResult.FileCount += 1;
                         if (isBornDigitalManifestation || metsManifestation.Type == "Monograph")
                         {
                             // We need our born-digital extensions
@@ -933,13 +949,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                     AddAuthServiceToDictionary(foundAuthServices, loginService);
                     AddAuthServiceToMedia(media, loginServiceReference);
                     break;
-                case AccessCondition.Restricted: 
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
                     AddAuthServiceToMedia(media, externalAuthServiceReference);
                     break;
                 default:
-                    throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
+                    if (!extraAccessConditions.Contains(physicalFile.AccessCondition))
+                    {
+                        throw new NotImplementedException("Unknown access condition " + physicalFile.AccessCondition);
+                    }
+                    break;
             }
         }
 
@@ -981,7 +1000,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
             var wdlRoot = MakeRangeFromMetsStructure(
-                metsManifestation.Id,
+                metsManifestation.Identifier,
                 physIdDict,
                 metsManifestation.RootStructRange, 
                 metsManifestation.ParentSectionMetadata);
@@ -1139,16 +1158,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     new()
                     {
-                        Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Id, 3),
-                        Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Id}")
+                        Id = uriPatterns.ManifestAnnotationPageImagesWithVersion(metsManifestation.Identifier, 3),
+                        Label = Lang.Map($"OCR-identified images and figures for {metsManifestation.Identifier}")
                     }
                 };
                 if (addAllContentAnnos)
                 {
                     manifest.Annotations.Add(new()
                     {
-                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Id, 3),
-                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Id}")
+                        Id = uriPatterns.ManifestAnnotationPageAllWithVersion(metsManifestation.Identifier, 3),
+                        Label = Lang.Map($"All OCR-derived annotations for {metsManifestation.Identifier}")
                     });
                 }
             }
@@ -1248,12 +1267,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     // TODO - don't control application flow through exceptions, come back to this
                     throw new IIIFBuildStateException(
-                        $"State is required to build {metsManifestation.Id}");
+                        $"State is required to build {metsManifestation.Identifier}");
                 }
                 state.MultiCopyState ??= new MultiCopyState();
-                state.MultiCopyState.CopyAndVolumes[metsManifestation.Id] = new CopyAndVolume
+                state.MultiCopyState.CopyAndVolumes[metsManifestation.Identifier] = new CopyAndVolume
                 {
-                    Id = metsManifestation.Id,
+                    Id = metsManifestation.Identifier,
                     CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
                     VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
                 };

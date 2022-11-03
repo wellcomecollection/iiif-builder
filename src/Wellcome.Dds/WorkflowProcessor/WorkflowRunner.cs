@@ -73,6 +73,7 @@ namespace WorkflowProcessor
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
+            var ddsIdentifier = new DdsIdentifier(job.Identifier);
             job.Taken = DateTime.Now;
             var jobOptions = runnerOptions;
             if (job.WorkflowOptions != null)
@@ -92,7 +93,7 @@ namespace WorkflowProcessor
             {
                 if (jobOptions.RegisterImages)
                 {
-                    var batchResponse = await ingestJobRegistry.RegisterImages(job.Identifier);
+                    var batchResponse = await ingestJobRegistry.RegisterImages(ddsIdentifier);
                     if (batchResponse.Length > 0)
                     {
                         job.FirstDlcsJobId = batchResponse[0].Id;
@@ -102,10 +103,10 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RefreshFlatManifestations)
                 {
-                    work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
-                        await dds.RefreshManifestations(job.Identifier, work);
+                        await dds.RefreshManifestations(ddsIdentifier, work);
                     }
                     else
                     {
@@ -115,7 +116,7 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildIIIF)
                 {
-                    work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
                         await RebuildIIIF(job, work);
@@ -128,7 +129,11 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
+                    // This criterion could change but for now it's the simplest test; we only have ALTO for b numbers.
+                    if (ddsIdentifier.HasBNumber)
+                    {
+                        await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
+                    }
                 }
 
                 if (logMissingWork)
@@ -138,7 +143,7 @@ namespace WorkflowProcessor
 
                 await postProcessor.PostProcess(job, jobOptions);
                 job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
-                logger.LogInformation("Processed {JobId} in {TotalTime}ms", job.Identifier, job.TotalTime);
+                logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
             }
             catch (Exception ex)
             {
@@ -151,7 +156,7 @@ namespace WorkflowProcessor
                 {
                     logger.LogInformation("Compacting memory cache with {MemoryCount} items after processing {JobId}",
                         cache.Count,
-                        job.Identifier);
+                        ddsIdentifier);
                     cache.Compact(100);
                 }
             }
@@ -166,8 +171,8 @@ namespace WorkflowProcessor
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
-                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Id);
-                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Id);
+                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Identifier);
+                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Identifier);
                 }
                 else
                 {
@@ -199,8 +204,16 @@ namespace WorkflowProcessor
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
             var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
-            var iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
-
+            MultipleBuildResult iiif2BuildResults;
+            if (iiif3BuildResults.MayBeConvertedToV2)
+            {
+                iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
+            }
+            else
+            {
+                iiif2BuildResults = new MultipleBuildResult(); // empty.
+            }
+            
             // Now we save them all to S3.
             await WriteResultToS3(iiif3BuildResults);
             await WriteResultToS3(iiif2BuildResults);

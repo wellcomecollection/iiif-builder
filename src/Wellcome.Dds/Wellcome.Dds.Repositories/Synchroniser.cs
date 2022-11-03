@@ -74,35 +74,34 @@ namespace Wellcome.Dds.Repositories
         /// </param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task RefreshDdsManifestations(string identifier, Work? work = null)
+        public async Task RefreshDdsManifestations(DdsIdentifier identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
-            var isBNumber = identifier.IsBNumber();
             var shortB = -1;
-            var workBNumber = new DdsIdentifier(identifier).PackageIdentifier;
             var manifestationIdsProcessed = new List<string>();
             var containsRestrictedFiles = false;
             IMetsResource? packageMetsResource = null;
             IFileBasedResource? packageFileResource = null;
-            work ??= await catalogue.GetWorkByOtherIdentifier(workBNumber);
+            work ??= await catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
             if (work == null)
             {
-                throw new ArgumentException($"Work in Synchroniser cannot be null - {workBNumber}", nameof(work));
+                throw new ArgumentException($"Work in Synchroniser cannot be null - {identifier.PackageIdentifier}", nameof(work));
             }
-            if (isBNumber)
+            if (identifier.IsPackageLevelIdentifier)
             {
                 // operations we can only do when the identifier being processed is a b number
                 
                 // remove any error manifestations, we can recreate them
                 var errors = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == identifier && fm.Index < 0);
+                    .Where(fm => fm.PackageIdentifier == identifier.ToString() && fm.Index < 0);
                 foreach (var error in errors)
                 {
                     ddsContext.Manifestations.Remove(error);
                 }
                 await ddsContext.SaveChangesAsync();
-                
-                shortB = identifier.ToShortBNumber();
+
+                // WHAT TO DO... leave shortB as -1?
+                shortB = identifier.HasBNumber ? identifier.BNumber.ToShortBNumber() : 0; 
                 logger.LogInformation("Getting METS resource for synchroniser: {identifier}", identifier);
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
@@ -115,22 +114,21 @@ namespace Wellcome.Dds.Repositories
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 var metsManifestation = mic.Manifestation;
-                var ddsId = new DdsIdentifier(metsManifestation.Id);
                 if (metsManifestation.Partial)
                 {
-                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
-                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
+                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Identifier);
+                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Identifier);
                 }
-                if (isBNumber)
+                if (identifier.IsPackageLevelIdentifier)
                 {
                     if (metsManifestation.SectionMetadata.AccessCondition == "Restricted files")
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIdsProcessed.Add(ddsId);
+                    manifestationIdsProcessed.Add(metsManifestation.Identifier);
                 }
 
-                var ddsManifestation = await ddsContext.Manifestations.FindAsync(ddsId.ToString());
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier.ToString());
                 var assets = metsManifestation.Sequence;
                 
                 // (some Change code removed here) - we're not going to implement this for now
@@ -138,9 +136,9 @@ namespace Wellcome.Dds.Repositories
                 {
                     ddsManifestation = new Manifestation
                     {
-                        Id = ddsId,
-                        PackageIdentifier = ddsId.PackageIdentifier,
-                        PackageShortBNumber = ddsId.PackageIdentifier.ToShortBNumber(),
+                        Id = metsManifestation.Identifier,
+                        PackageIdentifier = metsManifestation.Identifier.PackageIdentifier,
+                        PackageShortBNumber = metsManifestation.Identifier.PackageIdentifier.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
@@ -245,11 +243,11 @@ namespace Wellcome.Dds.Repositories
 
                 // extra fields that only the new dash knows about
                 ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
-                ddsManifestation.ManifestationIdentifier = ddsId;
-                ddsManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
-                    ? ddsId.VolumePart
+                ddsManifestation.ManifestationIdentifier = metsManifestation.Identifier;
+                ddsManifestation.VolumeIdentifier = metsManifestation.Identifier.IdentifierType == IdentifierType.Volume
+                    ? metsManifestation.Identifier.VolumePart
                     : null;
-                if (isBNumber)
+                if (identifier.IsPackageLevelIdentifier)
                 {
                     // we can only set these when processing a b number, not an individual manifestation
                     ddsManifestation.Index = mic.SequenceIndex;
@@ -263,14 +261,14 @@ namespace Wellcome.Dds.Repositories
             } // end of foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier)
             
             // At this point there are no uncommitted DB changes
-            if (isBNumber)
+            if (identifier.IsPackageLevelIdentifier)
             {
                 string? betterTitle = null;
                 if (manifestationIdsProcessed.Count == 0)
                 {
                     const string message = "No manifestations for {0}, creating error manifestation";
                     const string dipStatus = "no-manifs";
-                    await CreateErrorManifestation(shortB, message, identifier, dipStatus);
+                    await CreateErrorManifestation(identifier, message, dipStatus);
                 }
                 else
                 {
@@ -282,7 +280,7 @@ namespace Wellcome.Dds.Repositories
                 
                 // See what's already present in the manifestations table for this b number
                 foreach (var ddsManifestation in ddsContext.Manifestations.Where(
-                    fm => fm.PackageIdentifier == identifier))
+                    fm => fm.PackageIdentifier == identifier.ToString()))
                 {
                     if (!manifestationIdsProcessed.Contains(ddsManifestation.Id))
                     {
@@ -321,16 +319,15 @@ namespace Wellcome.Dds.Repositories
         }
         
   
-        private async Task CreateErrorManifestation(int shortB, string message, 
-            string bNumber, string dipStatus)
+        private async Task CreateErrorManifestation(DdsIdentifier identifier, string message, string dipStatus)
         {
-            DeleteMetadata(bNumber);
-            logger.LogWarning(message, bNumber);
+            DeleteMetadata(identifier);
+            logger.LogWarning(message, identifier);
             var fm = new Manifestation
             {
-                Id = bNumber,
-                PackageIdentifier = bNumber,
-                PackageShortBNumber = shortB,
+                Id = identifier,
+                PackageIdentifier = identifier.PackageIdentifier,
+                PackageShortBNumber = identifier.PackageIdentifier.ToShortBNumber(),
                 Index = -1,
                 Processed = DateTime.Now,
                 DipStatus = dipStatus

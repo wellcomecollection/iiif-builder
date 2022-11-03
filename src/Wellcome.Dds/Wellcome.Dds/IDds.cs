@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Wellcome.Dds.Catalogue;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds
 {
@@ -10,7 +11,7 @@ namespace Wellcome.Dds
         Dictionary<string, long> GetTotalsByAssetType();
         List<Manifestation> AutoComplete(string id);
 
-        Task RefreshManifestations(string id, Work work = null);
+        Task RefreshManifestations(DdsIdentifier ddsId, Work work = null);
 
         ManifestationMetadata GetManifestationMetadata(string id);
         List<Manifestation> GetManifestationsForChildren(string workReferenceNumber);

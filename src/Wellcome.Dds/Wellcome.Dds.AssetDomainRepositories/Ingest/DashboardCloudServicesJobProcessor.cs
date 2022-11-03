@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
@@ -10,6 +11,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
@@ -140,15 +142,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         /// <param name="forceReingest">Optional flag to force a complete re-ingest of the identifier</param>
         /// <param name="usePriorityQueue"></param>
         /// <returns></returns>
-        public async Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false)
+        public async Task<ImageIngestResult> ProcessJob(
+            DlcsIngestJob job, 
+            Func<Image, bool> includeIngestingImage, 
+            bool forceReingest = false, 
+            bool usePriorityQueue = false)
         {
-            // TODO
-            // var runningJobs... // Look at what is already running
-            // digitisedManifestation.GetMostRecentIngestJobs(99) // use datetime
-
-            // start the job
-
-            // diagnostics to prevent HALT of WT-HAVANA
             int jobId = job.Id;
             // this should be ctx.DlcsIngestJobs.Single(j => j.Id == job.Id);
             var jobs = ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.Id == jobId).ToList();
@@ -176,35 +175,35 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // we expect a job to correspond to a manifestation
-            IDigitalManifestation digitisedManifestation = null;
+            IDigitalManifestation digitalManifestation = null;
             Exception error = null;
             string errorDataMessage = null;
             IManifestation manifestation = null;
 
             try
             {
-                digitisedManifestation = await digitalObjectRepository
+                digitalManifestation = await digitalObjectRepository
                         .GetDigitalObject(job.GetManifestationIdentifier())
                     as IDigitalManifestation;
             }
             catch (Exception ex)
             {
-                errorDataMessage = $"Error received during GetDigitisedResource. Abandoning job for {job.Identifier}.";
+                errorDataMessage = $"Error received during GetDigitalObject. Abandoning job for {job.Identifier}.";
                 error = ex;
             }
 
-            if (digitisedManifestation == null)
+            if (digitalManifestation == null)
             {
-                errorDataMessage = $"digitisedManifestation is null for {job.Identifier}";
+                errorDataMessage = $"digitalManifestation is null for {job.Identifier}";
             }
             else
             {
-                manifestation = digitisedManifestation.MetsManifestation;
+                manifestation = digitalManifestation.MetsManifestation;
                 if (manifestation == null)
                 {
-                    errorDataMessage = $"digitisedManifestation.MetsManifestation is null for {job.Identifier}";
+                    errorDataMessage = $"digitalManifestation.MetsManifestation is null for {job.Identifier}";
                 }
-                else if (!digitisedManifestation.JobExactMatchForManifestation(job))
+                else if (!digitalManifestation.JobExactMatchForManifestation(job))
                 {
                     errorDataMessage =
                         $"Job data doesn't match retrieved manifestation. Abandoning job for {job.Identifier}";
@@ -228,12 +227,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
             var assetType = manifestation.FirstInternetType;
             if (assetType != null)
+            {
+                // This doesn't really mean anything for born digital
                 job.AssetType = assetType;
+            }
             job.ImageCount = manifestation.SynchronisableFiles.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 
-            bool jobCanBeProcessedNow = job.AssetType.HasText() && SupportedFormats.Contains(job.AssetType);
-            if (!jobCanBeProcessedNow)
+            if (!JobCanBeProcessedNow(job, manifestation))
             {
                 const string deferred = "deferred_format";
                 job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
@@ -244,7 +245,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // TODO - consider any running processes....
-            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitisedManifestation, true);
+            var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitalManifestation, true);
             if (forceReingest)
             {
                 foreach (var image in syncOperation.ImagesAlreadyOnDlcs.Values)
@@ -263,32 +264,34 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
             }
 
-            await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
+            var result = new ImageIngestResult();
+            if (!syncOperation.HasInvalidAccessCondition)
+            {
+                await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue);
 
-            var result = new ImageIngestResult
-            {
-                CloudBatchRegistrationResponse = syncOperation.Batches.ToArray()
-            };
+                result.CloudBatchRegistrationResponse = syncOperation.Batches.ToArray();
 
-            var batchesForDb = new List<DlcsBatch>();
-            if (syncOperation.BatchIngestOperationInfos.HasItems())
-            {
-                batchesForDb.AddRange(syncOperation.BatchIngestOperationInfos);
-            }
-            if (syncOperation.BatchPatchOperationInfos.HasItems())
-            {
-                batchesForDb.AddRange(syncOperation.BatchPatchOperationInfos);
-            }
-            if (batchesForDb.HasItems())
-            {
-                // add the db batches back to the database
-                foreach (var batchOperationInfo in batchesForDb)
+                var batchesForDb = new List<DlcsBatch>();
+                if (syncOperation.BatchIngestOperationInfos.HasItems())
                 {
-                    // give them the correct ID
-                    batchOperationInfo.DlcsIngestJobId = job.Id;
+                    batchesForDb.AddRange(syncOperation.BatchIngestOperationInfos);
                 }
-                await ddsInstrumentationContext.DlcsBatches.AddRangeAsync(batchesForDb);
+                if (syncOperation.BatchPatchOperationInfos.HasItems())
+                {
+                    batchesForDb.AddRange(syncOperation.BatchPatchOperationInfos);
+                }
+                if (batchesForDb.HasItems())
+                {
+                    // add the db batches back to the database
+                    foreach (var batchOperationInfo in batchesForDb)
+                    {
+                        // give them the correct ID
+                        batchOperationInfo.DlcsIngestJobId = job.Id;
+                    }
+                    await ddsInstrumentationContext.DlcsBatches.AddRangeAsync(batchesForDb);
+                }
             }
+            
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
             job.EndProcessed = DateTime.Now;
             job.Succeeded = syncOperation.Succeeded;
@@ -299,6 +302,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             await ddsInstrumentationContext.SaveChangesAsync();
             return result;
+        }
+
+        private static bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation)
+        {
+            if (job.AssetType.IsNullOrEmpty())
+            {
+                return false;
+            }
+
+            var ddsId = new DdsIdentifier(job.GetManifestationIdentifier());
+
+            if (ddsId.HasBNumber)
+            {
+                return SupportedFormats.Contains(job.AssetType);
+            }
+            
+            // If it's not a b number, we'll just have to try and process it!
+            // But we will make sure that EVERY file has a mimetype.
+            if (manifestation.Sequence.Any(pf => pf.MimeType.IsNullOrEmpty()))
+            {
+                return false;
+            }
+            
+            return true;
         }
 
         private void WriteErrorJobData(int jobId, string dataMessage, Exception ex)

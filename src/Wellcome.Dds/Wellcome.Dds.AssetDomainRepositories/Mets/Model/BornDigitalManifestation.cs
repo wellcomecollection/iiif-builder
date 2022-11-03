@@ -3,22 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
 public class BornDigitalManifestation : IManifestation
 {
     public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-    public string Id { get; set; }
+    public DdsIdentifier Identifier { get; set; }
     public string Label { get; set; }
     public string Type { get; set; }
     public int? Order { get; set; }
     public ISectionMetadata SectionMetadata { get; set; }
     public ISectionMetadata ParentSectionMetadata { get; }
-    public bool Partial { get; }
+    public bool Partial => false; // never partial  
+    
     public string GetRootId()
     {
-        throw new NotImplementedException();
+        // We only have one manifestation per identifier for born digital
+        return Identifier.ToString();
     }
 
     public List<IPhysicalFile> Sequence { get; set; }

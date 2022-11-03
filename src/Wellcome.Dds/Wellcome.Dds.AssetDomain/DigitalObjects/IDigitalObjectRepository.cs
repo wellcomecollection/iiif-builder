@@ -3,12 +3,13 @@ using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IDigitalObjectRepository
     {
-        Task<IDigitalObject> GetDigitalObject(string identifier, bool includePdfDetails = false);
+        Task<IDigitalObject> GetDigitalObject(DdsIdentifier identifier, bool includePdfDetails = false);
         Task<SyncOperation> GetDlcsSyncOperation(IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages);
         Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue);

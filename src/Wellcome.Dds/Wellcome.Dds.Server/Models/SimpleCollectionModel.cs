@@ -12,7 +12,7 @@ namespace Wellcome.Dds.Server.Models
         public List<SimpleLink> Manifestations { get; set; }
         public List<SimpleLink> Collections { get; set; }
         
-        public static SimpleCollectionModel MakeSimpleCollectionModel(IDigitisedCollection collection)
+        public static SimpleCollectionModel MakeSimpleCollectionModel(IDigitalCollection collection)
         {
             if (collection == null)
             {
