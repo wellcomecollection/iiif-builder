@@ -9,6 +9,7 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 using Utils;
+using Utils.Web;
 
 namespace Wellcome.Dds.Server.Controllers;
 
@@ -46,6 +47,7 @@ public class BornDigitalExtensionsController : ControllerBase
             smallFont, Color.Black, new PointF(20, 165)));
         
         Response.ContentType = "image/png";
+        Response.CacheForDays(28);
         await img.SaveAsync(Response.Body, new PngEncoder());
         return new EmptyResult();
     }
@@ -65,6 +67,7 @@ public class BornDigitalExtensionsController : ControllerBase
 
     private VirtualFileResult ServeThumb(string name)
     {
+        Response.CacheForDays(28);
         return File($"~/born-digital/{name}.png", "image/png");
     }
 
