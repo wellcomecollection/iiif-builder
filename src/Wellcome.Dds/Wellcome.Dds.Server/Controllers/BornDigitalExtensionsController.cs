@@ -1,4 +1,3 @@
-
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 using Utils;
@@ -32,20 +30,28 @@ public class BornDigitalExtensionsController : ControllerBase
         using Image img = new Image<Rgba32>(1000, 800);
         FontCollection collection = new();
         FontFamily family = collection.Add(GetFontPath());
-        Font font = family.CreateFont(32, FontStyle.Regular);
+        Font largeFont = family.CreateFont(32, FontStyle.Regular);
+        Font smallFont = family.CreateFont(16, FontStyle.Regular);
         img.Mutate(x=> x.DrawText(
             $"File type: {parts.MimeType}", 
-            font, Color.Black, new PointF(20, 20)));
+            largeFont, Color.Black, new PointF(20, 20)));
         img.Mutate(x=> x.DrawText(
             $"PRONOM key: {parts.PromomKey}", 
-            font, Color.Black, new PointF(20, 80)));
+            largeFont, Color.Black, new PointF(20, 80)));
+        img.Mutate(x=> x.DrawText(
+            $"This is a placeholder canvas.", 
+            smallFont, Color.Black, new PointF(20, 140)));
+        img.Mutate(x=> x.DrawText(
+            $"The original file is available in the rendering property of this canvas.", 
+            smallFont, Color.Black, new PointF(20, 165)));
+        
         Response.ContentType = "image/png";
         await img.SaveAsync(Response.Body, new PngEncoder());
         return new EmptyResult();
     }
     
     [HttpGet("placeholder-thumb/{*pathParts}")]
-    public Task<IActionResult> PlaceholderThumb(string pathParts)
+    public VirtualFileResult PlaceholderThumb(string pathParts)
     {
         var parts = new PlaceholderParts(pathParts);
         return parts.MimeMainType.ToLowerInvariant() switch
@@ -57,9 +63,9 @@ public class BornDigitalExtensionsController : ControllerBase
         };
     }
 
-    private async Task<IActionResult> ServeThumb(string name)
+    private VirtualFileResult ServeThumb(string name)
     {
-        return File(System.IO.Path.Combine(WebRootPath, "born-digital", $"{name}.png"), "image/png");
+        return File($"~/born-digital/{name}.png", "image/png");
     }
 
     private string GetFontPath()
