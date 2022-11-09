@@ -52,8 +52,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         // Two behavior values for born digital
         private static readonly List<string> OriginalBehavior = new() { "original" };
         private static readonly List<string> PlaceholderBehavior = new() { "placeholder" };
-        private static readonly Size PlaceholderCanvasSize = new Size(5000, 5000);
-        private static readonly Size PlaceholderThumbnailSize = new Size(500, 500);
+        private static readonly Size PlaceholderCanvasSize = new Size(1000, 800);
+        private static readonly Size PlaceholderThumbnailSize = new Size(101, 151);
         
         public IIIFBuilderParts(
             UriPatterns uriPatterns,
@@ -608,6 +608,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             Canvas canvas, IPhysicalFile physicalFile, 
             string manifestIdentifier, string assetIdentifier)
         {
+            var pronomKey = physicalFile.AssetMetadata.GetPronomKey();
+            if (pronomKey.IsNullOrEmpty())
+            {
+                pronomKey = "fmt/unknown";
+            }
             canvas.Width = PlaceholderCanvasSize.Width;
             canvas.Height = PlaceholderCanvasSize.Height;                        
             canvas.Items = new List<AnnotationPage>
@@ -623,7 +628,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             Body = new Image
                             {
                                 Id = uriPatterns.CanvasFilePlaceholderImage(
-                                    physicalFile.AssetMetadata.GetPronomKey(), 
+                                    pronomKey, 
                                     physicalFile.MimeType),
                                 Width = PlaceholderCanvasSize.Width,
                                 Height = PlaceholderCanvasSize.Height,
@@ -639,7 +644,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 new Image
                 {
                     Id = uriPatterns.CanvasFilePlaceholderThumbnail(
-                        physicalFile.AssetMetadata.GetPronomKey(), 
+                        pronomKey, 
                         physicalFile.MimeType),
                     Width = PlaceholderThumbnailSize.Width,
                     Height = PlaceholderThumbnailSize.Height,
