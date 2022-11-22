@@ -17,7 +17,7 @@ namespace Wellcome.Dds.Server.Controllers;
 [Route("extensions/born-digital")]
 public class BornDigitalExtensionsController : ControllerBase
 {
-    private string WebRootPath { get; set; }
+    private string WebRootPath { get; }
     
     public BornDigitalExtensionsController(IWebHostEnvironment environment)
     {
@@ -80,12 +80,12 @@ public class BornDigitalExtensionsController : ControllerBase
     class PlaceholderParts
     {
         // parts is like fmt/123/audio/mp3
-        public string PromomPrefix { get; set; }
-        public string PromomNumber { get; set; }
+        public string PromomPrefix { get; }
+        public string PromomNumber { get; }
         public string PromomKey => $"{PromomPrefix}/{PromomNumber}";
         
-        public string MimeMainType { get; set; }
-        public string MimeSubType { get; set; }
+        public string MimeMainType { get; }
+        public string MimeSubType { get; }
         public string MimeType => $"{MimeMainType}/{MimeSubType}";
 
         public PlaceholderParts(string pathParts)
