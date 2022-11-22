@@ -23,6 +23,11 @@ public class DigitisedProduction
         ("b20298341", "Arabic manuscript, mixed languages"),
         ("b19291449", "Manuscript with structure (TOC)"),
         ("b19192162", "Clickthrough"),
-        ("b19974760", "Chemist and Druggist! 😱")
+        ("b19974760", "Chemist and Druggist! 😱"),
+        ("b16673104", "A day at Gebel Moya: ingested mpg, no ingested derivative, TRANSCODE"),
+        ("b32718184", "(Malaria): use ingested mp4 derivative 720p as FILE - serve as-is"),
+        ("b3223756x", "Duplicity of vision: 2k mp4 ingested, TRANSCODE (later multiple transcodes, 2k, 720?)"),
+        ("b1665836x", "Anthelmintics: as above but content-advisory and with PDF"),
+        ("b30655729", "(cat), ingested wav, TRANSCODE (single transcode, lo-res)")
     };
 }
