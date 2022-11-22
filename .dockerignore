@@ -2,8 +2,8 @@ Dockerfile*
 .dockerignore
 .git
 .gitignore
-bin\
-obj\
+bin/
+obj/
 README.md
 LICENSE
 .idea
