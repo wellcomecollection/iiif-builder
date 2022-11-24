@@ -78,7 +78,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
             manifestStructureHelper = new ManifestStructureHelper();
-            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider();
+            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider(dlcsEntryPoint);
 
             clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
             clickthroughServiceReferenceV1 = new V2ServiceReference(clickthroughServiceV1);
@@ -608,6 +608,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
+                // A point release of Presentation 3 could add Auth2 services to the context
+                manifest.EnsureContext(IIIF.Auth.V2.Constants.IIIFAuth2Context);
             }
         }
 

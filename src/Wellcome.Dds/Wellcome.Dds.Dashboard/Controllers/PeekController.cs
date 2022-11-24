@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            build.IIIFResource.EnsurePresentation3Context();
             return Content(build.IIIFResource.AsJson(), "application/json");
         }
         
@@ -57,6 +59,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            build.IIIFResource.EnsurePresentation3Context();
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",

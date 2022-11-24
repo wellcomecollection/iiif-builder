@@ -10,11 +10,12 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
     public abstract class IIIFAuthServiceProvider : IAuthServiceProvider
     {
-        public const string ClickthroughHeader = "Content advisory";
-        public const string ClickthroughConfirmlabel = "Accept Terms and Open";
+        // TODO: https://github.com/wellcomecollection/platform/issues/5634
+        private const string ClickthroughHeader = "Content advisory";
+        private const string ClickthroughConfirmlabel = "Accept Terms and Open";
 
         // this can be a @lang multi-metadata value
-        public const string ClickthroughLoginDescription =
+        private const string ClickthroughLoginDescription =
             "<p>This digitised material is free to access, but contains information or visuals that may:</p><ul>" +
             "<li>include personal details of living individuals</li>" +
             "<li>be upsetting or distressing</li>" +
@@ -24,22 +25,22 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             "By viewing this material, we ask that you use the content lawfully, ethically and responsibly under the conditions set out in our " +
             "<a href=\"https://wellcomecollection.cdn.prismic.io/wellcomecollection/d4817da5-c71a-4151-81c4-83e39ad4f5b3_Wellcome+Collection_Access+Policy_Aug+2020.pdf\">Access Policy</a>.";
 
-        public const string ClickthroughFailureHeader = "Terms not accepted";
-        public const string ClickthroughFailureDescription = "You must accept the terms to view the content.";
+        private const string ClickthroughFailureHeader = "Terms not accepted";
+        private const string ClickthroughFailureDescription = "You must accept the terms to view the content.";
 
-        public const string ClinicalHeader = "Clinical material";
+        private const string ClinicalHeader = "Clinical material";
 
-        public const string ClinicalLoginDescription =
+        private const string ClinicalLoginDescription =
             "<p>Online access to clinical content is restricted to healthcare professionals. Please contact the Collections team for further information: <a href='mailto:collections@wellcome.ac.uk'>collections@wellcome.ac.uk</a>.</p> <p>If you are a healthcare professional and already have a Wellcome Collection account, please log in.</p>";
-        public const string ClinicalFailureHeader = "Login failed";
-        public const string ClinicalFailureDescription = "Your login attempt did not appear to be successful. Please try again.";
+        private const string ClinicalFailureHeader = "Login failed";
+        private const string ClinicalFailureDescription = "Your login attempt did not appear to be successful. Please try again.";
 
-        public const string RestrictedHeader = "Restricted material";
+        private const string RestrictedHeader = "Restricted material";
 
-        public const string RestrictedFailureDescription =
+        private const string RestrictedFailureDescription =
             "<p>This image cannot be viewed online.</p><p>Wellcome Collection members can request access to restricted materials for viewing in the Library.</p>";
 
-        public const string LogoutLabel = "Log out of Wellcome Collection";
+        private const string LogoutLabel = "Log out of Wellcome Collection";
 
 
         protected abstract string GetClickthroughLoginServiceId();
