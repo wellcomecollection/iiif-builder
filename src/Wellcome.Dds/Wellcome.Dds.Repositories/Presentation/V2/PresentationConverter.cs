@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.Auth.V1;
+using IIIF.Auth.V2;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
@@ -176,8 +177,11 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 {
                     switch (service)
                     {
-                        case ResourceBase authService:
-                            var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+                        case AuthAccessService2:
+                            logger.LogDebug("Skipping V2 Auth Service");
+                            break;
+                        case ResourceBase legacyAuthService:
+                            var wellcomeAuthService = GetWellcomeAuthService(identifier, legacyAuthService);
                             
                             // I think it's OK to leave the extra labels on
                             manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, null)!);
