@@ -4,22 +4,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
     {
         const string BaseUri = "https://iiif.wellcomecollection.org";
         
-        protected override string GetAccessTokenServiceId()
-        {
-            return BaseUri + "/auth/token";
-        }
-
-        protected override string GetAcceptTermsAccessTokenServiceId()
-        {
-            return BaseUri + "/auth/token";
-        }
-
-
-        protected override string GetClickthroughLoginServiceId090()
-        {
-            return BaseUri + "/auth/clickthrough";
-        }
-        protected override string GetClickthroughLoginServiceId093()
+        protected override string GetClickthroughLoginServiceId()
         {
             return BaseUri + "/auth/clickthrough";
         }
@@ -34,16 +19,12 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             return BaseUri + "/auth/clinicallogin";
         }
 
-        protected override string GetCASTokenServiceId()
+        protected override string GetTokenServiceId()
         {
             return BaseUri + "/auth/token";
         }
 
-        protected override string GetRestrictedLoginServiceId090()
-        {
-            return BaseUri + "/auth/restrictedlogin";
-        }
-        protected override string GetRestrictedLoginServiceId093()
+        protected override string GetRestrictedLoginServiceId()
         {
             return BaseUri + "/auth/restrictedlogin";
         }

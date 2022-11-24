@@ -1,13 +1,18 @@
-using System.Collections.Generic;
 using IIIF;
-using IIIF.Auth;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
     public interface IAuthServiceProvider
     {
-        List<IService> GetAcceptTermsAuthServices();
-        List<IService> GetClinicalLoginServices();
-        List<IService> GetRestrictedLoginServices();
+        // original implementation (renamed ..V1)
+        IService GetAcceptTermsAuthServicesV1();
+        IService GetClinicalLoginServicesV1();
+        IService GetRestrictedLoginServicesV1();
+        
+        // Auth V2 providers
+        // Later we can reorganise this and support more variety in auth services
+        IService GetAcceptTermsAuthServicesV2();
+        IService GetClinicalLoginServicesV2();
+        IService GetRestrictedLoginServicesV2();
     }
 }
