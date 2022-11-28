@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            build.IIIFResource.EnsurePresentation3Context();
             return Content(build.IIIFResource.AsJson(), "application/json");
         }
         
@@ -48,15 +50,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            if (build.MayBeConvertedToV2)
+            {
+                var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] { build });
+                return Content(iiif2[id]?.IIIFResource.AsJson() ?? string.Empty, "application/json");
+            }
 
-            var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] {build});
-            return Content(iiif2[id]?.IIIFResource.AsJson() ?? string.Empty, "application/json");
+            return Content("Contains AV, not going to convert to V2", "text/plain");
         }
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            build.IIIFResource.EnsurePresentation3Context();
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",

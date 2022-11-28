@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using IIIF;
 using Version = IIIF.Presentation.Version;
 
@@ -14,6 +15,8 @@ namespace Wellcome.Dds.IIIFBuilding
             Id = id;
             IIIFVersion = version;
         }
+        
+        public bool MayBeConvertedToV2 => TimeBasedCount <= 0 && FileCount <= 0;
 
         public string Id { get; set; }
         
@@ -69,14 +72,7 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             get
             {
-                foreach (var buildResult in this)
-                {
-                    if (buildResult.TimeBasedCount > 0 || buildResult.FileCount > 0)
-                    {
-                        return false;
-                    }
-                }
-                return true;
+                return this.All(buildResult => buildResult.MayBeConvertedToV2);
             }
         }
 

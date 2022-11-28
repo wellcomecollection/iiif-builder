@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Versioning;
 using IIIF;
+using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
 using IIIF.Presentation;
 using IIIF.Presentation.V2.Strings;
@@ -39,12 +41,22 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string[] extraAccessConditions;
         private readonly ManifestStructureHelper manifestStructureHelper;
 
-        private readonly IService clickthroughService;
-        private readonly IService clickthroughServiceReference;
-        private readonly IService loginService;
-        private readonly IService loginServiceReference;
-        private readonly IService externalAuthService;
-        private readonly IService externalAuthServiceReference;
+        // Existing Auth1 (actually 0.9.3) services
+        private readonly IService clickthroughServiceV1;
+        private readonly IService clickthroughServiceReferenceV1;
+        private readonly IService loginServiceV1;
+        private readonly IService loginServiceReferenceV1;
+        private readonly IService externalAuthServiceV1;
+        private readonly IService externalAuthServiceReferenceV1;
+        
+        
+        // New Auth2 (provisional) services
+        private readonly IService clickthroughServiceV2;
+        private readonly IService clickthroughServiceReferenceV2;
+        private readonly IService loginServiceV2;
+        private readonly IService loginServiceReferenceV2;
+        private readonly IService externalAuthServiceV2;
+        private readonly IService externalAuthServiceReferenceV2;
 
         // omit Digitalcollection and Location
         private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
@@ -66,16 +78,21 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
             manifestStructureHelper = new ManifestStructureHelper();
-            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider();
+            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider(dlcsEntryPoint);
 
-            // These still bear lots of traces of previous incarnations
-            // We only want one of these but I'm not quite sure which one...
-            clickthroughService = authServiceProvider.GetAcceptTermsAuthServices().First();
-            clickthroughServiceReference = new V2ServiceReference(clickthroughService);
-            loginService = authServiceProvider.GetClinicalLoginServices().First();
-            loginServiceReference = new V2ServiceReference(loginService);
-            externalAuthService = authServiceProvider.GetRestrictedLoginServices().First();
-            externalAuthServiceReference = new V2ServiceReference(externalAuthService);
+            clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
+            clickthroughServiceReferenceV1 = new V2ServiceReference(clickthroughServiceV1);
+            loginServiceV1 = authServiceProvider.GetClinicalLoginServicesV1();
+            loginServiceReferenceV1 = new V2ServiceReference(loginServiceV1);
+            externalAuthServiceV1 = authServiceProvider.GetRestrictedLoginServicesV1();
+            externalAuthServiceReferenceV1 = new V2ServiceReference(externalAuthServiceV1);
+
+            clickthroughServiceV2 = authServiceProvider.GetAcceptTermsAuthServicesV2();
+            clickthroughServiceReferenceV2 = new AuthAccessService2 { Id = clickthroughServiceV2.Id };
+            loginServiceV2 = authServiceProvider.GetClinicalLoginServicesV2();
+            loginServiceReferenceV2 = new AuthAccessService2 { Id = loginServiceV2.Id };
+            externalAuthServiceV2 = authServiceProvider.GetRestrictedLoginServicesV2();
+            externalAuthServiceReferenceV2 = new AuthAccessService2 { Id = externalAuthServiceV2.Id };
         }
 
 
@@ -591,6 +608,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 manifest.Services ??= new List<IService>();
                 manifest.Services.AddRange(foundAuthServices.Values);
+                // A point release of Presentation 3 could add Auth2 services to the context
+                manifest.EnsureContext(IIIF.Auth.V2.Constants.IIIFAuth2Context);
             }
         }
 
@@ -946,17 +965,23 @@ namespace Wellcome.Dds.Repositories.Presentation
                     return;
                 case AccessCondition.RequiresRegistration: // i.e., Clickthrough
                 case AccessCondition.OpenWithAdvisory:     // also Clickthrough
-                    AddAuthServiceToDictionary(foundAuthServices, clickthroughService);
-                    AddAuthServiceToMedia(media, clickthroughServiceReference);
+                    AddAuthServiceToDictionary(foundAuthServices, clickthroughServiceV1);
+                    AddAuthServiceToDictionary(foundAuthServices, clickthroughServiceV2);
+                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV1, physicalFile);
+                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV2, physicalFile);
                     break;
                 case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
                 case AccessCondition.Degraded:
-                    AddAuthServiceToDictionary(foundAuthServices, loginService);
-                    AddAuthServiceToMedia(media, loginServiceReference);
+                    AddAuthServiceToDictionary(foundAuthServices, loginServiceV1);
+                    AddAuthServiceToDictionary(foundAuthServices, loginServiceV2);
+                    AddAuthServiceToMedia(media, loginServiceReferenceV1, physicalFile);
+                    AddAuthServiceToMedia(media, loginServiceReferenceV2, physicalFile);
                     break;
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
-                    AddAuthServiceToDictionary(foundAuthServices, externalAuthService);
-                    AddAuthServiceToMedia(media, externalAuthServiceReference);
+                    AddAuthServiceToDictionary(foundAuthServices, externalAuthServiceV1);
+                    AddAuthServiceToDictionary(foundAuthServices, externalAuthServiceV2);
+                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV1, physicalFile);
+                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV2, physicalFile);
                     break;
                 default:
                     if (!extraAccessConditions.Contains(physicalFile.AccessCondition))
@@ -975,7 +1000,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void AddAuthServiceToMedia(ResourceBase? resource, IService? service)
+        private void AddAuthServiceToMedia(ResourceBase? resource, IService? service, IPhysicalFile physicalFile)
         {
             if (resource == null || service == null)
             {
@@ -988,14 +1013,28 @@ namespace Wellcome.Dds.Repositories.Presentation
                     if (image.Service != null)
                     {
                         var iiifImageApi2 = (ImageService2) image.Service.First();
-                        iiifImageApi2.Service = new List<IService>{service};
+                        iiifImageApi2.Service ??= new List<IService>();
+                        AppendAuthService(iiifImageApi2.Service, service, physicalFile);
                     }
                     break;
                 default:
                     resource.Service ??= new List<IService>();
-                    resource.Service.Add(service);
+                    AppendAuthService(resource.Service, service, physicalFile);
                     break;
             }
+        }
+
+        private void AppendAuthService(List<IService> services, IService service, IPhysicalFile physicalFile)
+        {
+            if (service is AuthAccessService2)
+            {
+                services.Add(new AuthProbeService2
+                {
+                    Id = uriPatterns.DlcsProbeService(dlcsEntryPoint, physicalFile.StorageIdentifier)
+                });
+            }
+            services.Add(service);
+            
         }
 
         public void Structures(Manifest manifest, IManifestation metsManifestation)

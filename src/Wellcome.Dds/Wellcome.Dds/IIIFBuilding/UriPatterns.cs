@@ -79,6 +79,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string DlcsVideoTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
         private const string DlcsAudioTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/max/default.{fileExt}";
         private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
+        private const string DlcsProbeServiceTemplate = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
 
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
@@ -241,6 +242,11 @@ namespace Wellcome.Dds.IIIFBuilding
         public string DlcsFile(string dlcsEntryPoint, string assetIdentifier)
         {
             return DlcsIdentifier(DlcsFileTemplate, dlcsEntryPoint, assetIdentifier);
+        }
+        
+        public string DlcsProbeService(string dlcsEntryPoint, string assetIdentifier)
+        {
+            return DlcsIdentifier(DlcsProbeServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
         private string DlcsIdentifier(string template, string dlcsEntryPointToken, string assetIdentifier)

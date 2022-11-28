@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
+using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
@@ -198,6 +199,9 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         imageService2.EnsureContext(ImageService2.Image2Context);
                         imageService2.Type = null;
                         imageService2.Protocol = ImageService2.Image2Protocol;
+                        // Remove the Auth2 services
+                        imageService2.Service?.RemoveAll(ss => ss is AuthProbeService2);
+                        imageService2.Service?.RemoveAll(ss => ss is AuthAccessService2);
                         imageService = imageService2;
                     }
                 }))
