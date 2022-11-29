@@ -46,6 +46,16 @@ $(document).ready(function () {
     bindPreview();
     
     $("img.iiifpreview").unveil(300);
+    
+    var loc = window.location;
+    var origin = loc.protocol + "//" + loc.hostname + (loc.port ? ':' + loc.port: '');
+    $(".needsOrigin a").each(function(){
+        if(this.search){
+            this.href += "&origin=" + origin;
+        } else {
+            this.href += "?origin=" + origin;
+        }
+    });
 });
 
 // So that the toolbar doesn't hide links to named anchors.

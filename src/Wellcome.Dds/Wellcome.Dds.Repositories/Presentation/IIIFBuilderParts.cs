@@ -630,7 +630,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var pronomKey = physicalFile.AssetMetadata.GetPronomKey();
             if (pronomKey.IsNullOrEmpty())
             {
-                pronomKey = "fmt/unknown";
+                pronomKey = "fmt/0";
             }
             canvas.Width = PlaceholderCanvasSize.Width;
             canvas.Height = PlaceholderCanvasSize.Height;                        

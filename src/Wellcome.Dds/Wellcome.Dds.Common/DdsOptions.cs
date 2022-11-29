@@ -45,5 +45,7 @@
         public bool BuildWholeManifestLineAnnotations { get; set; }
         
         public string IncludeExtraAccessConditionsInManifest { get; set; }
+        
+        public int PlaceholderCanvasCacheTimeDays { get; set; }
     }
 }

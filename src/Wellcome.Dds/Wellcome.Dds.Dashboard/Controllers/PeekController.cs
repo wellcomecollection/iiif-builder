@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using IIIF.Presentation;
 using IIIF.Serialisation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -38,14 +39,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.iiifBuilder = iiifBuilder;
         }
 
+        [AllowAnonymous]
         public async Task<ContentResult> IIIFRaw(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
             build.IIIFResource.EnsurePresentation3Context();
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
             return Content(build.IIIFResource.AsJson(), "application/json");
         }
         
+        [AllowAnonymous]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
@@ -56,6 +60,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 return Content(iiif2[id]?.IIIFResource.AsJson() ?? string.Empty, "application/json");
             }
 
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
             return Content("Contains AV, not going to convert to V2", "text/plain");
         }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Utils;
@@ -290,32 +291,43 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id, int version)
         {
-            var manifest = uriPatterns.Manifest(id);
+            var ddsId = new DdsIdentifier(id);
+            var manifest = uriPatterns.Manifest(ddsId);
             if (version == 2)
             {
-                return View("UV", manifest.Replace("/presentation/", "/presentation/v2/"));
+                manifest = manifest.Replace("/presentation/", "/presentation/v2/");
             }
             return Redirect("https://universalviewer.io/examples/#?manifest=" + manifest);
         }
         
-        public IActionResult Mirador(string id, int version)
+        public ActionResult UVPreview(string id, int version, string origin)
         {
-            var manifest = uriPatterns.Manifest(id);
-            string oldId = id;
-            if (!id.IsBNumber())
+            var action = version == 2 ? "IIIF2Raw" : "IIIFRaw";
+            var previewUri = $"{origin}{Url.Action(action, "Peek", new { id })}";
+            return Redirect("https://universalviewer.io/examples/#?manifest=" + previewUri);
+        }
+        
+        public IActionResult Mirador(string id)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var manifests = new List<string>{ uriPatterns.Manifest(ddsId) };
+            if (ddsId.StorageSpace == "digitised")
             {
-                var ddsId = new DdsIdentifier(id);
-                var manifestation = dds.GetManifestation(id);
-                oldId = $"{ddsId.PackageIdentifier}-{manifestation.Index}";
+                // This isn't actually the criteria for IIIF v2 but it will suffice here
+                manifests.Add(manifests[0].Replace("/presentation/", "/presentation/v2/"));
             }
-
-            var libraryManifest = $"https://wellcomelibrary.org/iiif/{oldId}/manifest";
-            var model = new[] {manifest, libraryManifest};
-            if (version == 2)
+            return View("Mirador", manifests);
+        }
+        
+        public IActionResult MiradorPreview(string id, string origin)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { id })}" };
+            if (ddsId.StorageSpace == "digitised")
             {
-                model[0] = model[0].Replace("/presentation/", "/presentation/v2/");
-            } 
-            return View("Mirador", model);
+                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { id })}");
+            }
+            return View("Mirador", manifests);
         }
 
         public IActionResult Validator(string id)
