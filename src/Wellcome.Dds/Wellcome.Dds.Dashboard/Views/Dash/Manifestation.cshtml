@@ -244,9 +244,12 @@
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier.PathElementSafe})">DDS Preview IIIF Manifest</a></li>
-                        <li class="needsOrigin">@Html.ActionLink("Preview IIIF 3 in UV", "UVPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li class="needsOrigin">@Html.ActionLink("Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
+                        <li>
+                            <a href="@Url.Action("IIIF", "Peek", new { id = Model.DdsIdentifier.PathElementSafe })">DDS Preview IIIF Manifest</a>
+                             | <a href="@Url.Action("IIIFRaw", "Peek", new { id = Model.DdsIdentifier.PathElementSafe })">Raw</a>
+                        </li>
+                        <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 3 in UV", "UVPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"})</li>
+                        <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"})</li>
                     </ul>
                 </li>
                 @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
