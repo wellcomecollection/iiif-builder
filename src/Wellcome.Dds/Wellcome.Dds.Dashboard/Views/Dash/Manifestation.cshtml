@@ -224,14 +224,14 @@
             <ul class="list-group">
                 <li class="list-group-item">
                     <ul class="list-unstyled">
+                        <li><a href="@Model.ManifestUrl">Live IIIF Manifest</a></li>
+                        <li>@Html.ActionLink("Live IIIF 3 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("Live IIIF 2/3 in Mirador", "Mirador", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
                         @if (Model.DdsIdentifier.StorageSpace != DdsIdentifier.BornDigital)
                         {
-                            <li>@Html.ActionLink("View IIIF 2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
-                            <li>@Html.ActionLink("View IIIF 2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
+                            <li>@Html.ActionLink("Live IIIF 2 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
                         }
-                        <li>@Html.ActionLink("View IIIF 3 in Universal Viewer", "UV", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View IIIF 3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">
@@ -244,8 +244,9 @@
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier.PathElementSafe})">IIIF Manifest (preview)</a></li>
-                        <li><a href="@Model.ManifestUrl">IIIF Manifest (live)</a></li>
+                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier.PathElementSafe})">DDS Preview IIIF Manifest</a></li>
+                        <li class="needsOrigin">@Html.ActionLink("Preview IIIF 3 in UV", "UVPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li class="needsOrigin">@Html.ActionLink("Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
