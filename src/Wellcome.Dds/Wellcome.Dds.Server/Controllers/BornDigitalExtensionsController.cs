@@ -29,6 +29,7 @@ public class BornDigitalExtensionsController : ControllerBase
     {
         var parts = new PlaceholderParts(pathParts);
         using Image img = new Image<Rgba32>(1000, 800);
+        img.Mutate(x => x.Fill(Color.FromRgb(237, 236, 228)));
         FontCollection collection = new();
         FontFamily family = collection.Add(GetFontPath());
         Font largeFont = family.CreateFont(32, FontStyle.Regular);
