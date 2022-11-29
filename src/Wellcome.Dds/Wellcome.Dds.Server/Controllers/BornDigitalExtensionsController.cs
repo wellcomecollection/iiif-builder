@@ -129,7 +129,7 @@ public class BornDigitalExtensionsController : ControllerBase
                 throw new FormatException("Invalid placeholder format");
             }
 
-            if (!Int32.TryParse(PromomNumber, out _))
+            if (!Int32.TryParse(PromomNumber, out pronomNumber))
             {
                 throw new FormatException("Invalid placeholder format");
             }
