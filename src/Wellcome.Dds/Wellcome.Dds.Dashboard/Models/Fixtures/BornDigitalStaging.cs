@@ -4,22 +4,16 @@ public class BornDigitalStaging
 {
     public string[] Identifiers = new[]
     {
-        "ART/COO/A/3/1",
-        "ART/COO/B/9",
-        "ART/COO/B/10",
-        "ART/COO/B/14",
-        "ART/COO/B/15",
-        "ART/COO/B/17",
-        "ART/COO/D/6/1",
-        "ART/WIT/1",
-        "ART/WIT/2",
-        "ART/WIT/3",
-        "ART/WIT/4",
-        "GP/57/7",
+        "ARTCOO/A/3/1",
+        "ARTCOO/B/9",
+        "ARTCOO/B/10",
+        "ARTCOO/B/14",
+        "ARTCOO/B/15", 
+        "GP57/7",
         "GRL/DUR/A/6a",
-        "PP/CRI/D/4/5A",
-        "PP/CRI/J/15/5A",
-        "PP/CRI/N/16",
+        "PPCRI/D/4/5A",
+        "PPCRI/J/15/5A",
+        "PPCRI/N/16",
         "SABIO/M/8",
         "SAILE/L/3/17/2/1",
         "AR/TST/9/27",
@@ -47,8 +41,8 @@ public class BornDigitalStaging
         "SAPIL/A/7/3",
         "SABSO/9/2",
         "ARTCOO/B/10",
-        "PP/GRF/A.41",
-        "PP/GRF/H.36A",
-        "PP/GRF/H.39A"
+        "PPGRF/A.41",
+        "PPGRF/H.36A",
+        "PPGRF/H.39A"
     };
 }    
