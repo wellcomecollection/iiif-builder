@@ -1,0 +1,83 @@
+@model BulkWorkflowModel
+
+@{
+    ViewBag.Title = "Bulk workflow tool - analysis";
+}
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Bulk workflow tool - analysis</h3>
+    
+    <p>@Html.ActionLink("Go back to start", "Bulk", "WorkflowCall")</p>
+    
+    <p>
+        @Model.IdentifiersSummary
+    </p>
+    
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Identifier</th>
+            <th>Storage space</th>
+            <th>Has BNumber</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (DdsIdentifier ddsId in Model.DdsIdentifiers)
+        {
+            <tr>
+                <td>@Html.ActionLink(ddsId.PackageIdentifier, "Manifestation", "Dash", new { id = ddsId.PackageIdentifierPathElementSafe })</td>
+                <td>@ddsId.StorageSpace</td>
+                <td>@ddsId.HasBNumber</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    
+    
+    <form action="@Url.Action("BulkWorkflow")" method="POST">
+        <input type="hidden" name="identifiers" value="@Model.Identifiers" />
+        
+        <p>What actions do you want taken for these @Model.DdsIdentifiers.Count identifiers?</p>
+        
+        <div class="form-group">
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="RunnerOptions.RegisterImages" value="true">
+                    Synchronise assets with DLCS
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="RunnerOptions.RefreshFlatManifestations" value="true">
+                    Update aggregation metadata from Catalogue API
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="RunnerOptions.RebuildIIIF" value="true">
+                    Rebuild IIIF Manifests
+                </label>
+            </div>  
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="RunnerOptions.RebuildTextCaches" value="true">
+                    Rebuild cached text used for IIIF Content Search API
+                </label>
+            </div>  
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="RunnerOptions.RebuildAllAnnoPageCaches" value="true">
+                    Rebuild W3C Text annotation pages (one per image)
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-default">Simulate workflow calls</button>
+        </div>
+    </form>
+   
+    
+</div>
+
+<hr/>

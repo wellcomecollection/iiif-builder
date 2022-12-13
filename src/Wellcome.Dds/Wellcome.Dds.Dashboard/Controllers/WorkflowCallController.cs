@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,6 +15,7 @@ using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
@@ -155,6 +160,68 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 TempData["reset-errors"] = $"{jobsReset} Jobs with errors reset.";
             }
             return RedirectToAction("Errors");
+        }
+
+        public async Task<IActionResult> Bulk(IFormFile identifiersFile)
+        {
+            var model = new BulkWorkflowModel();
+            if (identifiersFile is { Length: > 0 })
+            {
+                using (var reader = new StreamReader(identifiersFile.OpenReadStream()))
+                {
+                    model.Identifiers = await reader.ReadToEndAsync();
+                }
+
+                model.TidyIdentifiers();
+            }
+
+            return View(model);
+        }
+
+        public IActionResult BulkAnalyse(string identifiers)
+        {
+            var model = new BulkWorkflowModel
+            {
+                Identifiers = identifiers
+            };
+            model.TidyIdentifiers(true);
+            if (model.DdsIdentifiers.HasItems())
+            {
+                return View(model);
+            }
+
+            return View("Bulk", model);
+
+        }
+
+        public async Task<IActionResult> BulkWorkflow(BulkWorkflowModel model)
+        {
+            if (model.RunnerOptions.HasWorkToDo())
+            {
+                var options = model.RunnerOptions.ToInt32();
+                model.TidyIdentifiers(true);
+                model.WorkflowJobs = new List<WorkflowJob>();
+                try
+                {
+                    foreach (var ddsIdentifier in model.DdsIdentifiers)
+                    {
+                        var workflowJob = await workflowCallRepository.CreateWorkflowJob(
+                            ddsIdentifier.PackageIdentifier, options);
+                        model.WorkflowJobs.Add(workflowJob);
+                    }
+                }
+                catch (Exception e)
+                {
+                    model.Error = e.Message;
+                    logger.LogError(e, $"Could not create a workflow job, managed {model.WorkflowJobs.Count} out of {model.DdsIdentifiers.Count}.");
+                }
+            }
+            else
+            {
+                model.Error = "No actions selected for jobs";
+            }
+
+            return View(model);
         }
     }
 }
