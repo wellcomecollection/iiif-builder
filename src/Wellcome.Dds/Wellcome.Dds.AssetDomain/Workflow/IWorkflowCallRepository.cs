@@ -76,5 +76,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <param name="resetWithMessage"></param>
         /// <returns></returns>
         Task<int> ResetJobsMatchingError(string resetWithMessage);
+
+        Task DeleteJob(DdsIdentifier ddsId);
     }
 }

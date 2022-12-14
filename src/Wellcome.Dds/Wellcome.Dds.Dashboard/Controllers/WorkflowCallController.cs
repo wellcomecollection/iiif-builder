@@ -156,5 +156,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             return RedirectToAction("Errors");
         }
+
+        public async Task<IActionResult> Delete(string id)
+        { 
+            var ddsId = new DdsIdentifier(id);
+            await workflowCallRepository.DeleteJob(ddsId);
+            TempData["job-deleted"] = $"{ddsId} deleted.";
+            return RedirectToAction("WorkflowCall", new {id});
+        }
     }
 }

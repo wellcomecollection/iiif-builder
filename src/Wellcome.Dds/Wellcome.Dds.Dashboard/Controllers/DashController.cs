@@ -14,6 +14,7 @@ using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Common;
@@ -34,7 +35,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly ILogger<DashController> logger;
         private readonly UriPatterns uriPatterns;
         private readonly ManifestationModelBuilder modelBuilder;
-
+        private readonly IWorkflowCallRepository workflowCallRepository;
+        
         public DashController(
             IDigitalObjectRepository digitalObjectRepository,
             IIngestJobRegistry jobRegistry,
@@ -45,7 +47,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             StorageServiceClient storageServiceClient,
             ILogger<DashController> logger,
             UriPatterns uriPatterns,
-            ManifestationModelBuilder modelBuilder
+            ManifestationModelBuilder modelBuilder,
+            IWorkflowCallRepository workflowCallRepository
         )
         {
             // TODO - we need a review of all these dependencies!
@@ -60,6 +63,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.logger = logger;
             this.uriPatterns = uriPatterns;
             this.modelBuilder = modelBuilder;
+            this.workflowCallRepository = workflowCallRepository;
         }
 
         public ActionResult Index()
@@ -157,7 +161,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     ViewBag.TryInstead = ddsId.PackageIdentifierPathElementSafe;
                 }
             }
-
+            
+            // At this point we need to return the error page. See if there's a workflow job for this identifier:
+            if (ddsId != null)
+            {
+                ViewBag.WorkflowJob = await workflowCallRepository.GetWorkflowJob(ddsId.PackageIdentifier);
+            }
+            
             return View("ManifestationError");
         }
 
