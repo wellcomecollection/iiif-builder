@@ -44,6 +44,13 @@
             <strong>Failed to notify workflow topic!</strong> @TempData["new-workflow-notification-error"]
         </div>
     }
+    @if (TempData["job-deleted"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@TempData["job-deleted"]</strong> 
+        </div>
+    }
 
 @if (!Model.Created.HasValue)
 {
@@ -75,82 +82,88 @@ else
         </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Identifier</td>
-                <td>@ddsId</td>
-            </tr>
-            <tr>
-                <td>Force text</td>
-                <td>@Model.ForceTextRebuild</td>
-            </tr>
-            <tr>
-                <td>Created</td>
-                <td>@StringUtils.GetFriendlyAge(Model.Created)</td>
-            </tr>
-            <tr>
-                <td>Taken</td>
-                <td>@StringUtils.GetFriendlyAge(Model.Taken)</td>
-            </tr>
-            <tr>
-                <td>Waiting</td>
-                <td>@Model.Waiting</td>
-            </tr>
-            <tr>
-                <td>Finished</td>
-                <td>@Model.Finished</td>
-            </tr>
-            <tr>
-                <td>Job options</td>
-                <td>@Html.Raw(String.Join("<br/>",((RunnerOptionsFlags)Model.WorkflowOptions.GetValueOrDefault()).ToString().Split(',')))</td>
-            </tr>
-            <tr>
-                <td>First DLCS Job ID</td>
-                <td>@Html.ActionLink(Model.FirstDlcsJobId.ToString(), "Index", "Job", new { id = Model.FirstDlcsJobId }, new { })</td>
-            </tr>
-            <tr>
-                <td>DLCS Job Count</td>
-                <td>@Model.DlcsJobCount</td>
-            </tr>
-            <tr>
-                <td>Word Count</td>
-                <td>@Model.Words</td>
-            </tr>
-            <tr>
-                <td>Expected Texts</td>
-                <td>@Model.ExpectedTexts</td>
-            </tr>
-            <tr>
-                <td>Texts already on disk</td>
-                <td>@Model.TextsAlreadyOnDisk</td>
-            </tr>
-            <tr>
-                <td>Texts built</td>
-                <td>@Model.TextsBuilt</td>
-            </tr>
-            <tr>
-                <td>Annotation pages already on disk</td>
-                <td>@Model.AnnosAlreadyOnDisk</td>
-            </tr>
-            <tr>
-                <td>Annotation pages built</td>
-                <td>@Model.AnnosBuilt</td>
-            </tr>
-            <tr>
-                <td>Package build time</td>
-                <td>@Model.PackageBuildTime</td>
-            </tr>
-            <tr>
-                <td>Text and anno build time</td>
-                <td>@Model.TextAndAnnoBuildTime</td>
-            </tr>
-            <tr>
-                <td>Total time</td>
-                <td>@Model.TotalTime</td>
-            </tr>
-            <tr>
-                <td>Error</td>
-                <td>@Model.Error</td>
-            </tr>
+        <tr>
+            <td>Identifier</td>
+            <td>@ddsId</td>
+        </tr>
+        <tr>
+            <td>Force text</td>
+            <td>@Model.ForceTextRebuild</td>
+        </tr>
+        <tr>
+            <td>Created</td>
+            <td>@StringUtils.GetFriendlyAge(Model.Created)</td>
+        </tr>
+        <tr>
+            <td>Taken</td>
+            <td>@StringUtils.GetFriendlyAge(Model.Taken)</td>
+        </tr>
+        <tr>
+            <td>Waiting</td>
+            <td>@Model.Waiting</td>
+        </tr>
+        <tr>
+            <td>Finished</td>
+            <td>@Model.Finished</td>
+        </tr>
+        <tr>
+            <td>Job options</td>
+            <td>@Html.Raw(String.Join("<br/>",((RunnerOptionsFlags)Model.WorkflowOptions.GetValueOrDefault()).ToString().Split(',')))</td>
+        </tr>
+        <tr>
+            <td>First DLCS Job ID</td>
+            <td>@Html.ActionLink(Model.FirstDlcsJobId.ToString(), "Index", "Job", new { id = Model.FirstDlcsJobId }, new { })</td>
+        </tr>
+        <tr>
+            <td>DLCS Job Count</td>
+            <td>@Model.DlcsJobCount</td>
+        </tr>
+        <tr>
+            <td>Word Count</td>
+            <td>@Model.Words</td>
+        </tr>
+        <tr>
+            <td>Expected Texts</td>
+            <td>@Model.ExpectedTexts</td>
+        </tr>
+        <tr>
+            <td>Texts already on disk</td>
+            <td>@Model.TextsAlreadyOnDisk</td>
+        </tr>
+        <tr>
+            <td>Texts built</td>
+            <td>@Model.TextsBuilt</td>
+        </tr>
+        <tr>
+            <td>Annotation pages already on disk</td>
+            <td>@Model.AnnosAlreadyOnDisk</td>
+        </tr>
+        <tr>
+            <td>Annotation pages built</td>
+            <td>@Model.AnnosBuilt</td>
+        </tr>
+        <tr>
+            <td>Package build time</td>
+            <td>@Model.PackageBuildTime</td>
+        </tr>
+        <tr>
+            <td>Text and anno build time</td>
+            <td>@Model.TextAndAnnoBuildTime</td>
+        </tr>
+        <tr>
+            <td>Total time</td>
+            <td>@Model.TotalTime</td>
+        </tr>
+        <tr>
+            <td>Error</td>
+            <td>@Model.Error</td>
+        </tr>
         </tbody>
     </table>
+    
+    <form action="@Url.Action("Delete", new { id = ddsId.PackageIdentifierPathElementSafe})" method="POST">
+        <div class="form-group">
+            <button type="submit" class="btn btn-default">Delete this workflow job</button>
+        </div>
+    </form>
 }

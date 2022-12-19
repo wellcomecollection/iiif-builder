@@ -9,165 +9,174 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wellcome.Dds.Common;
 
-namespace Wellcome.Dds.AssetDomainRepositories.Workflow
+namespace Wellcome.Dds.AssetDomainRepositories.Workflow;
+
+public class WorkflowCallRepository : IWorkflowCallRepository
 {
-    public class WorkflowCallRepository : IWorkflowCallRepository
+    private readonly DdsInstrumentationContext ddsInstrumentationContext;
+    private readonly ILogger<WorkflowCallRepository> logger;
+
+    public WorkflowCallRepository(
+        DdsInstrumentationContext ddsInstrumentationContext, 
+        ILogger<WorkflowCallRepository> logger)
     {
-        private readonly DdsInstrumentationContext ddsInstrumentationContext;
-        private readonly ILogger<WorkflowCallRepository> logger;
+        this.ddsInstrumentationContext = ddsInstrumentationContext;
+        this.logger = logger;
+    }
 
-        public WorkflowCallRepository(
-            DdsInstrumentationContext ddsInstrumentationContext, 
-            ILogger<WorkflowCallRepository> logger)
-        {
-            this.ddsInstrumentationContext = ddsInstrumentationContext;
-            this.logger = logger;
-        }
+    private const int RecentSampleHours = 2;
 
-        private const int RecentSampleHours = 2;
+    public async Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions)
+    {
+        var workflowJob = await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, false, false);
+        return workflowJob;
+    }
 
-        public async Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions)
-        {
-            var workflowJob = await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, false, false);
-            return workflowJob;
-        }
+    public async Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache)
+    {
+        var workflowJob =
+            await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, true, invalidateCache);
+        return workflowJob;
+    }
 
-        public async Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache)
-        {
-            var workflowJob =
-                await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, true, invalidateCache);
-            return workflowJob;
-        }
+    public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
+    {
+        logger.LogInformation("Creating workflow job from message: {Message}", message);
+        var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier, true, false, -1, false, false);
+        return workflowJob;
+    }
 
-        public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
-        {
-            logger.LogInformation("Creating workflow job from message: {Message}", message);
-            var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier, true, false, -1, false, false);
-            return workflowJob;
-        }
+    public Task<List<WorkflowJob>> GetRecent(int count = 1000)
+        => ddsInstrumentationContext.WorkflowJobs
+            .OrderByDescending(j => j.Created)
+            .Take(count)
+            .ToListAsync();
 
-        public Task<List<WorkflowJob>> GetRecent(int count = 1000)
-            => ddsInstrumentationContext.WorkflowJobs
-                .OrderByDescending(j => j.Created)
-                .Take(count)
-                .ToListAsync();
+    public ValueTask<WorkflowJob> GetWorkflowJob(string id) => ddsInstrumentationContext.WorkflowJobs.FindAsync(id);
 
-        public ValueTask<WorkflowJob> GetWorkflowJob(string id) => ddsInstrumentationContext.WorkflowJobs.FindAsync(id);
+    public Task<List<WorkflowJob>> GetRecentErrors(int count = 1000)
+        => ddsInstrumentationContext.WorkflowJobs
+            .OrderByDescending(j => j.Created)
+            .Where(j => j.Error != null)
+            .Take(count)
+            .ToListAsync();
 
-        public Task<List<WorkflowJob>> GetRecentErrors(int count = 1000)
-            => ddsInstrumentationContext.WorkflowJobs
-                .OrderByDescending(j => j.Created)
-                .Where(j => j.Error != null)
-                .Take(count)
-                .ToListAsync();
-
-        public async Task<WorkflowCallStats> GetStatsModel()
-        {
-            var end = DateTime.Now.AddMinutes(-10);
-            var start = end.AddHours(-RecentSampleHours);
-            var result = new WorkflowCallStats { RecentSampleHours = RecentSampleHours };
+    public async Task<WorkflowCallStats> GetStatsModel()
+    {
+        var end = DateTime.Now.AddMinutes(-10);
+        var start = end.AddHours(-RecentSampleHours);
+        var result = new WorkflowCallStats { RecentSampleHours = RecentSampleHours };
             
-            // was: select top 10 * from WorkflowJobs where Finished=1 order by Taken desc
-            result.RecentlyTaken = await ddsInstrumentationContext.WorkflowJobs
-                .Where(j => j.Finished)
-                .OrderByDescending(j => j.Taken)
-                .Take(10)
-                .ToListAsync();
+        // was: select top 10 * from WorkflowJobs where Finished=1 order by Taken desc
+        result.RecentlyTaken = await ddsInstrumentationContext.WorkflowJobs
+            .Where(j => j.Finished)
+            .OrderByDescending(j => j.Taken)
+            .Take(10)
+            .ToListAsync();
             
-            // was: select * from WorkflowJobs where Taken is not null and Finished=0
-            result.TakenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
-                .Where(j => j.Taken != null && !j.Finished)
-                .ToListAsync();
+        // was: select * from WorkflowJobs where Taken is not null and Finished=0
+        result.TakenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
+            .Where(j => j.Taken != null && !j.Finished)
+            .ToListAsync();
 
-            await PopulateStats(start, end, result);
+        await PopulateStats(start, end, result);
 
-            return result;
-        }
+        return result;
+    }
 
-        private async Task PopulateStats(DateTime start, DateTime end, WorkflowCallStats result)
+    private async Task PopulateStats(DateTime start, DateTime end, WorkflowCallStats result)
+    {
+        var connection = ddsInstrumentationContext.Database.GetDbConnection();
+
+        var command = GetSqlCommand(connection, start, end);
+        try
         {
-            var connection = ddsInstrumentationContext.Database.GetDbConnection();
+            await connection.OpenAsync();
+            var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            result.TotalJobs = (int) reader[0];
+            await reader.NextResultAsync();
+            await reader.ReadAsync();
+            result.FinishedJobs = (int) reader[0];
+            if (result.FinishedJobs > 0 && result.TotalJobs > 0)
+            {
+                result.FinishedPercent = (float) result.FinishedJobs / result.TotalJobs;
+            }
 
-            var command = GetSqlCommand(connection, start, end);
+            await reader.NextResultAsync();
+            await reader.ReadAsync();
+            result.WordCount = (decimal) reader[0];
+            await reader.NextResultAsync();
+            await reader.ReadAsync();
+            var takenInPeriod = (int) reader[0];
+            var jobsPerHour = (float) takenInPeriod / RecentSampleHours;
+            var jobsLeft = result.TotalJobs - result.FinishedJobs;
+            var hoursLeft = jobsLeft / jobsPerHour;
             try
             {
-                await connection.OpenAsync();
-                var reader = await command.ExecuteReaderAsync();
-                await reader.ReadAsync();
-                result.TotalJobs = (int) reader[0];
-                await reader.NextResultAsync();
-                await reader.ReadAsync();
-                result.FinishedJobs = (int) reader[0];
-                if (result.FinishedJobs > 0 && result.TotalJobs > 0)
-                {
-                    result.FinishedPercent = (float) result.FinishedJobs / result.TotalJobs;
-                }
-
-                await reader.NextResultAsync();
-                await reader.ReadAsync();
-                result.WordCount = (decimal) reader[0];
-                await reader.NextResultAsync();
-                await reader.ReadAsync();
-                var takenInPeriod = (int) reader[0];
-                var jobsPerHour = (float) takenInPeriod / RecentSampleHours;
-                var jobsLeft = result.TotalJobs - result.FinishedJobs;
-                var hoursLeft = jobsLeft / jobsPerHour;
-                try
-                {
-                    result.EstimatedCompletion = DateTime.Now.AddHours(hoursLeft);
-                }
-                catch
-                {
-                    result.EstimatedCompletion = DateTime.MaxValue;
-                }
-                await reader.NextResultAsync();
-                await reader.ReadAsync();
-                result.Errors = (int) reader[0];
+                result.EstimatedCompletion = DateTime.Now.AddHours(hoursLeft);
             }
-            catch (Exception ex)
+            catch
             {
-                logger.LogError(ex, "Error getting workflow stats");
+                result.EstimatedCompletion = DateTime.MaxValue;
             }
-            finally
-            {
-                await connection.CloseAsync();
-            }
+            await reader.NextResultAsync();
+            await reader.ReadAsync();
+            result.Errors = (int) reader[0];
         }
-
-        private static DbCommand GetSqlCommand(DbConnection connection, DateTime start, DateTime end)
+        catch (Exception ex)
         {
-            var command = connection.CreateCommand();
-            command.CommandType = CommandType.Text;
-            var sql = @"
+            logger.LogError(ex, "Error getting workflow stats");
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+    }
+
+    private static DbCommand GetSqlCommand(DbConnection connection, DateTime start, DateTime end)
+    {
+        var command = connection.CreateCommand();
+        command.CommandType = CommandType.Text;
+        var sql = @"
 SELECT (COUNT (1)::int) FROM workflow_jobs;
 SELECT (COUNT (1)::int) FROM workflow_jobs WHERE finished=true;
 SELECT SUM(words::BIGINT) FROM workflow_jobs;
 SELECT (COUNT(1)::int) FROM workflow_jobs WHERE taken BETWEEN '$0' AND '$1';
 SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
 ";
-            const string sqlFormat = "yyyy-MM-dd HH:mm:ss.fff";
-            sql = sql.Replace("$0", start.ToString(sqlFormat));
-            sql = sql.Replace("$1", end.ToString(sqlFormat));
-            command.CommandText = sql;
-            return command;
-        }
+        const string sqlFormat = "yyyy-MM-dd HH:mm:ss.fff";
+        sql = sql.Replace("$0", start.ToString(sqlFormat));
+        sql = sql.Replace("$1", end.ToString(sqlFormat));
+        command.CommandText = sql;
+        return command;
+    }
 
-        public int FinishAllJobs()
-        {
-            return ddsInstrumentationContext.FinishAllJobs();
-        }
+    public int FinishAllJobs()
+    {
+        return ddsInstrumentationContext.FinishAllJobs();
+    }
 
-        public async Task<int> CountMatchingErrors(string msg)
-        {
-            var count = await ddsInstrumentationContext.WorkflowJobs
-                .CountAsync(j => j.Error.Contains(msg));
-            return count;
-        }
+    public async Task<int> CountMatchingErrors(string msg)
+    {
+        var count = await ddsInstrumentationContext.WorkflowJobs
+            .CountAsync(j => j.Error.Contains(msg));
+        return count;
+    }
 
-        public Task<int> ResetJobsMatchingError(string resetWithMessage)
+    public Task<int> ResetJobsMatchingError(string resetWithMessage)
+    {
+        var count = ddsInstrumentationContext.ResetJobsMatchingError(resetWithMessage);
+        return Task.FromResult(count);
+    }
+
+    public async Task DeleteJob(DdsIdentifier ddsId)
+    {
+        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
+        if (job != null)
         {
-            var count = ddsInstrumentationContext.ResetJobsMatchingError(resetWithMessage);
-            return Task.FromResult(count);
+            ddsInstrumentationContext.WorkflowJobs.Remove(job);
+            await ddsInstrumentationContext.SaveChangesAsync();
         }
     }
 }
