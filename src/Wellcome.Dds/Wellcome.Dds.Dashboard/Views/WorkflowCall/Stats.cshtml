@@ -13,22 +13,22 @@
 
 <table class="table">
     <thead>
-        <tr>
-            <th>Total Jobs</th>
-            <th>Finished Jobs</th>
-            <th>Word Count</th>
-            <th>Errors</th>
-        </tr>
+    <tr>
+        <th>Total Jobs</th>
+        <th>Finished Jobs</th>
+        <th>Word Count</th>
+        <th>Errors</th>
+    </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>@($"{Model.TotalJobs:n0}")</td>
-            <td>
-                @($"{Model.FinishedJobs:n0}")
-                (@($"{Model.FinishedPercent:P2}"))
+    <tr>
+        <td>@($"{Model.TotalJobs:n0}")</td>
+        <td>
+            @($"{Model.FinishedJobs:n0}")
+            (@($"{Model.FinishedPercent:P2}"))
         </td>
-            <td>@($"{Model.WordCount:n0}")</td>
-            <td>@($"{Model.Errors}")</td>
+        <td>@($"{Model.WordCount:n0}")</td>
+        <td>@($"{Model.Errors}")</td>
     </tr>
     <tr>
         <td colspan="4">
@@ -49,11 +49,15 @@
                 @Html.ActionLink("Recent workflow calls", "Recent", "WorkflowCall")
                 |
                 @Html.ActionLink("Errors", "Errors", "WorkflowCall")
+                |
+                @Html.ActionLink("Bulk create workflow jobs", "Bulk", "WorkflowCall")
             </p>
         </td>
     </tr>
-</tbody>
+    </tbody>
 </table>
+
+
 
 
 <div class="col-md-12">
