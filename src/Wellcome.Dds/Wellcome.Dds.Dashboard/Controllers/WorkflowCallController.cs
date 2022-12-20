@@ -214,7 +214,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 catch (Exception e)
                 {
                     model.Error = e.Message;
-                    logger.LogError(e, $"Could not create a workflow job, managed {model.WorkflowJobs.Count} out of {model.DdsIdentifiers.Count}.");
+                    logger.LogError(e, "Could not create a workflow job, " +
+                                       "managed {WorkflowJobsCount} out of {DdsIdentifiersCount}", 
+                        model.WorkflowJobs.Count, model.DdsIdentifiers.Count);
                 }
             }
             else
