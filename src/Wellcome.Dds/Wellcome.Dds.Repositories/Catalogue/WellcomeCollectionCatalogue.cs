@@ -125,7 +125,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
             return false;
         }
 
-        public Task<WorkResultPage?> GetWorkResultPage(string query, string identifiers)
+        public Task<WorkResultPage?> GetWorkResultPage(string? query, string identifiers)
         {
             return GetWorkResultPage(query, identifiers, null, 0);
         }

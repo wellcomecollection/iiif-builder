@@ -1,25 +1,20 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using NuGet.Frameworks;
-using Test.Helpers;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories.Catalogue;
 using Xunit;
 
 namespace CatalogueAPI.Tests
 {
+    #nullable disable
     [Trait("Category", "Manual")]
     public class CatalogueTests
     {
-        private readonly Wellcome.Dds.Repositories.Catalogue.WellcomeCollectionCatalogue sut;
-        private readonly JsonSerializerSettings serializer;
+        private readonly WellcomeCollectionCatalogue sut;
 
         public CatalogueTests()
         {

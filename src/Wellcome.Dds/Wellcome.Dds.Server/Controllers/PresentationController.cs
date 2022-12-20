@@ -667,9 +667,9 @@ namespace Wellcome.Dds.Server.Controllers
         /// <summary>
         /// Allow ID domain to be rewritten for local dev convenience
         /// </summary>
-        /// <param name="version"></param>
         /// <param name="aggregator"></param>
         /// <param name="value"></param>
+        /// <param name="chunk"></param>
         /// <returns></returns>
         private string CollectionForAggregationId(string aggregator, string value = null, char chunk = Char.MinValue)
         {

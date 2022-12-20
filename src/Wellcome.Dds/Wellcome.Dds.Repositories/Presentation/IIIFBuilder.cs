@@ -510,7 +510,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         new Manifest {Id = uriPatterns.Manifest(manifestation.Identifier)}
                     };
                 }
-                result.AllContentAnnotations?.Items.AddRange(allW3CPageAnnotations);
+                result.AllContentAnnotations?.Items?.AddRange(allW3CPageAnnotations);
                 result.ImageAnnotations.Items.AddRange(w3CIllustrations);
                 result.ImageAnnotations.Items.AddRange(w3CComposedBlocks);
                 w3CPage.Items.AddRange(allW3CPageAnnotations);
@@ -645,8 +645,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var hitAnnos = new List<string>();
 
                 // we need some temporary jiggery-pokery to massage our old format before and afters (which belong to each Rect)
-                string firstBefore = null;
-                string lastAfter = null;
+                string? firstBefore = null;
+                string? lastAfter = null;
                 string match = "";
                 foreach(Rect rect in sr.Rects)
                 {
@@ -669,8 +669,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                     hitAnnos.Add(anno.Id);
                     resources.Add(anno);
                 }
-                hit.Before = firstBefore;
-                hit.After = lastAfter;
+                hit.Before = firstBefore!;
+                hit.After = lastAfter!;
                 hit.Annotations = hitAnnos.ToArray();
                 //if(hit.Annotations.Length > 1)
                 //{
@@ -713,9 +713,9 @@ namespace Wellcome.Dds.Repositories.Presentation
             // number of rects >= number of hits
             var hits = new List<Hit>();
             var hitAnnotations = new List<string>();
-            Hit currentHit = null;
+            Hit? currentHit = null;
             int currentHitIndex = -1;
-            string after = null;
+            string? after = null;
             
             foreach(var resultRect in resultRects)
             {

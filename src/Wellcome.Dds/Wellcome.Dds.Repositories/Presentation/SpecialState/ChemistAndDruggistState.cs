@@ -35,7 +35,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
             var topCollection = buildResults.First().IIIFResource as Collection;
             // ignore any that have accumulated in the build.
-            topCollection.Items = new List<ICollectionItem>();
+            topCollection!.Items = new List<ICollectionItem>();
             topCollection.Behavior = new List<string> {Behavior.MultiPart};
 
             foreach (var volume in Volumes)

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Community.Microsoft.Extensions.Caching.PostgreSql;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
@@ -164,8 +165,8 @@ namespace Wellcome.Dds.Server
 
             services.AddControllers().AddJsonOptions(
                 options => {
-                    options.JsonSerializerOptions.IgnoreNullValues = true;
                     options.JsonSerializerOptions.WriteIndented = true;
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
                 });
 
             services.AddFeatureManagement();
