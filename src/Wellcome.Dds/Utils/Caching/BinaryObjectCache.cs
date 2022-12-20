@@ -28,7 +28,7 @@ namespace Utils.Caching
             )
         {
             this.logger = logger;
-            options = binaryObjectCacheOptionsByType.Value[typeof(T).FullName];
+            options = binaryObjectCacheOptionsByType.Value[typeof(T).FullName!];
             this.storage = storage;
             this.memoryCache = memoryCache;
             cacheDuration = TimeSpan.FromSeconds(this.options.MemoryCacheSeconds);
@@ -42,7 +42,7 @@ namespace Utils.Caching
 
         public Task DeleteCacheFile(string key)
         {
-            memoryCache?.Remove(GetMemoryCacheKey(key));
+            memoryCache.Remove(GetMemoryCacheKey(key));
             
             string fileName = GetFileName(key);
             
@@ -50,19 +50,19 @@ namespace Utils.Caching
             return storage.DeleteCacheFile(options.Container, fileName);
         }
 
-        public Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource) 
+        public Task<T?> GetCachedObject(string key, Func<Task<T?>> getFromSource) 
             => GetCachedObject(key, getFromSource, null);
 
-        public Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource, Predicate<T> storedVersionIsStale)
+        public Task<T?> GetCachedObject(string key, Func<Task<T?>>? getFromSource, Predicate<T?>? storedVersionIsStale)
             => GetCachedObject(key, getFromSource, storedVersionIsStale, true);
         
-        public Task<T> GetCachedObjectFromLocal(string key, Func<Task<T>> getFromSource)
+        public Task<T?> GetCachedObjectFromLocal(string key, Func<Task<T?>> getFromSource)
             => GetCachedObject(key, getFromSource, null, false);
 
-        private async Task<T> GetCachedObject(string key, Func<Task<T>> getFromSource,
-            Predicate<T> storedVersionIsStale, bool readFromStorage)
+        private async Task<T?> GetCachedObject(string key, Func<Task<T?>>? getFromSource,
+            Predicate<T?>? storedVersionIsStale, bool readFromStorage)
         {
-            T t = default;
+            T? t = default;
             if (options.AvoidCaching)
             {
                 if (getFromSource == null) return t;
@@ -79,7 +79,7 @@ namespace Utils.Caching
 
             var memoryCacheKey = GetMemoryCacheKey(key);
 
-            if (memoryCache != null && memoryCacheEnabled)
+            if (memoryCacheEnabled)
             {
                 t = memoryCache.Get(memoryCacheKey) as T;
             }
@@ -89,56 +89,54 @@ namespace Utils.Caching
             bool memoryCacheMiss = false;
             var cachedFile = GetCachedFile(key);
 
-            using (var processLock = await GetLock(key))
+            using var processLock = await GetLock(key);
+            // check in memoryCache cache again
+            if (memoryCacheEnabled)
             {
-                // check in memoryCache cache again
-                if (memoryCache != null && memoryCacheEnabled)
-                {
-                    t = memoryCache.Get(memoryCacheKey) as T;
-                }
+                t = memoryCache.Get(memoryCacheKey) as T;
+            }
 
-                if (t == null)
-                {
-                    memoryCacheMiss = true;
-                    if (readFromStorage)
-                    {
-                        if (logger.IsEnabled(LogLevel.Debug))
-                        {
-                            logger.LogDebug("Cache MISS for {MemoryCacheKey}, will attempt read from disk",
-                                memoryCacheKey);
-                        }
-
-                        t = await storage.Read<T>(cachedFile);
-                    }
-                }
-
-                if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
-                {
-                    t = null;
-                }
-
-                if (t == null)
+            if (t == null)
+            {
+                memoryCacheMiss = true;
+                if (readFromStorage)
                 {
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogDebug("Disk MISS for {MemoryCacheKey}, will attempt read from source",
+                        logger.LogDebug("Cache MISS for {MemoryCacheKey}, will attempt read from disk",
                             memoryCacheKey);
                     }
 
-                    if (getFromSource != null)
-                    {
-                        t = await getFromSource();
-                        if (t != null)
-                        {
-                            await storage.Write(t, cachedFile, options.WriteFailThrowsException);
-                        }
-                    }
+                    t = await storage.Read<T>(cachedFile);
+                }
+            }
+
+            if (t != null && storedVersionIsStale != null && storedVersionIsStale(t))
+            {
+                t = null;
+            }
+
+            if (t == null)
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("Disk MISS for {MemoryCacheKey}, will attempt read from source",
+                        memoryCacheKey);
                 }
 
-                if (t != null && memoryCacheMiss && memoryCache != null && memoryCacheEnabled)
+                if (getFromSource != null)
                 {
-                    PutInMemoryCache(t, memoryCacheKey);
+                    t = await getFromSource();
+                    if (t != null)
+                    {
+                        await storage.Write(t, cachedFile, options.WriteFailThrowsException);
+                    }
                 }
+            }
+
+            if (t != null && memoryCacheMiss && memoryCacheEnabled)
+            {
+                PutInMemoryCache(t, memoryCacheKey);
             }
 
             return t;

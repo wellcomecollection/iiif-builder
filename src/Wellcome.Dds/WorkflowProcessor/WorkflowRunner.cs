@@ -211,7 +211,7 @@ namespace WorkflowProcessor
             }
             else
             {
-                iiif2BuildResults = new MultipleBuildResult(); // empty.
+                iiif2BuildResults = new MultipleBuildResult(job.Identifier); // empty.
             }
             
             // Now we save them all to S3.

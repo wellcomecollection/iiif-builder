@@ -82,7 +82,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
-            var buildResults = new MultipleBuildResult {Identifier = ddsId.PackageIdentifier};
+            var buildResults = new MultipleBuildResult(ddsId.PackageIdentifier);
             DdsIdentifier manifestationId = "start";
             try
             {
@@ -158,7 +158,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     state.Volumes.Add(volume);
                     var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
                     // populate volume fields
-                    volume.Volume = metsVolume.SectionMetadata.Number;
+                    volume.Volume = metsVolume!.SectionMetadata.Number;
                     volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
                     volume.NavDate = state.GetNavDate(volume.DisplayDate);
                     volume.Label = metsVolume.SectionMetadata.Title;
@@ -189,7 +189,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null)
         {
             // only this identifier, not all for the b number.
-            var buildResults = new MultipleBuildResult();
+            var buildResults = new MultipleBuildResult(ddsId);
             try
             {
                 logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
@@ -353,11 +353,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                             throw new IIIFBuildStateException("State is required to build AV resources");
                         }
                         state.AVState ??= new AVState();
-                        state.AVState.MultipleManifestationMembers.Add(new MultipleManifestationMember
-                        {
-                            Id = metsManifestation.Identifier,
-                            Type = type
-                        });
+                        state.AVState.MultipleManifestationMembers.Add(
+                            new MultipleManifestationMember(metsManifestation.Identifier,type));
                     }
                     var order = metsManifestation.Order;
                     if (!order.HasValue || order < 1)

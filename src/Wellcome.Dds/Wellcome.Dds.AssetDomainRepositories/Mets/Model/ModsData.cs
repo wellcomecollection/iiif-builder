@@ -45,15 +45,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             // <mods:note type="noteType">value</mods:note>
             Leader6 = ExtractSingleModsNoteField(modsDoc, "leader6");
-            Title = HtmlUtils.TextOnly(modsDoc.GetDesendantElementValue(XNames.ModsTitle));
-            SubTitle = HtmlUtils.TextOnly(modsDoc.GetDesendantElementValue(XNames.ModsSubTitle));
-            OriginPublisher = modsDoc.GetDesendantElementValue(XNames.ModsOriginPublisher);
+            Title = HtmlUtils.TextOnly(modsDoc.GetDescendantElementValue(XNames.ModsTitle));
+            SubTitle = HtmlUtils.TextOnly(modsDoc.GetDescendantElementValue(XNames.ModsSubTitle));
+            OriginPublisher = modsDoc.GetDescendantElementValue(XNames.ModsOriginPublisher);
             if (!OriginPublisher.HasText())
             {
-                OriginPublisher = modsDoc.GetDesendantElementValue(XNames.ModsPublisher);
+                OriginPublisher = modsDoc.GetDescendantElementValue(XNames.ModsPublisher);
             }
             DisplayDate = GetCleanDisplayDate(modsDoc);
-            RecordIdentifier = modsDoc.GetDesendantElementValue(XNames.ModsRecordIdentifier);
+            RecordIdentifier = modsDoc.GetDescendantElementValue(XNames.ModsRecordIdentifier);
             var accessConditions = modsDoc.Root.Elements(XNames.ModsAccessCondition).ToList();
 
             var statusAccessConditionElements = accessConditions
@@ -131,7 +131,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     }
                 }
             }
-            Number = modsDoc.GetDesendantElementValue(XNames.ModsNumber);
+            Number = modsDoc.GetDescendantElementValue(XNames.ModsNumber);
         }
 
         private string ExtractSingleModsNoteField(XDocument modsDoc, string noteType)
@@ -152,7 +152,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             int cutoffYear = DateTime.Now.AddYears(10).Year;
             try
             {
-                foreach (var elementValue in modsDoc.GetDesendantElementValues(XNames.ModsDateIssued))
+                foreach (var elementValue in modsDoc.GetDescendantElementValues(XNames.ModsDateIssued))
                 {
                     if (elementValue.HasText())
                     {
@@ -179,7 +179,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         private void SetCopyAndVolumeNumbers(XDocument modsDoc, ModsData modsData)
         {
-            var volumeNumber = modsDoc.GetDesendantElementValue(XNames.WtVolumeNumber);
+            var volumeNumber = modsDoc.GetDescendantElementValue(XNames.WtVolumeNumber);
             if (volumeNumber.HasText())
             {
                 modsData.VolumeNumber = Convert.ToInt32(volumeNumber);
@@ -188,7 +188,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 modsData.VolumeNumber = -1;
             }
-            var copyNumber = modsDoc.GetDesendantElementValue(XNames.WtCopyNumber);
+            var copyNumber = modsDoc.GetDescendantElementValue(XNames.WtCopyNumber);
             if (copyNumber.HasText())
             {
                 modsData.CopyNumber = Convert.ToInt32(copyNumber);

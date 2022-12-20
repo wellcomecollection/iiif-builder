@@ -46,8 +46,13 @@ namespace Utils.Aws.S3
         public Task DeleteCacheFile(string container, string fileName)
             => amazonS3.DeleteObjectAsync(container, fileName);
 
-        public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
+        public async Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
+            if (fileInfo.Container.IsNullOrWhiteSpace())
+            {
+                logger.LogError("No Container specified for ISimpleStoredFileInfo object");
+                return default;
+            }
             var path = options.ReadProtobuf ? GetProtobufKey(fileInfo.Path) : fileInfo.Path;
             try
             {

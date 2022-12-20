@@ -271,7 +271,7 @@ namespace Utils
         /// </summary>
         /// <param name="input">The HTML to clean</param>
         /// <returns></returns>
-        public static string StripEmptyParagraphTags(string input)
+        public static string? StripEmptyParagraphTags(string? input)
         {
             if (input != null)
             {
@@ -289,7 +289,7 @@ namespace Utils
         /// </summary>
         /// <param name="input">The HTML to clean</param>
         /// <returns></returns>
-        public static string StripEmptyOrNbspParagraphTags(string input)
+        public static string? StripEmptyOrNbspParagraphTags(string? input)
         {
             if (input != null)
             {
@@ -305,7 +305,7 @@ namespace Utils
         /// </summary>
         /// <param name="markup"></param>
         /// <returns></returns>
-        public static string TextOnly(string markup)
+        public static string? TextOnly(string? markup)
         {
             if (markup != null)
             {
@@ -314,7 +314,7 @@ namespace Utils
             return null;
         }
 
-        public static string TextOnlyWithSpaces(string markup)
+        public static string? TextOnlyWithSpaces(string? markup)
         {
             if (markup != null)
             {
@@ -333,7 +333,7 @@ namespace Utils
         /// Usually, the CSS won't be designed for that scenario and will be adding its own borders/margins
         /// to images in text.
         /// </summary>
-        public static string StripParagraphTagsAroundImages(string input)
+        public static string? StripParagraphTagsAroundImages(string? input)
         {
             if (input != null)
             {
@@ -351,7 +351,7 @@ namespace Utils
         /// This is fine in a long segment of body text but for some more tightly controlled designs
         /// (e.g., ImageCallout) the CSS isn't designed to style extra p tags. 
         /// </summary>
-        public static string StripParagraphTagsAroundAnchorTags(string input)
+        public static string? StripParagraphTagsAroundAnchorTags(string? input)
         {
             if (input != null)
             {
@@ -368,7 +368,7 @@ namespace Utils
         /// <param name="input">An HTML string</param>
         /// <param name="elementRegex">a Regular Expression that will match the HTML element</param>
         /// <returns></returns>
-        public static string StripParagraphTagsAroundElement(string input, string elementRegex)
+        public static string? StripParagraphTagsAroundElement(string? input, string elementRegex)
         {
             if (input != null)
             {
@@ -451,7 +451,7 @@ namespace Utils
         /// </summary>
         /// <param name="raw">A string of html (or plain text)</param>
         /// <returns>html with at least one p tag - i.e., no "free-standing" text</returns>
-        public static string EnsureParagraphTags(string raw)
+        public static string? EnsureParagraphTags(string? raw)
         {
             if (raw == null) return null;
             if (raw.IndexOf("<p", System.StringComparison.Ordinal) == -1)
@@ -468,7 +468,7 @@ namespace Utils
         /// </summary>
         /// <param name="raw"></param>
         /// <returns></returns>
-        public static string ConvertDoubleBreakTagsToParas(string raw)
+        public static string? ConvertDoubleBreakTagsToParas(string? raw)
         {
             // don't do this if the supplied string already contains paragraphs
             if (raw == null) return null;

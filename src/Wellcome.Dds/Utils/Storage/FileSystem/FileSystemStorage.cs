@@ -32,10 +32,10 @@ namespace Utils.Storage.FileSystem
             return Task.CompletedTask;
         }
 
-        public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
+        public async Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
             if (!await fileInfo.DoesExist()) return null;
-            T t = default(T);
+            var t = default(T);
             try
             {
                 IFormatter formatter = new BinaryFormatter();

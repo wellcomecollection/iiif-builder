@@ -33,7 +33,8 @@ namespace Utils.Tests.Caching
                 MemoryCacheSeconds = cacheSeconds,
                 AvoidCaching = avoidCaching,
                 AvoidSaving = avoidSaving,
-                Container = ContainerName
+                Container = ContainerName,
+                WriteFailThrowsException = false
             };
             var byType = new BinaryObjectCacheOptionsByType();
             byType["Utils.Tests.Caching.FakeStoredFileInfo"] = fakeStoredFileInfoOptions;

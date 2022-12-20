@@ -23,8 +23,10 @@ using Wellcome.Dds.Common;
 
 namespace PdfThumbGenerator
 {
+    // ReSharper disable once UnusedType.Global
     class Program
     {
+        // ReSharper disable once UnusedMember.Local
         static async Task Main(string file = @"C:\temp\Digitised_PDF_list.csv")
         {
             await Host.CreateDefaultBuilder()
@@ -38,7 +40,7 @@ namespace PdfThumbGenerator
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                         .AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>))
                         .AddSingleton<PdfThumbnailUtil>()
-                        .AddHostedService<PdfGenerator>(provider =>
+                        .AddHostedService(provider =>
                             new PdfGenerator(
                                 provider.GetService<ILogger<PdfGenerator>>(),
                                 provider.GetService<IMetsRepository>(),
@@ -71,6 +73,7 @@ namespace PdfThumbGenerator
         private readonly PdfThumbnailUtil pdfThumbnailUtil;
         private readonly string file;
 
+
         public PdfGenerator(ILogger<PdfGenerator> logger, IMetsRepository metsRepository,
             PdfThumbnailUtil pdfThumbnailUtil, string file)
         {
@@ -79,6 +82,7 @@ namespace PdfThumbGenerator
             this.pdfThumbnailUtil = pdfThumbnailUtil;
             this.file = file;
         }
+
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -93,6 +97,7 @@ namespace PdfThumbGenerator
             }
         }
 
+ 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         private static List<BornDigitalPdf> GetBornDigitalPdfs(string file)
@@ -110,7 +115,7 @@ namespace PdfThumbGenerator
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
                 IMetsResource resource = await metsRepository.GetAsync(pdf.Identifier);
-                if (resource is ICollection multipleManifestation)
+                if (resource is ICollection)
                 {
                     throw new InvalidOperationException(
                         $"{pdf.Identifier} is a multiple manifestation - update handling");

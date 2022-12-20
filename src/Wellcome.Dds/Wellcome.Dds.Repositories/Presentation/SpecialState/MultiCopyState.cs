@@ -10,6 +10,10 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 {
     public class CopyAndVolume
     {
+        public CopyAndVolume(string id)
+        {
+            Id = id;
+        }
         public string Id { get; set; }
         public int CopyNumber { get; set; }
         public int VolumeNumber { get; set; }

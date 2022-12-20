@@ -36,7 +36,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             if (!initialised) Init();
             const string transferPrefix = "%transferDirectory%objects/";
-            var value = premisObjectXElement.GetDesendantElementValue(XNames.PremisOriginalName);
+            var value = premisObjectXElement.GetDescendantElementValue(XNames.PremisOriginalName);
             if (value == null || !value.Contains(transferPrefix))
             {
                 throw new NotSupportedException($"Premis original name does not contain transfer prefix: {value}");
@@ -59,7 +59,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public DateTime? GetCreatedDate()
         {
             if (!initialised) Init();
-            var createdDateString = premisObjectXElement.GetDesendantElementValue(XNames.PremisDateCreatedByApplication);
+            var createdDateString = premisObjectXElement.GetDescendantElementValue(XNames.PremisDateCreatedByApplication);
             if(DateTime.TryParse(createdDateString, out var result))
             {
                 return result;
@@ -75,10 +75,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             foreach (var oid in objectIDs)
             {
                 // This only works for Goobi METS
-                var oidType = oid.GetDesendantElementValue(XNames.PremisObjectIdentifierType);
+                var oidType = oid.GetDescendantElementValue(XNames.PremisObjectIdentifierType);
                 if (oidType == "local")
                 {
-                    return oid.GetDesendantElementValue(XNames.PremisObjectIdentifierValue);
+                    return oid.GetDescendantElementValue(XNames.PremisObjectIdentifierValue);
                 }
             }
             // didn't find any objectIDs, look for born digital elements
@@ -97,25 +97,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string GetFileSize()
         {
             if (!initialised) Init();
-            return premisObjectXElement.GetDesendantElementValue(XNames.PremisSize);
+            return premisObjectXElement.GetDescendantElementValue(XNames.PremisSize);
         }
 
         public string GetFormatName()
         {
             if (!initialised) Init();
-            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatName);
+            return premisObjectXElement.GetDescendantElementValue(XNames.PremisFormatName);
         }
 
         public string GetFormatVersion()
         {
             if (!initialised) Init();
-            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatVersion);
+            return premisObjectXElement.GetDescendantElementValue(XNames.PremisFormatVersion);
         }
 
         public string GetPronomKey()
         {
             if (!initialised) Init();
-            return premisObjectXElement.GetDesendantElementValue(XNames.PremisFormatRegistryKey);
+            return premisObjectXElement.GetDescendantElementValue(XNames.PremisFormatRegistryKey);
         }
 
         public string GetAssetId()
@@ -298,7 +298,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 XNames.FitsTool, "name", "Exiftool").FirstOrDefault();
             if (fitsExifOutput != null)
             {
-                string durationValue = null;
                 string widthValue = null;
                 string heightValue = null;
                 
@@ -315,7 +314,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 var durationCandidates = new[] { "PlayDuration", "Duration", "LastTimeStamp"};
                 foreach (var elementName in durationCandidates)
                 {
-                    var stringDuration = fitsExifOutput.GetDesendantElementValue(elementName);
+                    var stringDuration = fitsExifOutput.GetDescendantElementValue(elementName);
                     if (stringDuration.HasText())
                     {
                         var parsedDuration = ParseDuration(stringDuration);
@@ -334,8 +333,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     mediaDimensions.Duration = longest.Value;
                 }
 
-                var imageWidth = fitsExifOutput.GetDesendantElementValue("ImageWidth");
-                var imageHeight = fitsExifOutput.GetDesendantElementValue("ImageHeight");
+                var imageWidth = fitsExifOutput.GetDescendantElementValue("ImageWidth");
+                var imageHeight = fitsExifOutput.GetDescendantElementValue("ImageHeight");
                 if (imageWidth.HasText())
                 {
                     widthValue = imageWidth;
@@ -365,14 +364,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             if (mediaDimensions.Width.GetValueOrDefault() <= 0)
             {
                 mediaDimensions.Width = track
-                    .GetDesendantElementValue(XNames.MediaInfoWidth)
+                    .GetDescendantElementValue(XNames.MediaInfoWidth)
                     .ToNullableInt();
             }
 
             if (mediaDimensions.Height.GetValueOrDefault() <= 0)
             {
                 mediaDimensions.Height = track
-                    .GetDesendantElementValue(XNames.MediaInfoHeight)
+                    .GetDescendantElementValue(XNames.MediaInfoHeight)
                     .ToNullableInt();
             }
         }
@@ -382,7 +381,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             if (mediaDimensions.Duration.GetValueOrDefault() <= 0)
             {
                 mediaDimensions.Duration = track
-                    .GetDesendantElementValue(XNames.MediaInfoDuration)
+                    .GetDescendantElementValue(XNames.MediaInfoDuration)
                     .ToNullableDouble();
                 mediaDimensions.DurationDisplay = mediaDimensions.Duration.ToString() + "s";
             }
@@ -454,7 +453,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             var accessCondition =
-                premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsGrantedNote);
+                premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisRightsGrantedNote);
 
             if (!Common.AccessCondition.IsValid(accessCondition))
             {
@@ -462,19 +461,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             rightsStatement = new PremisRightsStatement
             {
-                Identifier = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsStatementIdentifier),
-                Basis = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisRightsBasis),
+                Identifier = premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisRightsStatementIdentifier),
+                Basis = premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisRightsBasis),
                 AccessCondition = accessCondition
             };
 
             switch (rightsStatement.Basis)
             {
                 case "License":
-                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisLicenseNote);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisLicenseNote);
                     break;
                 case "Copyright":
-                    rightsStatement.Statement = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightNote);
-                    rightsStatement.Status = premisRightsStatementXElement.GetDesendantElementValue(XNames.PremisCopyrightStatus);
+                    rightsStatement.Statement = premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisCopyrightNote);
+                    rightsStatement.Status = premisRightsStatementXElement.GetDescendantElementValue(XNames.PremisCopyrightStatus);
                     break;
                 default:
                     throw new NotSupportedException($"Unknown rights statement basis: {rightsStatement.Basis}");

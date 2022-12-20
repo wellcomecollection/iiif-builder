@@ -60,7 +60,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             
             // We're looking at a *paged* sequence. This behavior must have been set before we start with the re-arranging.
             
-            string knownRectoCanvasId = null;
+            string? knownRectoCanvasId = null;
             // Allow for more than one back cover range, and more than one back cover canvas in each range!
             // Assume that within the sections the back covers are in reading order in the METS.
             if (manifest.Structures != null && manifest.Structures.Count > 0)
@@ -77,20 +77,25 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         manifest.Structures.ShiftElement(currentRangePos, requiredRangePos);
                     }
-                    foreach (var structuralLocation in range.Items.AsEnumerable().Reverse())
-                    {
-                        var canvas = structuralLocation as Canvas;
-                        if (canvas == null)
+
+                    if (range.Items != null)
+                        foreach (var structuralLocation in range.Items.AsEnumerable().Reverse())
                         {
-                            continue;
+                            var canvas = structuralLocation as Canvas;
+                            if (canvas == null)
+                            {
+                                continue;
+                            }
+
+                            int currentCanvasPos = manifest.Items.FindIndex(c => c.Id == canvas.Id);
+                            if (currentCanvasPos != requiredCanvasPos)
+                            {
+                                manifest.Items.ShiftElement(currentCanvasPos, requiredCanvasPos);
+                            }
+
+                            requiredCanvasPos--;
                         }
-                        int currentCanvasPos = manifest.Items.FindIndex(c => c.Id == canvas.Id);
-                        if (currentCanvasPos != requiredCanvasPos)
-                        {
-                            manifest.Items.ShiftElement(currentCanvasPos, requiredCanvasPos);
-                        }
-                        requiredCanvasPos--;
-                    }
+
                     requiredRangePos--;
                 }
                 var titlePageRange = manifest.Structures.FirstOrDefault(r => SafeLabel(r) == TitlePage);

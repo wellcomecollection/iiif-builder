@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Wellcome.Dds.Catalogue;
@@ -10,20 +8,13 @@ namespace Wellcome.Dds.Repositories
 {
     public class Dds : IDds
     {
-        private DdsOptions ddsOptions;
-        private DdsContext ddsContext;
-        private ILogger<Dds> logger;
-        private Synchroniser synchroniser;
+        private readonly DdsContext ddsContext;
+        private readonly Synchroniser synchroniser;
 
-        public Dds(
-            IOptions<DdsOptions> options, 
-            DdsContext ddsContext, 
-            ILogger<Dds> logger,
+        public Dds(DdsContext ddsContext,
             Synchroniser synchroniser)
         {
-            this.ddsOptions = options.Value;
             this.ddsContext = ddsContext;
-            this.logger = logger;
             this.synchroniser = synchroniser;
         }
 
@@ -42,7 +33,7 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetTotalsByAssetType();
         }
 
-        public async Task RefreshManifestations(DdsIdentifier ddsId, Work work = null)
+        public async Task RefreshManifestations(DdsIdentifier ddsId, Work? work = null)
         {
             await synchroniser.RefreshDdsManifestations(ddsId, work);
         }
@@ -71,7 +62,7 @@ namespace Wellcome.Dds.Repositories
                 .ToList();
         }
 
-        public Manifestation GetManifestation(string id)
+        public Manifestation? GetManifestation(string id)
         {
             return ddsContext.Manifestations.Find(id);
         }

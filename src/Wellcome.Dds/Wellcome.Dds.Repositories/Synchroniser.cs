@@ -215,7 +215,7 @@ namespace Wellcome.Dds.Repositories
                                 if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
-                                    IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
+                                    IPhysicalFile? catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
                                         ddsManifestation.CatalogueThumbnailDimensions = catThumbAsset.GetAvailableSizeAsString();

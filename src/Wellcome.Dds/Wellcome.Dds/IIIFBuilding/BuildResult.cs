@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -27,7 +28,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// </summary>
         public BuildOutcome Outcome { get; set; }
         
-        public string Message { get; set; }
+        public string? Message { get; set; }
         
         /// <summary>
         /// The IIIF Presentation Version this BuildResult represents.
@@ -37,7 +38,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <summary>
         /// Generated IIIF result
         /// </summary>
-        public JsonLdBase IIIFResource { get; set; }
+        public JsonLdBase? IIIFResource { get; set; }
 
         // Track what kinds of assets we are building Manifests for
         public int ImageCount { get; set; } = 0;
@@ -60,6 +61,11 @@ namespace Wellcome.Dds.IIIFBuilding
 
     public class MultipleBuildResult : IEnumerable<BuildResult>
     {
+        public MultipleBuildResult(string identifier)
+        {
+            Identifier = identifier;
+        }
+        
         /// <summary>
         /// The package identifier
         /// </summary>
@@ -93,7 +99,7 @@ namespace Wellcome.Dds.IIIFBuilding
         public BuildResult? this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
 
         public BuildOutcome Outcome { get; set; }
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         public IEnumerator<BuildResult> GetEnumerator()
         {

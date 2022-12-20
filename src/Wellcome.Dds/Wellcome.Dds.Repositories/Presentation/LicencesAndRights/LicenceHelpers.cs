@@ -5,7 +5,7 @@ namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights
 {
     public class LicenceHelpers
     {
-        public static string GetUsageWithHtmlLinks(string rawUsage)
+        public static string? GetUsageWithHtmlLinks(string rawUsage)
         {
             if (string.IsNullOrWhiteSpace(rawUsage))
             {

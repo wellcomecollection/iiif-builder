@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Versioning;
 using IIIF;
 using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
@@ -311,7 +310,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 LanguageMap canvasLabel;
                 if (isBornDigitalManifestation) 
                 {
-                    canvasLabel = Lang.Map("none", physicalFile.OriginalName.GetFileName());
+                    canvasLabel = Lang.Map("none", physicalFile.OriginalName.GetFileName()!);
                 }
                 else if (physicalFile.OrderLabel.HasText())
                 {
@@ -1043,7 +1042,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 pf => pf.Id, pf => pf.StorageIdentifier);
             
             // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
-            var wdlRoot = MakeRangeFromMetsStructure(
+            Range wdlRoot = MakeRangeFromMetsStructure(
                 metsManifestation.Identifier,
                 physIdDict,
                 metsManifestation.RootStructRange, 
@@ -1055,7 +1054,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // we now have the equivalent of old DDS Section - but the rootsection IS the equivalent
             // of the manifest, which we already have. We don't need a top level Range for everything,
             // we're only interested in Child structure.
-            if (wdlRoot != null && wdlRoot.Items.HasItems())
+            if (wdlRoot.Items.HasItems())
             {
                 var topRanges = wdlRoot.Items.Where(r => r is Range).ToList();
                 if (topRanges.HasItems())
@@ -1067,7 +1066,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private Range? ConvertFirstChildToRoot(Range wdlRoot)
+        private Range ConvertFirstChildToRoot(Range wdlRoot)
         {
             var newRoot = (Range?) wdlRoot.Items?.FirstOrDefault(r => r is Range);
             if (newRoot == null) return wdlRoot;
@@ -1075,7 +1074,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return newRoot;
         }
 
-        private bool IsManuscriptStructure(IStructRange rootStructRange)
+        private bool IsManuscriptStructure(IStructRange? rootStructRange)
         {
             // return (
             //     rootSection != null
@@ -1100,7 +1099,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             string manifestationId,
             Dictionary<string, string> physIdDict,
             IStructRange structRange,
-            ISectionMetadata parentSectionMetadata)
+            ISectionMetadata? parentSectionMetadata)
         {
             var range = new Range
             {
@@ -1119,13 +1118,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 range.Label = GetMappedRangeLabel(structRange);
             }
             
-            
             // physIdDict contains the "significant" assets; we should only add these, not all the assets
             var canvases = new List<Canvas>(); // this was called sectionAssets, int list
             foreach (string physicalFileId in structRange.PhysicalFileIds)
             {
-                string storageIdentifier = null;
-                if (physIdDict.TryGetValue(physicalFileId, out storageIdentifier))
+                if (physIdDict.TryGetValue(physicalFileId, out var storageIdentifier))
                 {
                     canvases.Add(new Canvas
                     {
@@ -1314,12 +1311,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                         $"State is required to build {metsManifestation.Identifier}");
                 }
                 state.MultiCopyState ??= new MultiCopyState();
-                state.MultiCopyState.CopyAndVolumes[metsManifestation.Identifier] = new CopyAndVolume
-                {
-                    Id = metsManifestation.Identifier,
-                    CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
-                    VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
-                };
+                state.MultiCopyState.CopyAndVolumes[metsManifestation.Identifier] = 
+                    new CopyAndVolume(metsManifestation.Identifier)
+                    {
+                        CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
+                        VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
+                    };
             }
         }
 
@@ -1337,25 +1334,22 @@ namespace Wellcome.Dds.Repositories.Presentation
             var relevantBuildResults = buildResults
                 .Where(br => br.IIIFResource is Manifest)
                 .Where(br =>
-                    ((Manifest) br.IIIFResource).Items.HasItems() &&
-                    ((Manifest) br.IIIFResource).Items.Exists(c => c.Duration > 0));
+                    ((Manifest) br.IIIFResource!).Items.HasItems() &&
+                    ((Manifest) br.IIIFResource).Items!.Exists(c => c.Duration > 0));
 
             
             string newId = buildResults.Identifier;
             var avCanvases = new List<Canvas>();
-            BuildResult firstManifestationBuildResult = null;
+            BuildResult? firstManifestationBuildResult = null;
             foreach (var relevantBuildResult in relevantBuildResults)
             {
-                var manifest = (Manifest) relevantBuildResult.IIIFResource;
-                if (firstManifestationBuildResult == null)
-                {
-                    firstManifestationBuildResult = relevantBuildResult;
-                }
-                var canvases = manifest.Items.Where(c => c.Duration > 0);
+                Manifest? manifest = (Manifest?) relevantBuildResult.IIIFResource;
+                firstManifestationBuildResult ??= relevantBuildResult;
+                var canvases = manifest!.Items!.Where(c => c.Duration > 0);
                 // we now have the right Manifest, but it has the wrong Identifiers everywhere...
                 string oldId = relevantBuildResult.Id;
                 relevantBuildResult.Id = newId;
-                manifest.Id = manifest.Id.Replace(oldId, newId);
+                manifest.Id = manifest.Id!.Replace(oldId, newId);
                 if (manifest.PartOf.HasItems())
                 {
                     // This is no longer part of a collection
@@ -1444,20 +1438,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             string oldIdPath = $"/{oldId}/";
             string newIdPath = $"/{newId}/";
-            canvas.Id = canvas.Id.Replace(oldIdPath, newIdPath);
-            canvas.Items[0].Id = canvas.Items[0].Id.Replace(oldIdPath, newIdPath);
-            var anno = (PaintingAnnotation) canvas.Items[0].Items[0];
-            anno.Id = anno.Id.Replace(oldIdPath, newIdPath);
-            var target = anno.Target as ResourceBase;
-            if (target != null)
+            canvas.Id = canvas.Id!.Replace(oldIdPath, newIdPath);
+            var annoPage = canvas.Items![0];
+            annoPage.Id = annoPage.Id!.Replace(oldIdPath, newIdPath);
+            var anno = (PaintingAnnotation) annoPage.Items![0];
+            anno.Id = anno.Id!.Replace(oldIdPath, newIdPath);
+            if (anno.Target is ResourceBase target)
             {
-                target.Id = target.Id.Replace(oldIdPath, newIdPath);
+                target.Id = target.Id!.Replace(oldIdPath, newIdPath);
             }
 
             if (!changeImageBody) return;
             if (anno.Body is Image image)
             {
-                image.Id = image.Id.Replace(oldId, newId);
+                image.Id = image.Id!.Replace(oldId, newId);
             }
         }
 
@@ -1466,7 +1460,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var mdFormat = manifestationMetadata.Manifestations.FirstOrDefault()?.RootSectionType;
             var format = mdFormat.HasText() ? mdFormat : "n/a";
 
-            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal());
+            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal()!);
             var institution = partner != null ? partner.Label : "n/a";
 
             var mdDigicode = manifestationMetadata.Metadata.GetDigitalCollectionCodes().FirstOrDefault();

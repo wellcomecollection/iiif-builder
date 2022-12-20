@@ -16,7 +16,7 @@ namespace Utils
             FileSizeSuffixes = new[] { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
         }
         
-        public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string s)
+        public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? s)
         {
             return string.IsNullOrWhiteSpace(s);
         }
@@ -29,7 +29,7 @@ namespace Utils
         /// </remarks>
         /// <param name="str"></param>
         /// <returns></returns>
-        public static bool HasText([NotNullWhen(true)] this string str) => !string.IsNullOrWhiteSpace(str);
+        public static bool HasText([NotNullWhen(true)] this string? str) => !string.IsNullOrWhiteSpace(str);
 
         /// <summary> 
         /// Removes separator from the start of str if it's there, otherwise leave it alone.
@@ -41,7 +41,7 @@ namespace Utils
         /// <param name="str"></param>
         /// <param name="start"></param>
         /// <returns></returns>
-        public static string RemoveStart(this string str, string start)
+        public static string? RemoveStart(this string? str, string start)
         {
             if (str == null) return null;
             if (str == string.Empty) return string.Empty;
@@ -56,15 +56,12 @@ namespace Utils
 
         public static DateTime? GetNullableDateTime(string s)
         {
-            DateTime date;
-            if (DateTime.TryParse(s, out date))
+            if (DateTime.TryParse(s, out var date))
             {
                 return date;
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
 
@@ -89,7 +86,7 @@ namespace Utils
 
         /// <summary>
         /// remove leading and trailing characters that are not alphanumeric
-        /// TODO - imporve this, not very efficient
+        /// TODO - improve this, not very efficient
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
@@ -148,7 +145,7 @@ namespace Utils
         /// <param name="s"></param>
         /// <param name="exceptions"></param>
         /// <returns></returns>
-        public static string ToAlphanumericOrWhitespace(this string s, char[] exceptions = null)
+        public static string ToAlphanumericOrWhitespace(this string s, char[]? exceptions = null)
         {
             var sb = new StringBuilder();
             foreach (char c in s)
@@ -215,15 +212,13 @@ namespace Utils
         /// <param name="source"></param>
         /// <param name="delimiter"></param>
         /// <returns></returns>
-        public static IEnumerable<string> SplitByDelimiter(this string source, char delimiter)
+        public static IEnumerable<string>? SplitByDelimiter(this string? source, char delimiter)
         {
-            if (!String.IsNullOrEmpty(source))
-            {
-                // this trims whitespace by default - implement another one if required
-                var strings = source.Split(new[] { delimiter });
-                return strings.Where(s => s.HasText()).Select(s => s.Trim());
-            }
-            return null;
+            if (string.IsNullOrEmpty(source)) return null;
+            
+            // this trims whitespace by default - implement another one if required
+            var strings = source.Split(new[] { delimiter });
+            return strings.Where(s => s.HasText()).Select(s => s.Trim());
         }
 
 
@@ -332,27 +327,27 @@ namespace Utils
 
         public static string GetFriendlyAge(DateTime dt)
         {
-            DateTime dttz = dt.ToLocalTime();
-            var s = dttz.ToString("yyyy-MM-dd HH:mm:ss") + " (";
+            DateTime localTime = dt.ToLocalTime();
+            var s = localTime.ToString("yyyy-MM-dd HH:mm:ss") + " (";
             var dtNow = DateTime.Now;
-            if (dttz.Date == dtNow.Date)
+            if (localTime.Date == dtNow.Date)
             {
                 s += "today";
             }
-            else if (dttz.Date == dtNow.AddDays(-1).Date)
+            else if (localTime.Date == dtNow.AddDays(-1).Date)
             {
                 s += "yesterday";
             }
             else
             {
-                var td = (dtNow.Date - dttz).TotalDays;
+                var td = (dtNow.Date - localTime).TotalDays;
                 var d = Math.Ceiling(td);
                 s += d + " days ago";
             }
             return s + ")";
         }
         
-        public static string GetFileName(this string s)
+        public static string? GetFileName(this string s)
         {
             var parts = s.Split(new [] {'/', '\\'});
             return parts.LastOrDefault();
@@ -360,7 +355,11 @@ namespace Utils
         
         public static string GetFileExtension(this string s)
         {
-            var fn = GetFileName(s);
+            string? fn = GetFileName(s);
+            if (fn.IsNullOrWhiteSpace())
+            {
+                return String.Empty;
+            }
             var idx = fn.LastIndexOf('.');
             if (idx != -1 && fn.Length > idx)
             {
@@ -464,16 +463,9 @@ namespace Utils
         /// </summary>
         /// <param name="tests"></param>
         /// <returns></returns>
-        public static bool AnyHaveText(params string[] tests)
+        public static bool AnyHaveText(params string?[] tests)
         {
-            foreach (string s in tests)
-            {
-                if (s.HasText())
-                {
-                    return true;
-                }
-            }
-            return false;
+            return tests.Any(s => s.HasText());
         }
 
         /// <summary>
@@ -555,9 +547,9 @@ namespace Utils
         /// <param name="arguments"></param>
         /// <param name="permittedOperations"></param>
         /// <returns></returns>
-        public static (string operation, string parameter) GetOperationAndParameter(string[] arguments, string[] permittedOperations)
+        public static (string? operation, string? parameter) GetOperationAndParameter(string[] arguments, string[] permittedOperations)
         {
-            string operation = null, parameter = null;
+            string? operation = null, parameter = null;
             for (int i = 0; i < arguments.Length; i++)
             {
                 var op = arguments[i];
@@ -584,6 +576,16 @@ namespace Utils
         {
             if (double.TryParse(s, out var i)) return i;
             return null;
+        }
+        
+        
+        private static readonly Regex Roman = new Regex(
+            "^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$",
+            RegexOptions.IgnoreCase);
+
+        public static bool IsRomanNumeral(string s)
+        {
+            return Roman.IsMatch(s);
         }
     }
 }

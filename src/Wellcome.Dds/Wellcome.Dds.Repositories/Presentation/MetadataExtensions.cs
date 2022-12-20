@@ -33,22 +33,22 @@ namespace Wellcome.Dds.Repositories.Presentation
             resource.Metadata ??= new List<LabelValuePair>();
             resource.Metadata.AddEnglish(label, value);
         }
-        public static void AddEnglish(this List<LabelValuePair> md, string label, string value)
+        public static void AddEnglish(this List<LabelValuePair> md, string label, string? value)
         {
             md.Add(label, value, "en");
         }
         
-        public static void AddNonLangMetadata(this ResourceBase resource, string label, string value)
+        public static void AddNonLangMetadata(this ResourceBase resource, string label, string? value)
         {
             resource.Metadata ??= new List<LabelValuePair>();
             resource.Metadata.AddNonlang(label, value);
         }
-        public static void AddNonlang(this List<LabelValuePair> md, string label, string value)
+        public static void AddNonlang(this List<LabelValuePair> md, string label, string? value)
         {
             md.Add(label, value, "none");
         }
 
-        public static void Add(this List<LabelValuePair> md, string label, string value, string valueLanguage)
+        private static void Add(this List<LabelValuePair> md, string label, string? value, string valueLanguage)
         {
             if (value.HasText())
             {
@@ -66,9 +66,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 resource.Metadata.Add(pair);
             }
         }
-        
-        
-        public static void Add(this List<LabelValuePair> md, string label, IList<string> values, string valueLanguage)
+
+
+        private static void Add(this List<LabelValuePair> md, string label, IList<string> values, string valueLanguage)
         {
             if (values.Any())
             {

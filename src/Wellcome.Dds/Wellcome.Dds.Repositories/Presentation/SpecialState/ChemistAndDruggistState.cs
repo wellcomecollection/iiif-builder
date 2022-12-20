@@ -147,6 +147,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
     public class ChemistAndDruggistIssue
     {
+        #nullable disable
         public ChemistAndDruggistIssue(string identifier)
         {
             Identifier = identifier;
@@ -156,18 +157,18 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public DateTime NavDate { get; set; }
         public int PartOrder { get; set; }
         public string Number { get; set; }
-        public string? Label { get; set; }
+        public string Label { get; set; }
         public string Volume { get; set; }
         public int Year { get; set; }
-        public string? Month { get; set; }
+        public string Month { get; set; }
         public int MonthNum { get; set; }
-        public string? DisplayDate { get; set; }
+        public string DisplayDate { get; set; }
         
         // For CSV-ing
         public string VolumeIdentifier { get; set; }
         public string VolumeDisplayDate { get; set; }
         public DateTime VolumeNavDate { get; set; }
-        public string? VolumeLabel { get; set; }
+        public string VolumeLabel { get; set; }
         
         
         
@@ -189,6 +190,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
     public class ChemistAndDruggistVolume
     {
+        #nullable disable
         public ChemistAndDruggistVolume(string identifier)
         {
             Identifier = identifier;
@@ -198,7 +200,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public string Identifier { get; set; }
         public string DisplayDate { get; set; }
         public DateTime NavDate { get; set; }
-        public string? Label { get; set; }
+        public string Label { get; set; }
         public string Volume { get; set; }
         public List<ChemistAndDruggistIssue> Issues { get; set; }
 

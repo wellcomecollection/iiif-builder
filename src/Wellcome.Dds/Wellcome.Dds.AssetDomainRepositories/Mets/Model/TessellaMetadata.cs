@@ -27,23 +27,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string GetFileName()
         {
             if (!initialised) Init();
-            return fileElement.GetDesendantElementValue(XNames.TessellaFileName);
+            return fileElement.GetDescendantElementValue(XNames.TessellaFileName);
         }
         public string GetFolder()
         {
             if (!initialised) Init();
-            return fileElement.GetDesendantElementValue(XNames.TessellaFolder);
+            return fileElement.GetDescendantElementValue(XNames.TessellaFolder);
         }
 
         public string GetFileSize()
         {
             if (!initialised) Init();
-            return fileElement.GetDesendantElementValue(XNames.TessellaFileSize);
+            return fileElement.GetDescendantElementValue(XNames.TessellaFileSize);
         }
         public string GetFormatName()
         {
             if (!initialised) Init();
-            return fileElement.GetDesendantElementValue(XNames.TessellaFormatName);
+            return fileElement.GetDescendantElementValue(XNames.TessellaFormatName);
         }
 
         public string GetFormatVersion()
@@ -59,7 +59,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string GetAssetId()
         {
             if (!initialised) Init();
-            return fileElement.GetDesendantElementValue(XNames.TessellaID);
+            return fileElement.GetDescendantElementValue(XNames.TessellaID);
         }
 
         public string GetDisplayDuration()

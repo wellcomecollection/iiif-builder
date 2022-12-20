@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         //private readonly IDipProvider dipProvider;
         private readonly IMetsRepository metsRepository;
         private readonly ILogger<AltoSearchTextProvider> logger;
-        private static XNamespace ns = "http://www.loc.gov/standards/alto/ns-v2#";
+        private static readonly XNamespace Ns = "http://www.loc.gov/standards/alto/ns-v2#";
 
         public AltoSearchTextProvider(
             IMetsRepository metsRepository,
@@ -29,7 +28,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             this.logger = logger;
         }
 
-        public async Task<Text> GetSearchText(string identifier)
+        public async Task<Text?> GetSearchText(string identifier)
         {
             var sw = new Stopwatch();
             sw.Start();
@@ -39,7 +38,11 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             //Log.InfoFormat("METS Home directory for {0} is {1}", bNumber, bNumberHomeDirectory);
             //var dip = dipProvider.GetDiPackage(bNumber);
             //var manifestation = dip.Manifestations[manifestationIndex];
-            var manifestation = (await metsRepository.GetAsync(identifier)) as IManifestation;
+            var manifestation = await metsRepository.GetAsync(identifier) as IManifestation;
+            if (manifestation == null)
+            {
+                return null;
+            }
             var words = new Dictionary<int, Word>();
             var buckets = new Dictionary<string, HashSet<string>>();
             var images = new List<Image>();
@@ -67,15 +70,25 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     {
                         var pathXml = await physicalFile.WorkStore.LoadXmlForPath(physicalFile.RelativeAltoPath, false);
                         var altoRoot = pathXml.XElement;
-                        var pageElement = altoRoot.Element(ns + "Layout").Element(ns + "Page");
+                        if (altoRoot == null)
+                        {
+                            logger.LogWarning("No ALTO element in {RelativeAltoPath}, skipping", physicalFile.RelativeAltoPath);
+                            continue;
+                        }
+                        var pageElement = altoRoot.Element(Ns + "Layout")?.Element(Ns + "Page");
+                        if (pageElement == null)
+                        {
+                            logger.LogWarning("No PAGE element in {RelativeAltoPath}, skipping", physicalFile.RelativeAltoPath);
+                            continue;
+                        }
                         int srcW = Convert.ToInt32(pageElement.GetRequiredAttributeValue("WIDTH"));
                         int srcH = Convert.ToInt32(pageElement.GetRequiredAttributeValue("HEIGHT"));
-                        float scaleW = (float) physicalFile.AssetMetadata.GetImageWidth() / (float)srcW;
-                        float scaleH = (float) physicalFile.AssetMetadata.GetImageHeight() / (float)srcH;
-                        // only get strings in textblocks, not page numbers and headers
-                        var printSpace = altoRoot.Descendants(ns + "PrintSpace").First();
+                        float scaleW = (float) physicalFile.AssetMetadata.GetImageWidth() / srcW;
+                        float scaleH = (float) physicalFile.AssetMetadata.GetImageHeight() / srcH;
+                        // only get strings in text blocks, not page numbers and headers
+                        var printSpace = altoRoot.Descendants(Ns + "PrintSpace").First();
 
-                        foreach (var textBlock in printSpace.Descendants(ns + "TextBlock"))
+                        foreach (var textBlock in printSpace.Descendants(Ns + "TextBlock"))
                         {
                             // test to see if this textBlock contains JUST a page number and nothing else
                             // This doesn't really work because sometimes page number is just on a textline not a sep block.
@@ -85,31 +98,31 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
 
                             // comment this out for now as it really should be fixed by providing better ALTO files that have proper PrintSpace,
                             // not trying to outguess the typesetter.
-                            //var strings = textBlock.Descendants(ns + "String").ToList();
-                            //if (strings.Count() == 1)
-                            //{
+                            // var strings = textBlock.Descendants(ns + "String").ToList();
+                            // if (strings.Count() == 1)
+                            // {
                             //    var ps = strings[0].GetRequiredAttributeValue("CONTENT").Trim();
-                            //    int pnum;
-                            //    if (int.TryParse(ps, out pnum))
+                            //    int pageNum;
+                            //    if (int.TryParse(ps, out pageNum))
                             //    {
                             //        continue;
                             //    }
-                            //    if (IsRomanNumeral(ps))
+                            //    if (StringUtils.IsRomanNumeral(ps))
                             //    {
                             //        continue;
                             //    }
-                            //}
+                            // }
 
                             
-                            Word prevWord = null;
+                            Word? prevWord = null;
                             
                             bool wordIsHyphenSecondPart = false;
-                            foreach (var textLine in textBlock.Descendants(ns + "TextLine"))
+                            foreach (var textLine in textBlock.Descendants(Ns + "TextLine"))
                             {
                                 var line = lineCounter++;
                                 // if a word is hyphenated we'll have to keep it simple and just regard the 
                                 // first part as the full word. Otherwise a word would have to have two rectangles.
-                                foreach (var xString in textLine.Descendants(ns + "String"))
+                                foreach (var xString in textLine.Descendants(Ns + "String"))
                                 {
                                     const string hyphenSpecial = "¬";
                                     bool wordIsHyphenFirstPart = false;
@@ -160,7 +173,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                                     {
                                         wordCounter++;
                                         // is there a space following this word?
-                                        var spaceElement = xString.ElementsAfterSelf(ns + "SP").FirstOrDefault();
+                                        var spaceElement = xString.ElementsAfterSelf(Ns + "SP").FirstOrDefault();
                                         if (spaceElement != null)
                                         {
                                             word.Sp = (int) (Convert.ToInt32(spaceElement.GetRequiredAttributeValue("WIDTH"))*scaleW);
@@ -178,7 +191,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                                     {
                                         FinaliseWord(word, sbNorm, sbRaw, ref positionNorm, ref positionRaw);
                                         AddToAutoCompleteSuggestions(normalisedWord, buckets);
-                                        UpdateComposedBlocks(textBlock, composedBlocks, assetIndex, word, scaleW, scaleH, ref composedBlockCounter);
+                                        UpdateComposedBlocks(textBlock, composedBlocks, assetIndex, word, ref composedBlockCounter);
                                     }
                                 }
                             }
@@ -211,11 +224,11 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         }
 
         private static void UpdateComposedBlocks(XElement textBlock, Dictionary<string, ComposedBlock> composedBlocks, 
-            int fileIndex, Word word, float scaleW, float scaleH, ref int composedBlockCounter)
+            int fileIndex, Word word, ref int composedBlockCounter)
         {
-            // build up a map of the composed blocks as we go, we keep on updating the endposition as we progress.
-            // this should support nested composedblocks (if there are any)
-            var composedBlockElement = textBlock.Ancestors(ns + "ComposedBlock").FirstOrDefault();
+            // build up a map of the composed blocks as we go, we keep on updating the end position as we progress.
+            // this should support nested composed blocks (if there are any)
+            var composedBlockElement = textBlock.Ancestors(Ns + "ComposedBlock").FirstOrDefault();
             if (composedBlockElement != null)
             {
                 var cbId = composedBlockElement.GetRequiredAttributeValue("ID");
@@ -266,15 +279,6 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     suggestions.Add(normalisedWord);
                 }
             }
-        }
-
-        private static readonly Regex Roman = new Regex(
-            "^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$",
-            RegexOptions.IgnoreCase);
-
-        private bool IsRomanNumeral(string s)
-        {
-            return Roman.IsMatch(s);
         }
     }
 }

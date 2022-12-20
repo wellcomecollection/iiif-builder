@@ -8,7 +8,6 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.Common;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.Repositories.WordsAndPictures
@@ -33,21 +32,21 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             this.logger = logger;
         }
 
-        public Task<AnnotationPageList> GetPages(
+        public Task<AnnotationPageList?> GetPages(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObject(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
-        public Task<AnnotationPageList> ForcePagesRebuild(
+        public Task<AnnotationPageList?> ForcePagesRebuild(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObjectFromLocal(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
-        private async Task<AnnotationPageList> GetPagesInternal(
+        private async Task<AnnotationPageList?> GetPagesInternal(
             string identifier, IEnumerable<IPhysicalFile> physicalFiles)
         {
             logger.LogInformation($"Building Annotation Pages for {identifier}");
