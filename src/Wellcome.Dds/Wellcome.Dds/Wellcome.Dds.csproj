@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.1.4" />
-    <PackageReference Include="iiif-net" Version="0.1.6" />
+    <PackageReference Include="iiif-net" Version="0.1.7" />
   </ItemGroup>
 
 </Project>

@@ -748,7 +748,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                     On = $"{canvasId}#xywh={resultRect.X},{resultRect.Y},{resultRect.W},{resultRect.H}",
                     Resource = new SearchResultAnnotationResource { Chars = resultRect.ContentRaw }
                 };
-                currentHit.Match += (currentHit.Match.HasText() ? " " : "") + resultRect.ContentRaw;
+                if (currentHit != null)
+                {
+                    currentHit.Match += (currentHit.Match.HasText() ? " " : "") + resultRect.ContentRaw;
+                }
                 after = resultRect.After;
                 hitAnnotations.Add(anno.Id);
                 resources.Add(anno);
@@ -793,7 +796,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var annotation = new IIIF.Presentation.V2.Annotation.Annotation
                 {
                     Id = jItem.Value<string>("id"),
-                    On = jItem.Value<string>("target") // using the TargetConverter Serializer
+                    On = jItem.Value<string>("target")! // using the TargetConverter Serializer
                     // TODO: put this back when better supported in viewers
                     //On = jItem["target"]?.Value<string>("id") ?? string.Empty
                 };
@@ -806,7 +809,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         annotation.Motivation = "sc:painting";
                         annotation.Resource = new ContentAsTextAnnotationResource
                         {
-                            Chars = body.Value<string>("value"),
+                            Chars = body.Value<string>("value")!,
                             Format = "text/plain"
                         };
                     }
@@ -816,7 +819,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         annotation.Resource = new IllustrationAnnotationResource
                         {
                             Id = "dctypes:Image",
-                            Label = new MetaDataValue(body["label"]["en"][0].Value<string>())
+                            Label = new MetaDataValue(body["label"]!["en"]![0]!.Value<string>()!)
                         };
                     }
                 }

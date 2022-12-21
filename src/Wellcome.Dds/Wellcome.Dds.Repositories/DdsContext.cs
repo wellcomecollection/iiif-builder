@@ -18,8 +18,8 @@ namespace Wellcome.Dds.Repositories
             permittedAggregations = new[] { "Genre", "Subject", "Contributor", "Digitalcollection" };
         }
 
-        public DbSet<Manifestation> Manifestations { get; set; }
-        public DbSet<Metadata> Metadata { get; set; }
+        public DbSet<Manifestation> Manifestations => Set<Manifestation>();
+        public DbSet<Metadata> Metadata => Set<Metadata>();
 
         public List<Manifestation> GetByAssetType(string type)
         {

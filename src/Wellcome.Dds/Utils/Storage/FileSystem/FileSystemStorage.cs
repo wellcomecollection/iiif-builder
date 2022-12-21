@@ -32,8 +32,10 @@ namespace Utils.Storage.FileSystem
             return Task.CompletedTask;
         }
 
-        public async Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
+        public Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
+            throw new NotSupportedException("File System Storage is not supported until re-written for protobuf");
+            /*
             if (!await fileInfo.DoesExist()) return null;
             var t = default(T);
             try
@@ -55,10 +57,13 @@ namespace Utils.Storage.FileSystem
                 logger.LogError("Attempt to deserialize '" + fileInfo.Uri + "' from disk failed", ex);
             }
             return t;
+            */
         }
 
-        public async Task Write<T>(T t, ISimpleStoredFileInfo fileInfo, bool writeFailThrowsException) where T : class
+        public Task Write<T>(T t, ISimpleStoredFileInfo fileInfo, bool writeFailThrowsException) where T : class
         {
+            throw new NotSupportedException("File System Storage is not supported until re-written for protobuf");
+            /*
             logger.LogInformation("Writing cache file '" + fileInfo.Uri + "' to disk");
             try
             {
@@ -78,6 +83,7 @@ namespace Utils.Storage.FileSystem
                     throw;
                 }
             }
+            */
         }
 
         public Task<Stream?> GetStream(string container, string fileName)
