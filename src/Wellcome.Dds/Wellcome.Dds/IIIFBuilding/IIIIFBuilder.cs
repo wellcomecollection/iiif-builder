@@ -69,6 +69,6 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <returns>A V2 (Open Annotation) AnnotatioList</returns>
         AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string assetIdentifier);
 
-        Collection BuildArchiveNode(Work work);
+        Collection? BuildArchiveNode(Work work);
     }
 }

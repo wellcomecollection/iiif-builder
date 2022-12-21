@@ -9,6 +9,8 @@ namespace Wellcome.Dds.WordsAndPictures
     [ProtoContract]
     public class Image
     {
+        #nullable disable
+        
         // index into the Words dictionary
         [ProtoMember(1)]
         public int StartCharacter { get; set; }

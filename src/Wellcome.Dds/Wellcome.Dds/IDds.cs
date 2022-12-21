@@ -11,11 +11,11 @@ namespace Wellcome.Dds
         Dictionary<string, long> GetTotalsByAssetType();
         List<Manifestation> AutoComplete(string id);
 
-        Task RefreshManifestations(DdsIdentifier ddsId, Work work = null);
+        Task RefreshManifestations(DdsIdentifier ddsId, Work? work = null);
 
         ManifestationMetadata GetManifestationMetadata(string id);
-        List<Manifestation> GetManifestationsForChildren(string workReferenceNumber);
+        List<Manifestation> GetManifestationsForChildren(string? workReferenceNumber);
 
-        Manifestation GetManifestation(string id);
+        Manifestation? GetManifestation(string id);
     }
 }

@@ -83,9 +83,19 @@ namespace Wellcome.Dds.IIIFBuilding
 
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
-            schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            apiSchemeAndHostValue = ddsOptions.Value.WellcomeCollectionApi;
-            workTemplate = ddsOptions.Value.ApiWorkTemplate;
+            var opts = ddsOptions.Value;
+            if (opts.LinkedDataDomain.HasText() && 
+                opts.WellcomeCollectionApi.HasText() &&
+                opts.ApiWorkTemplate.HasText())
+            {
+                schemeAndHostValue = opts.LinkedDataDomain;
+                apiSchemeAndHostValue = opts.WellcomeCollectionApi;
+                workTemplate = opts.ApiWorkTemplate;
+            }
+            else
+            {
+                throw new InvalidOperationException("UriPatterns is missing required config data");
+            }
         }
 
         public string Manifest(string identifier)

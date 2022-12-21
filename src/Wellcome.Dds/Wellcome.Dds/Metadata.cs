@@ -17,7 +17,7 @@ namespace Wellcome.Dds
         public string StringValue { get; set; } // e.g., 
         public string Identifier { get; set; } // e.g., w7xpmx8r, or <StringValue>
 
-        public Metadata(string manifestationId, string label, string stringValue, string identifier)
+        public Metadata(string manifestationId, string label, string stringValue, string? identifier)
         {
             ManifestationId = manifestationId;
             Label = label;

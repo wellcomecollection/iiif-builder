@@ -7,9 +7,9 @@ namespace Wellcome.Dds.Common;
 /// </summary>
 public class WorkflowMessage
 {
-    public string Identifier { get; set; }
-    public string Space { get; set; }
-    public string Origin { get; set; }
+    public string? Identifier { get; set; }
+    public string? Space { get; set; }
+    public string? Origin { get; set; }
     public DateTime TimeSent { get; set; }
 
     public override string ToString()

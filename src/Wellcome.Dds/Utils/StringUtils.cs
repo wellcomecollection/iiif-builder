@@ -195,7 +195,7 @@ namespace Utils
         /// <param name="source"></param>
         /// <param name="delimiter"></param>
         /// <returns></returns>
-        public static string[] SplitByDelimiterIntoArray(this string source, char delimiter)
+        public static string[] SplitByDelimiterIntoArray(this string? source, char delimiter)
         {
             var strings = SplitByDelimiter(source, delimiter);
             if (strings == null)
@@ -439,7 +439,7 @@ namespace Utils
         /// </summary>
         /// <param name="strings"></param>
         /// <returns></returns>
-        public static bool AllHaveText(params string[] strings)
+        public static bool AllHaveText(params string?[] strings)
         {
             return strings.AllHaveText();
         }
@@ -449,9 +449,9 @@ namespace Utils
         /// </summary>
         /// <param name="strings"></param>
         /// <returns></returns>
-        public static bool AllHaveText(this IEnumerable<string> strings)
+        public static bool AllHaveText(this IEnumerable<string?> strings)
         {
-            foreach (string s in strings)
+            foreach (string? s in strings)
             {
                 if (!HasText(s)) return false;
             }

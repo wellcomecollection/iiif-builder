@@ -79,7 +79,7 @@ namespace Wellcome.Dds.Common
 
         public static string GetMostSecureAccessCondition(IEnumerable<string> accessConditions)
         {
-            return accessConditions.Select(s => SecurityOrder.Single(ac => ac.ToString() == s)).Max().ToString();
+            return accessConditions.Select(s => SecurityOrder.Single(ac => ac.ToString() == s)).Max()!.ToString();
         }
 
 
@@ -99,9 +99,10 @@ namespace Wellcome.Dds.Common
                 return ac;
             }
 
-            public int CompareTo(ComparableAccessCondition other)
+            public int CompareTo(ComparableAccessCondition? other)
             {
-                return order.CompareTo(other.order);
+                if (other != null) return order.CompareTo(other.order);
+                return 1;
             }
         }
     }

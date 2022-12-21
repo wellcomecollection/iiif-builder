@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Utils;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
@@ -42,24 +43,29 @@ namespace Wellcome.Dds.Repositories
         {
             var resultDdsId = new DdsIdentifier(identifier);
             var result = new ManifestationMetadata
-            {
-                Identifier = resultDdsId,
-                Manifestations = ddsContext.Manifestations
+            (
+                identifier: resultDdsId,
+                manifestations: ddsContext.Manifestations
                     .Where(fm => fm.PackageIdentifier == resultDdsId.PackageIdentifier && fm.Index >= 0)
                     .OrderBy(fm => fm.Index)
                     .ToList(),
-                Metadata = ddsContext.Metadata
+                metadata: ddsContext.Metadata
                     .Where(m => m.ManifestationId == resultDdsId.PackageIdentifier)
                     .ToList()
-            };
+            );
             return result;
         }
 
-        public List<Manifestation> GetManifestationsForChildren(string workReferenceNumber)
+        public List<Manifestation> GetManifestationsForChildren(string? workReferenceNumber)
         {
-            return ddsContext.Manifestations
-                .Where(m => m.CalmAltRefParent == workReferenceNumber)
-                .ToList();
+            if (workReferenceNumber.HasText())
+            {
+                return ddsContext.Manifestations
+                    .Where(m => m.CalmAltRefParent == workReferenceNumber)
+                    .ToList();
+            }
+
+            return new List<Manifestation>(0);
         }
 
         public Manifestation? GetManifestation(string id)

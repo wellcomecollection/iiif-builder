@@ -11,6 +11,8 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
     [ProtoContract]
     public class Illustration : Block
     {
+        #nullable disable
+        
         [ProtoMember(1)]
         public string Type { get; set; }
     }

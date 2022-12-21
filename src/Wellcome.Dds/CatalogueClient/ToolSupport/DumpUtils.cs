@@ -133,6 +133,8 @@ namespace CatalogueClient.ToolSupport
                 {
                     info.UsedLines++;
                     var work = catalogue.FromDumpLine(line, options);
+                    if(work == null) continue;
+                    
                     var sierraSystemBNumbers = work.GetSierraSystemBNumbers();
                     var digitalLocationBNumbers = work.GetDigitisedBNumbers();
                     foreach (var digitalLocationBNumber in digitalLocationBNumbers)

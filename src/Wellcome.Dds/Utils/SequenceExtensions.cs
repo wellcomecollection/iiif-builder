@@ -56,6 +56,16 @@ namespace Utils
         /// </summary>
         public static bool HasItems<T>([NotNullWhen(true)] this IList<T>? enumerable) => !enumerable.IsNullOrEmpty();
 
+
+        public static IEnumerable<T> AnyItems<T>(this IEnumerable<T>? items)
+        {
+            if (items == null)
+            {
+                return new List<T>(0);
+            }
+
+            return items;
+        }
         /// <summary>
         /// Generate collection of IEnumerable of specified size.
         /// </summary>

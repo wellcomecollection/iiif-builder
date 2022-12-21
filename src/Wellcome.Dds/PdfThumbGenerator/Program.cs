@@ -42,9 +42,9 @@ namespace PdfThumbGenerator
                         .AddSingleton<PdfThumbnailUtil>()
                         .AddHostedService(provider =>
                             new PdfGenerator(
-                                provider.GetService<ILogger<PdfGenerator>>(),
-                                provider.GetService<IMetsRepository>(),
-                                provider.GetService<PdfThumbnailUtil>(),
+                                provider.GetService<ILogger<PdfGenerator>>()!,
+                                provider.GetService<IMetsRepository>()!,
+                                provider.GetService<PdfThumbnailUtil>()!,
                                 file));
 
                     services.AddHttpClient<OAuth2ApiConsumer>();
@@ -114,7 +114,7 @@ namespace PdfThumbGenerator
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
-                IMetsResource resource = await metsRepository.GetAsync(pdf.Identifier);
+                IMetsResource resource = await metsRepository.GetAsync(pdf.Identifier!);
                 if (resource is ICollection)
                 {
                     throw new InvalidOperationException(
@@ -127,7 +127,7 @@ namespace PdfThumbGenerator
                 {
                     await pdfThumbnailUtil.EnsurePdfThumbnails(
                         () => pdfItem.WorkStore.GetStreamForPathAsync(pdfItem.RelativePath),
-                        pdf.Identifier);
+                        pdf.Identifier!);
                 }
             }
             catch (Exception ex)
@@ -139,8 +139,8 @@ namespace PdfThumbGenerator
 
     public class BornDigitalPdf
     {
-        public string Identifier { get; set; }
-        public string Processed { get; set; }
-        public string Title { get; set; }
+        public string? Identifier { get; set; }
+        public string? Processed { get; set; }
+        public string? Title { get; set; }
     }
 }

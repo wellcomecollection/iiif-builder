@@ -1,4 +1,7 @@
-﻿namespace Wellcome.Dds.Common
+﻿using System;
+using Utils;
+
+namespace Wellcome.Dds.Common
 {
     public class DdsIdentifier
     {
@@ -46,14 +49,14 @@
         /// <summary>
         /// If the identifier starts with a b number, the value of that b number.
         /// </summary>
-        public string BNumber { get; }
+        public string? BNumber { get; }
 
         /// <summary>
         /// If the identifier is or is part of a volume within a multiple manifestation, the value of the volume identifier.
         ///
         /// e.g., if the identifier is b19974760_10_10, the volume identifier is b19974760_10
         /// </summary>
-        public string VolumePart
+        public string? VolumePart
         {
             get
             {
@@ -71,7 +74,7 @@
         /// e.g., if the identifier is b19974760_10_10, the issue identifier is also b19974760_10_10
         /// If the identifier is b19974760_10 the issue identifier is null.
         /// </summary>
-        public string IssuePart
+        public string? IssuePart
         {
             get
             {
@@ -103,7 +106,7 @@
         /// If not provided, it will be determined from the format of the string.
         /// 
         /// </param>
-        public DdsIdentifier(string value, string storageSpace = null)
+        public DdsIdentifier(string value, string? storageSpace = null)
         {
             if (!string.IsNullOrWhiteSpace(storageSpace))
             {
@@ -160,9 +163,17 @@
                 this.value = PackageIdentifier;
                 PathElementSafe = PackageIdentifierPathElementSafe;
             }
+            
+            
+            if (PackageIdentifier.HasText() && PackageIdentifierPathElementSafe.HasText() && StorageSpace.HasText())
+            {
+                return;
+            }
+
+            throw new FormatException("Could not parse identifier");
         }
 
-        public static bool operator ==(DdsIdentifier d1, DdsIdentifier d2)
+        public static bool operator ==(DdsIdentifier? d1, DdsIdentifier? d2)
         {
             if (d1 is null)
             {
@@ -177,12 +188,12 @@
             return d2 != null && d1.value == d2.value;
         }
 
-        public static bool operator !=(DdsIdentifier d1, DdsIdentifier d2)
+        public static bool operator !=(DdsIdentifier? d1, DdsIdentifier? d2)
         {
             return !(d1 == d2);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is DdsIdentifier identifier && this == identifier;
         }

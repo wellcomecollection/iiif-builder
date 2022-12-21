@@ -82,7 +82,7 @@ namespace DlcsWebClient.Dlcs
         {
             //httpClient.Timeout = TimeSpan.FromMilliseconds(360000);
             
-            HttpResponseMessage response = null;
+            HttpResponseMessage? response = null;
             try
             {
                 if (requestObject != null)
@@ -129,7 +129,11 @@ namespace DlcsWebClient.Dlcs
 
                 try
                 {
-                    operation.ResponseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+                    var responseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+                    if (responseObject != null)
+                    {
+                        operation.ResponseObject = responseObject;
+                    }
                 }
                 catch (Exception deserializeEx)
                 {
@@ -191,7 +195,7 @@ namespace DlcsWebClient.Dlcs
             return GetOperation<string, Batch>(null, new Uri(batchId));
         }
 
-        private static Error GetError(Exception ex, HttpResponseMessage response)
+        private static Error GetError(Exception ex, HttpResponseMessage? response)
         {
             if (ex is HttpRequestException httpRequestException)
             {
@@ -685,6 +689,6 @@ namespace DlcsWebClient.Dlcs
     class MessageObject
     {
         [JsonProperty(PropertyName = "message")]
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 }

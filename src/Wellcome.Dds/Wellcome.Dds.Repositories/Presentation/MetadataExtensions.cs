@@ -8,9 +8,12 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public static class MetadataExtensions
     {
-        public static void AddNonlang(this List<LabelValuePair> md, string label, IEnumerable<string> values)
+        public static void AddNonlang(this List<LabelValuePair> md, string label, IEnumerable<string?>? values)
         {
-            md.Add(label, values.ToList(), "none");
+            if (values != null)
+            {
+                md.Add(label, values.OfType<string>().ToList(), "none");
+            }
         }
         public static void AddNonLangMetadata(this ResourceBase resource, string label, IEnumerable<string> values)
         {
@@ -18,9 +21,12 @@ namespace Wellcome.Dds.Repositories.Presentation
             resource.Metadata.AddNonlang(label, values);
         }
         
-        public static void AddEnglish(this List<LabelValuePair> md, string label, IEnumerable<string> values)
+        public static void AddEnglish(this List<LabelValuePair> md, string label, IEnumerable<string?>? values)
         {
-            md.Add(label, values.ToList(), "en");
+            if (values != null)
+            {
+                md.Add(label, values.OfType<string>().ToList(), "en");
+            }
         }
         public static void AddEnglishMetadata(this ResourceBase resource, string label, IEnumerable<string> values)
         {

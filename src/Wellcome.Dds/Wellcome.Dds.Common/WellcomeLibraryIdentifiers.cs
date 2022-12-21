@@ -38,9 +38,9 @@ namespace Wellcome.Dds.Common
         /// the character a for the check digit. For example, you could enter the record 
         /// number above as.b1024364a.
         /// </summary>
-        public static string GetNormalisedBNumber(string bNumber, bool errorOnInvalidChecksum)
+        public static string? GetNormalisedBNumber(string bNumber, bool errorOnInvalidChecksum)
         {
-            string normalisedBNumber = null;
+            string? normalisedBNumber = null;
             var m = VariantsOf7DigitBNumber.Match(bNumber);
             if (m.Success && m.Groups[1].Success)
             {
@@ -122,7 +122,7 @@ namespace Wellcome.Dds.Common
             return $".p{shortPatronId}{GetExpectedBNumberCheckDigit(asString)}";
         }
 
-        public static bool IsBNumber(this string s)
+        public static bool IsBNumber(this string? s)
         {
             if (String.IsNullOrWhiteSpace(s))
                 return false;
@@ -131,18 +131,18 @@ namespace Wellcome.Dds.Common
             return Regex.IsMatch(s, "\\Ab[0-9x]{7,9}\\z", RegexOptions.IgnoreCase);
         }
         
-        public static int ToShortBNumber(this string bNumber)
+        public static int ToShortBNumber(this string? bNumber)
         {
             return GetShortBNumber(bNumber);
         }
 
-        public static int GetShortBNumber(string bNumber)
+        public static int GetShortBNumber(string? bNumber)
         {
             if (!bNumber.IsBNumber())
                 return 0;
 
             int b;
-            Int32.TryParse(bNumber.RemoveStart("b").Substring(0, 7), out b);
+            Int32.TryParse(bNumber.RemoveStart("b")!.Substring(0, 7), out b);
             return b;
         }
 

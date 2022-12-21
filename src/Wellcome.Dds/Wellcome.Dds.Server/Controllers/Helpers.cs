@@ -62,10 +62,10 @@ namespace Wellcome.Dds.Server.Controllers
             // This is OK but we want to leave the DLCS links intact!
             // string rewritten = raw.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
             // https://iiif-test\.wellcomecollection\.org/(?<!image|thumbs|pdf|av|auth)/(.*)
-            var pattern = GetRegexPattern(ddsOptions.LinkedDataDomain);
+            var pattern = GetRegexPattern(ddsOptions.LinkedDataDomain!);
             var placeholder = "__PLACEHOLDER__";
             var pass1 = Regex.Replace(raw, pattern, $"\"{placeholder}/$1/$2\"");
-            var pass2 = pass1.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            var pass2 = pass1.Replace(ddsOptions.LinkedDataDomain!, ddsOptions.RewriteDomainLinksTo);
             var rewritten = pass2.Replace(placeholder, ddsOptions.LinkedDataDomain);
             return controller.Content(rewritten, contentType);
         }

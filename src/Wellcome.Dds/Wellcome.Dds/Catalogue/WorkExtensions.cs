@@ -8,14 +8,14 @@ namespace Wellcome.Dds.Catalogue
 {
     public static class WorkExtensions
     {
-        public static string GetIdentifierByType(this Work work, string identifierTypeId)
+        public static string? GetIdentifierByType(this Work work, string identifierTypeId)
         {
-            var foundIdentifier = work.Identifiers.SingleOrDefault(
-                id => id.IdentifierType.Id == identifierTypeId);
+            var foundIdentifier = work.Identifiers?.SingleOrDefault(
+                id => id.IdentifierType?.Id == identifierTypeId);
             return foundIdentifier?.Value;
         }
         
-        public static string GetParentId(this Work work)
+        public static string? GetParentId(this Work work)
         {
             if (work.PartOf.HasItems())
             {
@@ -28,28 +28,37 @@ namespace Wellcome.Dds.Catalogue
         public static List<Metadata> GetMetadata(this Work work, string identifier)
         {
             var metadataList = new List<Metadata>();
-            foreach(Contributor c in work.Contributors)
+            foreach(Contributor c in work.Contributors.AnyItems())
             {
-                metadataList.Add(new Metadata(identifier, c.Type, c.Agent.Label, c.Agent.Id));
+                if (c.Type.HasText() && c.Agent?.Label != null)
+                {
+                    metadataList.Add(new Metadata(identifier, c.Type, c.Agent.Label, c.Agent.Id));
+                }
             }
-            foreach (Classification c in work.Subjects)
+            foreach (Classification c in work.Subjects.AnyItems())
             {
-                metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
+                if (c.Type.HasText() && c.Label != null)
+                {
+                    metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
+                }
             }
-            foreach (Classification c in work.Genres)
+            foreach (Classification c in work.Genres.AnyItems())
             {
-                metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
+                if (c.Type.HasText() && c.Label != null)
+                {
+                    metadataList.Add(new Metadata(identifier, c.Type, c.Label, c.Id));
+                }
             }
-            foreach (var digcode in work.Identifiers.Where(id => id.IdentifierType.Id == "wellcome-digcode"))
+            foreach (var digcode in work.Identifiers.AnyItems().Where(id => id.IdentifierType?.Id == "wellcome-digcode"))
             {
-                var dgLabel = DigitalCollectionsMap.GetFriendlyName(digcode.Value);
+                var dgLabel = DigitalCollectionsMap.GetFriendlyName(digcode.Value!);
                 if (dgLabel == null)
                 {
                     dgLabel = $"({digcode.Value})";
                 }
                 metadataList.Add(new Metadata(identifier, "Digitalcollection", dgLabel, digcode.Value));
             }
-            var locationOfOriginal = work.Notes.FirstOrDefault(note => note.NoteType.Id == "location-of-original");
+            var locationOfOriginal = work.Notes.AnyItems().FirstOrDefault(note => note.NoteType?.Id == "location-of-original");
             if (locationOfOriginal != null && locationOfOriginal.Contents.HasItems())
             {
                 var location = locationOfOriginal.Contents[0];
@@ -60,16 +69,16 @@ namespace Wellcome.Dds.Catalogue
 
         public static IEnumerable<string> GetNotes(this Work work, string noteType)
         {
-            return work.Notes?
-                .Where(n => n.NoteType.Id == noteType)
-                .SelectMany(n => n.Contents);
+            return work.Notes.AnyItems()
+                .Where(n => n.NoteType?.Id == noteType)
+                .SelectMany(n => n.Contents ?? Array.Empty<string>());
         }
 
         public static string[] GetSierraSystemBNumbers(this Work work)
         {
-            var sierraId = work.Identifiers.Where(
-                    i => i.IdentifierType.Id == "sierra-system-number");
-                return sierraId.Select(id => id.Value).ToArray();
+            var sierraIds = work.Identifiers.AnyItems().Where(
+                    i => i.IdentifierType?.Id == "sierra-system-number");
+            return sierraIds.Select(id => id.Value).OfType<string>().ToArray();
         }
 
         private static readonly Regex DigitalLocationRegex = new Regex(@"^.*\/(b[0-9x]{8})\/?", RegexOptions.IgnoreCase);
@@ -77,16 +86,16 @@ namespace Wellcome.Dds.Catalogue
         public static string[] GetDigitisedBNumbers(this Work work)
         {
             var sierraSystemBNumbers = work.GetSierraSystemBNumbers();
-            var iiifLocations = work.Items
-                .SelectMany(item => item.Locations)
-                .Where(loc => loc.LocationType.Id == "iiif-presentation")
+            var iiifLocations = work.Items.AnyItems()
+                .SelectMany(item => item.Locations.AnyItems())
+                .Where(loc => loc.LocationType?.Id == "iiif-presentation")
                 .ToList();
             if (iiifLocations.Any())
             {
                 if (iiifLocations.Count == 1)
                 {
                     var digBNum = sierraSystemBNumbers.SingleOrDefault(
-                        bNumber => iiifLocations[0].Url.Contains($"/{bNumber}"));
+                        bNumber => iiifLocations[0].Url!.Contains($"/{bNumber}"));
                     if (digBNum.HasText())
                     {
                         // simplest and happy path. There is one digital location and it's the Sierra system number.
@@ -101,7 +110,7 @@ namespace Wellcome.Dds.Catalogue
                 var parsedDigitalBNumbers = new List<string>();
                 foreach (var iiifLocation in iiifLocations)
                 {
-                    var m = DigitalLocationRegex.Match(iiifLocation.Url);
+                    var m = DigitalLocationRegex.Match(iiifLocation.Url!);
                     if (m.Success)
                     {
                         parsedDigitalBNumbers.Add(m.Groups[1].Value);
@@ -111,14 +120,14 @@ namespace Wellcome.Dds.Catalogue
                 return parsedDigitalBNumbers.ToArray();
             }
 
-            return new string[0];
+            return Array.Empty<string>();
         }
 
         public static bool HasIIIFDigitalLocation(this Work work)
         {
             var iiifLocations = work
-                .Items?.Where(item => item.Locations.Any(
-                    location => location.LocationType.Id == "iiif-presentation"));
+                .Items?.Where(item => item.Locations.AnyItems().Any(
+                    location => location.LocationType?.Id == "iiif-presentation"));
             return iiifLocations.HasItems();
         }
 

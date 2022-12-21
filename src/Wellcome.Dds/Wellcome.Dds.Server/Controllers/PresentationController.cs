@@ -373,6 +373,10 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work == null)
+                {
+                    return NotFound();
+                }
                 if (work.HasIIIFDigitalLocation())
                 {
                     var bNumber = work.GetSierraSystemBNumbers().First();
@@ -380,6 +384,10 @@ namespace Wellcome.Dds.Server.Controllers
                 }
 
                 var v3Coll = iiifBuilder.BuildArchiveNode(work);
+                if (v3Coll == null)
+                {
+                    return NotFound();
+                }
                 collection = ConverterHelpers.GetIIIFPresentationBase<IIIF.Presentation.V2.Collection>(v3Coll);
                 collection.Id = v3Coll.Id.AsV2();
                 if (v3Coll.Items.HasItems())

@@ -106,6 +106,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 thumbSource = manifestation.FirstFileThumbnail;
                 sizeSource = manifestation.FirstFileThumbnailDimensions;
             }
+
+            if (thumbSource.IsNullOrWhiteSpace() || sizeSource.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
             if (!StringUtils.AllHaveText(thumbSource, sizeSource))
             {
                 return null;

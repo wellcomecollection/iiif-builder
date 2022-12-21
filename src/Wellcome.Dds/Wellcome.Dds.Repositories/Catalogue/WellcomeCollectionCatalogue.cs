@@ -59,7 +59,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                     // see https://digirati.slack.com/archives/CBT40CMKQ/p1597936607018500
                     // We need to obtain the work by its WorkID to make sure we're not missing anything
                     // return resultPage.Results[0];
-                    return await GetWorkByWorkId(resultPage.Results[0].Id);
+                    return await GetWorkByWorkId(resultPage.Results[0].Id!);
                 }
 
                 // TODO - handle paging, if there is a nextPage in this result set
@@ -91,7 +91,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                     return null;
                 }
                 matchedWork.RelatedByIdentifier = relatedWorks.ToArray();
-                return await GetWorkByWorkId(matchedWork.Id);
+                return await GetWorkByWorkId(matchedWork.Id!);
             }
             return null;
         }
@@ -107,8 +107,8 @@ namespace Wellcome.Dds.Repositories.Catalogue
         {
             if (
                 identifier.IsBNumber() 
-                && work.Identifiers.Any(workId => 
-                    workId.IdentifierType.Id == "sierra-identifier" 
+                && work.Identifiers.AnyItems().Any(workId => 
+                    workId.IdentifierType?.Id == "sierra-identifier" 
                     && workId.Value == identifier.ToShortBNumber().ToString()))
             {
                 // If we asked the catalogue API to search by b number, then
@@ -117,7 +117,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                 // instead of b{7-digits}{checksum}
                 return true;
             }
-            if(work.WorkType.Id == "k")
+            if(work.WorkType?.Id == "k")
             {
                 // This is unlikely to be a Miro item
                 return true;

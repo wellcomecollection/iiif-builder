@@ -155,7 +155,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.Label =
                     metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)";
                 ddsManifestation.WorkId = work.Id;
-                ddsManifestation.WorkType = work.WorkType.Id;
+                ddsManifestation.WorkType = work.WorkType!.Id;
                 ddsManifestation.ReferenceNumber = work.ReferenceNumber;
                 ddsManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
                 ddsManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
@@ -303,10 +303,10 @@ namespace Wellcome.Dds.Repositories
         private IPhysicalFile? GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
         {
             if (work.Thumbnail == null) return null;
-            var match = wcorgThumbRegex.Match(work.Thumbnail.Url);
+            var match = wcorgThumbRegex.Match(work.Thumbnail.Url!);
             if (!match.Success)
             {
-                match = dlcsThumbRegex.Match(work.Thumbnail.Url);
+                match = dlcsThumbRegex.Match(work.Thumbnail.Url!);
                 if (!match.Success) return null;
             }
             var storageIdentifier = match.Groups[1].Value;

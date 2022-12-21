@@ -1,14 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Utils;
 using Wellcome.Dds.WordsAndPictures.TextTokens;
 
 namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
 {
     public class Block
     {
-        public List<Block> Blocks { get; set; }
-        public List<Line> Lines { get; set; }
+        public List<Block>? Blocks { get; set; }
+        public List<Line>? Lines { get; set; }
         
         // the index into the Words dictionary for the word with which this Block starts. same as Word::PosNorm
         // remember that this is the position in the normalised text, not the raw text.
@@ -20,10 +21,10 @@ namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
         //public int StartCharacterRaw { get; set; }
         //public int EndCharacterRaw { get; set; }
 
-        public ComposedBlock ComposedBlock { get; set; }
+        public ComposedBlock? ComposedBlock { get; set; }
 
         // Allow users of this class, such as MoH, to add their own extra information
-        public IBlockExtension Extension { get; set; }
+        public IBlockExtension? Extension { get; set; }
 
         public override string ToString()
         {
@@ -50,13 +51,13 @@ namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
         public IEnumerable<ITextToken> GetTokens()
         {
             int pos = -1;
-            yield return new BlockStartToken {Block = this};
+            yield return new BlockStartToken(this);
             if (Lines != null)
             {
                 foreach (var line in Lines)
                 {
                     bool first = true;
-                    foreach (var word in line.Words)
+                    foreach (var word in line.Words.AnyItems())
                     {
                         if (Blocks != null)
                         {
@@ -77,7 +78,7 @@ namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
                         }
                         first = false;
                         pos = word.PosNorm;
-                        yield return new WordToken {Word = word};
+                        yield return new WordToken(word);
                     }
                     yield return NewLineToken.Instance;
                 }
@@ -94,7 +95,7 @@ namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
                     }
                 }
             }
-            yield return new BlockEndToken { Block = this };
+            yield return new BlockEndToken(this);
         }
     }
 }

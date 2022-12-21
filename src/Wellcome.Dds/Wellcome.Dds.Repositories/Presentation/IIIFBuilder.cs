@@ -87,6 +87,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             try
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
+                if (work == null)
+                {
+                    throw new InvalidOperationException("Can't build a Manifest without a Work from the Catalogue API");
+                }
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", ddsId);
                 var resource = await metsRepository.GetAsync(ddsId.PackageIdentifier);
@@ -195,8 +199,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
                 var metsResource = await metsRepository.GetAsync(ddsId);
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
-                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
+                if (work == null)
+                {
+                    throw new InvalidOperationException("Can't build a Manifest without a Work from the Catalogue API");
+                }
                 
+                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 ICollection? partOf = null;
                 if (ddsId.IdentifierType is IdentifierType.Volume or IdentifierType.BNumberAndSequenceIndex)
                 {
@@ -286,7 +294,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             new Collection
                             {
                                 Id = uriPatterns.CollectionForWork(partOfCollection.Identifier),
-                                Label = Lang.Map(work.Title),
+                                Label = Lang.Map(work.Title!),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
                         };
@@ -370,7 +378,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             ["en"] = new()
                             {
                                 $"Volume {order}",
-                                work.Title
+                                work.Title!
                             }
                         },
                         Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier)
@@ -414,9 +422,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             StructureBase iiifResource, Work work,
             ManifestationMetadata? manifestationMetadata)
         {
+            if (ddsOptions.LinkedDataDomain.IsNullOrWhiteSpace())
+            {
+                throw new FormatException("Missing LinkedDataDomain in DdsOptions");
+            }
             // Do this at serialisation time - but check
             // iiifResource.EnsurePresentation3Context();
-            iiifResource.Label = Lang.Map(work.Title);
+            iiifResource.Label = Lang.Map(work.Title!);
             build.SeeAlso(iiifResource, work);
             iiifResource.AddWellcomeProvider(ddsOptions.LinkedDataDomain);
             if (manifestationMetadata != null)
@@ -648,7 +660,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 string? firstBefore = null;
                 string? lastAfter = null;
                 string match = "";
-                foreach(Rect rect in sr.Rects)
+                foreach(Rect rect in sr.Rects.AnyItems())
                 {
                     var assetIdentifier = text.Images[sr.Index].ImageIdentifier;
                     var annoIdentifier = $"h{rect.Hit}r{rect.X},{rect.Y},{rect.W},{rect.H}";
@@ -828,14 +840,19 @@ namespace Wellcome.Dds.Repositories.Presentation
             return annotationList;
         }
 
-        public Collection BuildArchiveNode(Work work)
+        public Collection? BuildArchiveNode(Work work)
         {
-            var collection = new Collection
+            if (work.ReferenceNumber.HasText())
             {
-                Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber)
-            };
-            AddCommonMetadata(collection, work, null);
-            return collection;
+                var collection = new Collection
+                {
+                    Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber)
+                };
+                AddCommonMetadata(collection, work, null);
+                return collection;
+            }
+
+            return null;
         }
     }
 }

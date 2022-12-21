@@ -101,8 +101,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new("Text")
                 {
-                    Id = uriPatterns.PersistentPlayerUri(work.Id),
-                    Label = Lang.Map(work.Title),
+                    Id = uriPatterns.PersistentPlayerUri(work.Id!),
+                    Label = Lang.Map(work.Title!),
                     Format = "text/html",
                     Language = new List<string>{"en"}
                 }
@@ -140,7 +140,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new ExternalResource("Dataset")
                 {
-                    Id = uriPatterns.CatalogueApi(work.Id),
+                    Id = uriPatterns.CatalogueApi(work.Id!),
                     Label = Lang.Map("Wellcome Collection Catalogue API"),
                     Format = "application/json",
                     Profile = "https://api.wellcomecollection.org/catalogue/v2/context.json"
@@ -1237,7 +1237,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // fills up - it requires a full DB to be accurate.
             // This is OK because we should only get here in runtime, navigating DOWN
             // the archival hierarchy.
-            if (work.Parts.Any() && iiifResource is Collection collection)
+            if (work.Parts.HasItems() && iiifResource is Collection collection)
             {
                 collection.Items = new List<ICollectionItem>();
                 var knownChildManifestations = childManifestationsSource();
@@ -1275,13 +1275,18 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private ICollectionItem? MakePart(Work work, Manifestation? manifestation)
         {
+            if (!work.ReferenceNumber.HasText())
+            {
+                return null;
+            }
+            
             if (manifestation != null || work.HasIIIFDigitalLocation())
             {
                 // definitely a manifest
                 return new Manifest
                 {
                     Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
-                    Label = Lang.Map(work.Title),
+                    Label = Lang.Map(work.Title!),
                     Thumbnail = manifestation?.GetThumbnail()
                 };
             }
@@ -1291,7 +1296,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return new Collection
                 {
                     Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
-                    Label = Lang.Map(work.Title)
+                    Label = Lang.Map(work.Title!)
                 };
             }
 

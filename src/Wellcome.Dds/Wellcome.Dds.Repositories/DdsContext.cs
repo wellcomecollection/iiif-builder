@@ -44,7 +44,7 @@ namespace Wellcome.Dds.Repositories
                 pattern = $"%{query}%";
                 return Manifestations.Where(m => 
                     m.Index == 0 &&
-                    EF.Functions.ILike(m.PackageIdentifier, pattern))
+                    EF.Functions.ILike(m.PackageIdentifier!, pattern))
                     .ToList();
             }
             if (query == "imfeelinglucky")
@@ -56,7 +56,7 @@ namespace Wellcome.Dds.Repositories
             pattern = $"%{query.ToAlphanumericOrWhitespace()}%";
             return Manifestations.Where(m => 
                 m.Index == 0 &&
-                EF.Functions.ILike(m.PackageLabel, pattern))
+                EF.Functions.ILike(m.PackageLabel!, pattern))
                 .ToList();
         }
 
