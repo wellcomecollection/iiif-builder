@@ -22,7 +22,7 @@ public sealed class PronomData
         var formats = File.ReadAllText(dataPath);
         var rawDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(formats);
         // we only want the first mimetype if there are many
-        formatMap = new Dictionary<string, string>(rawDict.Count);
+        formatMap = new Dictionary<string, string?>(rawDict.Count);
         foreach (var kvp in rawDict)
         {
             if (kvp.Value.HasText())
@@ -61,8 +61,8 @@ public sealed class PronomData
     
     public static PronomData Instance => instance;
 
-    private Dictionary<string, string> formatMap;
+    private Dictionary<string, string?> formatMap;
 
 
-    public Dictionary<string, string> FormatMap => formatMap;
+    public Dictionary<string, string?> FormatMap => formatMap;
 }

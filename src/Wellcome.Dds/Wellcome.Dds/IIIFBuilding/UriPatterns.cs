@@ -110,54 +110,54 @@ namespace Wellcome.Dds.IIIFBuilding
         }
         
         
-        public string Canvas(string manifestIdentifier, string assetIdentifier)
+        public string Canvas(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasFormat, manifestIdentifier, assetIdentifier);
         }       
         
-        public string CanvasPaintingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        public string CanvasPaintingAnnotationPage(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasPaintingAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasPaintingAnnotation(string manifestIdentifier, string assetIdentifier)
+        public string CanvasPaintingAnnotation(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasPaintingAnnotationFormat, manifestIdentifier, assetIdentifier);
         }        
         
-        public string CanvasSupplementingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        public string CanvasSupplementingAnnotationPage(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasSuppAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string CanvasSupplementingAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                 CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
         }   
         
-        public string CanvasClassifyingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string CanvasClassifyingAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                 CanvasClassifyingAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
         }   
         
-        public string CanvasOtherAnnotationPageWithVersion(string manifestIdentifier, string assetIdentifier, int version)
+        public string CanvasOtherAnnotationPageWithVersion(string manifestIdentifier, string? assetIdentifier, int version)
         {
             return ManifestAndAssetIdentifiersWithVersion(
                 CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier, version);
         }
 
-        public string CanvasOtherAnnotationWithVersion(string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
+        public string CanvasOtherAnnotationWithVersion(string manifestIdentifier, string? assetIdentifier, string annoIdentifier, int version)
         {
             return ManifestAndAssetAndAnnoIdentifiersWithVersion(
                 CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier, version);
         }
         
         
-        public string IIIFSearchAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string IIIFSearchAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                     IIIFSearchAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
@@ -227,39 +227,39 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(IdentifierToken, identifier);
         }
 
-        public string DlcsThumb(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsThumb(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsThumbServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsImageService(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsImageService(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsImageServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
-        public string DlcsVideo(string dlcsEntryPoint, string assetIdentifier, string fileExt)
+        public string DlcsVideo(string dlcsEntryPoint, string? assetIdentifier, string fileExt)
         {
             return DlcsIdentifier(DlcsVideoTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
 
-        public string DlcsAudio(string dlcsEntryPoint, string assetIdentifier, string fileExt)
+        public string DlcsAudio(string dlcsEntryPoint, string? assetIdentifier, string fileExt)
         {
             return DlcsIdentifier(DlcsAudioTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
         
-        public string DlcsFile(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsFile(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsFileTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsProbeService(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsProbeService(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsProbeServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
-        private string DlcsIdentifier(string template, string dlcsEntryPointToken, string assetIdentifier)
+        private string DlcsIdentifier(string template, string dlcsEntryPointToken, string? assetIdentifier)
         {
             return template
                 .Replace(DlcsEntryPointToken, dlcsEntryPointToken)
@@ -271,7 +271,7 @@ namespace Wellcome.Dds.IIIFBuilding
             return ApiManifestIdentifier(RawTextFormat, identifier);
         }
         
-        public string MetsAlto(string manifestIdentifier, string assetIdentifier)
+        public string MetsAlto(string manifestIdentifier, string? assetIdentifier)
         {
             return ApiManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
         }
@@ -322,31 +322,31 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(VersionToken, version.ToString());
         }
         
-        private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
+        private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ApiManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
+        private string ApiManifestAndAssetIdentifiers(string template, string manifestIdentifier, string? assetIdentifier)
         {
             return ApiManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ManifestAndAssetIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, int version)
+        private string ManifestAndAssetIdentifiersWithVersion(string template, string manifestIdentifier, string? assetIdentifier, int version)
         {
             return ManifestIdentifierWithVersion(template, manifestIdentifier, version)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ManifestAndAssetAndAnnoIdentifiers(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        private string ManifestAndAssetAndAnnoIdentifiers(string template, string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetIdentifiers(template, manifestIdentifier, assetIdentifier)
                 .Replace(AnnoIdentifierToken, annoIdentifier);
         }
         
-        private string ManifestAndAssetAndAnnoIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
+        private string ManifestAndAssetAndAnnoIdentifiersWithVersion(string template, string manifestIdentifier, string? assetIdentifier, string annoIdentifier, int version)
         {
             return ManifestAndAssetIdentifiersWithVersion(template, manifestIdentifier, assetIdentifier, version)
                 .Replace(AnnoIdentifierToken, annoIdentifier);
@@ -373,12 +373,12 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
         }
         
-        public string CanvasFilePlaceholderImage(string pronomKey, string mimeType)
+        public string CanvasFilePlaceholderImage(string pronomKey, string? mimeType)
         {
             return ManifestAndAssetIdentifiers(CanvasFilePlaceholderImageFormat, pronomKey, mimeType);
         }
 
-        public string CanvasFilePlaceholderThumbnail(string pronomKey, string mimeType)
+        public string CanvasFilePlaceholderThumbnail(string pronomKey, string? mimeType)
         {
             return ManifestAndAssetIdentifiers(CanvasFilePlaceholderThumbnailFormat, pronomKey, mimeType);
         }

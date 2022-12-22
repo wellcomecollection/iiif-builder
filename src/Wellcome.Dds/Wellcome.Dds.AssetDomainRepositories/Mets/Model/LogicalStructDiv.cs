@@ -114,12 +114,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 if (!path.EndsWith(".xml")) path += ".xml";
                 RelativeLinkPath = path;
             }
-            Id =    (string) div.Attribute("ID");
-            AdmId = (string) div.Attribute("ADMID");
-            DmdId = (string) div.Attribute("DMDID");
-            Id =    (string) div.Attribute("ID");
-            Label = (string) div.Attribute("LABEL");
-            Type =  (string) div.Attribute("TYPE");
+            Id =    (string) div.Attribute("ID")!;
+            AdmId = (string) div.Attribute("ADMID")!;
+            DmdId = (string) div.Attribute("DMDID")!;
+            Label = (string) div.Attribute("LABEL")!;
+            Type =  (string) div.Attribute("TYPE")!;
             Order = (int?)   div.Attribute("ORDER");
 
             Children = div.Elements(XNames.MetsDiv)
@@ -148,10 +147,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
         
-        private ModsData modsData;
+        private ModsData? modsData;
         private bool modsLoaded;
 
-        public ISectionMetadata GetSectionMetadata()
+        public ISectionMetadata? GetSectionMetadata()
         {
             // Lazy loaded mods
             if (!modsLoaded)

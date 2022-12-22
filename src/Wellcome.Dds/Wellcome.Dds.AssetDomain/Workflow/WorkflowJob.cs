@@ -8,8 +8,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
     [Index(nameof(Expedite))]
     public class WorkflowJob
     {
-        [Key]
-        public string Identifier { get; set; }
+        [Key] public string Identifier { get; set; } = null!;
         public bool ForceTextRebuild { get; set; }
         public bool Waiting { get; set; }
         public bool Finished { get; set; }
@@ -25,7 +24,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public long PackageBuildTime { get; set; }
         public long TextAndAnnoBuildTime { get; set; }
         public long TotalTime { get; set; }
-        public string Error { get; set; }
+        public string? Error { get; set; }
         public int Words { get; set; }
         public int TextPages { get; set; }
         public int TimeSpentOnTextPages { get; set; }

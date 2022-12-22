@@ -169,7 +169,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
         
         
-        private static string GetSafeStorageIdentifierForBornDigital(string identifier, string relativePath)
+        private static string? GetSafeStorageIdentifierForBornDigital(string identifier, string relativePath)
         {
             // This implementation is TBC!
             // We have a problem with path lengths here.
@@ -190,11 +190,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return id;
         }
 
-        private static string GetSafeStorageIdentifierForDigitised(string fullPath, IWorkStore workStore)
+        private static string? GetSafeStorageIdentifierForDigitised(string fullPath, IWorkStore workStore)
         {
             const string objectsPart = "objects/";
             const int pos = 8;
-            string storageIdentifier;
+            string? storageIdentifier;
             if (fullPath.StartsWith(objectsPart))
             {
                 storageIdentifier = fullPath.Substring(pos).Replace('/', '_');
@@ -222,9 +222,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         // we need to replace SdbId with StorageIdentifier
         //public Guid SdbId { get; set; }
-        public string StorageIdentifier { get; set; }
+        public string? StorageIdentifier { get; set; }
 
-        public string MimeType { get; set; }
+        public string? MimeType { get; set; }
         public IAssetMetadata AssetMetadata { get; set; }
 
         // These two fields are obtained from MODS

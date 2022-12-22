@@ -7,13 +7,13 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IDigitalManifestation : IDigitalObject
     {
-        IManifestation MetsManifestation { get; set; }
+        IManifestation? MetsManifestation { get; set; }
 
         /// <summary>
         /// The images held by the DLCS that match the metadata for this manifestation
         /// based on string3
         /// </summary>
-        IEnumerable<Image> DlcsImages { get; set; }
+        IEnumerable<Image>? DlcsImages { get; set; }
         bool JobExactMatchForManifestation(DlcsIngestJob job);
 
         /// <summary>
@@ -21,9 +21,9 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// </summary>
         // int SequenceIndex { get; set; }
 
-        string DlcsStatus { get; set; }
-        string DlcsResponse { get; set; }
+        string? DlcsStatus { get; set; }
+        string? DlcsResponse { get; set; }
 
-        IPdf PdfControlFile { get; set; }
+        IPdf? PdfControlFile { get; set; }
     }
 }

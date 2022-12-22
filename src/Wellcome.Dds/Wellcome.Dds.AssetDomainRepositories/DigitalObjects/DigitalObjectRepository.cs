@@ -112,10 +112,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             bool reIngestErrorImages)
         {
             var metsManifestation = digitisedManifestation.MetsManifestation;
-            var dlcsImages = digitisedManifestation.DlcsImages.ToList();
+            var dlcsImages = digitisedManifestation.DlcsImages!.ToList();
             var syncOperation = new SyncOperation
             {
-                ManifestationIdentifier = metsManifestation.Identifier,
+                ManifestationIdentifier = metsManifestation!.Identifier!,
                 ImagesAlreadyOnDlcs = await GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
@@ -131,7 +131,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var assetsToIngest = new List<IStoredFile>();
             foreach (var kvp in syncOperation.ImagesAlreadyOnDlcs)
             {
-                if (syncOperation.StorageIdentifiersToIgnore.Contains(kvp.Key))
+                if (syncOperation.StorageIdentifiersToIgnore!.Contains(kvp.Key))
                 {
                     // We do not want to sync this image with the DLCS.
                     continue;
@@ -139,12 +139,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 var image = kvp.Value;
                 if (image == null || (reIngestErrorImages && HasProblemRequiringReIngest(image)))
                 {
-                    assetsToIngest.Add(metsManifestation.SynchronisableFiles.Single(sf => sf.StorageIdentifier == kvp.Key));
+                    assetsToIngest.Add(metsManifestation.SynchronisableFiles!.Single(sf => sf.StorageIdentifier == kvp.Key));
                 }
             }
 
             // Get the manifestation level metadata that each image is going to need
-            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier!);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
@@ -159,17 +159,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
-            syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
+            syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
 
-            foreach (var storedFile in metsManifestation.SynchronisableFiles)
+            foreach (var storedFile in metsManifestation.SynchronisableFiles!)
             {
-                if (syncOperation.StorageIdentifiersToIgnore.Contains(storedFile.StorageIdentifier))
+                if (syncOperation.StorageIdentifiersToIgnore!.Contains(storedFile.StorageIdentifier!))
                 {
                     // We do not want to sync this image with the DLCS.
                     continue;
                 }
 
-                if (!AccessCondition.IsValid(storedFile.PhysicalFile.AccessCondition))
+                if (!AccessCondition.IsValid(storedFile.PhysicalFile!.AccessCondition))
                 {
                     // This does not have an access condition that we can sync wth the DLCS
                     syncOperation.HasInvalidAccessCondition = true;
@@ -177,8 +177,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     continue;
                 }
                 
-                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
-                var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier];
+                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier!, syncOperation.LegacySequenceIndex, maxUnauthorised);
+                var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier!];
 
                 if (assetsToIngest.Contains(storedFile))
                 {
@@ -236,8 +236,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private async Task<DigitalManifestation> MakeDigitalManifestation(IManifestation metsManifestation, bool includePdf)
         {
-            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier);
-            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf>(null);
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier!);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier!) : Task.FromResult<IPdf?>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
             
@@ -258,24 +258,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <returns></returns>
         private List<Image> GetOrphans(Dictionary<string, Image> imagesAlreadyOnDlcs, IEnumerable<Image> dlcsImages)
         {
-            return dlcsImages.Where(image => !imagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier)).ToList();
+            return dlcsImages.Where(image => !imagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
         }
 
-        public async Task<Batch> GetBatch(string batchId)
+        public async Task<Batch?> GetBatch(string batchId)
         {
             var batchOp = await dlcs.GetBatch(batchId);
 
             return batchOp.ResponseObject;
         }
         
-        private async Task<Dictionary<string, Image>> GetImagesAlreadyOnDlcs(
+        private async Task<Dictionary<string, Image?>> GetImagesAlreadyOnDlcs(
             IManifestation metsManifestation, List<Image> dlcsImages)
         {
             // create an empty dictionary for all the images we need to have in the DLCS:
-            var imagesAlreadyOnDlcs = new Dictionary<string, Image>();
-            foreach (var storedFile in metsManifestation.SynchronisableFiles)
+            var imagesAlreadyOnDlcs = new Dictionary<string, Image?>();
+            foreach (var storedFile in metsManifestation.SynchronisableFiles!)
             {
-                imagesAlreadyOnDlcs[storedFile.StorageIdentifier] = null; 
+                imagesAlreadyOnDlcs[storedFile.StorageIdentifier!] = null; 
             }
 
             // go through all the DLCS images
@@ -294,7 +294,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return imagesAlreadyOnDlcs;
         }
 
-        public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image> images)
+        public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image?> images)
         {
             var enumeratedImages = images.ToList();
             List<string> batchIds = new List<string>(enumeratedImages.Count);
@@ -317,7 +317,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return batches;
         }
 
-        private async Task DoBatchPatch(List<Image> dlcsImagesToPatch, SyncOperation syncOperation)
+        private async Task DoBatchPatch(List<Image>? dlcsImagesToPatch, SyncOperation syncOperation)
         {
             if (dlcsImagesToPatch.IsNullOrEmpty()) return;
             
@@ -356,7 +356,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
         }
 
-        private async Task DoBatchIngest(List<Image> dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
+        private async Task DoBatchIngest(List<Image>? dlcsImagesToIngest, SyncOperation syncOperation, bool priority)
         {
             if (dlcsImagesToIngest.IsNullOrEmpty()) return;
             
@@ -391,7 +391,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     dbDlcsBatch.ErrorText = registrationOperation.Error.Message;
                 }
                 syncOperation.BatchIngestOperationInfos.Add(dbDlcsBatch);
-                syncOperation.Batches.Add(registrationOperation.ResponseObject);
+                syncOperation.Batches.Add(registrationOperation.ResponseObject!);
             }
         }
 
@@ -401,7 +401,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="newDlcsImage"></param>
         /// <param name="existingDlcsImage"></param>
         /// <returns></returns>
-        private Image GetPatchImage(Image newDlcsImage, Image existingDlcsImage)
+        private Image? GetPatchImage(Image newDlcsImage, Image existingDlcsImage)
         {
             // TODO: ?
             //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
@@ -446,7 +446,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return null;
         }
 
-        private bool AreEqual(string[] s1, string[] s2)
+        private bool AreEqual(string[]? s1, string[]? s2)
         {
             if (s1 == null)
             {
@@ -474,7 +474,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 Origin = origin,
                 String1 = ddsId.PackageIdentifier, // will be string reference
                 Number1 = sequenceIndex,
-                Number2 = asset.PhysicalFile.Index,
+                Number2 = asset.PhysicalFile!.Index,
                 MediaType = asset.MimeType,
                 Family = (char)asset.Family
             };
@@ -516,7 +516,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var jobQuery = GetJobQuery(identifier); //, legacySequenceIndex: sequenceIndex);
             if (jobQuery == null)
             {
-                return new DlcsIngestJob[0];
+                return Array.Empty<DlcsIngestJob>();
             }
             return await jobQuery
                 .Include(j => j.DlcsBatches)
@@ -527,7 +527,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation)
         {
-            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesAlreadyOnDlcs.Values);
+            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesAlreadyOnDlcs!.Values);
             var imageBatches = batchesForImages.ToList();
             // DASH-46
             if (syncOperation.RequiresSync == false && imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))
@@ -536,7 +536,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageBatches = await dlcs.GetTestedImageBatches(imageBatches);
             }
             var updatedJobs = GetUpdatedIngestJobs(syncOperation, imageBatches).ToList();
-            return new JobActivity {BatchesForCurrentImages = imageBatches, UpdatedJobs = updatedJobs};
+            return new JobActivity(imageBatches, updatedJobs);
         }
 
         public async Task<int> RemoveOldJobs(string id)
@@ -572,10 +572,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <returns></returns>
         private IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(SyncOperation syncOperation, List<Batch> activeBatches)
         {
-            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier); // , legacySequenceIndex: syncOperation.LegacySequenceIndex);
+            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier!); // , legacySequenceIndex: syncOperation.LegacySequenceIndex);
             if (jobQuery == null)
             {
-                return new DlcsIngestJob[0];
+                return Array.Empty<DlcsIngestJob>();
             }
             var jobs = jobQuery
                 .Include(j => j.DlcsBatches)
@@ -600,10 +600,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return jobs;
         }
 
-        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
+        private IQueryable<DlcsIngestJob>? GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
         {
             var ddsId = new DdsIdentifier(identifier);            
-            IQueryable<DlcsIngestJob> jobQuery = null;
+            IQueryable<DlcsIngestJob>? jobQuery = null;
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
@@ -636,18 +636,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         }
 
         private void PopulateImagesAlreadyOnDlcs(
-            Dictionary<string, Image> imageDictionary, 
+            Dictionary<string, Image?> imageDictionary, 
             IManifestation thisManifestation,
             IEnumerable<Image> imagesOnDlcs)
         {
             foreach (var dlcsImage in imagesOnDlcs)
             {
-                var physFile = thisManifestation.SynchronisableFiles.SingleOrDefault(
+                var physFile = thisManifestation.SynchronisableFiles!.SingleOrDefault(
                     sf => sf.StorageIdentifier == dlcsImage.StorageIdentifier);
                 if (physFile != null)
                 {
                     // this DLCS image belongs in the dictionary
-                    imageDictionary[dlcsImage.StorageIdentifier] = dlcsImage;
+                    imageDictionary[dlcsImage.StorageIdentifier!] = dlcsImage;
                 }
             }
         }
@@ -663,7 +663,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return new[] { acUri };
         }
 
-        private string reqRegUri;
+        private string? reqRegUri;
         private int GetMaxUnauthorised(int sequenceMaxSize, string[] roles)
         {
             if (!roles.HasItems()) return sequenceMaxSize;
@@ -694,7 +694,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return await dlcs.DeleteImages(syncOp.Orphans);
         }
 
-        public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null)
+        public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string? description = null)
         {
             var ia = new IngestAction
             {
@@ -710,7 +710,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return ia;
         }
 
-        public IEnumerable<IngestAction> GetRecentActions(int count, string user = null)
+        public IEnumerable<IngestAction> GetRecentActions(int count, string? user = null)
         {
             IQueryable<IngestAction> q = ddsInstrumentationContext
                 .IngestActions.OrderByDescending(ia => ia.Id);
@@ -726,9 +726,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         public AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation)
         {
             var derivs = new List<AVDerivative>();
-            if (digitisedManifestation.MetsManifestation.Type is "Video" or "Audio")
+            if (digitisedManifestation.MetsManifestation!.Type is "Video" or "Audio")
             {
-                foreach (var asset in digitisedManifestation.DlcsImages)
+                foreach (var asset in digitisedManifestation.DlcsImages!)
                 {
                     derivs.AddRange(dlcs.GetAVDerivatives(asset));
                 }

@@ -13,7 +13,7 @@ namespace Utils
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public static string GetSimpleNameFromPath(string path)
+        public static string? GetSimpleNameFromPath(string path)
         {
             if (path.EndsWith("/"))
             {

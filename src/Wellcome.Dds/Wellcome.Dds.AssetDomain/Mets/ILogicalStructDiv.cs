@@ -19,7 +19,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         int? Order { get; set; }
         List<ILogicalStructDiv> Children { get; set; }
         bool HasChildLink();
-        ISectionMetadata GetSectionMetadata();
+        ISectionMetadata? GetSectionMetadata();
         List<IPhysicalFile> GetPhysicalFiles();
         IStoredFile GetPosterImage();
     }

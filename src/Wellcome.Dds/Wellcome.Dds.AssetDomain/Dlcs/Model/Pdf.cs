@@ -14,7 +14,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
     public class Pdf : IPdf
     {
         [JsonProperty(Order = 31, PropertyName = "url")]
-        public string Url { get; set; }
+        public string? Url { get; set; }
 
         [JsonProperty(Order = 41, PropertyName = "exists")]
         public bool Exists { get; set; }
@@ -26,7 +26,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         public DateTime? Created { get; set; }
 
         [JsonProperty(Order = 71, PropertyName = "roles")]
-        public string[] Roles { get; set; }
+        public string[]? Roles { get; set; }
 
         [JsonProperty(Order = 81, PropertyName = "pageCount")]
         public int PageCount { get; set; }

@@ -15,21 +15,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     [Serializable]
     public class ModsData : ISectionMetadata
     {
-        public string Title { get; set; }
-        public string SubTitle { get; set; }
-        public string DisplayDate { get; set; }
-        public string OriginPublisher { get; set; }
-        public string RecordIdentifier { get; set; }
-        public string AccessCondition { get; set; }
-        public string DzLicenseCode { get; set; }
+        public string? Title { get; set; }
+        public string? SubTitle { get; set; }
+        public string? DisplayDate { get; set; }
+        public string? OriginPublisher { get; set; }
+        public string? RecordIdentifier { get; set; }
+        public string? AccessCondition { get; set; }
+        public string? DzLicenseCode { get; set; }
         public int PlayerOptions { get; set; }
-        public string Usage { get; set; }
-        public string Leader6 { get; set; }
+        public string? Usage { get; set; }
+        public string? Leader6 { get; set; }
         public int VolumeNumber { get; set; }
         public int CopyNumber { get; set; }
         
         // Used by Chemist and Druggist (Periodical) for volume and issue numbers
-        public string Number { get; set; }
+        public string? Number { get; set; }
         public int PartOrder { get; set; }
 
         public ModsData(XElement dmdSec)

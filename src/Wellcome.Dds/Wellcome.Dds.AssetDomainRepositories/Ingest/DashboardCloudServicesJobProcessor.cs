@@ -56,7 +56,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // see body of this method in CloudServicesJobProcessor
         }
 
-        public async Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string filter = null)
+        public async Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string? filter = null)
         {
             if (!await statusProvider.ShouldRunProcesses())
             {
@@ -175,15 +175,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             // we expect a job to correspond to a manifestation
-            IDigitalManifestation digitalManifestation = null;
-            Exception error = null;
-            string errorDataMessage = null;
-            IManifestation manifestation = null;
+            IDigitalManifestation? digitalManifestation = null;
+            Exception? error = null;
+            string? errorDataMessage = null;
+            IManifestation? manifestation = null;
 
             try
             {
                 digitalManifestation = await digitalObjectRepository
-                        .GetDigitalObject(job.GetManifestationIdentifier())
+                        .GetDigitalObject(job.GetManifestationIdentifier()!)
                     as IDigitalManifestation;
             }
             catch (Exception ex)
@@ -328,7 +328,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return true;
         }
 
-        private void WriteErrorJobData(int jobId, string dataMessage, Exception ex)
+        private void WriteErrorJobData(int jobId, string? dataMessage, Exception? ex)
         {
             var job = ddsInstrumentationContext.DlcsIngestJobs.FirstOrDefault(j => j.Id == jobId);
             if (job == null)

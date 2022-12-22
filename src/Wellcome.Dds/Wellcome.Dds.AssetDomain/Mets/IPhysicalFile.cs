@@ -37,9 +37,9 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string OrderLabel { get; set; }
 
         //Guid SdbId { get; set; }
-        string StorageIdentifier { get; set; }
+        string? StorageIdentifier { get; set; }
         
-        string MimeType { get; set; }
+        string? MimeType { get; set; }
         IAssetMetadata AssetMetadata { get; set; }
         string AccessCondition { get; set; }
         

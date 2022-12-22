@@ -92,7 +92,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         /// TODO: This MUST be changed to use string3 as soon as the manifest has that info to emit into the rendering
         /// </summary>
         // Task<IPdf> GetPdfDetails(string string1, int number1);
-        Task<IPdf> GetPdfDetails(string identifier);
+        Task<IPdf?> GetPdfDetails(string identifier);
 
         // Task<bool> DeletePdf(string string1, int number1);
         Task<bool> DeletePdf(string identifier);

@@ -17,7 +17,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             SourceFile = structDiv.WorkStore.GetFileInfoForPath(structDiv.ContainingFileRelativePath); 
         }
 
-        public List<ICollection> Collections { get; set; }
-        public List<IManifestation> Manifestations { get; set; }
+        public List<ICollection>? Collections { get; set; }
+        public List<IManifestation>? Manifestations { get; set; }
     }
 }

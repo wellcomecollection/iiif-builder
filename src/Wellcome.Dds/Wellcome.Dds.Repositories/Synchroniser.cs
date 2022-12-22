@@ -44,11 +44,15 @@ namespace Wellcome.Dds.Repositories
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns)
         {
+            this.dlcsOptions = dlcsOptions.Value;
+            if (this.dlcsOptions.ResourceEntryPoint.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("DLCS Resource Entry Point not specified in options");
+            }
             this.metsRepository = metsRepository;
             this.logger = logger;
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
-            this.dlcsOptions = dlcsOptions.Value;
             this.uriPatterns = uriPatterns;
         }
         
@@ -315,7 +319,7 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint, asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint!, asset.StorageIdentifier);
         }
         
   

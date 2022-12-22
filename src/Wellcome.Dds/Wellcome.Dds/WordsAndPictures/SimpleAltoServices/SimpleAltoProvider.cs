@@ -26,7 +26,7 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         public AnnotationPage GetAnnotationPage(
             XElement? altoRoot,
             int actualWidth, int actualHeight,
-            string manifestationIdentifier, string assetIdentifier,
+            string manifestationIdentifier, string? assetIdentifier,
             int index)
         {
             var textLines = new List<TextLine>();

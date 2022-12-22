@@ -49,39 +49,25 @@ namespace DlcsWebClient.Dlcs
 
         internal Task<Operation<TRequest, TResponse>> PostOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
         {
-            var operation = new Operation<TRequest, TResponse>
-            {
-                HttpMethod = "POST",
-                Uri = uri
-            };
+            var operation = new Operation<TRequest, TResponse>(uri, "POST");
             return DoOperation(requestObject, operation);
         }
 
-        internal Task<Operation<TRequest, TResponse>> GetOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
+        internal Task<Operation<TRequest, TResponse>> GetOperation<TRequest, TResponse>(TRequest? requestObject, Uri uri)
         {
-            var operation = new Operation<TRequest, TResponse>
-            {
-                HttpMethod = "GET",
-                Uri = uri
-            };
+            var operation = new Operation<TRequest, TResponse>(uri, "GET");
             return DoOperation(requestObject, operation);
         }
 
         internal Task<Operation<TRequest, TResponse>> PatchOperation<TRequest, TResponse>(TRequest requestObject, Uri uri)
         {
-            var operation = new Operation<TRequest, TResponse>
-            {
-                HttpMethod = "PATCH",
-                Uri = uri
-            };
+            var operation = new Operation<TRequest, TResponse>(uri, "PATCH");
             return DoOperation(requestObject, operation);
         }
 
         private async Task<Operation<TRequest, TResponse>> DoOperation<TRequest, TResponse>(
-            TRequest requestObject, Operation<TRequest, TResponse> operation)
+            TRequest? requestObject, Operation<TRequest, TResponse> operation)
         {
-            //httpClient.Timeout = TimeSpan.FromMilliseconds(360000);
-            
             HttpResponseMessage? response = null;
             try
             {
@@ -96,12 +82,12 @@ namespace DlcsWebClient.Dlcs
                 {
                     case "POST":
                         logger.LogInformation("About to HTTP POST to {uri}", operation.Uri);
-                        response = await httpClient.PostAsync(operation.Uri, GetJsonContent(operation.RequestJson));
+                        response = await httpClient.PostAsync(operation.Uri, GetJsonContent(operation.RequestJson!));
                         operation.ResponseJson = await response.Content.ReadAsStringAsync();
                         break;
                     case "PATCH":
                         logger.LogInformation("About to HTTP PATCH to {uri}", operation.Uri);
-                        response = await httpClient.PatchAsync(operation.Uri, GetJsonContent(operation.RequestJson));
+                        response = await httpClient.PatchAsync(operation.Uri, GetJsonContent(operation.RequestJson!));
                         operation.ResponseJson = await response.Content.ReadAsStringAsync();
                         break;
                     case "GET":
@@ -157,8 +143,7 @@ namespace DlcsWebClient.Dlcs
             return operation;
         }
 
-        private static StringContent GetJsonContent(string json) =>
-            new StringContent(json, Encoding.UTF8, "application/json");
+        private static StringContent GetJsonContent(string json) => new(json, Encoding.UTF8, "application/json");
         
         private static readonly char[] SlashSeparator = new[] { '/' };
         
@@ -195,25 +180,25 @@ namespace DlcsWebClient.Dlcs
             return GetOperation<string, Batch>(null, new Uri(batchId));
         }
 
-        private static Error GetError(Exception ex, HttpResponseMessage? response)
+        private static Error? GetError(Exception ex, HttpResponseMessage? response)
         {
             if (ex is HttpRequestException httpRequestException)
             {
                 return new Error
-                {
-                    Status = (int?)response?.StatusCode ?? 0,
-                    Message = httpRequestException.Message
-                };
+                (
+                    status: (int?)response?.StatusCode ?? 0,
+                    message: httpRequestException.Message
+                );
             }
             
             return new Error
-            {
-                Status = 0,
-                Message = ex.Message
-            };
+            (
+                status: 0,
+                message: ex.Message
+            );
         }
 
-        private static Uri _imageQueueUri;
+        private static Uri? _imageQueueUri;
         private void InitQueue()
         {
             if (_imageQueueUri == null)
@@ -227,19 +212,18 @@ namespace DlcsWebClient.Dlcs
         public Task<Operation<HydraImageCollection, Batch>> RegisterImages(HydraImageCollection images, bool priority = false)
         {
             InitQueue();
-            return PostOperation<HydraImageCollection, Batch>(images,
-                priority
-                ? new Uri($"{_imageQueueUri}/priority")
-                : _imageQueueUri);
+            var queueUri = priority ? new Uri($"{_imageQueueUri}/priority") : _imageQueueUri;
+            return PostOperation<HydraImageCollection, Batch>(images, queueUri!);
         }
 
         public Task<Operation<HydraImageCollection, HydraImageCollection>> PatchImages(HydraImageCollection images)
         {
             string uri =
                 $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{options.CustomerDefaultSpace}/images";
-            foreach (var image in images.Members)
+            foreach (var image in images.Members!)
             {
-                if (image.ModelId.IndexOf("/") == -1)
+                // For protagonist, take another look at use of ModelId here.
+                if (image.ModelId!.IndexOf("/", StringComparison.Ordinal) == -1)
                 {
                     image.ModelId = $"{options.CustomerId}/{options.CustomerDefaultSpace}/{image.ModelId}";
                 }
@@ -290,7 +274,7 @@ namespace DlcsWebClient.Dlcs
             {
                 IdentifierType.BNumber => GetImagesForBNumber(identifier),
                 IdentifierType.Volume => GetImagesForVolume(identifier),
-                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber, ddsId.SequenceIndex),
+                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber!, ddsId.SequenceIndex),
                 IdentifierType.Issue => GetImagesForIssue(identifier),
                 // TODO - Archival
                 IdentifierType.NonBNumber => throw new NotSupportedException("Unknown identifier"),
@@ -332,9 +316,9 @@ namespace DlcsWebClient.Dlcs
             var request = new HydraStringIdCollection(fullIds);
             var op = await PostOperation<HydraStringIdCollection, HydraImageCollection>(request, new Uri(uri));
             
-            foreach (var image in op.ResponseObject.Members)
+            foreach (var image in op.ResponseObject!.Members!)
             {
-                image.StorageIdentifier = GetLocalStorageIdentifier(image.Id);
+                image.StorageIdentifier = GetLocalStorageIdentifier(image.Id!);
             }
 
             return op.ResponseObject.Members;
@@ -363,7 +347,7 @@ namespace DlcsWebClient.Dlcs
         /// <summary>
         /// Get details of PDF from PDF-control file
         /// </summary>
-        public async Task<IPdf> GetPdfDetails(string identifier)
+        public async Task<IPdf?> GetPdfDetails(string identifier)
         {
             // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
             var uri =
@@ -416,7 +400,7 @@ namespace DlcsWebClient.Dlcs
             var testedBatches = new List<Batch>();
             foreach (var imageBatch in imageBatches)
             {
-                var batchLocalId = imageBatch.Id.Split('/').Last();
+                var batchLocalId = imageBatch.Id!.Split('/').Last();
                 var uri = string.Format(template, options.ApiEntryPoint, options.CustomerId, batchLocalId);
                 
                 var request = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -431,7 +415,7 @@ namespace DlcsWebClient.Dlcs
                 if ((bool)result.success)
                 {
                     var batch = await GetBatch(imageBatch.Id);
-                    testedBatches.Add(batch.ResponseObject);
+                    testedBatches.Add(batch.ResponseObject!);
                 }
                 else
                 {
@@ -446,7 +430,7 @@ namespace DlcsWebClient.Dlcs
         {
             const string template = "{0}customers/{1}/queue/recentErrorsByMetadata/string3";
             bool first = true;
-            string nextUri = null;
+            string? nextUri = null;
 
             var allErrors = new List<ErrorByMetadata>();
 
@@ -464,7 +448,7 @@ namespace DlcsWebClient.Dlcs
                 else
                 {
                     logger.LogInformation("Following link to next page {0}", nextUri);
-                    statesOperation = await GetErrorsByMetadata(nextUri);
+                    statesOperation = await GetErrorsByMetadata(nextUri!);
                 }
                 string dataMessage;
                 if (statesOperation.Error != null)
@@ -557,7 +541,7 @@ namespace DlcsWebClient.Dlcs
         private async Task<IEnumerable<Image>> GetImagesFromQuery(ImageQuery query)
         {
             bool first = true;
-            string nextUri = null;
+            string? nextUri = null;
 
             var images = new List<Image>();
 
@@ -573,7 +557,7 @@ namespace DlcsWebClient.Dlcs
                 else
                 {
                     logger.LogInformation("Following link to next page {0}", nextUri);
-                    statesOperation = await GetImages(nextUri);
+                    statesOperation = await GetImages(nextUri!);
                 }
                 string dataMessage;
                 if (statesOperation.Error != null)
@@ -593,7 +577,7 @@ namespace DlcsWebClient.Dlcs
                     logger.LogInformation("Yielding {0} collection members to returned image list", imageCollection.Members.Length);
                     foreach (var image in imageCollection.Members)
                     {
-                        image.StorageIdentifier = GetLocalStorageIdentifier(image.Id);
+                        image.StorageIdentifier = GetLocalStorageIdentifier(image.Id!);
                         if (image.Family == 'T')
                         {
                             await LoadMetadata(image);
@@ -646,8 +630,8 @@ namespace DlcsWebClient.Dlcs
 
             return new Dictionary<string, long>
             {
-                {"incoming", result["incoming"].Value<long>()},
-                {"priority", result["priority"].Value<long>()}
+                {"incoming", result["incoming"]!.Value<long>()},
+                {"priority", result["priority"]!.Value<long>()}
             };
         }
 
@@ -659,7 +643,7 @@ namespace DlcsWebClient.Dlcs
             const string AVDerivativeTemplateAudio = "{0}iiif-av/{1}/{2}/{3}/full/max/default.{4}";
 
             var derivs = new List<AVDerivative>();
-            if (dlcsAsset.MediaType.StartsWith("video"))
+            if (dlcsAsset.MediaType!.StartsWith("video"))
             {
                 derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "mp4"));
                 derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "webm"));
@@ -674,15 +658,15 @@ namespace DlcsWebClient.Dlcs
         private AVDerivative FormatAVDerivative(string template, Image dlcsAsset, string fileExt)
         {
             return new AVDerivative
-            {
-                Id = string.Format(template,
+            (
+                id: string.Format(template,
                        options.ResourceEntryPoint,
-                       options.CustomerName.ToLower(),
+                       options.CustomerName?.ToLower(),
                        options.CustomerDefaultSpace,
                        dlcsAsset.StorageIdentifier,
                        fileExt),
-                Label = fileExt
-            };
+                label: fileExt
+            );
         }
     }
 

@@ -16,7 +16,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         int DefaultSpace { get; }
         Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number);
         //IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(string identifier, SyncOperation syncOperation);
-        Task<Batch> GetBatch(string batchId);
+        Task<Batch?> GetBatch(string batchId);
 
         Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation);
 
@@ -29,8 +29,8 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         Task<int> RemoveOldJobs(string id);
         Task<int> DeleteOrphans(string id);
         
-        IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string description = null);
-        IEnumerable<IngestAction> GetRecentActions(int count, string user = null);
+        IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string? description = null);
+        IEnumerable<IngestAction> GetRecentActions(int count, string? user = null);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
         AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation);
     }

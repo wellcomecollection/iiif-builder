@@ -8,7 +8,7 @@ public class MediaDimensions
     public int? Width { get; set; }
     public int? Height { get; set; }
     public double? Duration { get; set; }
-    public string DurationDisplay { get; set; }
+    public string? DurationDisplay { get; set; }
     
     public override string ToString()
     {

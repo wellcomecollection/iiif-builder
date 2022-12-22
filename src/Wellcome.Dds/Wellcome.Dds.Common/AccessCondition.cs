@@ -43,7 +43,7 @@ namespace Wellcome.Dds.Common
         /// </summary>
         /// <param name="s">The access condition in string form</param>
         /// <returns></returns>
-        public static bool IsValid(string s)
+        public static bool IsValid(string? s)
         {
             return s is 
                 Open or 

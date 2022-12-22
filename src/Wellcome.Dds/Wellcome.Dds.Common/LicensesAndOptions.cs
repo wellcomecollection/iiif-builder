@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Utils;
 
 namespace Wellcome.Dds.Common
 {
@@ -55,7 +56,7 @@ namespace Wellcome.Dds.Common
             return null;
         }
 
-        public PlayerOptions GetFlagsFromCode(int playerOptionsCode, string assetType)
+        public PlayerOptions GetFlagsFromCode(int playerOptionsCode, string? assetType)
         {
             var flags = (PlayerOptions)playerOptionsCode;
             // return flags;
@@ -73,13 +74,13 @@ namespace Wellcome.Dds.Common
 
         }
 
-        public bool IsAllowedDownloadOption(string dzLicenseCode, string sectionType, string assetType, string downloadOption)
+        public bool IsAllowedDownloadOption(string dzLicenseCode, string sectionType, string? assetType, string downloadOption)
         {
             return GetPermittedOperations(dzLicenseCode, sectionType, assetType).Contains(downloadOption);
         }
 
 
-        public bool IsAllowedOperation(int playerOptionsCode, string assetType, string controllerOption)
+        public bool IsAllowedOperation(int playerOptionsCode, string? assetType, string controllerOption)
         {
             var flags = GetFlagsFromCode(playerOptionsCode, assetType);
             var option = GetDownloadOptionForControllerOperation(controllerOption);
@@ -91,7 +92,7 @@ namespace Wellcome.Dds.Common
             return flags.HasFlag(asFlag);
         }
 
-        public bool IsAllowedOperation(string dzLicenseCode, string sectionType, string assetType, string op)
+        public bool IsAllowedOperation(string dzLicenseCode, string sectionType, string? assetType, string op)
         {
             var option = GetDownloadOptionForControllerOperation(op);if (option == null)
             {
@@ -100,7 +101,7 @@ namespace Wellcome.Dds.Common
             return IsAllowedDownloadOption(dzLicenseCode, sectionType, assetType, option);
         }
 
-        public string[] GetPermittedOperations(int playerOptions, string assetType)
+        public string[] GetPermittedOperations(int playerOptions, string? assetType)
         {
             var optionsType = typeof(PlayerOptions);
             var flags = GetFlagsFromCode(playerOptions, assetType);
@@ -119,7 +120,7 @@ namespace Wellcome.Dds.Common
         /// <param name="sectionType">e.g., "Monograph", "Artwork"</param>
         /// <param name="assetType">e.g., "seadragon/dzi", "application/pdf"</param>
         /// <returns></returns>
-        public string[] GetPermittedOperations(string dzLicenseCode, string sectionType, string assetType)
+        public string[] GetPermittedOperations(string dzLicenseCode, string sectionType, string? assetType)
         {
             var permittedOps = new List<string>();
             if (LicenseOptions.TryGetValue(
@@ -134,7 +135,7 @@ namespace Wellcome.Dds.Common
                     if (
                         (licenseCode == "r" || licenseCode == "s") &&
                         sectionType.ToLowerInvariant() == "monograph" &&
-                        assetType.ToLowerInvariant() == "application/pdf")
+                        assetType.HasText() && assetType.ToLowerInvariant() == "application/pdf")
                     {
                         opts = new[] { 4 };
                     }

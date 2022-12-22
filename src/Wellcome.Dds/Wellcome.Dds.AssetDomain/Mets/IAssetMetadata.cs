@@ -9,16 +9,16 @@ namespace Wellcome.Dds.AssetDomain.Mets
     /// </summary>
     public interface IAssetMetadata
     {
-        string GetFileName();
-        string GetFolder();
-        string GetFileSize();
-        string GetFormatName();
-        string GetFormatVersion();
-        string GetPronomKey();
-        string GetAssetId();
-        string GetDisplayDuration();
+        string? GetFileName();
+        string? GetFolder();
+        string? GetFileSize();
+        string? GetFormatName();
+        string? GetFormatVersion();
+        string? GetPronomKey();
+        string? GetAssetId();
+        string? GetDisplayDuration();
         double GetDuration();
-        string GetBitrateKbps();
+        string? GetBitrateKbps();
         int GetNumberOfPages();
         int GetNumberOfImages();
         int GetImageWidth();
@@ -26,7 +26,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         
         // Born Digital additions:
         string GetOriginalName();
-        string GetMimeType();
+        string? GetMimeType();
         DateTime? GetCreatedDate();
         MediaDimensions GetMediaDimensions();
 

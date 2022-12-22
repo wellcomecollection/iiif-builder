@@ -67,6 +67,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.uriPatterns = uriPatterns;
             this.logger = logger;
 
+            if (dlcsOptions.Value.ResourceEntryPoint.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("Resource Entry Point not specified in DDS Options");
+            }
             build = new IIIFBuilderParts(
                 uriPatterns,
                 dlcsOptions.Value.ResourceEntryPoint,
@@ -787,7 +791,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        public AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string assetIdentifier)
+        public AnnotationList ConvertW3CAnnoPageJsonToOAAnnoList(JObject v3, string manifestationIdentifier, string? assetIdentifier)
         {
             var annotationList = new AnnotationList
             {

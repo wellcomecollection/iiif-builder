@@ -624,7 +624,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <exception cref="NotImplementedException"></exception>
         private void AddBornDigitalCanvasPlaceholderImage(
             Canvas canvas, IPhysicalFile physicalFile, 
-            string manifestIdentifier, string assetIdentifier)
+            string manifestIdentifier, string? assetIdentifier)
         {
             var pronomKey = physicalFile.AssetMetadata.GetPronomKey();
             if (pronomKey.IsNullOrEmpty())
@@ -802,7 +802,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return null;
         }
 
-        private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)
+        private void AddPosterImage(Manifest manifest, string? assetIdentifier, string manifestIdentifier)
         {
             var posterAssetIdentifier = $"poster-{assetIdentifier}";
             var posterCanvasId = uriPatterns

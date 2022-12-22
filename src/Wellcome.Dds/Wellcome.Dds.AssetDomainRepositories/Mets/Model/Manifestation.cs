@@ -13,14 +13,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     /// </summary>
     public class Manifestation : BaseMetsResource, IManifestation
     {
-        public List<IPhysicalFile> Sequence
+        public List<IPhysicalFile>? Sequence
         {
             get
             {
                 LazyInit();
                 return sequence;
             }
-            set { sequence = value; }
+            set => sequence = value;
         }
 
         /// <summary>
@@ -28,7 +28,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// One PhysicalFile might have more than one File pointer - e.g., Images have JP2 and ALTO
         /// but only the JP2 is synchronisable, or a video might have mpeg and transcript
         /// </summary>
-        public List<IStoredFile> SynchronisableFiles
+        public List<IStoredFile>? SynchronisableFiles
         {
             get
             {
@@ -37,18 +37,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
-        public IStructRange RootStructRange
+        public IStructRange? RootStructRange
         {
             get
             {
                 LazyInit();
                 return rootStructRange;
             }
-            set { rootStructRange = value; }
+            set => rootStructRange = value;
         }
 
         
-        public string FirstInternetType
+        public string? FirstInternetType
         {
             get
             {
@@ -57,7 +57,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
-        public List<string> IgnoredStorageIdentifiers
+        public List<string>? IgnoredStorageIdentifiers
         {
             get
             {
@@ -89,35 +89,35 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 if (SectionMetadata != null && SectionMetadata.DzLicenseCode.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        SectionMetadata.DzLicenseCode, Type, FirstInternetType);
+                        SectionMetadata.DzLicenseCode, Type!, FirstInternetType);
                 }
                 return new string[] {};
             }
         }
 
 
-        public IStoredFile PosterImage
+        public IStoredFile? PosterImage
         {
             get
             {
                 LazyInit();
                 return posterImage;
             }
-            set { posterImage = value; }
+            set => posterImage = value;
         }
 
         private ILogicalStructDiv logicalStructDiv;
-        private ILogicalStructDiv parentLogicalStructDiv;
-        private IStoredFile posterImage;
+        private ILogicalStructDiv? parentLogicalStructDiv;
+        private IStoredFile? posterImage;
         private bool initialised;
-        private List<IPhysicalFile> sequence;
+        private List<IPhysicalFile>? sequence;
         // private List<IPhysicalFile> significantSequence;
-        private List<IStoredFile> synchronisableFiles;
-        private IStructRange rootStructRange;
-        private List<string> ignoredStorageIdentifiers;
-        private string firstInternetType;
+        private List<IStoredFile>? synchronisableFiles;
+        private IStructRange? rootStructRange;
+        private List<string>? ignoredStorageIdentifiers;
+        private string? firstInternetType;
 
-        public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv parentStructDiv = null)
+        public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv? parentStructDiv = null)
         {
             logicalStructDiv = structDiv;
             Identifier = new DdsIdentifier(logicalStructDiv.ExternalId);
@@ -195,7 +195,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 foreach (var fileId in sr.PhysicalFileIds)
                 {
-                    var file = PhysicalFileMap[fileId];
+                    var file = PhysicalFileMap![fileId];
                     if (!file.AccessCondition.HasText())
                     {
                         file.AccessCondition = mods.AccessCondition;
@@ -215,6 +215,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return sr;
         }
 
-        public Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
+        public Dictionary<string, IPhysicalFile>? PhysicalFileMap { get; set; }
     }
 }
