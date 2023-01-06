@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Strings;
+using Utils;
 using Wellcome.Dds.IIIFBuilding;
 using Version = IIIF.Presentation.Version;
 
@@ -107,13 +108,17 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
         public List<ChemistAndDruggistVolume> Volumes { get; set; }
         
-        public DateTime GetNavDate(string modsDataOriginDateDisplay)
+        public DateTime GetNavDate(string? modsDataOriginDateDisplay)
         {
             return GetPeriodicalPublicationDate(modsDataOriginDateDisplay);
         }
 
-        private DateTime GetPeriodicalPublicationDate(string modsDate)
+        private DateTime GetPeriodicalPublicationDate(string? modsDate)
         {
+            if (modsDate.IsNullOrWhiteSpace())
+            {
+                return DateTime.MinValue;
+            }
             modsDate = modsDate.Trim();
             if (modsDate.Length == 4)
             {

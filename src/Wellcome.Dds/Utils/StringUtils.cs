@@ -285,7 +285,7 @@ namespace Utils
         /// <param name="rawSize"></param>
         /// <param name="withSpace"></param>
         /// <returns></returns>
-        public static string FormatFileSize(string rawSize, bool withSpace = false)
+        public static string? FormatFileSize(string? rawSize, bool withSpace = false)
         {
             if (long.TryParse(rawSize, out var asLong))
             {

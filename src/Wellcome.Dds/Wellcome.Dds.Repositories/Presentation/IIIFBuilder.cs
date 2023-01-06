@@ -98,6 +98,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
                 logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", ddsId);
                 var resource = await metsRepository.GetAsync(ddsId.PackageIdentifier);
+                if (resource == null)
+                {
+                    throw new InvalidOperationException("Can't build a Manifest without a Digital object from METS");
+                }
                 // This is a bnumber or born digital archive, so can't be part of any multiple manifestation.
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is ICollection parentCollection)
@@ -105,10 +109,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                     await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId.PackageIdentifier))
                     {
                         var manifestation = manifestationInContext.Manifestation;
-                        manifestationId = manifestation.Identifier;
+                        manifestationId = manifestation.Identifier!;
                         logger.LogInformation("Build all Manifestations looping through manifestations: {identifier}", manifestationId);
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
-                        logger.LogInformation("Will now build " + metsManifestation.Identifier);
+                        logger.LogInformation("Will now build " + metsManifestation!.Identifier!);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
@@ -164,9 +168,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
                     state.Volumes.Add(volume);
-                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier!) as ICollection;
                     // populate volume fields
-                    volume.Volume = metsVolume!.SectionMetadata.Number;
+                    volume.Volume = metsVolume!.SectionMetadata!.Number;
                     volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
                     volume.NavDate = state.GetNavDate(volume.DisplayDate);
                     volume.Label = metsVolume.SectionMetadata.Title;
@@ -176,6 +180,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                 volume.Issues.Add(issue);
                 var metsIssue = mic.Manifestation;
                 var mods = metsIssue.SectionMetadata;
+                if (mods == null)
+                {
+                    throw new InvalidOperationException("No MODS data for C&D issue");
+                }
                 // populate issue fields
                 issue.Title = mods.Title; // like "2293"
                 issue.DisplayDate = mods.DisplayDate;
@@ -202,6 +210,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
                 var metsResource = await metsRepository.GetAsync(ddsId);
+                if (metsResource == null)
+                {
+                    throw new InvalidOperationException("Can't build a Manifest without a Digital object from METS");
+                }
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
                 if (work == null)
                 {
@@ -218,7 +230,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                 if (metsResource is ICollection collection)
                 {
-                    if (collection.Manifestations.Any(m => m.IsMultiPart()))
+                    if (collection.Manifestations!.Any(m => m.IsMultiPart()))
                     {
                         buildResults.Add(new BuildResult(ddsId, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
@@ -241,11 +253,11 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
         
 
-        private BuildResult BuildInternal(Work work,
-            IMetsResource metsResource, ICollection? partOfCollection,
+        private BuildResult BuildInternal(Work work, IMetsResource metsResource, 
+            ICollection? partOfCollection,
             ManifestationMetadata manifestationMetadata, State? state)
         {
-            var result = new BuildResult(metsResource.Identifier, Version.V3);
+            var result = new BuildResult(metsResource.Identifier!, Version.V3);
             try
             {
                 // build the Presentation 3 version from the source materials
@@ -268,7 +280,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return result;
         }
         
-        private StructureBase MakePresentation3Resource(IMetsResource metsResource,
+        private StructureBase MakePresentation3Resource(IMetsResource? metsResource,
             ICollection? partOfCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
@@ -279,7 +291,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case ICollection metsCollection:
                     var collection = new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(metsCollection.Identifier)
+                        Id = uriPatterns.CollectionForWork(metsCollection.Identifier!)
                     };
                     AddCommonMetadata(collection, work, manifestationMetadata);
                     BuildCollection(collection, metsCollection, work, manifestationMetadata, state);
@@ -287,7 +299,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case IManifestation metsManifestation:
                     var manifest = new Manifest
                     {
-                        Id = uriPatterns.Manifest(metsManifestation.Identifier)
+                        Id = uriPatterns.Manifest(metsManifestation.Identifier!)
                     };
                     if (partOfCollection != null)
                     {
@@ -297,7 +309,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             new Collection
                             {
-                                Id = uriPatterns.CollectionForWork(partOfCollection.Identifier),
+                                Id = uriPatterns.CollectionForWork(partOfCollection.Identifier!),
                                 Label = Lang.Map(work.Title!),
                                 Behavior = new List<string>{Behavior.MultiPart}
                             }
@@ -336,8 +348,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     collection.Items.Add(new Collection
                     {
-                        Id = uriPatterns.CollectionForWork(coll.Identifier),
-                        Label = Lang.Map(metsCollection.Label)
+                        Id = uriPatterns.CollectionForWork(coll.Identifier!),
+                        Label = Lang.Map(metsCollection.Label!)
                     });
                 }
             }
@@ -366,7 +378,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                         state.AVState ??= new AVState();
                         state.AVState.MultipleManifestationMembers.Add(
-                            new MultipleManifestationMember(metsManifestation.Identifier,type));
+                            new MultipleManifestationMember(metsManifestation.Identifier!, type));
                     }
                     var order = metsManifestation.Order;
                     if (!order.HasValue || order < 1)
@@ -376,7 +388,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                     collection.Items.Add(new Manifest
                     {
-                        Id = uriPatterns.Manifest(metsManifestation.Identifier),
+                        Id = uriPatterns.Manifest(metsManifestation.Identifier!),
                         Label = new LanguageMap
                         {
                             ["en"] = new()
@@ -385,7 +397,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 work.Title!
                             }
                         },
-                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier)
+                        Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!)
                     });
                     counter++;
                 }
@@ -397,7 +409,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata,
             State? state, BuildResult buildResult)
         {
-            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier);
+            manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);
             build.Rights(manifest, metsManifestation);
             build.PagedBehavior(manifest, metsManifestation);

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -106,8 +107,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             set => posterImage = value;
         }
 
-        private ILogicalStructDiv logicalStructDiv;
-        private ILogicalStructDiv? parentLogicalStructDiv;
+        private readonly ILogicalStructDiv logicalStructDiv;
         private IStoredFile? posterImage;
         private bool initialised;
         private List<IPhysicalFile>? sequence;
@@ -119,10 +119,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
         public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv? parentStructDiv = null)
         {
+            if (structDiv.ExternalId.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("Logical Struct Div for Manifestation must have an ExternalID");
+            }
             logicalStructDiv = structDiv;
             Identifier = new DdsIdentifier(logicalStructDiv.ExternalId);
             SectionMetadata = logicalStructDiv.GetSectionMetadata();
-            parentLogicalStructDiv = parentStructDiv;
+            var parentLogicalStructDiv = parentStructDiv;
             if (parentLogicalStructDiv != null)
             {
                 ParentSectionMetadata = parentLogicalStructDiv.GetSectionMetadata();
@@ -145,30 +149,32 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 posterImage = logicalStructDiv.GetPosterImage();
                 PhysicalFileMap = sequence.ToDictionary(pf => pf.Id);
                 rootStructRange = BuildStructRange(logicalStructDiv);
-                var ignoreAssetFilter = new IgnoreAssetFilter();
                 if (sequence.HasItems())
                 {                    
                     // When we want to include POSTER images in the DLCS sync operation, 
                     // we can add || f.Use == "POSTER" here. Wait till new DLCS before doing that.
-                    synchronisableFiles = sequence.SelectMany(pf => pf.Files)
+                    synchronisableFiles = sequence.SelectMany(pf => pf.Files!)
                         .Where(sf => 
                             sf.Use == "OBJECTS" ||  // Old workflows
                             sf.Use == "ACCESS" ||   // New workflows
                             sf.Use == "TRANSCRIPT")
                         .ToList();
-                    var ignoredFiles = sequence.SelectMany(pf => pf.Files)
+                    var ignoredFiles = sequence.SelectMany(pf => pf.Files!)
                         .Where(sf => 
                             sf.Use == "POSTER" || 
                             sf.Use == "ALTO" || 
                             sf.Use == "PRESERVATION")
                         .ToList();
                     
-                    ignoredStorageIdentifiers = ignoredFiles.Select(sf => sf.StorageIdentifier).ToList();
+                    ignoredStorageIdentifiers = ignoredFiles.Select(sf => 
+                        sf.StorageIdentifier ?? 
+                        throw new InvalidOperationException("Could not obtain storage identifier"))
+                        .ToList();
 
                     var firstFile = sequence.FirstOrDefault();
                     if (firstFile != null)
                     {
-                        firstInternetType = firstFile.MimeType.ToLowerInvariant().Trim();
+                        firstInternetType = firstFile.MimeType!.ToLowerInvariant().Trim();
                     }
                 }
                 else

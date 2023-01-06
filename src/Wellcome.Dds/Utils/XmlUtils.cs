@@ -82,7 +82,7 @@ namespace Utils
             return attr.Value;
         }
 
-        public static string GetAttributeValue(this XElement xel, XName attributeName, string valueIfMissing)
+        public static string? GetAttributeValue(this XElement xel, XName attributeName, string? valueIfMissing)
         {
             if (xel == null)
             {

@@ -70,7 +70,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     }
 
                     var page = altoProvider.GetAnnotationPage(altoRoot,
-                            physicalFile.AssetMetadata.GetImageWidth(),
+                            physicalFile.AssetMetadata!.GetImageWidth(),
                             physicalFile.AssetMetadata.GetImageHeight(),
                             identifier,
                             physicalFile.StorageIdentifier,

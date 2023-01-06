@@ -116,7 +116,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var syncOperation = new SyncOperation
             {
                 ManifestationIdentifier = metsManifestation!.Identifier!,
-                ImagesAlreadyOnDlcs = await GetImagesAlreadyOnDlcs(metsManifestation, dlcsImages),
+                ImagesExpectedOnDlcs = await GetImagesExpectedOnDlcs(metsManifestation, dlcsImages),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers
             };
@@ -129,7 +129,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             
             // What do we need to ingest? List of assets from METS that are not present on DLCS, or are present with transcoding errors
             var assetsToIngest = new List<IStoredFile>();
-            foreach (var kvp in syncOperation.ImagesAlreadyOnDlcs)
+            foreach (var kvp in syncOperation.ImagesExpectedOnDlcs)
             {
                 if (syncOperation.StorageIdentifiersToIgnore!.Contains(kvp.Key))
                 {
@@ -159,7 +159,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
-            syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesAlreadyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
+            syncOperation.Orphans = dlcsImages.Where(image => ! syncOperation.ImagesExpectedOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
 
             foreach (var storedFile in metsManifestation.SynchronisableFiles!)
             {
@@ -178,7 +178,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 }
                 
                 var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier!, syncOperation.LegacySequenceIndex, maxUnauthorised);
-                var existingDlcsImage = syncOperation.ImagesAlreadyOnDlcs[storedFile.StorageIdentifier!];
+                var existingDlcsImage = syncOperation.ImagesExpectedOnDlcs[storedFile.StorageIdentifier!];
 
                 if (assetsToIngest.Contains(storedFile))
                 {
@@ -268,30 +268,30 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return batchOp.ResponseObject;
         }
         
-        private async Task<Dictionary<string, Image?>> GetImagesAlreadyOnDlcs(
+        private async Task<Dictionary<string, Image?>> GetImagesExpectedOnDlcs(
             IManifestation metsManifestation, List<Image> dlcsImages)
         {
             // create an empty dictionary for all the images we need to have in the DLCS:
-            var imagesAlreadyOnDlcs = new Dictionary<string, Image?>();
+            var imagesExpectedOnDlcs = new Dictionary<string, Image?>();
             foreach (var storedFile in metsManifestation.SynchronisableFiles!)
             {
-                imagesAlreadyOnDlcs[storedFile.StorageIdentifier!] = null; 
+                imagesExpectedOnDlcs[storedFile.StorageIdentifier!] = null; 
             }
 
             // go through all the DLCS images
-            PopulateImagesAlreadyOnDlcs(imagesAlreadyOnDlcs, metsManifestation, dlcsImages);
+            PopulateImagesExpectedOnDlcs(imagesExpectedOnDlcs, metsManifestation, dlcsImages);
 
             // do we have any local identifiers that the DLCS doesn't have?
             // If metadata has changed, our initial query might miss them, so we should fetch by IDs
-            var missingDlcsImageIds = imagesAlreadyOnDlcs
+            var missingDlcsImageIds = imagesExpectedOnDlcs
                 .Where(kvp => kvp.Value == null).Select(kvp => kvp.Key).ToList();
             if (missingDlcsImageIds.Any())
             {
                 // See if the DLCS has these IDs anyway, in the same space but maybe with different metadata
                 var mismatchedImages = await dlcs.GetImagesByDlcsIdentifiers(missingDlcsImageIds);
-                PopulateImagesAlreadyOnDlcs(imagesAlreadyOnDlcs, metsManifestation, mismatchedImages);
+                PopulateImagesExpectedOnDlcs(imagesExpectedOnDlcs, metsManifestation, mismatchedImages);
             }
-            return imagesAlreadyOnDlcs;
+            return imagesExpectedOnDlcs;
         }
 
         public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image?> images)
@@ -527,7 +527,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation)
         {
-            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesAlreadyOnDlcs!.Values);
+            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesExpectedOnDlcs!.Values);
             var imageBatches = batchesForImages.ToList();
             // DASH-46
             if (syncOperation.RequiresSync == false && imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))
@@ -635,7 +635,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return error;
         }
 
-        private void PopulateImagesAlreadyOnDlcs(
+        private void PopulateImagesExpectedOnDlcs(
             Dictionary<string, Image?> imageDictionary, 
             IManifestation thisManifestation,
             IEnumerable<Image> imagesOnDlcs)
@@ -654,6 +654,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private string[] GetRoles(IPhysicalFile asset)
         {
+            if (asset.AccessCondition.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("Physical File is missing Access Condition");
+            }
             if (asset.AccessCondition == AccessCondition.Open)
             {
                 return Array.Empty<string>();
@@ -689,9 +693,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         public async Task<int> DeleteOrphans(string id)
         {
-            var manifestation = (await GetDigitalObject(id)) as IDigitalManifestation;
-            var syncOp = await GetDlcsSyncOperation(manifestation, false);
-            return await dlcs.DeleteImages(syncOp.Orphans);
+            var manifestation = await GetDigitalObject(id) as IDigitalManifestation;
+            var syncOperation = await GetDlcsSyncOperation(manifestation!, false);
+            return await dlcs.DeleteImages(syncOperation.Orphans!);
         }
 
         public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string? description = null)

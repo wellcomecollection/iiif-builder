@@ -6,7 +6,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
 {
     public interface IMetsRepository
     {
-        Task<IMetsResource> GetAsync(DdsIdentifier identifier);
+        Task<IMetsResource?> GetAsync(DdsIdentifier identifier);
 
         /// <summary>
         /// Get all manifestations for specified identifier (e.g. Volumes/Periodical)

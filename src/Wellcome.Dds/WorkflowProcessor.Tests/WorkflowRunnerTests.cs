@@ -54,7 +54,7 @@ namespace WorkflowProcessor.Tests
             var job = new WorkflowJob{ Identifier = "b9998887"};
             var jobs = new []
             {
-                new DlcsIngestJob {Id = 4}, new DlcsIngestJob {Id = 1},
+                new DlcsIngestJob("4") {Id = 4}, new DlcsIngestJob("1") {Id = 1},
             };
             A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
             

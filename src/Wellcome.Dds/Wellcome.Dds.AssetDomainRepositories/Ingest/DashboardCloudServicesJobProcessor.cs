@@ -210,7 +210,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 }
             }
 
-            if (errorDataMessage.HasText() || manifestation == null)
+            if (errorDataMessage.HasText() || manifestation == null || digitalManifestation == null)
             {
                 WriteErrorJobData(job.Id, errorDataMessage, error);
                 return ImageIngestResult.Empty;
@@ -231,7 +231,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 // This doesn't really mean anything for born digital
                 job.AssetType = assetType;
             }
-            job.ImageCount = manifestation.SynchronisableFiles.Count;
+            job.ImageCount = manifestation.SynchronisableFiles!.Count;
             await ddsInstrumentationContext.SaveChangesAsync();
 
             if (!JobCanBeProcessedNow(job, manifestation))
@@ -248,9 +248,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(digitalManifestation, true);
             if (forceReingest)
             {
-                foreach (var image in syncOperation.ImagesAlreadyOnDlcs.Values)
+                foreach (var image in syncOperation.ImagesExpectedOnDlcs!.Values)
                 {
-                    if (image != null && !syncOperation.DlcsImagesToIngest.Exists(im => im.StorageIdentifier == image.StorageIdentifier))
+                    if (image != null && !syncOperation.DlcsImagesToIngest!.Exists(im => im.StorageIdentifier == image.StorageIdentifier))
                     {
                         syncOperation.DlcsImagesToIngest.Add(image);
                     }
@@ -260,8 +260,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             else
             {
                 // The caller can supply a function to test whether an image should be ingested even though it is still apparently ingesting from a previous job
-                var ingestingImagesToIncludeInJob = syncOperation.DlcsImagesCurrentlyIngesting.Where(includeIngestingImage);
-                syncOperation.DlcsImagesToIngest.AddRange(ingestingImagesToIncludeInJob);
+                var ingestingImagesToIncludeInJob = syncOperation.DlcsImagesCurrentlyIngesting!.Where(includeIngestingImage);
+                syncOperation.DlcsImagesToIngest!.AddRange(ingestingImagesToIncludeInJob);
             }
 
             var result = new ImageIngestResult();
@@ -320,7 +320,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             
             // If it's not a b number, we'll just have to try and process it!
             // But we will make sure that EVERY file has a mimetype.
-            if (manifestation.Sequence.Any(pf => pf.MimeType.IsNullOrEmpty()))
+            if (manifestation.Sequence!.Any(pf => pf.MimeType.IsNullOrEmpty()))
             {
                 return false;
             }
@@ -379,7 +379,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             logger.LogInformation("About to call GetImages for query String1={0} and Number1={1}", query.String1, query.Number1);
 
             Debug.Assert(digitisedManifestation != null, "digitisedManifestation != null");
-            var returnedImages = digitisedManifestation.DlcsImages.ToList();
+            var returnedImages = digitisedManifestation.DlcsImages!.ToList();
 
             if (!returnedImages.HasItems())
             {
@@ -389,7 +389,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 return;
             }
 
-            string jobData = null;
+            string? jobData = null;
             bool success = false;
             int readyImageCount = 0;
             if (returnedImages.Count == 0)

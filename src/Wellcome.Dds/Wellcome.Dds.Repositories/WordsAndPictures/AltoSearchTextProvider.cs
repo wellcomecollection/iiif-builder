@@ -54,7 +54,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             int lineCounter = 0;
             int wordCounter = 0;
             int composedBlockCounter = 0;
-            for (int assetIndex = 0; assetIndex < manifestation.Sequence.Count; assetIndex++)
+            for (int assetIndex = 0; assetIndex < manifestation.Sequence!.Count; assetIndex++)
             {
                 // TODO - logging, errors
                 var physicalFile = manifestation.Sequence[assetIndex];
@@ -83,7 +83,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                         }
                         int srcW = Convert.ToInt32(pageElement.GetRequiredAttributeValue("WIDTH"));
                         int srcH = Convert.ToInt32(pageElement.GetRequiredAttributeValue("HEIGHT"));
-                        float scaleW = (float) physicalFile.AssetMetadata.GetImageWidth() / srcW;
+                        float scaleW = (float) physicalFile.AssetMetadata!.GetImageWidth() / srcW;
                         float scaleH = (float) physicalFile.AssetMetadata.GetImageHeight() / srcH;
                         // only get strings in text blocks, not page numbers and headers
                         var printSpace = altoRoot.Descendants(Ns + "PrintSpace").First();

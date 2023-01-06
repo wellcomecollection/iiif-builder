@@ -114,19 +114,19 @@ namespace PdfThumbGenerator
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
-                IMetsResource resource = await metsRepository.GetAsync(pdf.Identifier!);
+                IMetsResource? resource = await metsRepository.GetAsync(pdf.Identifier!);
                 if (resource is ICollection)
                 {
                     throw new InvalidOperationException(
                         $"{pdf.Identifier} is a multiple manifestation - update handling");
                 }
                 var manifestation = resource as IManifestation;
-                var pdfItems = manifestation!.Sequence.Where(s => s.MimeType == "application/pdf");
+                var pdfItems = manifestation!.Sequence!.Where(s => s.MimeType == "application/pdf");
                 
                 foreach (var pdfItem in pdfItems)
                 {
                     await pdfThumbnailUtil.EnsurePdfThumbnails(
-                        () => pdfItem.WorkStore.GetStreamForPathAsync(pdfItem.RelativePath),
+                        () => pdfItem.WorkStore.GetStreamForPathAsync(pdfItem.RelativePath!),
                         pdf.Identifier!);
                 }
             }

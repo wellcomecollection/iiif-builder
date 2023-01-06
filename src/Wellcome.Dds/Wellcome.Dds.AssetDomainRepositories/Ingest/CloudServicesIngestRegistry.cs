@@ -82,10 +82,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string? volumeIdentifier,
             string? issueIdentifier, bool useInitialOrigin, bool immediateStart)
         {
-            var job = new DlcsIngestJob
+            var job = new DlcsIngestJob(identifier)
             {
-                Created = DateTime.Now,
-                Identifier = identifier,
                 Label = label,
                 SequenceIndex = sequenceIndex,
                 VolumePart = volumeIdentifier,

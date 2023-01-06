@@ -57,7 +57,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             var accessConditions = modsDoc.Root.Elements(XNames.ModsAccessCondition).ToList();
 
             var statusAccessConditionElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "status").ToList();
+                .Where(x => (string?) x.Attribute("type") == "status").ToList();
             if (statusAccessConditionElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'status'");
@@ -79,7 +79,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // e.g., AccessCondition = Common.AccessCondition.Missing;
 
             var dzAccessConditionElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "dz").ToList();
+                .Where(x => (string?) x.Attribute("type") == "dz").ToList();
             if (dzAccessConditionElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'dz' (more than one license code)");
@@ -90,7 +90,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             var playerOptionsElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "player").ToList();
+                .Where(x => (string?) x.Attribute("type") == "player").ToList();
             if (playerOptionsElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'player'");
@@ -101,7 +101,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             var usageElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "usage").ToList();
+                .Where(x => (string?) x.Attribute("type") == "usage").ToList();
             if (usageElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'usage'");
@@ -134,21 +134,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             Number = modsDoc.GetDescendantElementValue(XNames.ModsNumber);
         }
 
-        private string ExtractSingleModsNoteField(XDocument modsDoc, string noteType)
+        private string? ExtractSingleModsNoteField(XDocument modsDoc, string noteType)
         {
-            var noteEl = modsDoc.Root
+            var noteEl = modsDoc.Root!
                 .Descendants(XNames.ModsNote)
-                .SingleOrDefault(x => (string)x.Attribute("type") == noteType);
-            if (noteEl != null)
-            {
-                return noteEl.Value;
-            }
-            return null;
+                .SingleOrDefault(x => (string?) x.Attribute("type") == noteType);
+            return noteEl?.Value;
         }
 
-        private static string GetCleanDisplayDate(XDocument modsDoc)
+        private static string? GetCleanDisplayDate(XDocument modsDoc)
         {
-            string disp = null;
+            string? displayDate = null;
             int cutoffYear = DateTime.Now.AddYears(10).Year;
             try
             {
@@ -158,14 +154,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     {
                         if (elementValue.Length == 4)
                         {
-                            int y;
-                            if (Int32.TryParse(elementValue, out y))
+                            if (Int32.TryParse(elementValue, out var y))
                             {
                                 if (y > cutoffYear)
                                     continue;
                             }
                         }
-                        disp = elementValue;
+                        displayDate = elementValue;
                         break;
                     }
                 }
@@ -174,7 +169,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 // log
             }
-            return disp;
+            return displayDate;
         }
 
         private void SetCopyAndVolumeNumbers(XDocument modsDoc, ModsData modsData)

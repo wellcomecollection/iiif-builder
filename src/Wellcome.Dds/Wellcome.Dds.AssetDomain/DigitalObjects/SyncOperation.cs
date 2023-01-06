@@ -24,13 +24,13 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 
         public bool Succeeded { get; set; }
         public string? Message { get; set; }
+        
         /// <summary>
         /// The key is the physicalFile.StorageIdentifier
         /// The value is a Dlcs API Image.
         /// The value will be null if the image is not on the DLCS
         /// </summary>
-        // TODO - rename this from ImagesAlreadyOnDlcs as it can contain images not on DLCS
-        public Dictionary<string, Image?>? ImagesAlreadyOnDlcs { get; set; }
+        public Dictionary<string, Image?>? ImagesExpectedOnDlcs { get; set; }
         public List<Image>? DlcsImagesToIngest { get; set; }
         public List<Image>? DlcsImagesToPatch { get; set; }
         public List<Image>? DlcsImagesCurrentlyIngesting { get; set; }

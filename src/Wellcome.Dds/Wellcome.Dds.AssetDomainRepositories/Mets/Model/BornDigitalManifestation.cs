@@ -26,11 +26,11 @@ public class BornDigitalManifestation : IManifestation
 
     public List<IPhysicalFile>? Sequence { get; set; }
 
-    public List<IStoredFile>? SynchronisableFiles
+    public List<IStoredFile> SynchronisableFiles
     {
         get
         {
-            return Sequence!.Select(pf => pf.Files.First()).ToList();
+            return Sequence!.Select(pf => pf.Files!.First()).ToList();
         }
     }
 

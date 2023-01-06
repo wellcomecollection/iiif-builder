@@ -56,7 +56,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var sizes = new List<Size>();
             var actualSize = new Size(
-                asset.AssetMetadata.GetImageWidth(),
+                asset.AssetMetadata!.GetImageWidth(),
                 asset.AssetMetadata.GetImageHeight());
             sizes.Add(new Size(actualSize.Width, actualSize.Height));
             var usableThumbs = new List<int>();

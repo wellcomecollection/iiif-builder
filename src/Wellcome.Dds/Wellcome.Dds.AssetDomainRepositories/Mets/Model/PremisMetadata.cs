@@ -393,7 +393,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
 
-        public string GetBitrateKbps()
+        public string? GetBitrateKbps()
         {
             return GetFilePropertyValue("Bitrate");
         }
