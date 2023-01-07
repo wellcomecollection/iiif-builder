@@ -1152,9 +1152,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             return range;
         }
 
-        private LanguageMap GetMappedRangeLabel(IStructRange structRange)
+        private LanguageMap? GetMappedRangeLabel(IStructRange structRange)
         {
             var s = structRange.SectionMetadata?.Title ?? structRange.Type;
+            if (s.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
             var humanFriendly = manifestStructureHelper.GetHumanFriendlySectionLabel(s);
             return Lang.Map("none", humanFriendly); // TODO - "en" is often wrong.
         }
@@ -1193,7 +1197,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void ManifestLevelAnnotations(Manifest manifest, IManifestation metsManifestation, bool addAllContentAnnos)
         {
-            if (metsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence!.SupportsSearch())
             {
                 manifest.Annotations = new List<AnnotationPage>
                 {
@@ -1307,7 +1311,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IManifestation metsManifestation,
             State? state)
         {
-            if (metsManifestation.SectionMetadata.CopyNumber > 0)
+            if (metsManifestation.SectionMetadata!.CopyNumber > 0)
             {
                 if (state == null)
                 {
@@ -1378,7 +1382,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (tCounter < avCanvases.Count)
                     {
-                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0], "transcript", "PDF Transcript");
+                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files![0], "transcript", "PDF Transcript");
                     }
                 }
             }
@@ -1405,7 +1409,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
             string annoIdentifier, string label)
         {
-            var pageCountMetadata = GetPageCountMetadata(pdfFile.PhysicalFile);
+            var pageCountMetadata = GetPageCountMetadata(pdfFile.PhysicalFile!);
             List<LabelValuePair>? resourceMetadata = null;
             if (pageCountMetadata != null)
             {
@@ -1505,9 +1509,9 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
         {
-            var accessConditions = metsManifestation.Sequence
+            var accessConditions = metsManifestation.Sequence!
                 .Select(pf => pf.AccessCondition);
-            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions);
+            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions!);
             string accessHint;
             switch (mostSecureAccessCondition)
             {

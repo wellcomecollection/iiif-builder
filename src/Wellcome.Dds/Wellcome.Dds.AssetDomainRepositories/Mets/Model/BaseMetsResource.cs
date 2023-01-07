@@ -7,7 +7,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public abstract class BaseMetsResource : IMetsResource
     {
-        public DdsIdentifier? Identifier { get; set; }
+        public DdsIdentifier Identifier { get; set; } = null!;
         public string? Label { get; set; }
         public string? Type { get; set; }
         public int? Order { get; set; }
