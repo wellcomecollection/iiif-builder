@@ -128,6 +128,49 @@ public class LinkWriterTests
         dict["other-external-link"].Should().Be(TestData["other-external-link"]);
         dict["other-dds"].Should().Be(TestData["other-dds"]);
     }
+    
+    
+    [Fact]
+    public static void DLCS_Host_Only_Links_rewritten()
+    {
+        var dlcsHostOnlyOptions = new DdsOptions
+        {
+            LinkedDataDomain = InitialDomain,
+            RewriteDlcsLinksHostTo = NewDlcsDomain // but no space specified
+        };
+        var dlcsHostOnlyLinkRewriter = new LinkRewriter(Options.Create(dlcsHostOnlyOptions));
+        
+        // act
+        var rewritten = dlcsHostOnlyLinkRewriter.RewriteLinks(TestDataString);
+        
+        // assert
+        dlcsHostOnlyLinkRewriter.RequiresRewriting().Should().BeTrue();
+        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(rewritten);
+        
+        // expected to be transformed
+        dict["image-service-1"].Should().Be($"{NewDlcsDomain}/image/image1.jp2");
+        dict["image-service-2"].Should().Be($"{NewDlcsDomain}/image/image2.jp2");
+        dict["image-params-1"].Should().Be($"{NewDlcsDomain}/image/image1.jp2/full/max/0/default.jpg");
+        dict["image-params-2"].Should().Be($"{NewDlcsDomain}/image/image2.jp2/full/max/0/default.jpg");
+        dict["video-resource"].Should().Be($"{NewDlcsDomain}/av/video.mp4");
+        dict["audio-resource"].Should().Be($"{NewDlcsDomain}/av/sound.mp3");
+        dict["file-resource"].Should().Be($"{NewDlcsDomain}/file/my-file");
+        dict["pdf-derivative"].Should().Be($"{NewDlcsDomain}/pdf/my-book");
+        dict["auth-service"].Should().Be($"{NewDlcsDomain}/auth/clickthrough");
+        dict["auth-logout"].Should().Be($"{NewDlcsDomain}/auth/clickthrough/logout");
+        dict["thumb-service-1"].Should().Be($"{NewDlcsDomain}/thumbs/image1.jp2");
+        dict["thumb-params-1"].Should().Be($"{NewDlcsDomain}/thumbs/image1.jp2/full/max/0/default.jpg");
+        
+        // expected to stay the same:
+        dict["manifest-id"].Should().Be(TestData["manifest-id"]);
+        dict["text-resource"].Should().Be(TestData["text-resource"]);
+        dict["alto-resource"].Should().Be(TestData["alto-resource"]);
+        dict["canvas-id"].Should().Be(TestData["canvas-id"]);
+        dict["other-wc-link"].Should().Be(TestData["other-wc-link"]);
+        dict["other-wc-api-link"].Should().Be(TestData["other-wc-api-link"]);
+        dict["other-external-link"].Should().Be(TestData["other-external-link"]);
+        dict["other-dds"].Should().Be(TestData["other-dds"]);
+    }
 
     [Fact]
     public static void DDS_And_DLCS_Links_Rewritten()
