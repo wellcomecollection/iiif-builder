@@ -7,6 +7,8 @@
         // but later, refactor to "SchemeAndHost"
         public string? LinkedDataDomain { get; set; }
         public string? RewriteDomainLinksTo { get; set; }
+        public string? RewriteDlcsLinksHostTo { get; set; }
+        public int? RewriteDlcsLinksSpaceTo { get; set; }
         
         public bool AvoidCaching { get; set; }
         public string? EarliestJobDateTime { get; set; }

@@ -135,7 +135,8 @@ namespace Wellcome.Dds.Server
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
-            
+
+            services.AddSingleton<LinkRewriter>();
             services.AddSingleton<UriPatterns>();
             services.AddSingleton<Helpers>();
 
