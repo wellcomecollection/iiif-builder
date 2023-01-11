@@ -81,7 +81,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         // Additional properties for time-based media, files etc
         // Metadata?
         [JsonProperty(Order = 110, PropertyName = "duration")]
-        public int Duration { get; set; }
+        public int? Duration { get; set; }
 
         [JsonProperty(Order = 20, PropertyName = "width")]
         public int? Width { get; set; }
