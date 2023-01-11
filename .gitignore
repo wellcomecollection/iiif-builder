@@ -17,6 +17,8 @@
 mono_crash.*
 
 appsettings.Development.json
+appsettings.Development-Alt.json
+appsettings.Development-Original.json
 
 # Build results
 [Dd]ebug/

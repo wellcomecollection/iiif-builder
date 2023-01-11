@@ -94,6 +94,7 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
+            services.AddSingleton<LinkRewriter>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
