@@ -629,6 +629,10 @@
                             {
                                 <td>
                                     <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    @if (dlcsImage.Error.HasText())
+                                    {
+                                        <br/><span class="text-danger small">@dlcsImage.Error</span>
+                                    }
                                     @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
                                     {
                                         <div class="tbmetadata">
