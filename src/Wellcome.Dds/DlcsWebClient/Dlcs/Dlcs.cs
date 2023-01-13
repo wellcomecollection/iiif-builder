@@ -623,7 +623,7 @@ namespace DlcsWebClient.Dlcs
         public async Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             var url = $"{options.ApiEntryPoint}queue";
-            httpClient.Timeout = TimeSpan.FromMilliseconds(4000);
+            // httpClient.Timeout = TimeSpan.FromMilliseconds(4000);
             var response = await httpClient.GetStringAsync(url);
 
             var result = JObject.Parse(response);
