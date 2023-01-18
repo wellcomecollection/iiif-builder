@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -15,13 +16,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
     {
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly ILogger<CloudServicesIngestRegistry> logger;
 
         public CloudServicesIngestRegistry(
             IMetsRepository metsRepository,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            ILogger<CloudServicesIngestRegistry> logger)
         {
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.logger = logger;
         }
 
         public async Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number)
@@ -159,6 +163,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
+            logger.LogDebug("Adding a new DlcsIngestJob for {identifier}", job.Identifier);
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
             try
             {

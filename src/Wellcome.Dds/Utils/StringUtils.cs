@@ -587,5 +587,15 @@ namespace Utils
         {
             return Roman.IsMatch(s);
         }
+
+        public static string ToCommaDelimitedList(this IEnumerable<string>? strings)
+        {
+            if (strings == null)
+            {
+                return String.Empty;
+            }
+
+            return String.Join(',', strings);
+        }
     }
 }

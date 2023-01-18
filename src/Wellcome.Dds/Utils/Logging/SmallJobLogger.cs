@@ -16,10 +16,10 @@ namespace Utils.Logging
         }
 
         // this allows you to supply a message to your preferred logging mechanism
-        private readonly Action<string> callback;
+        private readonly Action<string>? callback;
         private readonly string callbackPrefix;
 
-        public SmallJobLogger(string callbackPrefix, Action<string> callback)
+        public SmallJobLogger(string callbackPrefix, Action<string>? callback)
         {
             this.callbackPrefix = callbackPrefix;
             this.callback = callback;

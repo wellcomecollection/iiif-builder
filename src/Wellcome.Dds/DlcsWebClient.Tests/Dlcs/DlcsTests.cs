@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Test.Helpers;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.Common;
@@ -63,7 +64,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.RegisterImages(request, false);
+            await sut.RegisterImages(request, new DlcsCallContext("[test]", "[id]"), false);
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -82,7 +83,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.RegisterImages(request, true);
+            await sut.RegisterImages(request, new DlcsCallContext("[test]", "[id]"), true);
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -105,7 +106,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.RegisterImages(request, priority);
+            await sut.RegisterImages(request, new DlcsCallContext("[test]", "[id]"), priority);
 
             // Assert
             (await message.Content.ReadAsStringAsync()).Should().Be(expected);
@@ -122,7 +123,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.PatchImages(request);
+            await sut.PatchImages(request, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -148,7 +149,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.PatchImages(request);
+            await sut.PatchImages(request, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             (await message.Content.ReadAsStringAsync()).Should().Be(expected);
@@ -171,7 +172,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.PatchImages(request);
+            await sut.PatchImages(request, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             var actual = await message.Content.ReadAsAsync<HydraImageCollection>();
@@ -188,7 +189,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetImages(imageQuery, 999);
+            await sut.GetImages(imageQuery,999, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -206,7 +207,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetImages(imageQuery, 999);
+            await sut.GetImages(imageQuery, 999, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -224,7 +225,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetImages(uri);
+            await sut.GetImages(uri, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -242,7 +243,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetBatch(batchId);
+            await sut.GetBatch(batchId, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -260,7 +261,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetBatch(batchId);
+            await sut.GetBatch(batchId, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()
@@ -309,7 +310,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.RegisterCallback(r => message = r);
 
             // Act
-            await sut.GetImagesForIssue(issueIdentifier);
+            await sut.GetImagesForIssue(issueIdentifier, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             httpHandler.CallsMade.Should().ContainSingle()

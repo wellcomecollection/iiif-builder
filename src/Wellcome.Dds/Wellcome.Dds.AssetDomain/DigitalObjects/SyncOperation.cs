@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -12,6 +13,13 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
     /// </summary>
     public class SyncOperation
     {
+        public Guid SyncOperationIdentifier { get; }
+        
+        /// <summary>
+        /// The DLCS Ingest Job, if there is one, that is using this SyncOperation
+        /// </summary>
+        public int? JobIdentifier { get; }
+        
         public string? ManifestationIdentifier { get; set; }
         public int LegacySequenceIndex { get; set; }
 
@@ -48,8 +56,11 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// </summary>
         public bool HasInvalidAccessCondition { get; set; }
 
-        public SyncOperation()
+        public SyncOperation(DlcsCallContext dlcsCallContext)
         {
+            SyncOperationIdentifier = Guid.NewGuid();
+            JobIdentifier = dlcsCallContext.JobId;
+            dlcsCallContext.SyncOperationId = SyncOperationIdentifier;
             Batches = new List<Batch>();
             BatchIngestOperationInfos = new List<DlcsBatch>();
             BatchPatchOperationInfos = new List<DlcsBatch>();
@@ -59,12 +70,15 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         {
             var summary = new List<string>
             {
+                $"SyncOperationIdentifier: {SyncOperationIdentifier}",
+                $"JobId: {JobIdentifier}",
                 $"RequiresSync: {RequiresSync}",
                 $"DlcsImagesToIngest: {DlcsImagesToIngest!.Count}",
                 $"DlcsImagesToPatch: {DlcsImagesToPatch!.Count}",
                 $"DlcsImagesCurrentlyIngesting: {DlcsImagesCurrentlyIngesting!.Count}",
                 $"Ignored storage identifiers: {StorageIdentifiersToIgnore!.Count}",
                 $"Orphans: {Orphans!.Count}",
+                $"HasInvalidAccessCondition: {HasInvalidAccessCondition}",
                 $"Message: {Message}"
             };
             return summary.ToArray();

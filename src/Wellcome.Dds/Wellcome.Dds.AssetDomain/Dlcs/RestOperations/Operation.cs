@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Net.Http;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
 {
     public class Operation<TRequest, TResponse>
     {
-        public Operation(Uri uri, string httpMethod)
+        public Operation(Uri uri, HttpMethod httpMethod)
         {
             Uri = uri;
             HttpMethod = httpMethod;
@@ -16,7 +17,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
         public string? RequestJson { get; set; }
         public string? ResponseJson { get; set; }
         public Error? Error { get; set; }
-        public string HttpMethod { get; set; }
+        public HttpMethod HttpMethod { get; set; }
 
     }
 }

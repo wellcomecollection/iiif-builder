@@ -13,6 +13,7 @@ using Utils;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Logging;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.Catalogue;
@@ -67,7 +68,9 @@ namespace Wellcome.Dds.Dashboard.Models
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
-                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, identifier.HasBNumber);
+                var dlcsCallContext = new DlcsCallContext("ManifestationModelBuilder::Build", identifier);
+                logger.LogDebug("Starting DlcsCallContext {callContext}", dlcsCallContext);
+                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, dlcsCallContext, identifier.HasBNumber);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 var dgResource = ddsTask.Result;
                 var work = workTask.Result;
@@ -82,7 +85,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     jobLogger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                     // represents the set of differences between the METS view of the world and the DLCS view
                     jobLogger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                    var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true);
+                    var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
                     IDigitalCollection parent;
@@ -111,7 +114,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     }
 
                     var skeletonPreview = string.Format(
-                        dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, identifier);
+                        dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
 
                     var model = new ManifestationModel
                     {
@@ -139,7 +142,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     model.AVDerivatives = digitalObjectRepository.GetAVDerivatives(dgManifestation);
                     model.MakeManifestationNavData();
                     jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                    var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation);
+                    var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                     model.IngestJobs = jobActivity.UpdatedJobs;
                     model.BatchesForImages = jobActivity.BatchesForCurrentImages;
@@ -250,7 +253,10 @@ namespace Wellcome.Dds.Dashboard.Models
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await digitalObjectRepository.GetDigitalObject(identifier, identifier.IsBNumber()));
+                async () => await digitalObjectRepository.GetDigitalObject(
+                    identifier,
+                    new DlcsCallContext("GetCachedCollectionAsync", identifier),
+                    identifier.IsBNumber()));
             return (IDigitalCollection)coll;
         }
 
