@@ -148,11 +148,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 ManifestationIdentifier = metsManifestation!.Identifier,
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers,
-                ImagesExpectedOnDlcs = await GetImagesExpectedOnDlcs(metsManifestation, imagesAlreadyOnDlcs, dlcsCallContext)
+                ImagesCurrentlyOnDlcs = await GetImagesExpectedOnDlcs(metsManifestation, imagesAlreadyOnDlcs, dlcsCallContext),
+                ImagesThatShouldBeOnDlcs = new Dictionary<string, Image?>()
             };
 
             /*
-             ImagesExpectedOnDlcs is a map of what we think DLCS should have, to what it actually has.
+             ImagesCurrentlyOnDlcs is a map of what we think DLCS should have, to what it actually has.
              From this we can make lists - 
              what is missing, what is present but wrong metadata (needs patching), what is still ingesting
             */
@@ -160,7 +161,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // What do we need to ingest? List of assets from METS that are not present on DLCS, or are present with transcoding errors
             var assetsToIngest = new List<IStoredFile>();
             logger.LogDebug("Deducing what assets we need to ingest, callContext {callContext}", dlcsCallContext.Id);
-            foreach (var kvp in syncOperation.ImagesExpectedOnDlcs)
+            foreach (var kvp in syncOperation.ImagesCurrentlyOnDlcs)
             {
                 if (syncOperation.StorageIdentifiersToIgnore!.Contains(kvp.Key))
                 {
@@ -194,7 +195,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
-            syncOperation.Orphans = imagesAlreadyOnDlcs.Where(image => ! syncOperation.ImagesExpectedOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
+            syncOperation.Orphans = imagesAlreadyOnDlcs.Where(image => ! syncOperation.ImagesCurrentlyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
             logger.LogDebug("There are {orphanCount} orphan assets, callContext {callContext}",
                 syncOperation.Orphans.Count, dlcsCallContext.Id);
 
@@ -219,7 +220,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 }
                 
                 var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
-                var existingDlcsImage = syncOperation.ImagesExpectedOnDlcs[storedFile.StorageIdentifier!];
+                syncOperation.ImagesThatShouldBeOnDlcs[storedFile.StorageIdentifier!] = newDlcsImage;
+                var existingDlcsImage = syncOperation.ImagesCurrentlyOnDlcs[storedFile.StorageIdentifier!];
 
                 if (assetsToIngest.Contains(storedFile))
                 {
@@ -621,7 +623,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation, DlcsCallContext dlcsCallContext)
         {
-            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesExpectedOnDlcs!.Values, dlcsCallContext);
+            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesCurrentlyOnDlcs!.Values, dlcsCallContext);
             var imageBatches = batchesForImages.ToList();
             // DASH-46
             if (syncOperation.RequiresSync == false && imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))

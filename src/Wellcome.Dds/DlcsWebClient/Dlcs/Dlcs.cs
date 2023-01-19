@@ -47,7 +47,7 @@ namespace DlcsWebClient.Dlcs
         private async Task<Operation<TRequest, TResponse>> DoOperation<TRequest, TResponse>(
             HttpMethod httpMethod, Uri uri,
             TRequest? requestObject,
-            DlcsCallContext dlcsCallContext)
+            DlcsCallContext dlcsCallContext) where TResponse : JSONLDBase
         {
             Operation<TRequest, TResponse> operation = new Operation<TRequest, TResponse>(uri, httpMethod);
             HttpResponseMessage? response = null;
@@ -102,39 +102,72 @@ namespace DlcsWebClient.Dlcs
                 logger.LogDebug("About to {httpMethod} to {uri} with correlationId {correlationId}",
                     requestMessage.Method.Method, requestMessage.RequestUri!.AbsoluteUri, correlationId);
                 response = await httpClient.SendAsync(requestMessage);
+                operation.ResponseStatus = response.StatusCode;
                 operation.ResponseJson = await response.Content.ReadAsStringAsync();
 
-                logger.LogDebug("Response object received for correlationId {correlationId}, callContext {callContext}",
+                logger.LogDebug("Response received for correlationId {correlationId}, callContext {callContext}",
                     correlationId, dlcsCallContext);
-                try
+
+                if (response.IsSuccessStatusCode)
                 {
-                    var responseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
-                    if (responseObject != null)
+                    try
                     {
-                        operation.ResponseObject = responseObject;
+                        var responseObject = JsonConvert.DeserializeObject<TResponse>(operation.ResponseJson);
+                        if (responseObject != null)
+                        {
+                            if (responseObject is JSONLDBase jsonLdBase)
+                            {
+                                operation.ResponseObject = responseObject;
+                                logger.LogDebug("Deserialized a {responseType} for {callContext}", 
+                                    jsonLdBase.Type ?? "[no type]", dlcsCallContext.Id);
+                            }
+                            else
+                            {
+                                operation.Error = GetError(response, "DLCS response is not a JSONLD object");
+                                logger.LogError("DLCS response is not a JSONLD object");
+                            }
+                        }
+                    }
+                    catch (Exception deserializeEx)
+                    {
+                        operation.Error = GetError(deserializeEx, response);
                     }
                 }
-                catch (Exception deserializeEx)
+                else
                 {
-                    // TODO: for protagonist, this is where we would now try:
-                    // var hydraError = JsonConvert.DeserializeObject<Hydra.Model.Error>(operation.ResponseJson);
-                    // ... and deal with a proper error.
-                    // But we should only do that once we are using the Hydra and DLCS API Client libraries as used by
-                    // protagonist - they need to be nuget packages.
-                    
-                    // So for now, just do what was happening already in the catch below:
-                    operation.Error = GetError(deserializeEx, response);
-                    logger.LogError(deserializeEx, "Error in dlcs request {collationId} - {message}, callContext {callContext}", 
-                        correlationId, deserializeEx.Message, dlcsCallContext);
+                    // non 2xx status codes:
+                    try
+                    {
+                        // Look for a Protagonist error - but don't rely on one!
+                        // See comment in this Error class - this is a temporary DLCS-migration approach.
+                        var hydraError = JsonConvert.DeserializeObject<Wellcome.Dds.AssetDomain.Dlcs.Model.Protagonist.Error>(operation.ResponseJson);
+                        if (hydraError?.Type == "Error")
+                        {
+                            operation.Error = GetError(response, $"{hydraError.Title}: {hydraError.Detail}");
+                        }
+                        else
+                        {
+                            operation.Error = GetError(response, "Unknown DLCS error: " + operation.ResponseJson);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        operation.Error = GetError(e, response);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 operation.Error = GetError(ex, response);
-                logger.LogError(ex, "Error in dlcs request {collationId} - {message}, callContext {callContext}", 
-                    correlationId, ex.Message, dlcsCallContext);
             }
 
+            if (operation.Error != null)
+            {
+                logger.LogError(operation.Error.Exception, 
+                    "Error in dlcs request {collationId} - {message}, callContext {callContext}", 
+                    correlationId, operation.Error.Message, dlcsCallContext);
+            }
+            
             return operation;
         }
 
@@ -179,7 +212,16 @@ namespace DlcsWebClient.Dlcs
             return DoOperation<string, Batch>(HttpMethod.Get, new Uri(batchId), null, dlcsCallContext);
         }
 
-        private static Error? GetError(Exception ex, HttpResponseMessage? response)
+        private static Error GetError(HttpResponseMessage response, string message)
+        {
+            return new Error
+            (
+                status: (int)response.StatusCode,
+                message: message
+            );
+        }
+
+        private static Error GetError(Exception ex, HttpResponseMessage? response)
         {
             if (ex is HttpRequestException httpRequestException)
             {
@@ -187,14 +229,20 @@ namespace DlcsWebClient.Dlcs
                 (
                     status: (int?)response?.StatusCode ?? 0,
                     message: httpRequestException.Message
-                );
+                )
+                {
+                    Exception = ex
+                };
             }
             
             return new Error
             (
                 status: 0,
                 message: ex.Message
-            );
+            )
+            {
+                Exception = ex
+            };
         }
 
         private static Uri? _imageQueueUri;
@@ -678,7 +726,7 @@ namespace DlcsWebClient.Dlcs
         }
     }
 
-    class MessageObject
+    class MessageObject : JSONLDBase
     {
         [JsonProperty(PropertyName = "message")]
         public string? Message { get; set; }

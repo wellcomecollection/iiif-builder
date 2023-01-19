@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Http;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
@@ -18,6 +19,6 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
         public string? ResponseJson { get; set; }
         public Error? Error { get; set; }
         public HttpMethod HttpMethod { get; set; }
-
+        public HttpStatusCode ResponseStatus { get; set; }
     }
 }

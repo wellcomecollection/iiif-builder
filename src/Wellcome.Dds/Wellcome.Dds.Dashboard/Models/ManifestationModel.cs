@@ -283,9 +283,9 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public Image GetDlcsImage(string storageIdentifier)
         {
-            if (SyncOperation.ImagesExpectedOnDlcs.ContainsKey(storageIdentifier))
+            if (SyncOperation.ImagesCurrentlyOnDlcs.ContainsKey(storageIdentifier))
             {
-                return SyncOperation.ImagesExpectedOnDlcs[storageIdentifier];
+                return SyncOperation.ImagesCurrentlyOnDlcs[storageIdentifier];
             }
             return null;
         }

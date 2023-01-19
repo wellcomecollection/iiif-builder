@@ -257,12 +257,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 int addCount = 0;
                // Forcing reingest, so make sure every image we haven't already identified for ingest up is added to the list
-                foreach (var image in syncOperation.ImagesExpectedOnDlcs!.Values)
+                foreach (var image in syncOperation.ImagesCurrentlyOnDlcs!.Values)
                 {
                     if (image != null && !syncOperation.DlcsImagesToIngest!.Exists(im => im.StorageIdentifier == image.StorageIdentifier))
                     {
-                        syncOperation.DlcsImagesToIngest.Add(image);
-                        addCount++;
+                        var newDlcsImage = syncOperation.ImagesThatShouldBeOnDlcs![image.StorageIdentifier!];
+                        if (newDlcsImage == null)
+                        {
+                            logger.LogError("Forced reingest of asset that should not be on DLCS: {storageIdentifier}, callContext {callContext}", 
+                                image.StorageIdentifier, dlcsCallContext.Id);
+                        }
+                        else
+                        {
+                            syncOperation.DlcsImagesToIngest.Add(newDlcsImage);
+                            addCount++;
+                        }
                     }
                 }
                 logger.LogDebug("ForceReingest added an additional {addCount} images to the ingest list", addCount);
@@ -291,7 +300,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var result = new ImageIngestResult();
             if (!syncOperation.HasInvalidAccessCondition)
             {
-                // XXX log in here
                 await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue, dlcsCallContext);
 
                 result.CloudBatchRegistrationResponse = syncOperation.Batches.ToArray();

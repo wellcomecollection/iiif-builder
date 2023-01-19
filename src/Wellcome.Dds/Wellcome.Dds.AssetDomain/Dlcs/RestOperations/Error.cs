@@ -1,4 +1,6 @@
-﻿namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
+﻿using System;
+
+namespace Wellcome.Dds.AssetDomain.Dlcs.RestOperations
 {
     public class Error
     {
@@ -10,6 +12,8 @@
 
         public int Status { get; set; }
         public string Message { get; set; }
+
+        public Exception? Exception { get; set; }
 
         public override string ToString()
         {

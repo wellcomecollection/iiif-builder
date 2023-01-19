@@ -38,7 +38,12 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// The value is a Dlcs API Image.
         /// The value will be null if the image is not on the DLCS
         /// </summary>
-        public Dictionary<string, Image?>? ImagesExpectedOnDlcs { get; set; }
+        public Dictionary<string, Image?>? ImagesCurrentlyOnDlcs { get; set; }
+        
+        /// <summary>
+        /// Any ingestible image that could be registered with the DLCS
+        /// </summary>
+        public Dictionary<string, Image?>? ImagesThatShouldBeOnDlcs { get; set; }
         public List<Image>? DlcsImagesToIngest { get; set; }
         public List<Image>? DlcsImagesToPatch { get; set; }
         public List<Image>? DlcsImagesCurrentlyIngesting { get; set; }
