@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -16,6 +15,7 @@ using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
@@ -34,6 +34,7 @@ namespace Wellcome.Dds.Dashboard.Models
         private readonly DdsOptions ddsOptions;
         private readonly DlcsOptions dlcsOptions;
         private readonly SmallJobLogger jobLogger;
+        private readonly IMetsRepository metsRepository;
 
         private const string CacheKeyPrefix = "manifestModelBuilder_";
         private const int CacheSeconds = 5;
@@ -46,7 +47,8 @@ namespace Wellcome.Dds.Dashboard.Models
             ICatalogue catalogue,
             IDigitalObjectRepository digitalObjectRepository,
             ISimpleCache cache,
-            UriPatterns uriPatterns
+            UriPatterns uriPatterns,
+            IMetsRepository metsRepository
         )
         {
             this.ddsOptions = ddsOptions.Value;
@@ -57,6 +59,7 @@ namespace Wellcome.Dds.Dashboard.Models
             this.cache = cache;
             this.uriPatterns = uriPatterns;
             this.dlcsOptions = dlcsOptions.Value;
+            this.metsRepository = metsRepository;
             jobLogger = new SmallJobLogger(string.Empty, null);
         }
 
@@ -88,8 +91,8 @@ namespace Wellcome.Dds.Dashboard.Models
                     var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
-                    IDigitalCollection parent;
-                    IDigitalCollection grandparent;
+                    ICollection parent;
+                    ICollection grandparent;
                     // We need to show the manifestation with information about its parents, it it has any.
                     // this allows navigation through multiple manifs
                     switch (identifier.IdentifierType)
@@ -196,7 +199,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     // Put this and any intermediary collections in the short term cache,
                     // so that we don't need to build them from scratch after the redirect.
                     string redirectId;
-                    PutCollectionInShortTermCache(dgCollection);
+                    // PutCollectionInShortTermCache(dgCollection);
                     if (dgCollection.MetsCollection.Manifestations.HasItems())
                     {
                         // a normal multiple manifestation, or possibly a periodical volume?
@@ -232,32 +235,23 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public List<Tuple<long, long, string>> GetLoggingEvents() => jobLogger.GetEvents();
         
-        private void PutCollectionInShortTermCache(IDigitalCollection collection)
-        {
-            // (in order to PUT this in the cache, we need to retrieve it...
-            var key = CacheKeyPrefix + collection.Identifier;
-            cache.Remove(key);
-            
-            // TODO - should this be .Insert() as we've removed cache? 
-            cache.GetCached(CacheSeconds, key, () => collection); 
-        }
+        // private void PutCollectionInShortTermCache(IDigitalCollection collection)
+        // {
+        //     // (in order to PUT this in the cache, we need to retrieve it...
+        //     var key = $"{CacheKeyPrefix}digital_{collection.Identifier}";
+        //     cache.Remove(key);
+        //     
+        //     // TODO - should this be .Insert() as we've removed cache? 
+        //     cache.GetCached(CacheSeconds, key, () => collection); 
+        // }
         
-        private async Task<IDigitalCollection> GetCachedCollectionAsync(string identifier)
+        private async Task<ICollection> GetCachedCollectionAsync(string identifier)
         {
-            // The cache is caching a Task<IDigitisedResource> (from the callback)
-            // this works... but we need to revisit
-            // TODO: 1) SimpleCache handling of tasks
-            // TODO: 2) This should be a request-scoped cache anyway
-            
-            // NOTE - why is this caching in controller? Shouldn't that be in the repo?
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await digitalObjectRepository.GetDigitalObject(
-                    identifier,
-                    new DlcsCallContext("GetCachedCollectionAsync", identifier),
-                    identifier.IsBNumber()));
-            return (IDigitalCollection)coll;
+                async () => await metsRepository.GetAsync(identifier));
+            return (ICollection)coll;
         }
 
         private async Task PopulateLastWriteTimes(ManifestationModel model)

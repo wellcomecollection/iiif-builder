@@ -361,6 +361,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 if (image != null && image.Batch.HasText() && !batchIds.Contains(image.Batch))
                 {
+                    // image.Batch is an integer from Deliverator but a URI from Protagonist
                     batchIds.Add(image.Batch);
                 }
             }
@@ -372,7 +373,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 var b = await GetBatch(batchId, dlcsCallContext);
                 if (b != null) batches.Add(b);
             }
-            // DLCS image.batch is just an ID, not a URI; these needs to be fixed to improve this code...
+            
             return batches;
         }
 
