@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Utils;
+using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -370,91 +372,148 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // TODO - batch the fetching of batches?
             var batches = new List<Batch>(batchIds.Count);
+            
+            var debug = logger.IsEnabled(LogLevel.Debug);
+            BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
+            
             foreach (var batchId in batchIds)
             {
-                var b = await GetBatch(batchId, dlcsCallContext);
-                if (b != null) batches.Add(b);
+                if(debug) batchMetrics!.BeginBatch();
+                var batchOperation = await dlcs.GetBatch(batchId, dlcsCallContext);
+                var batch = batchOperation.ResponseObject;
+                if (batch != null) batches.Add(batch);
+                if(debug) batchMetrics!.EndBatch(batch?.Count ?? -1);
             }
-            
+
+            if (debug)
+            {
+                logger.LogDebug("Timings for GetBatchesForImages");
+                logger.LogDebug(batchMetrics!.Summary);
+            }
             return batches;
         }
 
-        private async Task DoBatchPatch(List<Image>? dlcsImagesToPatch, SyncOperation syncOperation, DlcsCallContext dlcsCallContext)
+        
+        private const string BatchPatchOperation = "Batch Patch Assets";
+        private const string BatchIngestOperation = "Batch Ingest Assets";
+        
+        
+        private async Task DoBatchPatch(List<Image>? dlcsImages, SyncOperation syncOperation, DlcsCallContext dlcsCallContext)
         {
-            if (dlcsImagesToPatch.IsNullOrEmpty()) return;
-            
-            // TODO - refactor this and DoBatchIngest - They use a different kind of Operation
-            foreach (var batch in dlcsImagesToPatch.Batch(dlcs.BatchSize))
-            {
-                var imagePatches = batch.ToArray();
-                logger.LogDebug("Batch of {BatchLength}", imagePatches.Length);
-
-                if (imagePatches.Length == 0)
-                {
-                    logger.LogInformation("zero length - abandoning");
-                    continue;
-                }
-
-                DlcsBatch dbBatchPatch = new DlcsBatch
-                {
-                    BatchSize = imagePatches.Length,
-                    RequestSent = DateTime.Now
-                };
-
-                var imageRegistrationsAsHydraCollection = new HydraImageCollection
-                {
-                    Members = imagePatches
-                };
-                var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection, dlcsCallContext);
-                dbBatchPatch.Finished = DateTime.Now;
-                dbBatchPatch.RequestBody = registrationOperation.RequestJson;
-                dbBatchPatch.ResponseBody = registrationOperation.ResponseJson;
-                if (registrationOperation.Error != null)
-                {
-                    dbBatchPatch.ErrorCode = registrationOperation.Error.Status;
-                    dbBatchPatch.ErrorText = registrationOperation.Error.Message;
-                }
-                syncOperation.BatchPatchOperationInfos.Add(dbBatchPatch);
-            }
+            await DoDlcsBatchOperation(BatchPatchOperation, dlcsImages, syncOperation, dlcsCallContext);
+        }
+        
+        private async Task DoBatchIngest(List<Image>? dlcsImages, SyncOperation syncOperation, bool priority, DlcsCallContext dlcsCallContext)
+        {
+            await DoDlcsBatchOperation(BatchIngestOperation, dlcsImages, syncOperation, dlcsCallContext, priority);
         }
 
-        private async Task DoBatchIngest(List<Image>? dlcsImagesToIngest, SyncOperation syncOperation, bool priority, DlcsCallContext dlcsCallContext)
+        private async Task DoDlcsBatchOperation(
+            string typeOfBatchOperation,
+            List<Image>? dlcsImages, 
+            SyncOperation syncOperation,
+            DlcsCallContext dlcsCallContext, 
+            bool priority = false)
         {
-            if (dlcsImagesToIngest.IsNullOrEmpty()) return;
+            // TODO - refactor DoBatchPatch and DoBatchIngest - They are 95% the same, they just wrap a different DLCS call
+            if (dlcsImages.IsNullOrEmpty()) return;
             
-            foreach (var batch in dlcsImagesToIngest.Batch(dlcs.BatchSize))
+            var debug = logger.IsEnabled(LogLevel.Debug);
+            BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
+            
+            foreach (var batch in dlcsImages.Batch(dlcs.BatchSize))
             {
-                var imageRegistrations = batch.ToArray();
-                logger.LogDebug("Batch of {BatchLength}", imageRegistrations.Length);
+                var imagesToSend = batch.ToArray();
+                if (debug)
+                {
+                    batchMetrics!.BeginBatch(imagesToSend.Length);
+                    logger.LogDebug("Batch {batchCounter}, length: {BatchLength}", batchMetrics.BatchCounter, batchMetrics.BatchSize);
+                }
 
-                if (imageRegistrations.Length == 0)
+                if (imagesToSend.Length == 0)
                 {
                     logger.LogInformation("zero length - abandoning");
                     continue;
                 }
 
-                DlcsBatch dbDlcsBatch = new DlcsBatch
+                DlcsBatch batchForDlcs = new DlcsBatch
                 {
-                    BatchSize = imageRegistrations.Length,
+                    BatchSize = imagesToSend.Length,
                     RequestSent = DateTime.Now
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
                 {
-                    Members = imageRegistrations
+                    Members = imagesToSend
                 };
-                var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, dlcsCallContext, priority);
-                dbDlcsBatch.Finished = DateTime.Now;
-                dbDlcsBatch.RequestBody = registrationOperation.RequestJson;
-                dbDlcsBatch.ResponseBody = registrationOperation.ResponseJson;
-                if (registrationOperation.Error != null)
+
+                if (typeOfBatchOperation == BatchPatchOperation)
                 {
-                    dbDlcsBatch.ErrorCode = registrationOperation.Error.Status;
-                    dbDlcsBatch.ErrorText = registrationOperation.Error.Message;
+                    await CallDlcsPatchImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection, batchForDlcs);
                 }
-                syncOperation.BatchIngestOperationInfos.Add(dbDlcsBatch);
-                syncOperation.Batches.Add(registrationOperation.ResponseObject!);
+                else if (typeOfBatchOperation == BatchIngestOperation)
+                {
+                    await CallDlcsRegisterImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection, batchForDlcs, priority);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Batch Dlcs operation {typeOfBatchOperation} not recognised");
+                }
+
+                batchForDlcs.Finished = DateTime.Now;
+                
+                
+                if (debug)
+                {
+                    batchMetrics!.EndBatch();
+                    logger.LogDebug("Batch {batchCounter} took {batchTime} ms.", batchMetrics.BatchCounter, batchMetrics.LastBatchTime);
+                }
             }
+
+            if (debug && batchMetrics!.BatchCounter > 0)
+            {
+                logger.LogDebug("Timings for '{operation}', {batchCounter} batches sent to DLCS for {callContext}",
+                    typeOfBatchOperation, batchMetrics.BatchCounter, dlcsCallContext.Id);
+                logger.LogDebug(batchMetrics.Summary);
+            }
+        }
+        
+
+        private async Task CallDlcsRegisterImages(
+            SyncOperation syncOperation, 
+            DlcsCallContext dlcsCallContext,
+            HydraImageCollection imageRegistrationsAsHydraCollection, 
+            DlcsBatch batchForDlcs, 
+            bool priority)
+        {
+            var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, dlcsCallContext, priority);
+            batchForDlcs.RequestBody = registrationOperation.RequestJson;
+            batchForDlcs.ResponseBody = registrationOperation.ResponseJson;
+            if (registrationOperation.Error != null)
+            {
+                batchForDlcs.ErrorCode = registrationOperation.Error.Status;
+                batchForDlcs.ErrorText = registrationOperation.Error.Message;
+            }
+            syncOperation.BatchIngestOperationInfos.Add(batchForDlcs);
+            syncOperation.Batches.Add(registrationOperation.ResponseObject!);
+        }
+        
+        
+        private async Task CallDlcsPatchImages(
+            SyncOperation syncOperation, 
+            DlcsCallContext dlcsCallContext,
+            HydraImageCollection imageRegistrationsAsHydraCollection, 
+            DlcsBatch batchForDlcs)
+        {
+            var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection, dlcsCallContext);
+            batchForDlcs.RequestBody = registrationOperation.RequestJson;
+            batchForDlcs.ResponseBody = registrationOperation.ResponseJson;
+            if (registrationOperation.Error != null)
+            {
+                batchForDlcs.ErrorCode = registrationOperation.Error.Status;
+                batchForDlcs.ErrorText = registrationOperation.Error.Message;
+            }
+            syncOperation.BatchPatchOperationInfos.Add(batchForDlcs);
         }
 
         /// <summary>
@@ -476,59 +535,59 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             
             if (existingDlcsImage.Origin != newDlcsImage.Origin)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.String1 != newDlcsImage.String1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "string1", newDlcsImage.String1, existingDlcsImage.String1);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string1", newDlcsImage.String1, existingDlcsImage.String1);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.String2 != newDlcsImage.String2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "string2", newDlcsImage.String2, existingDlcsImage.String2);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string2", newDlcsImage.String2, existingDlcsImage.String2);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.String3 != newDlcsImage.String3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "string3", newDlcsImage.String3, existingDlcsImage.String3);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string3", newDlcsImage.String3, existingDlcsImage.String3);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.Number1 != newDlcsImage.Number1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "number1", newDlcsImage.Number1, existingDlcsImage.Number1);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number1", newDlcsImage.Number1, existingDlcsImage.Number1);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.Number2 != newDlcsImage.Number2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "number2", newDlcsImage.Number2, existingDlcsImage.Number2);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number2", newDlcsImage.Number2, existingDlcsImage.Number2);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.Number3 != newDlcsImage.Number3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "number3", newDlcsImage.Number3, existingDlcsImage.Number3);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number3", newDlcsImage.Number3, existingDlcsImage.Number3);
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.MediaType != newDlcsImage.MediaType)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "mediaType", newDlcsImage.MediaType, existingDlcsImage.MediaType);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "mediaType", newDlcsImage.MediaType, existingDlcsImage.MediaType);
                 patchImage ??= newDlcsImage;
             }
 
             // Do we care about ordering?
             if (!AreEqual(existingDlcsImage.Tags, newDlcsImage.Tags))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "tags", newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "tags", newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
                 patchImage ??= newDlcsImage;
             }
             if (!AreEqual(existingDlcsImage.Roles, newDlcsImage.Roles))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
                 patchImage ??= newDlcsImage;
             }
             if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.Id, "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
                 patchImage ??= newDlcsImage;
             }
 

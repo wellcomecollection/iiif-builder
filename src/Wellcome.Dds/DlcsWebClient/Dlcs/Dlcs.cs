@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -600,9 +601,16 @@ namespace DlcsWebClient.Dlcs
             string? nextUri = null;
 
             var images = new List<Image>();
-
+            
+            var debug = logger.IsEnabled(LogLevel.Debug);
+            BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
+            
             while (first || nextUri != null)
             {
+                if (debug)
+                {
+                    batchMetrics!.BeginBatch();
+                }
                 Operation<ImageQuery, HydraImageCollection> statesOperation;
                 if (first)
                 {
@@ -652,8 +660,18 @@ namespace DlcsWebClient.Dlcs
                     logger.LogInformation("There is no next page in this collection");
                     nextUri = null;
                 }
+
+                if (debug)
+                {
+                    batchMetrics!.EndBatch(imageCollection.Members?.Length ?? -1);
+                }
             }
 
+            if (debug)
+            {
+                logger.LogDebug("Timings for DLCS::GetImagesFromQuery");
+                logger.LogDebug(batchMetrics!.Summary);
+            }
             return images;
         }
 
