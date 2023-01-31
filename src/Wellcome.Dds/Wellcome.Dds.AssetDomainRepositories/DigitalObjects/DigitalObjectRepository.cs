@@ -372,7 +372,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // TODO - batch the fetching of batches?
             var batches = new List<Batch>(batchIds.Count);
-            
+            if (batchIds.Count == 0)
+            {
+                logger.LogDebug("No batches exist for these images");
+                return batches;
+            }
             var debug = logger.IsEnabled(LogLevel.Debug);
             BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
             

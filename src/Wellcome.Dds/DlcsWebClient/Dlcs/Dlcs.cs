@@ -7,6 +7,7 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -137,6 +138,12 @@ namespace DlcsWebClient.Dlcs
                 else
                 {
                     // non 2xx status codes:
+                    if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+                    {
+                        operation.Error = GetError(response, "DLCS Unavailable (are you developing late?).");
+                        logger.LogWarning("DLCS unavailable");
+                        return operation;
+                    }
                     try
                     {
                         // Look for a Protagonist error - but don't rely on one!
@@ -238,7 +245,7 @@ namespace DlcsWebClient.Dlcs
             
             return new Error
             (
-                status: 0,
+                status: (int?)response?.StatusCode ?? 0,
                 message: ex.Message
             )
             {
