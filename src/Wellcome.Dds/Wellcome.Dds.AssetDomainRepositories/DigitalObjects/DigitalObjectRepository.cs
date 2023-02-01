@@ -186,7 +186,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
-            // later we might override this for individual images.
+            // later we might override this for individual images - AND WHEN THE ASSET IS NOT AN IMAGE
             int maxUnauthorised = 1000;
             if (metsManifestation.PermittedOperations.Contains("wholeImageHighResAsJpg"))
             {
@@ -231,11 +231,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 }
                 else if (existingDlcsImage != null)
                 {
-                    // The DLCS already has this image
-                    var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage);
-                    if (patchDiffImage != null)
+                    // The DLCS already has this image...
+                    var ingestDiffImage = GetIngestDiffImage(newDlcsImage, existingDlcsImage);
+                    if (ingestDiffImage != null)
                     {
-                        // and we need to patch it
+                        // ...and it can't be batch-patched, we need to reingest it
+                        syncOperation.DlcsImagesToIngest.Add(ingestDiffImage);
+                    }
+                    
+                    var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage);
+                    if (patchDiffImage != null && ingestDiffImage == null)
+                    {
+                        // ...and it's a metadata change that can go in a batch patch
                         syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
                     }
                     
@@ -255,7 +262,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             
             return syncOperation;
         }
-        
+
+
         private async Task<DigitalCollection> MakeDigitalCollection(
             ICollection metsCollection, 
             bool includePdf, 
@@ -520,28 +528,54 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             syncOperation.BatchPatchOperationInfos.Add(batchForDlcs);
         }
 
+        /// <summary> 
+        /// return newDlcsImage if it differs from existingDlcsImage in a way that requires REINGEST
+        /// </summary>
+        /// <param name="newDlcsImage"></param>
+        /// <param name="existingDlcsImage"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private Image? GetIngestDiffImage(Image newDlcsImage, Image existingDlcsImage)
+        {
+            Image? reingestImage = null;
+            const string reingestMessageFormat =
+                "Reingest required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
+            if (existingDlcsImage.Origin != newDlcsImage.Origin)
+            {
+                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
+                reingestImage ??= newDlcsImage;
+            }
+            
+            // This one CURRENTLY requires reingest because it's engine that modifies the S3 location
+            // But later it could go into regular batch-patch if protagonist no longer rejects it.
+            if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
+            {
+                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
+                reingestImage ??= newDlcsImage;
+            }
+            
+            // In DDS we never change these but they would need to be considered here
+            //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
+            //    return newDlcsImage;
+            //if (existingDlcsImage.ThumbnailPolicy != newDlcsImage.ThumbnailPolicy)
+            //    return newDlcsImage;
+
+            return reingestImage;
+        }
+        
+        
         /// <summary>
-        /// return newDlcsImage if it differs from existingDlcsImage in a way that requires patching
+        /// return newDlcsImage if it differs from existingDlcsImage in a way that allows BATCH-PATCHing
         /// </summary>
         /// <param name="newDlcsImage"></param>
         /// <param name="existingDlcsImage"></param>
         /// <returns></returns>
         private Image? GetPatchImage(Image newDlcsImage, Image existingDlcsImage)
         {
-            //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
-            //    return newDlcsImage;
-            //if (existingDlcsImage.ThumbnailPolicy != newDlcsImage.ThumbnailPolicy)
-            //    return newDlcsImage;
-
             Image? patchImage = null;
             const string patchMessageFormat =
                 "Patch required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
             
-            if (existingDlcsImage.Origin != newDlcsImage.Origin)
-            {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
-                patchImage ??= newDlcsImage;
-            }
             if (existingDlcsImage.String1 != newDlcsImage.String1)
             {
                 logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string1", newDlcsImage.String1, existingDlcsImage.String1);
@@ -589,19 +623,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
                 patchImage ??= newDlcsImage;
             }
-            if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
+
+            if (patchImage != null)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
-                patchImage ??= newDlcsImage;
+                // remove fields not permitted in patch:
+                patchImage.Origin = null;
+                patchImage.MaxUnauthorised = null;
+                // others?
             }
-
-            // TODO - changes in ALTO, mimetype and other extras
-
-            // need to look at all the values of this image...
-            // if it doesn't require patching, return null
-
-            // consider the "id" property and the "@id" property - some differences are not necessarily requiring a patch,
-            // but if a patch is needed for something else we need to have the right values for these.
             return patchImage;
         }
 
@@ -665,7 +694,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
             var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
-            imageRegistration.MaxUnauthorised = GetMaxUnauthorised(maxUnauthorised, roles);
+            if (asset.Family == AssetFamily.Image)
+            {
+                imageRegistration.MaxUnauthorised = GetMaxUnauthorised(maxUnauthorised, roles);
+            }
+            else
+            {
+                imageRegistration.MaxUnauthorised = -1;
+            }
             return imageRegistration;
         }
 
