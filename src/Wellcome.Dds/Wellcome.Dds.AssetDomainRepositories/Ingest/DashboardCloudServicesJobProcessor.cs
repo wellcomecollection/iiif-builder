@@ -300,6 +300,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var result = new ImageIngestResult();
             if (!syncOperation.HasInvalidAccessCondition)
             {
+                if (usePriorityQueue && syncOperation.DlcsImagesToIngest!.Any(asset => asset.Family != 'I'))
+                {
+                    usePriorityQueue = false;
+                    logger.LogDebug("SyncOperation contains at least one non-image, so switching to regular queue");
+                }
+                
                 await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue, dlcsCallContext);
 
                 result.CloudBatchRegistrationResponse = syncOperation.Batches.ToArray();
