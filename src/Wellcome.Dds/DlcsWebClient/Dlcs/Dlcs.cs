@@ -28,6 +28,7 @@ namespace DlcsWebClient.Dlcs
         private readonly DlcsOptions options;
         private readonly JsonSerializerSettings jsonSerializerSettings;
 
+
         public Dlcs(
             ILogger<Dlcs> logger,
             IOptions<DlcsOptions> options,
@@ -343,7 +344,7 @@ namespace DlcsWebClient.Dlcs
 
         /// <summary>
         /// Implementation NOTE
-        /// These must return IEnumerables that don't get enumerated until aske for.
+        /// These must return IEnumerables that don't get enumerated until asked for.
         /// otherwise we have way too many queries hitting the DLCS.
         /// </summary>
         /// <param name="identifier"></param>
@@ -697,6 +698,7 @@ namespace DlcsWebClient.Dlcs
         }
 
         public int DefaultSpace => options.CustomerDefaultSpace;
+        public int DefaultCustomer => options.CustomerId;
         public int BatchSize => options.BatchSize;
 
         public bool PreventSynchronisation => options.PreventSynchronisation;
@@ -716,39 +718,9 @@ namespace DlcsWebClient.Dlcs
             };
         }
 
+        public string ResourceEntryPoint => options.ResourceEntryPoint!;
+        public string InternalResourceEntryPoint => options.InternalResourceEntryPoint!;
 
-        public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
-        {
-            // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
-            const string AVDerivativeTemplateVideo = "{0}iiif-av/{1}/{2}/{3}/full/full/max/max/0/default.{4}";
-            const string AVDerivativeTemplateAudio = "{0}iiif-av/{1}/{2}/{3}/full/max/default.{4}";
-
-            var derivs = new List<AVDerivative>();
-            if (dlcsAsset.MediaType!.StartsWith("video"))
-            {
-                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "mp4"));
-                derivs.Add(FormatAVDerivative(AVDerivativeTemplateVideo, dlcsAsset, "webm"));
-            }
-            if (dlcsAsset.MediaType.Contains("audio"))
-            {
-                derivs.Add(FormatAVDerivative(AVDerivativeTemplateAudio, dlcsAsset, "mp3"));
-            }
-            return derivs;
-        }
-
-        private AVDerivative FormatAVDerivative(string template, Image dlcsAsset, string fileExt)
-        {
-            return new AVDerivative
-            (
-                id: string.Format(template,
-                       options.ResourceEntryPoint,
-                       options.CustomerName?.ToLower(),
-                       options.CustomerDefaultSpace,
-                       dlcsAsset.StorageIdentifier,
-                       fileExt),
-                label: fileExt
-            );
-        }
     }
 
     class MessageObject : JSONLDBase

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -27,11 +26,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
 
         public int DefaultSpace { get; }
+        public int DefaultCustomer { get; }
 
         public DigitalObjectRepository(
             ILogger<DigitalObjectRepository> logger,
             UriPatterns uriPatterns,
-            IDlcs dlcs, 
+            IDlcs dlcs,
             IMetsRepository metsRepository,
             DdsInstrumentationContext ddsInstrumentationContext)
         {
@@ -39,6 +39,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             this.uriPatterns = uriPatterns;
             this.dlcs = dlcs;
             DefaultSpace = dlcs.DefaultSpace;
+            DefaultCustomer = dlcs.DefaultCustomer;
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
         }
@@ -55,7 +56,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
         public async Task<IDigitalObject> GetDigitalObject(
-            DdsIdentifier identifier, 
+            DdsIdentifier identifier,
             DlcsCallContext dlcsCallContext,
             bool includePdfDetails = false)
         {
@@ -77,6 +78,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 throw new ArgumentException($"Cannot get a digital resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
+
             digObject.Identifier = metsResource.Identifier;
             digObject.Partial = metsResource.Partial;
 
@@ -88,23 +90,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             //}
             return digObject;
         }
-        
+
         public async Task ExecuteDlcsSyncOperation(
-            SyncOperation syncOperation, 
-            bool usePriorityQueue, 
+            SyncOperation syncOperation,
+            bool usePriorityQueue,
             DlcsCallContext dlcsCallContext)
         {
             logger.LogDebug("Executing SyncOperation for {callContext}", dlcsCallContext);
-            
+
             if (dlcsCallContext.SyncOperationId != syncOperation.SyncOperationIdentifier)
             {
                 if (dlcsCallContext.SyncOperationId != null)
                 {
                     throw new InvalidOperationException("The call context is not for this sync operation");
                 }
+
                 dlcsCallContext.SyncOperationId = syncOperation.SyncOperationIdentifier;
             }
-            
+
             if (dlcs.PreventSynchronisation)
             {
                 const string syncError =
@@ -113,12 +116,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             var ingestOps = new List<Task>(2);
-            logger.LogInformation("Registering BATCH INGESTS for METS resource (manifestation) with Id {0}, context {callContext}",
+            logger.LogInformation(
+                "Registering BATCH INGESTS for METS resource (manifestation) with Id {0}, context {callContext}",
                 syncOperation.ManifestationIdentifier, dlcsCallContext);
-            ingestOps.Add(DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue, dlcsCallContext));
+            ingestOps.Add(DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue,
+                dlcsCallContext));
 
-            logger.LogInformation("Registering BATCH PATCHES for METS resource (manifestation) with Id {0}, context {callContext}",
-            syncOperation.ManifestationIdentifier, dlcsCallContext);
+            logger.LogInformation(
+                "Registering BATCH PATCHES for METS resource (manifestation) with Id {0}, context {callContext}",
+                syncOperation.ManifestationIdentifier, dlcsCallContext);
             ingestOps.Add(DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation, dlcsCallContext));
 
             await Task.WhenAll(ingestOps);
@@ -143,14 +149,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             logger.LogDebug("Will construct a SyncOperation for context: {callContext}", dlcsCallContext.Id);
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var imagesAlreadyOnDlcs = digitisedManifestation.DlcsImages!.ToList();
-            logger.LogDebug("There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
+            logger.LogDebug(
+                "There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
                 imagesAlreadyOnDlcs.Count, digitisedManifestation.Identifier, dlcsCallContext.Id);
             var syncOperation = new SyncOperation(dlcsCallContext)
             {
                 ManifestationIdentifier = metsManifestation!.Identifier,
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers,
-                ImagesCurrentlyOnDlcs = await GetImagesExpectedOnDlcs(metsManifestation, imagesAlreadyOnDlcs, dlcsCallContext),
+                ImagesCurrentlyOnDlcs =
+                    await GetImagesExpectedOnDlcs(metsManifestation, imagesAlreadyOnDlcs, dlcsCallContext),
                 ImagesThatShouldBeOnDlcs = new Dictionary<string, Image?>()
             };
 
@@ -159,7 +167,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
              From this we can make lists - 
              what is missing, what is present but wrong metadata (needs patching), what is still ingesting
             */
-            
+
             // What do we need to ingest? List of assets from METS that are not present on DLCS, or are present with transcoding errors
             var assetsToIngest = new List<IStoredFile>();
             logger.LogDebug("Deducing what assets we need to ingest, callContext {callContext}", dlcsCallContext.Id);
@@ -171,13 +179,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     logger.LogDebug("Ignoring {identifier}", kvp.Key);
                     continue;
                 }
+
                 var image = kvp.Value;
                 if (image == null || (reIngestErrorImages && HasProblemRequiringReIngest(image)))
                 {
-                    assetsToIngest.Add(metsManifestation.SynchronisableFiles!.Single(sf => sf.StorageIdentifier == kvp.Key));
+                    assetsToIngest.Add(
+                        metsManifestation.SynchronisableFiles!.Single(sf => sf.StorageIdentifier == kvp.Key));
                 }
             }
-            logger.LogDebug("We now have {assetCount} assets to ingest, callContext {callContext}", 
+
+            logger.LogDebug("We now have {assetCount} assets to ingest, callContext {callContext}",
                 assetsToIngest.Count, dlcsCallContext.Id);
 
             // Get the manifestation level metadata that each image is going to need
@@ -197,7 +208,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
-            syncOperation.Orphans = imagesAlreadyOnDlcs.Where(image => ! syncOperation.ImagesCurrentlyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
+            syncOperation.Orphans = imagesAlreadyOnDlcs
+                .Where(image => !syncOperation.ImagesCurrentlyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
             logger.LogDebug("There are {orphanCount} orphan assets, callContext {callContext}",
                 syncOperation.Orphans.Count, dlcsCallContext.Id);
 
@@ -216,12 +228,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     // This does not have an access condition that we can sync wth the DLCS
                     syncOperation.HasInvalidAccessCondition = true;
                     syncOperation.Message = "Sync operation found at least one invalid access condition";
-                    logger.LogDebug("Asset {identifier} has an invalid access condition {accessCondition}", 
+                    logger.LogDebug("Asset {identifier} has an invalid access condition {accessCondition}",
                         storedFile.StorageIdentifier, storedFile.PhysicalFile!.AccessCondition);
                     continue;
                 }
-                
-                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier, syncOperation.LegacySequenceIndex, maxUnauthorised);
+
+                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                    syncOperation.LegacySequenceIndex, maxUnauthorised);
                 syncOperation.ImagesThatShouldBeOnDlcs[storedFile.StorageIdentifier!] = newDlcsImage;
                 var existingDlcsImage = syncOperation.ImagesCurrentlyOnDlcs[storedFile.StorageIdentifier!];
 
@@ -238,14 +251,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         // ...and it can't be batch-patched, we need to reingest it
                         syncOperation.DlcsImagesToIngest.Add(ingestDiffImage);
                     }
-                    
+
                     var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage);
                     if (patchDiffImage != null && ingestDiffImage == null)
                     {
                         // ...and it's a metadata change that can go in a batch patch
                         syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
                     }
-                    
+
                     if (existingDlcsImage.Ingesting == true)
                     {
                         // Add the NEW image, if there's a chance we might need to re submit this.
@@ -253,20 +266,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     }
                 }
             }
-            logger.LogDebug("SyncOperation.DlcsImagesToIngest: {ingestCount}; callContext {callContext}", 
+
+            logger.LogDebug("SyncOperation.DlcsImagesToIngest: {ingestCount}; callContext {callContext}",
                 syncOperation.DlcsImagesToIngest.Count, dlcsCallContext.Id);
-            logger.LogDebug("SyncOperation.DlcsImagesToPatch: {patchCount}; callContext {callContext}", 
+            logger.LogDebug("SyncOperation.DlcsImagesToPatch: {patchCount}; callContext {callContext}",
                 syncOperation.DlcsImagesToPatch.Count, dlcsCallContext.Id);
-            logger.LogDebug("SyncOperation.DlcsImagesCurrentlyIngesting: {ingestingCount}; callContext {callContext}", 
+            logger.LogDebug("SyncOperation.DlcsImagesCurrentlyIngesting: {ingestingCount}; callContext {callContext}",
                 syncOperation.DlcsImagesCurrentlyIngesting.Count, dlcsCallContext.Id);
-            
+
             return syncOperation;
         }
 
 
         private async Task<DigitalCollection> MakeDigitalCollection(
-            ICollection metsCollection, 
-            bool includePdf, 
+            ICollection metsCollection,
+            bool includePdf,
             DlcsCallContext dlcsCallContext)
         {
             var dc = new DigitalCollection
@@ -274,7 +288,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 MetsCollection = metsCollection,
                 Identifier = metsCollection.Identifier
             };
-            
+
             // There are currently 0 instances of an item with both collection + manifestation here.
             if (metsCollection.Collections.HasItems())
             {
@@ -285,6 +299,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 await Task.WhenAll(collections);
                 dc.Collections = collections.Select(c => c.Result);
             }
+
             if (metsCollection.Manifestations.HasItems())
             {
                 var manifestations = metsCollection.Manifestations
@@ -293,20 +308,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 await Task.WhenAll(manifestations);
                 dc.Manifestations = manifestations.Select(m => m.Result);
             }
-            
+
             return dc;
         }
 
         private async Task<DigitalManifestation> MakeDigitalManifestation(
-            IManifestation metsManifestation, 
-            bool includePdf, 
+            IManifestation metsManifestation,
+            bool includePdf,
             DlcsCallContext dlcsCallContext)
         {
             var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier, dlcsCallContext);
             var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf?>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
-            
+
             return new DigitalManifestation
             {
                 MetsManifestation = metsManifestation,
@@ -332,7 +347,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var batchOp = await dlcs.GetBatch(batchId, dlcsCallContext);
             return batchOp.ResponseObject;
         }
-        
+
         private async Task<Dictionary<string, Image?>> GetImagesExpectedOnDlcs(
             IManifestation metsManifestation, List<Image> imagesAlreadyOnDlcs, DlcsCallContext dlcsCallContext)
         {
@@ -340,9 +355,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var imagesExpectedOnDlcs = new Dictionary<string, Image?>();
             foreach (var storedFile in metsManifestation.SynchronisableFiles!)
             {
-                imagesExpectedOnDlcs[storedFile.StorageIdentifier!] = null; 
+                imagesExpectedOnDlcs[storedFile.StorageIdentifier!] = null;
             }
-            logger.LogDebug("We expect there to be {expectedCount} images in the DLCS. CallContext: {callContext}", 
+
+            logger.LogDebug("We expect there to be {expectedCount} images in the DLCS. CallContext: {callContext}",
                 imagesExpectedOnDlcs.Count, dlcsCallContext.Id);
 
             // go through all the DLCS images
@@ -356,16 +372,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 logger.LogDebug("There are {missingCount} images missing from DLCS, callContext {callContext}",
                     missingDlcsImageIds.Count, dlcsCallContext);
-                logger.LogDebug("We'll see if the DLCS has these IDs anyway, in the same space but maybe with different metadata");
-                var mismatchedImages = (await dlcs.GetImagesByDlcsIdentifiers(missingDlcsImageIds, dlcsCallContext)).ToList();
-                logger.LogDebug("DLCS has {mismatchedCount} additional images with matching identifiers, callContext {callContext}",
+                logger.LogDebug(
+                    "We'll see if the DLCS has these IDs anyway, in the same space but maybe with different metadata");
+                var mismatchedImages =
+                    (await dlcs.GetImagesByDlcsIdentifiers(missingDlcsImageIds, dlcsCallContext)).ToList();
+                logger.LogDebug(
+                    "DLCS has {mismatchedCount} additional images with matching identifiers, callContext {callContext}",
                     mismatchedImages.Count, dlcsCallContext);
                 PopulateImagesExpectedOnDlcs(imagesExpectedOnDlcs, metsManifestation, mismatchedImages);
             }
+
             return imagesExpectedOnDlcs;
         }
 
-        public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image?> images, DlcsCallContext dlcsCallContext)
+        public async Task<IEnumerable<Batch>> GetBatchesForImages(IEnumerable<Image?> images,
+            DlcsCallContext dlcsCallContext)
         {
             var enumeratedImages = images.ToList();
             List<string> batchIds = new List<string>(enumeratedImages.Count);
@@ -385,16 +406,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 logger.LogDebug("No batches exist for these images");
                 return batches;
             }
+
             var debug = logger.IsEnabled(LogLevel.Debug);
             BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
-            
+
             foreach (var batchId in batchIds)
             {
-                if(debug) batchMetrics!.BeginBatch();
+                if (debug) batchMetrics!.BeginBatch();
                 var batchOperation = await dlcs.GetBatch(batchId, dlcsCallContext);
                 var batch = batchOperation.ResponseObject;
                 if (batch != null) batches.Add(batch);
-                if(debug) batchMetrics!.EndBatch(batch?.Count ?? -1);
+                if (debug) batchMetrics!.EndBatch(batch?.Count ?? -1);
             }
 
             if (debug)
@@ -402,44 +424,48 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 logger.LogDebug("Timings for GetBatchesForImages");
                 logger.LogDebug(batchMetrics!.Summary);
             }
+
             return batches;
         }
 
-        
+
         private const string BatchPatchOperation = "Batch Patch Assets";
         private const string BatchIngestOperation = "Batch Ingest Assets";
-        
-        
-        private async Task DoBatchPatch(List<Image>? dlcsImages, SyncOperation syncOperation, DlcsCallContext dlcsCallContext)
+
+
+        private async Task DoBatchPatch(List<Image>? dlcsImages, SyncOperation syncOperation,
+            DlcsCallContext dlcsCallContext)
         {
             await DoDlcsBatchOperation(BatchPatchOperation, dlcsImages, syncOperation, dlcsCallContext);
         }
-        
-        private async Task DoBatchIngest(List<Image>? dlcsImages, SyncOperation syncOperation, bool priority, DlcsCallContext dlcsCallContext)
+
+        private async Task DoBatchIngest(List<Image>? dlcsImages, SyncOperation syncOperation, bool priority,
+            DlcsCallContext dlcsCallContext)
         {
             await DoDlcsBatchOperation(BatchIngestOperation, dlcsImages, syncOperation, dlcsCallContext, priority);
         }
 
         private async Task DoDlcsBatchOperation(
             string typeOfBatchOperation,
-            List<Image>? dlcsImages, 
+            List<Image>? dlcsImages,
             SyncOperation syncOperation,
-            DlcsCallContext dlcsCallContext, 
+            DlcsCallContext dlcsCallContext,
             bool priority = false)
         {
             // TODO - refactor DoBatchPatch and DoBatchIngest - They are 95% the same, they just wrap a different DLCS call
             if (dlcsImages.IsNullOrEmpty()) return;
-            
+
             var debug = logger.IsEnabled(LogLevel.Debug);
             BatchMetrics? batchMetrics = debug ? new BatchMetrics() : null;
-            
+
             foreach (var batch in dlcsImages.Batch(dlcs.BatchSize))
             {
                 var imagesToSend = batch.ToArray();
                 if (debug)
                 {
                     batchMetrics!.BeginBatch(imagesToSend.Length);
-                    logger.LogDebug("Batch {batchCounter}, length: {BatchLength}", batchMetrics.BatchCounter, batchMetrics.BatchSize);
+                    logger.LogDebug("Batch {batchCounter}, length: {BatchLength}", batchMetrics.BatchCounter,
+                        batchMetrics.BatchSize);
                 }
 
                 if (imagesToSend.Length == 0)
@@ -461,11 +487,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
                 if (typeOfBatchOperation == BatchPatchOperation)
                 {
-                    await CallDlcsPatchImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection, batchForDlcs);
+                    await CallDlcsPatchImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection,
+                        batchForDlcs);
                 }
                 else if (typeOfBatchOperation == BatchIngestOperation)
                 {
-                    await CallDlcsRegisterImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection, batchForDlcs, priority);
+                    await CallDlcsRegisterImages(syncOperation, dlcsCallContext, imageRegistrationsAsHydraCollection,
+                        batchForDlcs, priority);
                 }
                 else
                 {
@@ -473,12 +501,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 }
 
                 batchForDlcs.Finished = DateTime.Now;
-                
-                
+
+
                 if (debug)
                 {
                     batchMetrics!.EndBatch();
-                    logger.LogDebug("Batch {batchCounter} took {batchTime} ms.", batchMetrics.BatchCounter, batchMetrics.LastBatchTime);
+                    logger.LogDebug("Batch {batchCounter} took {batchTime} ms.", batchMetrics.BatchCounter,
+                        batchMetrics.LastBatchTime);
                 }
             }
 
@@ -489,16 +518,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 logger.LogDebug(batchMetrics.Summary);
             }
         }
-        
+
 
         private async Task CallDlcsRegisterImages(
-            SyncOperation syncOperation, 
+            SyncOperation syncOperation,
             DlcsCallContext dlcsCallContext,
-            HydraImageCollection imageRegistrationsAsHydraCollection, 
-            DlcsBatch batchForDlcs, 
+            HydraImageCollection imageRegistrationsAsHydraCollection,
+            DlcsBatch batchForDlcs,
             bool priority)
         {
-            var registrationOperation = await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, dlcsCallContext, priority);
+            var registrationOperation =
+                await dlcs.RegisterImages(imageRegistrationsAsHydraCollection, dlcsCallContext, priority);
             batchForDlcs.RequestBody = registrationOperation.RequestJson;
             batchForDlcs.ResponseBody = registrationOperation.ResponseJson;
             if (registrationOperation.Error != null)
@@ -506,15 +536,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 batchForDlcs.ErrorCode = registrationOperation.Error.Status;
                 batchForDlcs.ErrorText = registrationOperation.Error.Message;
             }
+
             syncOperation.BatchIngestOperationInfos.Add(batchForDlcs);
             syncOperation.Batches.Add(registrationOperation.ResponseObject!);
         }
-        
-        
+
+
         private async Task CallDlcsPatchImages(
-            SyncOperation syncOperation, 
+            SyncOperation syncOperation,
             DlcsCallContext dlcsCallContext,
-            HydraImageCollection imageRegistrationsAsHydraCollection, 
+            HydraImageCollection imageRegistrationsAsHydraCollection,
             DlcsBatch batchForDlcs)
         {
             var registrationOperation = await dlcs.PatchImages(imageRegistrationsAsHydraCollection, dlcsCallContext);
@@ -525,6 +556,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 batchForDlcs.ErrorCode = registrationOperation.Error.Status;
                 batchForDlcs.ErrorText = registrationOperation.Error.Message;
             }
+
             syncOperation.BatchPatchOperationInfos.Add(batchForDlcs);
         }
 
@@ -542,18 +574,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 "Reingest required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
             if (existingDlcsImage.Origin != newDlcsImage.Origin)
             {
-                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
+                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin,
+                    existingDlcsImage.Origin);
                 reingestImage ??= newDlcsImage;
             }
-            
+
             // This one CURRENTLY requires reingest because it's engine that modifies the S3 location
             // But later it could go into regular batch-patch if protagonist no longer rejects it.
             if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
             {
-                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
+                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised",
+                    newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
                 reingestImage ??= newDlcsImage;
             }
-            
+
             // In DDS we never change these but they would need to be considered here
             //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
             //    return newDlcsImage;
@@ -562,8 +596,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             return reingestImage;
         }
-        
-        
+
+
         /// <summary>
         /// return newDlcsImage if it differs from existingDlcsImage in a way that allows BATCH-PATCHing
         /// </summary>
@@ -575,52 +609,68 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             Image? patchImage = null;
             const string patchMessageFormat =
                 "Patch required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
-            
+
             if (existingDlcsImage.String1 != newDlcsImage.String1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string1", newDlcsImage.String1, existingDlcsImage.String1);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string1", newDlcsImage.String1,
+                    existingDlcsImage.String1);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.String2 != newDlcsImage.String2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string2", newDlcsImage.String2, existingDlcsImage.String2);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string2", newDlcsImage.String2,
+                    existingDlcsImage.String2);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.String3 != newDlcsImage.String3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string3", newDlcsImage.String3, existingDlcsImage.String3);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string3", newDlcsImage.String3,
+                    existingDlcsImage.String3);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.Number1 != newDlcsImage.Number1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number1", newDlcsImage.Number1, existingDlcsImage.Number1);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number1", newDlcsImage.Number1,
+                    existingDlcsImage.Number1);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.Number2 != newDlcsImage.Number2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number2", newDlcsImage.Number2, existingDlcsImage.Number2);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number2", newDlcsImage.Number2,
+                    existingDlcsImage.Number2);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.Number3 != newDlcsImage.Number3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number3", newDlcsImage.Number3, existingDlcsImage.Number3);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number3", newDlcsImage.Number3,
+                    existingDlcsImage.Number3);
                 patchImage ??= newDlcsImage;
             }
+
             if (existingDlcsImage.MediaType != newDlcsImage.MediaType)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "mediaType", newDlcsImage.MediaType, existingDlcsImage.MediaType);
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "mediaType", newDlcsImage.MediaType,
+                    existingDlcsImage.MediaType);
                 patchImage ??= newDlcsImage;
             }
 
             // Do we care about ordering?
             if (!AreEqual(existingDlcsImage.Tags, newDlcsImage.Tags))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "tags", newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "tags",
+                    newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
                 patchImage ??= newDlcsImage;
             }
+
             if (!AreEqual(existingDlcsImage.Roles, newDlcsImage.Roles))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "roles",
+                    newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
                 patchImage ??= newDlcsImage;
             }
 
@@ -631,6 +681,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 patchImage.MaxUnauthorised = null;
                 // others?
             }
+
             return patchImage;
         }
 
@@ -640,16 +691,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 return s2.IsNullOrEmpty();
             }
+
             if (s2 == null)
             {
                 return s1.Length == 0;
             }
+
             return s1.SequenceEqual(s2);
         }
 
         private Image MakeDlcsImage(
-            IStoredFile asset, 
-            DdsIdentifier ddsId, 
+            IStoredFile asset,
+            DdsIdentifier ddsId,
             int sequenceIndex,
             int maxUnauthorised)
         {
@@ -672,6 +725,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.Text = asset.PhysicalFile.RelativeAltoPath;
                 imageRegistration.TextType = "alto"; // also need a string to identify this as ALTO
             }
+
             switch (ddsId.IdentifierType)
             {
                 case IdentifierType.BNumber:
@@ -692,6 +746,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     imageRegistration.Number1 = ddsId.SequenceIndex;
                     break;
             }
+
             var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
             if (asset.Family == AssetFamily.Image)
@@ -702,6 +757,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 imageRegistration.MaxUnauthorised = -1;
             }
+
             return imageRegistration;
         }
 
@@ -713,6 +769,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 return Array.Empty<DlcsIngestJob>();
             }
+
             return await jobQuery
                 .Include(j => j.DlcsBatches)
                 .OrderByDescending(j => j.Created)
@@ -720,16 +777,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 .ToListAsync();
         }
 
-        public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation, DlcsCallContext dlcsCallContext)
+        public async Task<JobActivity> GetRationalisedJobActivity(SyncOperation syncOperation,
+            DlcsCallContext dlcsCallContext)
         {
-            var batchesForImages = await GetBatchesForImages(syncOperation.ImagesCurrentlyOnDlcs!.Values, dlcsCallContext);
+            var batchesForImages =
+                await GetBatchesForImages(syncOperation.ImagesCurrentlyOnDlcs!.Values, dlcsCallContext);
             var imageBatches = batchesForImages.ToList();
             // DASH-46
-            if (syncOperation.RequiresSync == false && imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))
+            if (syncOperation.RequiresSync == false &&
+                imageBatches.Any(b => b.Superseded == false && (b.Completed != b.Count)))
             {
                 // Some of these batches may seem incomplete, but they have been superseded
                 imageBatches = await dlcs.GetTestedImageBatches(imageBatches, dlcsCallContext);
             }
+
             var updatedJobs = GetUpdatedIngestJobs(syncOperation, imageBatches).ToList();
             return new JobActivity(imageBatches, updatedJobs);
         }
@@ -742,6 +803,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 return 0;
             }
+
             var jobs = await jobQuery.OrderByDescending(j => j.Created).Skip(1).ToListAsync();
             int num = jobs.Count;
             if (num > 0)
@@ -750,8 +812,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 {
                     ddsInstrumentationContext.DlcsIngestJobs.Remove(jobToRemove);
                 }
+
                 await ddsInstrumentationContext.SaveChangesAsync();
             }
+
             return num;
         }
 
@@ -767,11 +831,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <returns></returns>
         private IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(SyncOperation syncOperation, List<Batch> activeBatches)
         {
-            var jobQuery = GetJobQuery(syncOperation.ManifestationIdentifier!); // , legacySequenceIndex: syncOperation.LegacySequenceIndex);
+            var jobQuery =
+                GetJobQuery(syncOperation
+                    .ManifestationIdentifier!); // , legacySequenceIndex: syncOperation.LegacySequenceIndex);
             if (jobQuery == null)
             {
                 return Array.Empty<DlcsIngestJob>();
             }
+
             var jobs = jobQuery
                 .Include(j => j.DlcsBatches)
                 .OrderByDescending(j => j.Created)
@@ -787,17 +854,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         job.Succeeded = true;
                     }
                 }
+
                 if (flag)
                 {
                     ddsInstrumentationContext.SaveChanges();
                 }
             }
+
             return jobs;
         }
 
         private IQueryable<DlcsIngestJob>? GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
         {
-            var ddsId = new DdsIdentifier(identifier);            
+            var ddsId = new DdsIdentifier(identifier);
             IQueryable<DlcsIngestJob>? jobQuery = null;
             switch (ddsId.IdentifierType)
             {
@@ -809,7 +878,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
                         .Where(j => (j.VolumePart != null && j.VolumePart == identifier));
-                        // || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
+                    // || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
                     break;
                 case IdentifierType.BNumberAndSequenceIndex:
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
@@ -820,6 +889,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         .Where(j => j.IssuePart == identifier);
                     break;
             }
+
             return jobQuery;
         }
 
@@ -828,15 +898,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         {
             if (dlcsImage.Error.HasText())
             {
-                logger.LogDebug("Image {identifier} has an error and requires reingest. Error stored in DLCS is '{error}'", 
+                logger.LogDebug(
+                    "Image {identifier} has an error and requires reingest. Error stored in DLCS is '{error}'",
                     dlcsImage.Id, dlcsImage.Error);
                 return true;
             }
+
             return false;
         }
 
         private void PopulateImagesExpectedOnDlcs(
-            Dictionary<string, Image?> imageDictionary, 
+            Dictionary<string, Image?> imageDictionary,
             IManifestation thisManifestation,
             IEnumerable<Image> imagesAlreadyOnDlcs)
         {
@@ -858,16 +930,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 throw new InvalidOperationException("Physical File is missing Access Condition");
             }
+
             if (asset.AccessCondition == AccessCondition.Open)
             {
                 return Array.Empty<string>();
             }
+
             var acUri = dlcs.GetRoleUri(asset.AccessCondition);
             logger.LogInformation("Asset will be registered with role {0}", acUri);
             return new[] { acUri };
         }
 
         private string? reqRegUri;
+
         private int GetMaxUnauthorised(int sequenceMaxSize, string[] roles)
         {
             if (!roles.HasItems()) return sequenceMaxSize;
@@ -875,10 +950,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return roles.Contains(reqRegUri) ? 200 : 0;
         }
 
-        public Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata(DlcsCallContext dlcsCallContext) 
+        public Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata(DlcsCallContext dlcsCallContext)
             => dlcs.GetErrorsByMetadata(dlcsCallContext);
 
-        public Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page, DlcsCallContext dlcsCallContext) 
+        public Task<Page<ErrorByMetadata>> GetErrorsByMetadata(int page, DlcsCallContext dlcsCallContext)
             => dlcs.GetErrorsByMetadata(page, dlcsCallContext);
 
         ///// <summary>
@@ -900,7 +975,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return await dlcs.DeleteImages(syncOperation.Orphans!, dlcsCallContext);
         }
 
-        public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string? description = null)
+        public IngestAction LogAction(string manifestationId, int? jobId, string userName, string action,
+            string? description = null)
         {
             var ia = new IngestAction
             {
@@ -924,6 +1000,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 q = q.Where(ia => ia.Username == user);
             }
+
             return q.Take(count).ToList();
         }
 
@@ -936,10 +1013,40 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 foreach (var asset in digitisedManifestation.DlcsImages!)
                 {
-                    derivs.AddRange(dlcs.GetAVDerivatives(asset));
+                    derivs.AddRange(GetAVDerivatives(asset));
                 }
             }
+
             return derivs.ToArray();
+        }
+
+
+        public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
+        {
+            // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
+            var derivatives = new List<AVDerivative>();
+            if (dlcsAsset.MediaType!.StartsWith("video"))
+            {
+                derivatives.Add(MakeDerivative(uriPatterns.DlcsVideo, dlcsAsset, "mp4"));
+                derivatives.Add(MakeDerivative(uriPatterns.DlcsVideo, dlcsAsset, "webm"));
+            }
+
+            if (dlcsAsset.MediaType.Contains("audio"))
+            {
+                derivatives.Add(MakeDerivative(uriPatterns.DlcsAudio, dlcsAsset, "mp3"));
+            }
+
+            return derivatives;
+        }
+
+        private AVDerivative MakeDerivative(Func<string, string?, string, string> pattern, Image dlcsAsset,
+            string fileExt)
+        {
+            var publicUrl = pattern(dlcs.ResourceEntryPoint, dlcsAsset.StorageIdentifier, fileExt);
+            var internalUrl = publicUrl.Replace(
+                $"{dlcs.ResourceEntryPoint}av/",
+                $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+            return new AVDerivative(publicUrl, internalUrl, fileExt);
         }
     }
 }

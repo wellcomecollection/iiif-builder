@@ -105,13 +105,15 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         Task<bool> DeletePdf(string identifier);
 
         int DefaultSpace { get; }
+        int DefaultCustomer { get; }
         
         int BatchSize { get; }
         
         bool PreventSynchronisation { get; }
         Task<List<Batch>> GetTestedImageBatches(List<Batch> imageBatches, DlcsCallContext dlcsCallContext);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
-
-        List<AVDerivative> GetAVDerivatives(Image dlcsImage);
+        
+        string ResourceEntryPoint { get; }
+        string InternalResourceEntryPoint { get; }
     }
 }
