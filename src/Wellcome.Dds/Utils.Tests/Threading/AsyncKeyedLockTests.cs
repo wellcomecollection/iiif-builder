@@ -1,9 +1,8 @@
-﻿using System;
+﻿using AsyncKeyedLock;
+using FluentAssertions;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AsyncKeyedLock;
-using FluentAssertions;
-using Utils.Threading;
 using Xunit;
 
 namespace Utils.Tests.Threading
