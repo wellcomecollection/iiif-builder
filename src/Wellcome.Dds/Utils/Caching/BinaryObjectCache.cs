@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using AsyncKeyedLock;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Threading.Tasks;
 using Utils.Storage;
-using Utils.Threading;
 
 namespace Utils.Caching
 {
@@ -17,8 +17,11 @@ namespace Utils.Caching
         private readonly IMemoryCache memoryCache;
         private readonly TimeSpan cacheDuration;
         private bool memoryCacheEnabled = true;
-
-        private readonly AsyncKeyedLock asyncLocker = new();
+        private static readonly AsyncKeyedLocker<string> asyncKeyedLocker = new(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
 
         public BinaryObjectCache(
             ILogger<BinaryObjectCache<T>> logger,
@@ -88,9 +91,16 @@ namespace Utils.Caching
 
             bool memoryCacheMiss = false;
             var cachedFile = GetCachedFile(key);
+            var timeout = TimeSpan.FromMilliseconds(options.CriticalPathTimeout);
 
-            using (var processLock = await GetLock(key))
+            using (var processLock = await asyncKeyedLocker.LockAsync(key, timeout).ConfigureAwait(false))
             {
+                if (!processLock.EnteredSemaphore && options.ThrowOnCriticalPathTimeout)
+                {
+                    throw new TimeoutException(
+                        $"Unable to attain lock for {key} within timeout of {timeout.TotalMilliseconds}ms");
+                }
+
                 // check in memoryCache cache again
                 if (memoryCache != null && memoryCacheEnabled)
                 {
@@ -163,12 +173,6 @@ namespace Utils.Caching
             }
             memoryCache.Set(cacheKey, t, cacheDuration);
         }
-
-        private Task<IDisposable> GetLock(string key)
-            => asyncLocker.LockAsync(
-                string.Intern(key), 
-                TimeSpan.FromMilliseconds(options.CriticalPathTimeout),
-                options.ThrowOnCriticalPathTimeout);
 
         public void DisableMemoryCache()
         {

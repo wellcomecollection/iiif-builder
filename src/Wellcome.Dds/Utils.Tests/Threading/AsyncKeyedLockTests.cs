@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using FluentAssertions;
 using Utils.Threading;
 using Xunit;
@@ -10,11 +11,15 @@ namespace Utils.Tests.Threading
     [Trait("Category", "Manual")]
     public class AsyncKeyedLockTests
     {
-        private readonly AsyncKeyedLock sut;
+        private readonly AsyncKeyedLocker<string> sut;
 
         public AsyncKeyedLockTests()
         {
-            sut = new AsyncKeyedLock();
+            sut = new AsyncKeyedLocker<string>(o =>
+            {
+                o.PoolSize = 20;
+                o.PoolInitialFill = 1;
+            });
         }
         
         [Fact]
@@ -32,7 +37,7 @@ namespace Utils.Tests.Threading
                     {
                         await Task.Delay(400);
                         calls.Add("Quick attain, run slow");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         task1Complete = true;
                     }
                 }), 
@@ -43,7 +48,7 @@ namespace Utils.Tests.Threading
                     using (var theLock = await sut.LockAsync(key))
                     {
                         calls.Add("Slow attain, run quick");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         task1Complete.Should().BeTrue();
                     }
                 }));
@@ -68,7 +73,7 @@ namespace Utils.Tests.Threading
                     {
                         await Task.Delay(400);
                         calls.Add("Quick attain, run slow");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         task1Complete = true;
                     }
                 }), 
@@ -79,7 +84,7 @@ namespace Utils.Tests.Threading
                     using (var theLock = await sut.LockAsync($"not{key}"))
                     {
                         calls.Add("Slow attain, run quick");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         task1Complete.Should().BeFalse();
                     }
                 }));
@@ -104,7 +109,7 @@ namespace Utils.Tests.Threading
                     using (var theLock = await sut.LockAsync(key))
                     {
                         await Task.Delay(400);
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         calls.Add("Quick attain, run slow");
                         task1Complete = true;
                     }
@@ -116,7 +121,7 @@ namespace Utils.Tests.Threading
                     using (var theLock = await sut.LockAsync(key, TimeSpan.FromMilliseconds(100)))
                     {
                         calls.Add("Slow attain, run quick");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeFalse();
+                        theLock.EnteredSemaphore.Should().BeFalse();
                         task1Complete.Should().BeFalse();
                     }
                 }),
@@ -127,7 +132,7 @@ namespace Utils.Tests.Threading
                     using (var theLock = await sut.LockAsync(key))
                     {
                         calls.Add("Verify timeout lock doesn't affect normal process");
-                        (theLock as AsyncKeyedLock.Releaser).HaveLock.Should().BeTrue();
+                        sut.IsInUse(key).Should().BeTrue();
                         task2Complete.Should().BeFalse();
                     }
                 }));

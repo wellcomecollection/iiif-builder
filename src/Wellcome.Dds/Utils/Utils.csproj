@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AsyncKeyedLock" Version="6.1.1" />
       <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.6" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.6" />
