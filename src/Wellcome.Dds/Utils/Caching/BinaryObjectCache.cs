@@ -14,7 +14,7 @@ namespace Utils.Caching
         private readonly ILogger<BinaryObjectCache<T>> logger;
         private readonly BinaryObjectCacheOptions options;
         private readonly IStorage storage;
-        private readonly IMemoryCache memoryCache;
+        private readonly IMemoryCache? memoryCache;
         private readonly TimeSpan cacheDuration;
         private bool memoryCacheEnabled = true;
 
@@ -24,7 +24,7 @@ namespace Utils.Caching
             ILogger<BinaryObjectCache<T>> logger,
             IOptions<BinaryObjectCacheOptionsByType> binaryObjectCacheOptionsByType,
             IStorage storage,
-            IMemoryCache memoryCache
+            IMemoryCache? memoryCache
             )
         {
             this.logger = logger;
@@ -42,7 +42,7 @@ namespace Utils.Caching
 
         public Task DeleteCacheFile(string key)
         {
-            memoryCache.Remove(GetMemoryCacheKey(key));
+            memoryCache?.Remove(GetMemoryCacheKey(key));
             
             string fileName = GetFileName(key);
             
