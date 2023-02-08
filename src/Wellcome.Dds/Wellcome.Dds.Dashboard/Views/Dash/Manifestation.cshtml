@@ -675,8 +675,8 @@
                                 <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
                                 {
-                                    <td><small>@adjunct.AssetMetadata.GetImageWidth() x @adjunct.AssetMetadata.GetImageHeight()</small></td>
-                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                    <td><small>@adjunct.AssetMetadata?.GetImageWidth() x @adjunct.AssetMetadata?.GetImageHeight()</small></td>
+                                    <td><small>@adjunct.AssetMetadata?.GetFormatName()</small></td>
                                     <td></td>                                                         
                                 }
                                 else

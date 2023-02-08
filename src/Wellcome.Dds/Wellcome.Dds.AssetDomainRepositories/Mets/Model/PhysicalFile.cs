@@ -149,6 +149,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         break;
                     
                     case "PRESERVATION":
+                    case "MASTER":
                         physicalFile.RelativeMasterPath = file.RelativePath;
                         break;
                     

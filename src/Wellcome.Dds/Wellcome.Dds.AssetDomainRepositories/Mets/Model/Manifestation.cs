@@ -163,7 +163,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         .Where(sf => 
                             sf.Use == "POSTER" || 
                             sf.Use == "ALTO" || 
-                            sf.Use == "PRESERVATION")
+                            sf.Use == "PRESERVATION" ||
+                            sf.Use == "MASTER")
                         .ToList();
                     
                     ignoredStorageIdentifiers = ignoredFiles.Select(sf => 
