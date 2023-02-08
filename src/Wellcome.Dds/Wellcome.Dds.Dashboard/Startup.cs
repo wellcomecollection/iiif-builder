@@ -148,7 +148,7 @@ namespace Wellcome.Dds.Dashboard
                 UpdateDatabase(logger);
             }
             
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.EnvironmentName == "Staging-New")
             {
                 app.UseDeveloperExceptionPage();
             }
