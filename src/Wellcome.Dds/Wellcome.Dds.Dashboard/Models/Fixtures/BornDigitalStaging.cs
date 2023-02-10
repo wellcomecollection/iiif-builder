@@ -45,6 +45,7 @@ public class BornDigitalStaging
         "ARTCOO/B/10",
         "PPGRF/A.41",
         "PPGRF/H.36A",
-        "PPGRF/H.39A"
+        "PPGRF/H.39A",
+        "SATSY/1821/4"
     };
 }    

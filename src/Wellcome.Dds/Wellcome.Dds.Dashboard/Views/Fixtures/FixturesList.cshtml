@@ -1,0 +1,19 @@
+@model ValueTuple<string, string>[]
+
+@{
+    ViewBag.Title = "Test Identifiers";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Choose your list...</h3>
+</div>
+
+<ul>
+    <li>@Html.ActionLink("Digitised (Goobi)", "Digitised")</li>
+    <li>@Html.ActionLink("Born Digital from spreadsheet", "BornDigitalSheet")</li>
+    <li>@Html.ActionLink("Born Digital (old list)", "BornDigital")</li>
+</ul>
+
