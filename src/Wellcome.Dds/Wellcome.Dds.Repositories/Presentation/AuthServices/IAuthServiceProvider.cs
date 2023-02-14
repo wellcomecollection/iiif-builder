@@ -1,4 +1,5 @@
 using IIIF;
+using IIIF.Auth.V2;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
@@ -12,7 +13,11 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         // Auth V2 providers
         // Later we can reorganise this and support more variety in auth services
         IService GetAcceptTermsAuthServicesV2();
-        IService GetClinicalLoginServicesV2();
+        IService GetLoginServicesV2();
         IService GetRestrictedLoginServicesV2();
+
+        AuthProbeService2 GetClickthroughProbeService(string assetIdentifier);
+        AuthProbeService2 GetLoginProbeService(string assetIdentifier);
+        AuthProbeService2 GetRestrictedProbeService(string assetIdentifier);
     }
 }

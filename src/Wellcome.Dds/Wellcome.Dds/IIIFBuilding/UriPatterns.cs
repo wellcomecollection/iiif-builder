@@ -79,7 +79,19 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string DlcsVideoTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
         private const string DlcsAudioTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/max/default.{fileExt}";
         private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
-        private const string DlcsProbeServiceTemplate = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
+        
+        // Auth
+        private const string DlcsProbeServiceV2Template               = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
+        private const string DlcsClickthroughLoginServiceIdTemplate   = "{dlcsEntryPoint}auth/clickthrough";
+        private const string DlcsClickthroughLoginServiceV2IdTemplate = "{dlcsEntryPoint}auth/v2/clickthrough";
+        private const string DlcsClinicalLoginServiceIdTemplate       = "{dlcsEntryPoint}auth/clinicalLogin";
+        private const string DlcsLoginServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/login";
+        private const string DlcsRestrictedLoginServiceIdTemplate     = "{dlcsEntryPoint}auth/restrictedlogin";
+        private const string DlcsRestrictedLoginServiceV2IdTemplate   = "{dlcsEntryPoint}auth/v2/restrictedlogin";
+        private const string DlcsTokenServiceIdTemplate               = "{dlcsEntryPoint}auth/token";
+        private const string DlcsTokenServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/token";
+        private const string DlcsLogoutServiceIdTemplate              = "{dlcsEntryPoint}auth/logout";
+        private const string DlcsLogoutServiceV2IdTemplate            = "{dlcsEntryPoint}auth/v2/logout";
 
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
@@ -254,9 +266,59 @@ namespace Wellcome.Dds.IIIFBuilding
             return DlcsIdentifier(DlcsFileTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsProbeService(string dlcsEntryPoint, string? assetIdentifier)
+        public string DlcsProbeServiceV2(string dlcsEntryPoint, string? assetIdentifier)
         {
-            return DlcsIdentifier(DlcsProbeServiceTemplate, dlcsEntryPoint, assetIdentifier);
+            return DlcsIdentifier(DlcsProbeServiceV2Template, dlcsEntryPoint, assetIdentifier);
+        }
+
+        public string DlcsClickthroughLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClickthroughLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsClickthroughLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClickthroughLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsClinicalLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClinicalLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsRestrictedLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsRestrictedLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsRestrictedLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsRestrictedLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsTokenServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsTokenServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsTokenServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsTokenServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsLogoutServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLogoutServiceIdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsLogoutServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLogoutServiceV2IdTemplate, dlcsEntryPoint);
         }
 
         private string DlcsIdentifier(string template, string dlcsEntryPointToken, string? assetIdentifier)
@@ -264,6 +326,11 @@ namespace Wellcome.Dds.IIIFBuilding
             return template
                 .Replace(DlcsEntryPointToken, dlcsEntryPointToken)
                 .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+
+        private string DlcsService(string template, string dlcsEntryPointToken)
+        {
+            return template.Replace(DlcsEntryPointToken, dlcsEntryPointToken);
         }
 
         public string RawText(string identifier)
