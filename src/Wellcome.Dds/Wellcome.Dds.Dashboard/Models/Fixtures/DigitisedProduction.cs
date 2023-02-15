@@ -28,6 +28,12 @@ public class DigitisedProduction
         ("b32718184", "(Malaria): use ingested mp4 derivative 720p as FILE - serve as-is"),
         ("b3223756x", "Duplicity of vision: 2k mp4 ingested, TRANSCODE (later multiple transcodes, 2k, 720?)"),
         ("b1665836x", "Anthelmintics: as above but content-advisory and with PDF"),
-        ("b30655729", "(cat), ingested wav, TRANSCODE (single transcode, lo-res)")
+        ("b30655729", "(cat), ingested wav, TRANSCODE (single transcode, lo-res)"),
+        ("b16677298", "Clinical access condition image (warning, explicit)"),
+        ("b11607798", "Clinical image: Hawley Harvey Crippen and Ethel Le Neve. Photograph by Arthur Barrett, 1910 (non-explicit)"),
+        ("b16754967", "Clinical video: The chemotherapy of experimental amoebiasis"),
+        ("b1825908x", "Restricted Images: \"Schizophrenia Trust\": minutes, correspondence"),
+        ("b18530692", "Restricted Images: 'Lacaille, AD'"),
+        ("b29214531", "Restricted Video: Haemorrhage.")
     };
 }

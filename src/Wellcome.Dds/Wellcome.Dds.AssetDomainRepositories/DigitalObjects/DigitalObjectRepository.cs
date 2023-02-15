@@ -421,8 +421,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             if (debug)
             {
-                logger.LogDebug("Timings for GetBatchesForImages");
-                logger.LogDebug(batchMetrics!.Summary);
+                logger.LogDebug("Timings for GetBatchesForImages: {summary}", batchMetrics!.Summary);
             }
 
             return batches;
@@ -513,9 +512,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             if (debug && batchMetrics!.BatchCounter > 0)
             {
-                logger.LogDebug("Timings for '{operation}', {batchCounter} batches sent to DLCS for {callContext}",
-                    typeOfBatchOperation, batchMetrics.BatchCounter, dlcsCallContext.Id);
-                logger.LogDebug(batchMetrics.Summary);
+                logger.LogDebug("Timings for '{operation}', {batchCounter} batches sent to DLCS for {callContext}: {summary}",
+                    typeOfBatchOperation, batchMetrics.BatchCounter, dlcsCallContext.Id, batchMetrics.Summary);
             }
         }
 

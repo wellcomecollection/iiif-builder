@@ -677,8 +677,7 @@ namespace DlcsWebClient.Dlcs
 
             if (debug)
             {
-                logger.LogDebug("Timings for DLCS::GetImagesFromQuery");
-                logger.LogDebug(batchMetrics!.Summary);
+                logger.LogDebug("Timings for DLCS::GetImagesFromQuery: {summary}", batchMetrics!.Summary);
             }
             return images;
         }
