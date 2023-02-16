@@ -300,7 +300,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             var result = new ImageIngestResult();
             if (!syncOperation.HasInvalidAccessCondition)
             {
-                if (usePriorityQueue && syncOperation.DlcsImagesToIngest!.Any(asset => asset.Family != 'I'))
+                // This test used to be  asset.Family != 'I' - is it safe to just use mediaType here? 
+                // do we have any images whose mediaType does not start with image/* ?
+                if (usePriorityQueue && syncOperation.DlcsImagesToIngest!.Any(asset => !asset.MediaType.IsImageMimeType()))
                 {
                     usePriorityQueue = false;
                     logger.LogDebug("SyncOperation contains at least one non-image, so switching to regular queue");

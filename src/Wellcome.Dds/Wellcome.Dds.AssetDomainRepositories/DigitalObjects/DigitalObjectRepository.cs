@@ -587,9 +587,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // In DDS we never change these but they would need to be considered here
+            // We also need to consider what's significant when either new or existing are null
             //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
             //    return newDlcsImage;
             //if (existingDlcsImage.ThumbnailPolicy != newDlcsImage.ThumbnailPolicy)
+            //    return newDlcsImage;
+            //if (existingDlcsImage.DeliveryChannel != newDlcsImage.DeliveryChannel)
             //    return newDlcsImage;
 
             return reingestImage;
@@ -756,8 +759,46 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.MaxUnauthorised = -1;
             }
 
+            if (dlcs.SupportsDeliveryChannels)
+            {
+                imageRegistration.ImageOptimisationPolicy = GetImageOptimisationPolicy(asset);
+                imageRegistration.DeliveryChannel = GetDeliveryChannel(asset);
+                imageRegistration.Family = null;
+            }
             return imageRegistration;
         }
+
+        
+        private string? GetImageOptimisationPolicy(IStoredFile asset)
+        {
+            if (asset.MimeType == "image/jp2")
+            {
+                return "use-original";
+            }
+            // Use whatever defaults the DLCS has for the asset's mediaType.
+            return null;
+        }
+        
+        private string? GetDeliveryChannel(IStoredFile asset)
+        {
+            // This switch statement reproduces the current Deliverator default behaviour.
+            switch (asset.Family)
+            {
+                case AssetFamily.Image when !asset.MimeType.IsImageMimeType():
+                    throw new InvalidOperationException($"Asset family is Image but media type is {asset.MimeType}");
+                case AssetFamily.Image:
+                    return "iiif-img,thumbs";
+                case AssetFamily.TimeBased when !asset.MimeType.IsTimeBasedMimeType():
+                    throw new InvalidOperationException($"Asset family is TimeBased but media type is {asset.MimeType}");
+                case AssetFamily.TimeBased:
+                    return "iiif-av";
+                case AssetFamily.File:
+                    return "file";
+                default:
+                    throw new InvalidOperationException($"Asset family not declared on asset {asset.StorageIdentifier}");
+            }
+        }
+
 
         public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
         {

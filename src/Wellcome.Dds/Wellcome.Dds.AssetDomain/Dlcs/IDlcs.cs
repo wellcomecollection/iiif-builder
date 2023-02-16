@@ -115,5 +115,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         
         string ResourceEntryPoint { get; }
         string InternalResourceEntryPoint { get; }
+        
+        bool SupportsDeliveryChannels { get; }
     }
 }

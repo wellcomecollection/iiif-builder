@@ -1,4 +1,6 @@
-﻿namespace Wellcome.Dds.Common
+﻿using System.ComponentModel.Design.Serialization;
+
+namespace Wellcome.Dds.Common
 {
     // Which class Library does this class live in?
     public class DdsOptions

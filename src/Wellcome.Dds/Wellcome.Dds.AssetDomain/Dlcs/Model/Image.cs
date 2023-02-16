@@ -96,7 +96,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         public string? MediaType { get; set; }
 
         [JsonProperty(Order = 130, PropertyName = "family")]
-        public char Family { get; set; } // i, t, f
+        public char? Family { get; set; } // i, t, f
 
         [JsonProperty(Order = 120, PropertyName = "text")]
         public string? Text { get; set; }
@@ -120,6 +120,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 81, PropertyName = "thumbnailPolicy")]
         public string? ThumbnailPolicy { get; set; }
 
+        [JsonProperty(Order = 82, PropertyName = "deliveryChannel")]
+        public string? DeliveryChannel { get; set; }
     }
 
     public class Thumbnail

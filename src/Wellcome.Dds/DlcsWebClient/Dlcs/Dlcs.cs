@@ -650,7 +650,8 @@ namespace DlcsWebClient.Dlcs
                     foreach (var image in imageCollection.Members)
                     {
                         image.StorageIdentifier = GetLocalStorageIdentifier(image.Id!);
-                        if (image.Family == 'T')
+                        // same as: if(options.SupportsDeliveryChannels) - we can retire Family later
+                        if (image.MediaType.IsTimeBasedMimeType() || image.Family == 'T')
                         {
                             await LoadMetadata(image);
                         }
@@ -720,6 +721,7 @@ namespace DlcsWebClient.Dlcs
         public string ResourceEntryPoint => options.ResourceEntryPoint!;
         public string InternalResourceEntryPoint => options.InternalResourceEntryPoint!;
 
+        public bool SupportsDeliveryChannels => options.SupportsDeliveryChannels;
     }
 
     class MessageObject : JSONLDBase
