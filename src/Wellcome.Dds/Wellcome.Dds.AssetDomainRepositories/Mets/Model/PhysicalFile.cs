@@ -4,8 +4,10 @@ using System.Linq;
 using System.Xml.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
@@ -14,6 +16,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         // Only set AssetFamily to Image for born digital mimetypes image/{type} where {type} is one of:
         private static readonly string[] BornDigitalImageTypes = { "jpeg", "tiff" };
 
+        public PhysicalFile()
+        {
+            
+        }
         private PhysicalFile(IWorkStore workStore, string id)
         {
             WorkStore = workStore;
@@ -300,6 +306,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 .ToDictionary(file => (string?) file.Attribute("ID") 
                                       ?? throw new InvalidOperationException("File Element has no ID attribute"));
         }
+
+        private IProcessingBehaviour? processingBehaviour;
+        public IProcessingBehaviour ProcessingBehaviour => processingBehaviour ??= new ProcessingBehaviour(this, false);
     }
     
 }

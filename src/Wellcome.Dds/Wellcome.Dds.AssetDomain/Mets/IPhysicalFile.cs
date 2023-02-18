@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomain.Mets
@@ -39,6 +40,14 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string? StorageIdentifier { get; set; }
         
         string? MimeType { get; set; }
+        
+        /// <summary>
+        /// Where a METS PhysicalFile has more than one IStoredFile, the AssetMetadata will be that of the IStoredFile
+        /// that's to be synced with the DLCS, the one we are interested in rather than ALTOs etc.
+        ///
+        /// If we decide to sync both MXFs and MP4s within one single PhysicalFile, the convenience of hoisting
+        /// these properties of actual files up to the IPhysicalFile METS abstraction might start getting confusing.
+        /// </summary>
         IAssetMetadata? AssetMetadata { get; set; }
         string? AccessCondition { get; set; }
         
@@ -62,5 +71,7 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string? RelativePosterPath { get; set; }
         string? RelativeTranscriptPath { get; set; }
         string? RelativeMasterPath { get; set; }
+        
+        IProcessingBehaviour ProcessingBehaviour { get; }
     }
 }

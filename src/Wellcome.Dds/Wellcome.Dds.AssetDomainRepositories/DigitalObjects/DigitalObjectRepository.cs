@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
@@ -12,6 +13,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
@@ -24,6 +26,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly DdsOptions ddsOptions;
 
         public int DefaultSpace { get; }
         public int DefaultCustomer { get; }
@@ -33,7 +36,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             UriPatterns uriPatterns,
             IDlcs dlcs,
             IMetsRepository metsRepository,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            IOptions<DdsOptions> ddsOptions)
         {
             this.logger = logger;
             this.uriPatterns = uriPatterns;
@@ -42,9 +46,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             DefaultCustomer = dlcs.DefaultCustomer;
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.ddsOptions = ddsOptions.Value;
         }
 
-        // make all the things, then hand back to DashboarcCloudServicesJobProcessor process job.
+        // make all the things, then hand back to DashboardCloudServicesJobProcessor process job.
         // the code that makes the calls to DLCS needs to go in here
 
         // and th sync...
@@ -761,45 +766,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             if (dlcs.SupportsDeliveryChannels)
             {
-                imageRegistration.ImageOptimisationPolicy = GetImageOptimisationPolicy(asset);
-                imageRegistration.DeliveryChannel = GetDeliveryChannel(asset);
+                var processing = asset.PhysicalFile.ProcessingBehaviour;
+                imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
+                imageRegistration.DeliveryChannel = processing.DeliveryChannels.ToCommaDelimitedList();
                 imageRegistration.Family = null;
             }
             return imageRegistration;
         }
-
-        
-        private string? GetImageOptimisationPolicy(IStoredFile asset)
-        {
-            if (asset.MimeType == "image/jp2")
-            {
-                return "use-original";
-            }
-            // Use whatever defaults the DLCS has for the asset's mediaType.
-            return null;
-        }
-        
-        private string? GetDeliveryChannel(IStoredFile asset)
-        {
-            // This switch statement reproduces the current Deliverator default behaviour.
-            switch (asset.Family)
-            {
-                case AssetFamily.Image when !asset.MimeType.IsImageMimeType():
-                    throw new InvalidOperationException($"Asset family is Image but media type is {asset.MimeType}");
-                case AssetFamily.Image:
-                    return "iiif-img,thumbs";
-                case AssetFamily.TimeBased when !asset.MimeType.IsTimeBasedMimeType():
-                    throw new InvalidOperationException($"Asset family is TimeBased but media type is {asset.MimeType}");
-                case AssetFamily.TimeBased:
-                    return "iiif-av";
-                case AssetFamily.File:
-                    return "file";
-                default:
-                    throw new InvalidOperationException($"Asset family not declared on asset {asset.StorageIdentifier}");
-            }
-        }
-
-
+  
         public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
         {
             // int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);

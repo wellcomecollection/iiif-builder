@@ -52,7 +52,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var uriPatterns = new UriPatterns(options);
 
             sut = new DigitalObjectRepository(new NullLogger<DigitalObjectRepository>(), uriPatterns, dlcs, metsRepository,
-                ddsInstrumentationContext);
+                ddsInstrumentationContext, options);
         }
 
         [Fact]
