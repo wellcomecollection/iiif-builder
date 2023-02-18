@@ -38,6 +38,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
         private readonly string[] extraAccessConditions;
+        private readonly bool useDeliveryChannels;
         private readonly ManifestStructureHelper manifestStructureHelper;
 
         // Existing Auth1 (actually 0.9.3) services
@@ -71,12 +72,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             UriPatterns uriPatterns,
             string dlcsEntryPoint,
             bool referenceV0SearchService, 
-            string[] extraAccessConditions)
+            string[] extraAccessConditions,
+            bool useDeliveryChannels)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
+            this.useDeliveryChannels = useDeliveryChannels;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new IIIFAuthServiceProvider(dlcsEntryPoint, uriPatterns);
             clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
@@ -872,39 +875,63 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The other issue here is that the DLCS probably won't have got round to processing this,
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
+            var deliveryChannels = useDeliveryChannels ? 
+                physicalFile.ProcessingBehaviour.DeliveryChannels : new HashSet<string> { "iiif-av" };
             if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
             {
                 var confineToBox = new Size(1280, 720);
                 // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
                 var computedSize = Size.Confine(confineToBox, videoSize);
-                choice.Items.Add(new Video
+                var video = new Video
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4"),
-                    Format = "video/mp4",
-                    Label = Lang.Map("MP4"),
                     Duration = duration,
                     Width = computedSize.Width,
-                    Height = computedSize.Height
-                });
-                choice.Items.Add(new Video
+                    Height = computedSize.Height,
+                    Label = Lang.Map("Access video")
+                };
+                if (deliveryChannels.Contains("iiif-av"))
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "webm"),
-                    Format = "video/webm",
-                    Label = Lang.Map("WebM"),
-                    Duration = duration,
-                    Width = computedSize.Width,
-                    Height = computedSize.Height
-                });
+                    video.Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4");
+                    video.Format = "video/mp4";
+                }
+                else
+                {
+                    video.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
+                    video.Format = physicalFile.MimeType;  // at the moment this also will be "video/mp4"
+                }
+                
+                choice.Items.Add(video);
+                
+                // No more webm:
+                // choice.Items.Add(new Video
+                // {
+                //     Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "webm"),
+                //     Format = "video/webm",
+                //     Label = Lang.Map("WebM"),
+                //     Duration = duration,
+                //     Width = computedSize.Width,
+                //     Height = computedSize.Height
+                // });
             }
             else if (IsAudioFile(metsManifestation, physicalFile))
             {
-                choice.Items.Add(new Audio
+                var audio = new Audio
                 {
-                    Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3"),
-                    Format = "audio/mp3",
                     Label = Lang.Map("MP3"),
                     Duration = duration
-                });
+                };
+                if (deliveryChannels.Contains("iiif-av"))
+                {
+                    audio.Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3");
+                    audio.Format = "audio/mp3";
+                }
+                else
+                {
+                    audio.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
+                    audio.Format = physicalFile.MimeType;
+                }
+
+                choice.Items.Add(audio);
             }
             else
             {

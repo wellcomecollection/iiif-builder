@@ -75,7 +75,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 uriPatterns,
                 dlcsOptions.Value.ResourceEntryPoint,
                 ddsOptions.Value.ReferenceV0SearchService,
-                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(','));
+                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(','),
+                dlcsOptions.Value.SupportsDeliveryChannels);
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 
