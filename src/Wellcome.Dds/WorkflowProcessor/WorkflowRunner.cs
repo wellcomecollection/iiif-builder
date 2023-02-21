@@ -40,7 +40,7 @@ namespace WorkflowProcessor
         private readonly ICatalogue catalogue;
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
-        private readonly IWorkflowJobPostProcessor postProcessor;
+        private readonly IIdentifierChangeNotificationPublisher postProcessor;
         private readonly IMemoryCache memoryCache;
 
         public WorkflowRunner(
@@ -54,7 +54,7 @@ namespace WorkflowProcessor
             ICatalogue catalogue,
             BucketWriter bucketWriter,
             AltoDerivedAssetBuilder altoBuilder,
-            IWorkflowJobPostProcessor postProcessor,
+            IIdentifierChangeNotificationPublisher postProcessor,
             IMemoryCache memoryCache)
         {
             this.ingestJobRegistry = ingestJobRegistry;
@@ -141,7 +141,10 @@ namespace WorkflowProcessor
                     await SetJobErrorMessage(job);
                 }
 
-                await postProcessor.PostProcess(job, jobOptions);
+                if (job.FlushCache)
+                {
+                    await postProcessor.PostProcess(job.Identifier, jobOptions.RebuildTextCaches);
+                }
                 job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
                 logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
             }

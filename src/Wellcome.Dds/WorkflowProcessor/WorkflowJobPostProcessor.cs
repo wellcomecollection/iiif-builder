@@ -5,29 +5,28 @@ using Amazon.SimpleNotificationService.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
 namespace WorkflowProcessor
 {
-    public interface IWorkflowJobPostProcessor
+    public interface IIdentifierChangeNotificationPublisher
     {
-        Task PostProcess(WorkflowJob job, RunnerOptions runnerOptions);
+        Task PostProcess(string identifier, bool includeTextResources);
     }
 
-    public class WorkflowJobPostProcessor : IWorkflowJobPostProcessor
+    public class IdentifierChangeNotificationPublisher : IIdentifierChangeNotificationPublisher
     {
         private readonly IAmazonSimpleNotificationService simpleNotificationService;
         private readonly UriPatterns uriPatterns;
         private readonly IOptions<CacheInvalidationOptions> options;
-        private readonly ILogger<WorkflowJobPostProcessor> logger;
+        private readonly ILogger<IdentifierChangeNotificationPublisher> logger;
 
-        public WorkflowJobPostProcessor(
+        public IdentifierChangeNotificationPublisher(
             IAmazonSimpleNotificationService simpleNotificationService,
             UriPatterns uriPatterns,
             IOptions<CacheInvalidationOptions> options,
-            ILogger<WorkflowJobPostProcessor> logger)
+            ILogger<IdentifierChangeNotificationPublisher> logger)
         {
             this.simpleNotificationService = simpleNotificationService;
             this.uriPatterns = uriPatterns;
@@ -35,27 +34,25 @@ namespace WorkflowProcessor
             this.logger = logger;
         }
 
-        public async Task PostProcess(WorkflowJob job, RunnerOptions runnerOptions)
+        public async Task PostProcess(string identifier, bool includeTextResources)
         {
-            if (!job.FlushCache) return;
-            
-            logger.LogInformation("Flushing cache for {Identifier}", job.Identifier);
+            logger.LogInformation("Flushing cache for {Identifier}", identifier);
 
             var cacheInvalidationOptions = options.Value;
 
             // api.wc.org cache is only invalidated if text has been rebuilt 
-            if (runnerOptions.RebuildTextCaches && new DdsIdentifier(job.Identifier).HasBNumber)
+            if (includeTextResources && new DdsIdentifier(identifier).HasBNumber)
             {
                 // Only bnumbers will have text that needs flushing, for now, so don't bother calling if not a bnumber.
                 var apiPaths =
-                    uriPatterns.GetCacheInvalidationPaths(job.Identifier, InvalidationPathType.Text);
-                await PublishInvalidationTopic(job.Identifier, cacheInvalidationOptions.InvalidateApiTopicArn,
+                    uriPatterns.GetCacheInvalidationPaths(identifier, InvalidationPathType.Text);
+                await PublishInvalidationTopic(identifier, cacheInvalidationOptions.InvalidateApiTopicArn,
                     apiPaths);
             }
 
             // iiif.wc.org cache is always invalidated
-            var iiifPaths = uriPatterns.GetCacheInvalidationPaths(job.Identifier, InvalidationPathType.IIIF);
-            await PublishInvalidationTopic(job.Identifier, cacheInvalidationOptions.InvalidateIIIFTopicArn, iiifPaths);
+            var iiifPaths = uriPatterns.GetCacheInvalidationPaths(identifier, InvalidationPathType.IIIF);
+            await PublishInvalidationTopic(identifier, cacheInvalidationOptions.InvalidateIIIFTopicArn, iiifPaths);
         }
 
         private async Task PublishInvalidationTopic(string identifier, string topic, string[] paths)

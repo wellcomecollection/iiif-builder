@@ -106,7 +106,7 @@ namespace WorkflowProcessor
                 .AddScoped<AltoDerivedAssetBuilder>()
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddSingleton<IWorkflowJobPostProcessor, WorkflowJobPostProcessor>()
+                .AddSingleton<IIdentifierChangeNotificationPublisher, IdentifierChangeNotificationPublisher>()
                 .AddScoped<IStatusProvider, DatabaseStatusProvider>()
                 .AddHostedService<WorkflowProcessorService>();
             
