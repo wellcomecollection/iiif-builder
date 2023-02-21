@@ -562,7 +562,7 @@
                         <th>Order</th>
                         <th>Size</th>
                         <th>Format</th>
-                        <th>Length</th>
+                        <th>Dimensions</th>
                         <th>Access</th>
                         <th>DLCS</th>
                             @*<th>Transcode</th>*@
@@ -601,7 +601,16 @@
                                 <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
-                                    <td>@pf.AssetMetadata.GetDisplayDuration()</td>
+                                    var mediaDims = pf.AssetMetadata.GetMediaDimensions();
+                                    <td>
+                                        @pf.AssetMetadata.GetDisplayDuration()
+                                        @if (mediaDims.Height > 0)
+                                        {
+                                            <br/>@mediaDims.Width
+                                            <text> x </text>
+                                            @mediaDims.Height
+                                        }
+                                    </td>
                                 }
                                 else
                                 {
@@ -675,9 +684,9 @@
                                 <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
                                 {
-                                    <td><small>@adjunct.AssetMetadata?.GetImageWidth() x @adjunct.AssetMetadata?.GetImageHeight()</small></td>
+                                    <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
                                     <td><small>@adjunct.AssetMetadata?.GetFormatName()</small></td>
-                                    <td></td>                                                         
+                                    <td><small>@adjunct.AssetMetadata?.GetImageWidth() x @adjunct.AssetMetadata?.GetImageHeight()</small></td>                                                         
                                 }
                                 else
                                 {

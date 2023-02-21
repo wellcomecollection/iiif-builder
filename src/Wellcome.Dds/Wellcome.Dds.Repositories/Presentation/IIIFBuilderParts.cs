@@ -405,12 +405,14 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                         if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
                         {
+                            var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
                             canvas.Rendering ??= new List<ExternalResource>();
                             canvas.Rendering.Add(
                                 new Image
                                 {
                                     Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
-                                    Format = physicalFile.MimeType
+                                    Format = physicalFile.MimeType,
+                                    Label = Lang.Map(label ?? "(unknown format)")
                                 }
                             );
                         }
@@ -499,11 +501,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 }
                             };
                             
+                            // Also add the same videos as renderings for download:
+                            canvas.Rendering ??= new List<ExternalResource>();
                             foreach (var paintable in avChoice.Items)
                             {
                                 if (paintable is ResourceBase resource)
                                 {
                                     AddAuthServices(resource, physicalFile, foundAuthServices);
+                                    canvas.Rendering.Add((ExternalResource)resource);
                                 }
                             }
 
