@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Amazon.Runtime.Internal;
 using IIIF;
 using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
@@ -400,6 +401,18 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     Label = Lang.Map(physicalFile.OrderLabel.HasText() ? $"Text of page {physicalFile.OrderLabel}" : "Text of this page")
                                 }
                             };
+                        }
+
+                        if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
+                        {
+                            canvas.Rendering ??= new List<ExternalResource>();
+                            canvas.Rendering.Add(
+                                new Image
+                                {
+                                    Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                                    Format = physicalFile.MimeType
+                                }
+                            );
                         }
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
@@ -879,6 +892,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 physicalFile.ProcessingBehaviour.DeliveryChannels : new HashSet<string> { "iiif-av" };
             if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
             {
+                // First do the <= 720p video which is going to     
                 var confineToBox = new Size(1280, 720);
                 // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
                 var computedSize = Size.Confine(confineToBox, videoSize);
@@ -887,31 +901,37 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Duration = duration,
                     Width = computedSize.Width,
                     Height = computedSize.Height,
-                    Label = Lang.Map("Access video")
+                    Label = Lang.Map($"Access copy video: {computedSize.Width} x {computedSize.Height}")
                 };
-                if (deliveryChannels.Contains("iiif-av"))
+                if (deliveryChannels.Contains("file") && videoSize.Height <= 720)
+                {
+                    video.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
+                    video.Format = physicalFile.MimeType; // at the moment this also will be "video/mp4"
+                }
+                else 
                 {
                     video.Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4");
                     video.Format = "video/mp4";
                 }
-                else
-                {
-                    video.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
-                    video.Format = physicalFile.MimeType;  // at the moment this also will be "video/mp4"
-                }
-                
                 choice.Items.Add(video);
                 
-                // No more webm:
-                // choice.Items.Add(new Video
-                // {
-                //     Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "webm"),
-                //     Format = "video/webm",
-                //     Label = Lang.Map("WebM"),
-                //     Duration = duration,
-                //     Width = computedSize.Width,
-                //     Height = computedSize.Height
-                // });
+                // is there another hi-res file video to offer? We won't have used this file channel already.
+                if (deliveryChannels.Contains("file") && videoSize.Height > 720)
+                {
+                    var hiResFileVideo = new Video
+                    {
+                        Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                        Format = physicalFile.MimeType, // at the moment this also will be "video/mp4"
+                        Duration = duration,
+                        Width = videoSize.Width,
+                        Height = videoSize.Height,
+                        Label = Lang.Map($"Higher resolution video: {videoSize.Width} x {videoSize.Height}")
+                    };
+                    choice.Items.Add(hiResFileVideo);
+                }
+                
+                // We have removed the WebM transcode from this output, and need to remove it from the 
+                // DLCS ElasticTranscoder settings.
             }
             else if (IsAudioFile(metsManifestation, physicalFile))
             {

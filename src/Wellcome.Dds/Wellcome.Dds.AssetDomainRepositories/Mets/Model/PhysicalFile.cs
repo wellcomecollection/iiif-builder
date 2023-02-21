@@ -308,7 +308,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
         private IProcessingBehaviour? processingBehaviour;
-        public IProcessingBehaviour ProcessingBehaviour => processingBehaviour ??= new ProcessingBehaviour(this, false);
+        public IProcessingBehaviour ProcessingBehaviour => processingBehaviour ??= new ProcessingBehaviour(
+            this, new ProcessingBehaviourOptions());
     }
     
 }

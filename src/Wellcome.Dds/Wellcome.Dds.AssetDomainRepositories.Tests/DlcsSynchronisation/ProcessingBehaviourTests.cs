@@ -120,7 +120,7 @@ public class ProcessingBehaviourTests
     }
     
     [Fact]
-    public void Access_MP4_Has_File_Delivery_Channel()
+    public void Access_MP4_720_Has_File_Delivery_Channel()
     {
         var pf = A.Fake<PhysicalFile>();
         pf.Files = new List<IStoredFile>
@@ -129,14 +129,14 @@ public class ProcessingBehaviourTests
             new StoredFile { MimeType = "application/mxf" }  // the master
         };
         pf.MimeType = "video/mp4";
+        SetHeight(pf, 720);
 
         var processing = pf.ProcessingBehaviour;
 
         processing.DeliveryChannels.Should().OnlyContain(s => s == "file");
-    }    
-        
+    }
     [Fact]
-    public void Access_MP4_Has_None_IOP()
+    public void Access_MP4_1440_Has_iiif_av_and_file_Delivery_Channel()
     {
         var pf = A.Fake<PhysicalFile>();
         pf.Files = new List<IStoredFile>
@@ -145,10 +145,53 @@ public class ProcessingBehaviourTests
             new StoredFile { MimeType = "application/mxf" }  // the master
         };
         pf.MimeType = "video/mp4";
+        SetHeight(pf, 1440);
+
+        var processing = pf.ProcessingBehaviour;
+
+        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-av" || s == "file");
+    }
+    
+
+    private static void SetHeight(PhysicalFile pf, int height)
+    {
+        var assetMetadata = A.Fake<IAssetMetadata>();
+        A.CallTo(() => assetMetadata.GetMediaDimensions()).Returns(new MediaDimensions { Height = height });
+        pf.AssetMetadata = assetMetadata;
+    }
+
+    [Fact]
+    public void Access_MP4_720_Has_None_IOP()
+    {
+        var pf = A.Fake<PhysicalFile>();
+        pf.Files = new List<IStoredFile>
+        {
+            new StoredFile { MimeType = "video/mp4" },       // the access copy
+            new StoredFile { MimeType = "application/mxf" }  // the master
+        };
+        pf.MimeType = "video/mp4";
+        SetHeight(pf, 720);
 
         var processing = pf.ProcessingBehaviour;
 
         processing.ImageOptimisationPolicy.Should().Be("none");
+    }
+    
+    [Fact]
+    public void Access_MP4_1440_Has_Null_IOP()
+    {
+        var pf = A.Fake<PhysicalFile>();
+        pf.Files = new List<IStoredFile>
+        {
+            new StoredFile { MimeType = "video/mp4" },       // the access copy
+            new StoredFile { MimeType = "application/mxf" }  // the master
+        };
+        pf.MimeType = "video/mp4";
+        SetHeight(pf, 1440);
+
+        var processing = pf.ProcessingBehaviour;
+
+        processing.ImageOptimisationPolicy.Should().BeNull();
     }
     
     // Use this to test resolution-specific transcoding - needs the logic in ProcessingBehaviour to change
@@ -162,9 +205,7 @@ public class ProcessingBehaviourTests
             new StoredFile { MimeType = "video/mp4" }
         };
         pf.MimeType = "video/mp4";
-        var assetMetadata = A.Fake<IAssetMetadata>();
-        A.CallTo(() => assetMetadata.GetMediaDimensions()).Returns(new MediaDimensions { Height = 1440 });
-        pf.AssetMetadata = assetMetadata;
+        SetHeight(pf, 1440);
 
         var processing = pf.ProcessingBehaviour;
 
