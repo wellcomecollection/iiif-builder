@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -13,12 +14,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowJobController> logger;
+        private readonly ICacheInvalidationPathPublisher invalidationPathPublisher;
 
-        public WorkflowJobController(IWorkflowCallRepository workflowCallRepository,
-            ILogger<WorkflowJobController> logger)
+        public WorkflowJobController(
+            IWorkflowCallRepository workflowCallRepository,
+            ILogger<WorkflowJobController> logger,
+            ICacheInvalidationPathPublisher invalidationPathPublisher)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
+            this.invalidationPathPublisher = invalidationPathPublisher;
         }
         
         /// <summary>
@@ -73,6 +78,33 @@ namespace Wellcome.Dds.Dashboard.Controllers
             TempData[tempDataType] = JsonConvert.SerializeObject(deleteResult);
 
             return RedirectToAction("Manifestation", "Dash", new {id});
+        }
+
+        /// <summary>
+        /// Notify the SNS topic that will call cloudfront API to invalidate caches
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="hasText">Whether to clear text paths too</param>
+        [HttpPost]
+        public async Task<IActionResult> ClearCaches(string id, [FromForm] bool hasText = false)
+        {
+            string[] errors;
+            try
+            {
+                errors = await invalidationPathPublisher.PublishInvalidation(id, hasText);
+            }
+            catch (Exception ex)
+            {
+                errors = new[] { ex.Message };
+            }
+
+            if (errors.HasItems())
+            {
+                var message = string.Join(';', errors);
+                return RedirectToManifestation(id, "ClearCachesResult", false, message);
+            }
+
+            return RedirectToManifestation(id, "ClearCachesResult", true, null);
         }
     }
 }

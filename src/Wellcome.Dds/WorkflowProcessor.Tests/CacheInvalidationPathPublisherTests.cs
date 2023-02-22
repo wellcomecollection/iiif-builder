@@ -8,18 +8,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Xunit;
 
 namespace WorkflowProcessor.Tests
 {
-    public class WorkflowJobPostProcessorTests
+    public class CacheInvalidationPathPublisherTests
     {
-        private readonly IdentifierChangeNotificationPublisher sut;
+        private readonly CacheInvalidationPathPublisher sut;
         private readonly IAmazonSimpleNotificationService sns;
         
-        public WorkflowJobPostProcessorTests()
+        public CacheInvalidationPathPublisherTests()
         {
             sns = A.Fake<IAmazonSimpleNotificationService>();
             
@@ -36,8 +37,8 @@ namespace WorkflowProcessor.Tests
                 ApiWorkTemplate = "(unused in this test)"
             });
             var uriPatterns = new UriPatterns(ddsOptions);
-            sut = new IdentifierChangeNotificationPublisher(sns, uriPatterns,
-                Options.Create(invalidationOptions), NullLogger<IdentifierChangeNotificationPublisher>.Instance);
+            sut = new CacheInvalidationPathPublisher(sns, uriPatterns,
+                Options.Create(invalidationOptions), NullLogger<CacheInvalidationPathPublisher>.Instance);
         }
 
         [Theory]
@@ -55,7 +56,7 @@ namespace WorkflowProcessor.Tests
                 .Invokes((PublishRequest pr, CancellationToken ct) => request = pr);
 
             // Act
-            await sut.PostProcess(identifier, runnerOptions.RebuildTextCaches);
+            await sut.PublishInvalidation(identifier, runnerOptions.RebuildTextCaches);
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -91,7 +92,7 @@ namespace WorkflowProcessor.Tests
                 });
 
             // Act
-            await sut.PostProcess(identifier, runnerOptions.RebuildTextCaches);
+            await sut.PublishInvalidation(identifier, runnerOptions.RebuildTextCaches);
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))

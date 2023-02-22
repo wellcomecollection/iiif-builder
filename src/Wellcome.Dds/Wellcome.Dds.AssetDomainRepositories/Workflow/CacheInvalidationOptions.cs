@@ -1,4 +1,4 @@
-﻿namespace WorkflowProcessor
+﻿namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 {
     public class CacheInvalidationOptions
     {

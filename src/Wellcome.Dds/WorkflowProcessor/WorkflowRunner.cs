@@ -40,7 +40,7 @@ namespace WorkflowProcessor
         private readonly ICatalogue catalogue;
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
-        private readonly IIdentifierChangeNotificationPublisher postProcessor;
+        private readonly ICacheInvalidationPathPublisher cacheInvalidationPathPublisher;
         private readonly IMemoryCache memoryCache;
 
         public WorkflowRunner(
@@ -54,7 +54,7 @@ namespace WorkflowProcessor
             ICatalogue catalogue,
             BucketWriter bucketWriter,
             AltoDerivedAssetBuilder altoBuilder,
-            IIdentifierChangeNotificationPublisher postProcessor,
+            ICacheInvalidationPathPublisher cacheInvalidationPathPublisher,
             IMemoryCache memoryCache)
         {
             this.ingestJobRegistry = ingestJobRegistry;
@@ -67,7 +67,7 @@ namespace WorkflowProcessor
             this.catalogue = catalogue;
             this.bucketWriter = bucketWriter;
             this.altoBuilder = altoBuilder;
-            this.postProcessor = postProcessor;
+            this.cacheInvalidationPathPublisher = cacheInvalidationPathPublisher;
             this.memoryCache = memoryCache;
         }
 
@@ -143,7 +143,15 @@ namespace WorkflowProcessor
 
                 if (job.FlushCache)
                 {
-                    await postProcessor.PostProcess(job.Identifier, jobOptions.RebuildTextCaches);
+                    var errors = await cacheInvalidationPathPublisher.PublishInvalidation(job.Identifier, jobOptions.RebuildTextCaches);
+                    if (errors.Length > 0)
+                    {
+                        logger.LogWarning("Error flushing caches:");
+                        foreach (var error in errors)
+                        {
+                            logger.LogWarning(error);
+                        }
+                    }
                 }
                 job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
                 logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
