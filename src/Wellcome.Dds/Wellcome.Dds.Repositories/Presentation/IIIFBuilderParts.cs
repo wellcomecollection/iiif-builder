@@ -306,7 +306,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
-            var manifestIdentifier = metsManifestation.Identifier!.ToString();
+            var manifestIdentifier = metsManifestation.Identifier.ToString();
             manifest.Items = new List<Canvas>();
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence!)
@@ -403,20 +403,21 @@ namespace Wellcome.Dds.Repositories.Presentation
                             };
                         }
 
+                        AddAuthServices(mainImage, physicalFile, foundAuthServices);
+                        
                         if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
                         {
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
+                            var rendering = new Image
+                            {
+                                Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                                Format = physicalFile.MimeType,
+                                Label = Lang.Map(label ?? "(unknown format)")
+                            };
                             canvas.Rendering ??= new List<ExternalResource>();
-                            canvas.Rendering.Add(
-                                new Image
-                                {
-                                    Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
-                                    Format = physicalFile.MimeType,
-                                    Label = Lang.Map(label ?? "(unknown format)")
-                                }
-                            );
+                            canvas.Rendering.Add(rendering);
+                            AddAuthServices(rendering, physicalFile, foundAuthServices);
                         }
-                        AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         break;
                     
                     case AssetFamily.TimeBased:
@@ -1071,9 +1072,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             switch (resource)
             {
                 case Image image:
-                    if (image.Service != null)
+                    image.Service ??= new List<IService>();
+                    image.Service.Add(serviceToAdd);
+                    
+                    // does this have an image service?
+                    var iiifImageApi2 = image.Service.OfType<ImageService2>().SingleOrDefault();
+                    if (iiifImageApi2 != null)
                     {
-                        var iiifImageApi2 = (ImageService2) image.Service.First();
                         iiifImageApi2.Service ??= new List<IService>();
                         iiifImageApi2.Service.Add(serviceToAdd);
                     }
