@@ -75,25 +75,5 @@
         public string? IncludeExtraAccessConditionsInManifest { get; set; }
         
         public int PlaceholderCanvasCacheTimeDays { get; set; }
-
-        /// <summary>
-        /// If an internet type (mediaType, mimeType) is in this list, it will also be made available on the
-        /// file delivery channel. This list is for images, audio and video; Other media types are automatically included.
-        /// This could be a DLCS configuration at some point in the future (providing a default list)
-        /// This list can accept wildcards such as image/*
-        /// </summary>
-        public string[] MediaTypesForFileDelivery { get; set; } = System.Array.Empty<string>();
-        
-        /// <summary>
-        /// This is an additional setting to easily say "all images are on file path EXCEPT the JP2s"
-        /// </summary>
-        public bool ExcludeJP2FromFileDelivery { get; set; } = false;
-        
-        // We might need another exclude list? What's the best way to configure this declaratively?
-        
-        // A media Delivery Options class?
-   
-
-
     }
 }
