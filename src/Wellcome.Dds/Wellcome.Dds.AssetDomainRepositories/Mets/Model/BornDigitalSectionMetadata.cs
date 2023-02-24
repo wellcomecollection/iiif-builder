@@ -13,25 +13,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 /// </summary>
 public class BornDigitalSectionMetadata : ISectionMetadata
 {
-    public string Title { get; set; }
-    public string DisplayDate { get; set; }
-    public string RecordIdentifier { get; set; }
+    public string? Title { get; set; }
+    public string? DisplayDate { get; set; }
+    public string? RecordIdentifier { get; set; }
     
     /// <summary>
     /// This is 
     /// </summary>
-    public string AccessCondition { get; set; }
+    public string? AccessCondition { get; set; }
     
     /// <summary>
     /// A rights statement
     /// </summary>
-    public string DzLicenseCode { get; set; }
+    public string? DzLicenseCode { get; set; }
     public int PlayerOptions { get; set; }
-    public string Usage { get; set; }
-    public string Leader6 { get; set; }
+    public string? Usage { get; set; }
+    public string? Leader6 { get; set; }
     public int VolumeNumber { get; set; }
     public int CopyNumber { get; set; }
     public int PartOrder { get; set; }
-    public string Number { get; set; }
-    public string GetDisplayTitle() => Title;
+    public string? Number { get; set; }
+    public string? GetDisplayTitle() => Title;
 }

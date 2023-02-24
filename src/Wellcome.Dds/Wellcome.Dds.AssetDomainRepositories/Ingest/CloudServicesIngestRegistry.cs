@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
@@ -14,13 +16,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
     {
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly ILogger<CloudServicesIngestRegistry> logger;
 
         public CloudServicesIngestRegistry(
             IMetsRepository metsRepository,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            ILogger<CloudServicesIngestRegistry> logger)
         {
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.logger = logger;
         }
 
         public async Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number)
@@ -32,7 +37,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 .ToArrayAsync(); 
         }
 
-        public Task<DlcsIngestJob> GetJob(int id)
+        public Task<DlcsIngestJob?> GetJob(int id)
         {
             return ddsInstrumentationContext.DlcsIngestJobs
                 .Include(j => j.DlcsBatches)
@@ -78,13 +83,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // for comparison         
         }
 
-        private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string volumeIdentifier,
-            string issueIdentifier, bool useInitialOrigin, bool immediateStart)
+        private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string? volumeIdentifier,
+            string? issueIdentifier, bool useInitialOrigin, bool immediateStart)
         {
-            var job = new DlcsIngestJob
+            var job = new DlcsIngestJob(identifier)
             {
-                Created = DateTime.Now,
-                Identifier = identifier,
                 Label = label,
                 SequenceIndex = sequenceIndex,
                 VolumePart = volumeIdentifier,
@@ -127,6 +130,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
+                if (manifestationInContext.PackageIdentifier.IsNullOrWhiteSpace())
+                {
+                    throw new InvalidOperationException("Can't create a job without a package identifier");
+                }
                 var job = NewJob(
                     manifestationInContext.PackageIdentifier,
                     manifestationInContext.Manifestation?.Label ?? manifestationInContext.PackageIdentifier,
@@ -156,6 +163,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
+            logger.LogDebug("Adding a new DlcsIngestJob for {identifier}", job.Identifier);
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
             try
             {

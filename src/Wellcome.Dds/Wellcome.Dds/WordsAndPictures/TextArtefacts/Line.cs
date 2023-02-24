@@ -7,7 +7,7 @@ namespace Wellcome.Dds.WordsAndPictures.TextArtefacts
     public class Line
     {
         public int LineNumber { get; set; }
-        public List<Word> Words { get; set; }
+        public List<Word>? Words { get; set; }
 
         public string RawText()
         {

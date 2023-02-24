@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.Common;
@@ -19,17 +20,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IIngestJobProcessor jobProcessor;
         private readonly Synchroniser synchroniser;
         private readonly IDigitalObjectRepository digitalObjectRepository;
+        private readonly ILogger<JobController> logger;
 
         public JobController(
             IIngestJobRegistry jobRegistry,
             IIngestJobProcessor jobProcessor,
             Synchroniser synchroniser,
-            IDigitalObjectRepository digitalObjectRepository)
+            IDigitalObjectRepository digitalObjectRepository,
+            ILogger<JobController> logger)
         {
             this.jobRegistry = jobRegistry;
             this.jobProcessor = jobProcessor;
             this.synchroniser = synchroniser;
             this.digitalObjectRepository = digitalObjectRepository;
+            this.logger = logger;
         }
         
         // Different actions that all trigger jobs
@@ -71,6 +75,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
+            logger.LogDebug("Creating and immediately processing a job for {identifier}", id);
             var ddsId = new DdsIdentifier(id);
             
             var jobs = jobRegistry.RegisterImagesForImmediateStart(ddsId);

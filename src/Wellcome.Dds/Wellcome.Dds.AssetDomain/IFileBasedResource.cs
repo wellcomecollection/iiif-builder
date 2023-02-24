@@ -4,6 +4,6 @@ namespace Wellcome.Dds.AssetDomain
 {
     public interface IFileBasedResource
     {
-        IArchiveStorageStoredFileInfo SourceFile { get; set; }
+        IArchiveStorageStoredFileInfo? SourceFile { get; set; }
     }
 }

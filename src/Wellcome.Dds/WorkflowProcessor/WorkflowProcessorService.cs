@@ -181,7 +181,7 @@ namespace WorkflowProcessor
                     return;
                 }
 
-                string? catalogueDump = null;
+                string catalogueDump = null;
                 if (HasArgument(CatalogueDumpParam))
                 {
                     catalogueDump = GetOperationWithParameter(new[] {CatalogueDumpParam}).parameter;

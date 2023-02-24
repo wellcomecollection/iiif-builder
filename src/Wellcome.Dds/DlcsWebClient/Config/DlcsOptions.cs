@@ -2,15 +2,17 @@
 {
     public class DlcsOptions
     {
-        public string ApiKey { get; set; }
-        public string ApiSecret { get; set; }
+        public string? ApiKey { get; set; }
+        public string? ApiSecret { get; set; }
         public int CustomerId { get; set; }
-        public string CustomerName { get; set; }
+        public string? CustomerName { get; set; }
         public int CustomerDefaultSpace { get; set; }
-        public string ApiEntryPoint { get; set; }
-        public string ResourceEntryPoint { get; set; }
+        public string? ApiEntryPoint { get; set; }
+        public string? ResourceEntryPoint { get; set; }
+        
+        public string? InternalResourceEntryPoint { get; set; } = "https://dlcs.io/";
         public int BatchSize { get; set; } = 100;
-        public string SkeletonNamedQueryTemplate { get; set; }
+        public string? SkeletonNamedQueryTemplate { get; set; }
         public bool PreventSynchronisation { get; set; } = false;
         public string PdfQueryName { get; set; } = "pdf";
 

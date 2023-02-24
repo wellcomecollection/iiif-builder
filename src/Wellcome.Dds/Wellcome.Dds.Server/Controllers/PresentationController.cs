@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
+using Newtonsoft.Json;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
@@ -41,6 +42,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly DdsContext ddsContext;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ICatalogue catalogue;
+        private readonly LinkRewriter linkRewriter;
 
         public PresentationController(
             IOptions<DdsOptions> options,
@@ -48,7 +50,8 @@ namespace Wellcome.Dds.Server.Controllers
             UriPatterns uriPatterns,
             DdsContext ddsContext,
             IIIIFBuilder iiifBuilder,
-            ICatalogue catalogue
+            ICatalogue catalogue,
+            LinkRewriter linkRewriter
             )
         {
             ddsOptions = options.Value;
@@ -57,6 +60,7 @@ namespace Wellcome.Dds.Server.Controllers
             this.ddsContext = ddsContext;
             this.iiifBuilder = iiifBuilder;
             this.catalogue = catalogue;
+            this.linkRewriter = linkRewriter;
         }
 
         /// <summary>
@@ -118,12 +122,7 @@ namespace Wellcome.Dds.Server.Controllers
         private string ManifestTransformer(string s)
         {
             var manifest = uriPatterns.Manifest(s);
-            if (ddsOptions.RewriteDomainLinksTo.HasText())
-            {
-                manifest = manifest.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
-            }
-
-            return manifest;
+            return linkRewriter.TransformIdentifier(manifest);
         }
 
         /// <summary>
@@ -147,6 +146,26 @@ namespace Wellcome.Dds.Server.Controllers
             return await helpers.ServeIIIFContent(ddsOptions.PresentationContainer, path, contentType, this);
         }
 
+        private IActionResult CollectionContent(IIIF.Presentation.V3.Collection coll)
+        {
+            return CollectionContent(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+        }
+        
+        private IActionResult CollectionContent(IIIF.Presentation.V2.Collection coll)
+        {
+            return CollectionContent(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+        }
+
+        private IActionResult CollectionContent(string json, string contentType)
+        {
+            if (linkRewriter.RequiresRewriting())
+            {
+                return Content(linkRewriter.RewriteLinks(json), contentType);
+            }
+            return Content(json, contentType);
+        }
+        
+        
         /// <summary>
         /// The root IIIF collection, IIIF 3.
         /// </summary>
@@ -169,7 +188,7 @@ namespace Wellcome.Dds.Server.Controllers
                 }
             };
             tlc.EnsurePresentation3Context();
-            return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(tlc);
         }
         
         /// <summary>
@@ -193,7 +212,7 @@ namespace Wellcome.Dds.Server.Controllers
                 }
             };
             tlc.EnsurePresentation2Context();
-            return Content(tlc.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(tlc);
         }
 
 
@@ -241,7 +260,7 @@ namespace Wellcome.Dds.Server.Controllers
                 });
             }
             coll.EnsurePresentation3Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(coll);
         }
 
         /// <summary> 
@@ -287,7 +306,7 @@ namespace Wellcome.Dds.Server.Controllers
                 });
             }
             coll.EnsurePresentation2Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(coll);
         }
         
         /// <summary>
@@ -353,7 +372,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
             
             collection.EnsurePresentation3Context();
-            return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(collection);
         }
         
         
@@ -373,6 +392,10 @@ namespace Wellcome.Dds.Server.Controllers
             else
             {
                 var work = await catalogue.GetWorkByOtherIdentifier(referenceNumber);
+                if (work == null)
+                {
+                    return NotFound();
+                }
                 if (work.HasIIIFDigitalLocation())
                 {
                     var bNumber = work.GetSierraSystemBNumbers().First();
@@ -380,6 +403,10 @@ namespace Wellcome.Dds.Server.Controllers
                 }
 
                 var v3Coll = iiifBuilder.BuildArchiveNode(work);
+                if (v3Coll == null)
+                {
+                    return NotFound();
+                }
                 collection = ConverterHelpers.GetIIIFPresentationBase<IIIF.Presentation.V2.Collection>(v3Coll);
                 collection.Id = v3Coll.Id.AsV2();
                 if (v3Coll.Items.HasItems())
@@ -388,7 +415,7 @@ namespace Wellcome.Dds.Server.Controllers
                 }
             }
             collection.EnsurePresentation2Context();
-            return Content(collection.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(collection);
         }
 
         private IIIFPresentationBase ConvertArchiveCollectionMemberToV2(ICollectionItem item)
@@ -481,7 +508,7 @@ namespace Wellcome.Dds.Server.Controllers
                 });
             }
             coll.EnsurePresentation3Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(coll);
         }
         
         
@@ -513,7 +540,7 @@ namespace Wellcome.Dds.Server.Controllers
                 }
             }
             coll.EnsurePresentation3Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(coll);
         }
         
         
@@ -544,7 +571,7 @@ namespace Wellcome.Dds.Server.Controllers
                 });
             }
             coll.EnsurePresentation2Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(coll);
         }
         
         /// <summary>
@@ -574,7 +601,7 @@ namespace Wellcome.Dds.Server.Controllers
                 }
             }
             coll.EnsurePresentation2Context();
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(coll);
         }
 
         
@@ -611,7 +638,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
             coll.EnsurePresentation3Context();
             Response.CacheForDays(30);
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
+            return CollectionContent(coll);
         }
         
                 
@@ -641,7 +668,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
             coll.EnsurePresentation2Context();
             Response.CacheForDays(30);
-            return Content(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
+            return CollectionContent(coll);
         }
         
         
@@ -667,9 +694,9 @@ namespace Wellcome.Dds.Server.Controllers
         /// <summary>
         /// Allow ID domain to be rewritten for local dev convenience
         /// </summary>
-        /// <param name="version"></param>
         /// <param name="aggregator"></param>
         /// <param name="value"></param>
+        /// <param name="chunk"></param>
         /// <returns></returns>
         private string CollectionForAggregationId(string aggregator, string value = null, char chunk = Char.MinValue)
         {
@@ -691,7 +718,7 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 return id;
             }
-            return id.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
+            return id.Replace(ddsOptions.LinkedDataDomain!, ddsOptions.RewriteDomainLinksTo);
 
         }
         
@@ -729,9 +756,7 @@ namespace Wellcome.Dds.Server.Controllers
                 // We want the normalised form of the identifier
                 return transformer(ddsId.ToString());
             }
-
-
-
+            
             return null;
         }
     }

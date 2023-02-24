@@ -170,28 +170,34 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private static Agent MakeAgent(Partner partner, string schemeAndHost)
         {
-            return new Agent
+            var agent = new Agent
             {
                 Id = $"{partner.HomePage}#",
-                Label = Lang.Map(partner.Label),
+                Label = Lang.Map(partner.Label!),
                 Homepage = new List<ExternalResource>
                 {
                     new ExternalResource("Text")
                     {
                         Id = partner.HomePage,
-                        Label = Lang.Map(partner.Label),
+                        Label = Lang.Map(partner.Label!),
                         Format = "text/html"
                     }
-                },
-                Logo = new List<Image>
+                }
+            };
+
+            if (partner.Logo.HasText())
+            {
+                agent.Logo = new List<Image>
                 {
                     new Image
                     {
                         Id = $"{schemeAndHost}/partners/{partner.Logo}",
                         Format = $"image/{partner.Logo.GetFileExtension().ToLowerInvariant()}"
                     }
-                }
-            };
+                };
+            }
+
+            return agent;
         }
     }
 

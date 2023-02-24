@@ -5,8 +5,8 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IDigitalCollection : IDigitalObject
     {
-        ICollection MetsCollection { get; set; }
-        IEnumerable<IDigitalManifestation> Manifestations { get; set; }
-        IEnumerable<IDigitalCollection> Collections { get; set; }
+        ICollection? MetsCollection { get; set; }
+        IEnumerable<IDigitalManifestation>? Manifestations { get; set; }
+        IEnumerable<IDigitalCollection>? Collections { get; set; }
     }
 }

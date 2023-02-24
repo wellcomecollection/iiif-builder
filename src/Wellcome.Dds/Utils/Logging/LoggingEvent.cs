@@ -7,7 +7,7 @@ namespace Utils.Logging
 
     public class LoggingEvent
     {
-        public string Message { get; set; }
+        public string? Message { get; set; }
         public long Split { get; set; }
         public long Total { get; set; }
 

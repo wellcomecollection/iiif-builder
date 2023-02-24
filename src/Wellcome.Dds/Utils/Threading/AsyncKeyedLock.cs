@@ -10,13 +10,13 @@ namespace Utils.Threading
         public IDisposable Lock(object key)
         {
             GetOrCreate(key).Wait();
-            return new Releaser { Key = key };
+            return new Releaser(key);
         }
 
         public async Task<IDisposable> LockAsync(object key)
         {
             await GetOrCreate(key).WaitAsync();
-            return new Releaser { Key = key };
+            return new Releaser(key);
         }
         
         public async Task<IDisposable> LockAsync(object key, TimeSpan timeout, bool throwIfNoLock = false)
@@ -28,12 +28,12 @@ namespace Utils.Threading
                     $"Unable to attain lock for {key} within timeout of {timeout.TotalMilliseconds}ms");
             }
 
-            return new Releaser { Key = key, HaveLock = success};
+            return new Releaser(key) { HaveLock = success };
         }
         
         private SemaphoreSlim GetOrCreate(object key)
         {
-            RefCounted<SemaphoreSlim> item;
+            RefCounted<SemaphoreSlim>? item;
             lock (SemaphoreSlims)
             {
                 if (SemaphoreSlims.TryGetValue(key, out item))
@@ -65,6 +65,11 @@ namespace Utils.Threading
 
         public sealed class Releaser : IDisposable
         {
+            public Releaser(object key)
+            {
+                Key = key;
+            }
+            
             public object Key { get; set; }
 
             public bool HaveLock { get; set; } = true;

@@ -2,6 +2,6 @@
 {
     public abstract class CatalogueEntity
     {
-        public string Type { get; set; }
+        public string? Type { get; set; }
     }
 }

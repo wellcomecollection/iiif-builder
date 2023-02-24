@@ -23,10 +23,10 @@ namespace CatalogueClient
     class Program
     {
         static async Task Main(
-            string id = null,
-            FileInfo file = null,
+            string? id = null,
+            FileInfo? file = null,
             bool update = false,
-            string bulkop = null,
+            string? bulkop = null,
             int skip = 1)
         {
             var sw = new Stopwatch();
@@ -100,6 +100,8 @@ namespace CatalogueClient
                     Console.WriteLine("processing: " + counter);
                 }
                 var work = catalogue.FromDumpLine(line, options);
+                if(work == null) continue;
+                
                 bool? online = work.IsOnline();
                 if (online == null) continue; // availabilities is NOT present
                 

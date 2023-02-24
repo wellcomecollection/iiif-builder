@@ -11,11 +11,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         public int Id { get; set; }
         public int DlcsIngestJobId { get; set; }
         public DateTime? RequestSent { get; set; }
-        public string RequestBody { get; set; }
+        public string? RequestBody { get; set; }
         public DateTime? Finished { get; set; }
-        public string ResponseBody { get; set; }
+        public string? ResponseBody { get; set; }
         public int ErrorCode { get; set; }
-        public string ErrorText { get; set; }
+        public string? ErrorText { get; set; }
         public int BatchSize { get; set; }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]

@@ -11,12 +11,12 @@
         /// Identifier filter to apply when fetching jobs.
         /// Valid for "processqueue" mode only. 
         /// </summary>
-        public string Filter { get; set; }
+        public string? Filter { get; set; }
         
         // TODO - validate this?
         /// <summary>
         /// The job mode "processqueue" or "updatestatus"
         /// </summary>
-        public string Mode { get; set; }
+        public string? Mode { get; set; }
     }
 }

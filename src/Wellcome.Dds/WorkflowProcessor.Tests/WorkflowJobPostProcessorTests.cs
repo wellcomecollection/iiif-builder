@@ -28,8 +28,14 @@ namespace WorkflowProcessor.Tests
                 InvalidateApiTopicArn = "api:arn:topic",
                 InvalidateIIIFTopicArn = "iiif:arn:topic"
             };
-
-            var uriPatterns = new UriPatterns(Options.Create(new DdsOptions()));
+            
+            var ddsOptions = Options.Create(new DdsOptions
+            {
+                LinkedDataDomain = "(unused in this test)",
+                WellcomeCollectionApi = "(unused in this test)",
+                ApiWorkTemplate = "(unused in this test)"
+            });
+            var uriPatterns = new UriPatterns(ddsOptions);
             sut = new WorkflowJobPostProcessor(sns, uriPatterns,
                 Options.Create(invalidationOptions), NullLogger<WorkflowJobPostProcessor>.Instance);
         }

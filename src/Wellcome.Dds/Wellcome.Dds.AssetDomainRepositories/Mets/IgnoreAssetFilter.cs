@@ -6,9 +6,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
     public class IgnoreAssetFilter : IIgnoreAssetFilter
     {
-        public List<string> GetStorageIdentifiersToIgnore(string manifestationType, List<IPhysicalFile> sequence)
+        public List<string?> GetStorageIdentifiersToIgnore(string manifestationType, List<IPhysicalFile> sequence)
         {
-            var ignored = new List<string>();
+            var ignored = new List<string?>();
             if (manifestationType == "Video")
             {
                 // A video with a poster image and/or an MXF master file.

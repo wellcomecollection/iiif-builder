@@ -33,7 +33,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             this.logger = logger;
         }
 
-        public async Task<IMetsResource> GetAsync(DdsIdentifier identifier)
+        public async Task<IMetsResource?> GetAsync(DdsIdentifier identifier)
         {
             // forms:
             // b12345678 - could be an anchor file or a single manifestation work. 
@@ -51,17 +51,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             switch (identifier.IdentifierType)
             {
                 case IdentifierType.BNumber:
-                    structMap = await GetFileStructMap(identifier.BNumber, workStore);
-                    return GetMetsResource(structMap, workStore);
+                    structMap = await GetFileStructMap(identifier.BNumber!, workStore);
+                    return GetMetsResource(structMap);
                 case IdentifierType.Volume:
-                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart, workStore);
-                    return GetMetsResource(structMap, workStore);
+                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart!, workStore);
+                    return GetMetsResource(structMap);
                 case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndex(identifier.BNumber, identifier.SequenceIndex, workStore);
+                    return await GetMetsResourceByIndex(identifier.BNumber!, identifier.SequenceIndex, workStore);
                 case IdentifierType.Issue:
-                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart, workStore);
+                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart!, workStore);
                     // we only want a specific issue
-                    var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier);
+                    var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier.ToString());
                     return new MetsManifestation(issueStruct, structMap);
                 
                 case IdentifierType.NonBNumber:
@@ -72,7 +72,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             throw new NotSupportedException("Unknown identifier");
         }
 
-        private async Task<IManifestation> BuildBornDigitalManifestation(IWorkStore workStore)
+        private async Task<IManifestation?> BuildBornDigitalManifestation(IWorkStore workStore)
         {
             // we can't get a logical struct map, because there isn't one in this METS.
             // But there is one in the mets file in the submission...
@@ -91,13 +91,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // However, we will throw an exception if they are not present, because that means something is wrong.
             var objectsDir = rootDir.GetSingleElementWithAttribute(XNames.MetsDiv, TypeAttribute, Directory);
             // There can be only one
-            if (objectsDir?.Attribute(LabelAttribute)?.Value != "objects")
+            if (objectsDir.Attribute(LabelAttribute)?.Value != "objects")
             {
                 throw new NotSupportedException("Could not find objects directory in physical structMap");
             }
             // These should be the last two, but we won't mind the order
-            XElement metadataDirectory = null;
-            XElement submissionDocumentationDirectory = null;
+            XElement? metadataDirectory = null;
+            XElement? submissionDocumentationDirectory = null;
             var objectsChildren = objectsDir.Elements().ToArray();
             if (objectsChildren.Length >= 2)
             {
@@ -111,9 +111,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
             }
 
-            var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
             // Get the path to the METS for submission doc if we need it later - it has the logical structMap
-            var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
+            // var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
+            // var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
             
             // We can now ignore the last two.
             var digitalContent = objectsChildren[..^2];
@@ -145,11 +145,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 PhysicalFileIds = new List<string>()
             };
             
-            var bdm = new BornDigitalManifestation
+            var bdm = new BornDigitalManifestation(workStore.Identifier)
             {
                 // Many props still to assigned 
                 Label = workStore.Identifier, // we have no descriptive metadata!
-                Identifier = workStore.Identifier,
                 Type = "Born Digital",
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),
@@ -185,7 +184,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             bdm.SectionMetadata = new BornDigitalSectionMetadata
             {
                 Title = bdm.Label,
-                AccessCondition = objectsMetadata.AccessCondition,
+                AccessCondition = objectsMetadata!.AccessCondition,
                 DzLicenseCode = objectsMetadata.DzLicenseCode
             };
             return bdm;
@@ -200,7 +199,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// <param name="fileMap"></param>
         private void DecorateStructure(
             IStructRange structRange,
-            Dictionary<string, IPhysicalFile> fileMap)
+            Dictionary<string, IPhysicalFile>? fileMap)
         {
             // Replace the labels obtained from the <mets:div TYPE="Directory" /> with 
             // labels derived from the originalName path, but use the METS labels to generate
@@ -211,9 +210,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             
                 if (firstFileId.HasText())
                 {
-                    var file = fileMap[firstFileId];
+                    var file = fileMap![firstFileId];
                     // this assumes that the originalName always uses / as separator
-                    var parts = file.OriginalName.Split('/');
+                    var parts = file.OriginalName!.Split('/');
                     if (parts.Length > 1)
                     {
                         var label = parts[^2];
@@ -226,7 +225,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     {
                         Title = structRange.Label,
                         AccessCondition = file.AccessCondition,
-                        DzLicenseCode = file.AssetMetadata.GetRightsStatement().Statement
+                        DzLicenseCode = file.AssetMetadata!.GetRightsStatement().Statement
                     };
                 }
             }
@@ -244,7 +243,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     structRange.SectionMetadata = new BornDigitalSectionMetadata
                     {
                         Title = structRange.Label,
-                        AccessCondition = firstChildStructRange.SectionMetadata.AccessCondition,
+                        AccessCondition = firstChildStructRange.SectionMetadata!.AccessCondition,
                         DzLicenseCode = firstChildStructRange.SectionMetadata.DzLicenseCode
                     };
                 }
@@ -260,7 +259,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// <param name="range"></param>
         /// <param name="parentRange"></param>
         /// <exception cref="NotImplementedException"></exception>
-        private void ConvertIdsToPaths(IStructRange range, IStructRange parentRange)
+        private void ConvertIdsToPaths(IStructRange range, IStructRange? parentRange)
         {
             if (parentRange != null && parentRange.Id.HasText())
             {
@@ -307,7 +306,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     var file = fileMap[fileId];
                     var physicalFile = PhysicalFile.FromBornDigitalMets(rootElement, file, workStore);
                     physicalFiles.Add(physicalFile);
-                    structRange.PhysicalFileIds.Add(physicalFile.Id);
+                    structRange.PhysicalFileIds!.Add(physicalFile.Id);
 
                  
                 } 
@@ -343,7 +342,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             int sequenceIndex = 0;
             if (rootMets is IManifestation mets)
             {
-                string volumeIdentifier = null, issueIdentifier = null;
+                string? volumeIdentifier = null, issueIdentifier = null;
                 switch (identifier.IdentifierType)
                 {
                     case IdentifierType.Volume:
@@ -356,10 +355,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         sequenceIndex = await FindSequenceIndex(identifier);
                         break;
                 }
-                yield return new ManifestationInContext
+                yield return new ManifestationInContext(mets, identifier.PackageIdentifier)
                 {
-                    Manifestation = mets,
-                    PackageIdentifier = identifier.PackageIdentifier,
                     SequenceIndex = sequenceIndex,
                     VolumeIdentifier = volumeIdentifier,
                     IssueIdentifier = issueIdentifier
@@ -370,33 +367,29 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 if (rootMets.Type == "Periodical")
                 {
-                    foreach (var partialVolume in rootCollection.Collections)
+                    foreach (var partialVolume in rootCollection.Collections!)
                     {
-                        var volume = await GetAsync(partialVolume.Identifier) as ICollection;
+                        var volume = await GetAsync(partialVolume.Identifier!) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
-                        foreach (var manifestation in volume.Manifestations)
+                        foreach (var manifestation in volume.Manifestations!)
                         {
-                            yield return new ManifestationInContext
+                            yield return new ManifestationInContext(manifestation, identifier)
                             {
-                                Manifestation = manifestation,
-                                PackageIdentifier = identifier,
                                 SequenceIndex = sequenceIndex++,
-                                VolumeIdentifier = volume.Identifier,
-                                IssueIdentifier = manifestation.Identifier
+                                VolumeIdentifier = volume.Identifier!,
+                                IssueIdentifier = manifestation.Identifier!
                             };
                         }
                     }
                 }
                 else
                 {
-                    foreach (var manifestation in rootCollection.Manifestations)
+                    foreach (var manifestation in rootCollection.Manifestations!)
                     {
-                        yield return new ManifestationInContext
+                        yield return new ManifestationInContext(manifestation, identifier)
                         {
-                            Manifestation = manifestation,
-                            PackageIdentifier = identifier,
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = manifestation.Identifier,
+                            VolumeIdentifier = manifestation.Identifier!,
                             IssueIdentifier = null
                         };
                     }
@@ -416,13 +409,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// <param name="index"></param>
         /// <param name="workStore"></param>
         /// <returns></returns>
-        private async Task<IMetsResource> GetMetsResourceByIndex(string bNumber, int index, IWorkStore workStore)
+        private async Task<IMetsResource?> GetMetsResourceByIndex(string bNumber, int index, IWorkStore workStore)
         {
             // 
             var structMap = await GetFileStructMap(bNumber, workStore);
             if (structMap.IsManifestation)
             {
-                return GetMetsResource(structMap, workStore);
+                return GetMetsResource(structMap);
             }
             // an anchor file...
             if (structMap.Type != "Periodical")
@@ -430,8 +423,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 var child = structMap.Children[index];
                 if (child.IsManifestation)
                 {
+                    if (child.LinkId.IsNullOrWhiteSpace())
+                    {
+                        throw new InvalidOperationException("An anchor file must have links to further METS files");
+                    }
                     structMap = await GetLinkedStructMapAsync(child.LinkId, workStore);
-                    return GetMetsResource(structMap, workStore);
+                    return GetMetsResource(structMap);
                 }
                 return null;
             }
@@ -439,6 +436,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             int counter = 0;
             foreach (var structDiv in structMap.Children)
             {
+                if (structDiv.LinkId.IsNullOrWhiteSpace())
+                {
+                    throw new InvalidOperationException("An anchor file must have links to further METS files");
+                }
                 var pdVolume = await GetLinkedStructMapAsync(structDiv.LinkId, workStore);
                 foreach (var pdIssue in pdVolume.Children)
                 {
@@ -462,7 +463,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 case IdentifierType.Volume:
                     var anchor = await GetAsync(identifier.PackageIdentifier) as ICollection;
                     if (anchor == null) return -1;
-                    foreach (var manifestation in anchor.Manifestations)
+                    foreach (var manifestation in anchor.Manifestations!)
                     {
                         if (manifestation.Identifier == identifier)
                         {
@@ -488,9 +489,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             return GetLogicalStructDiv(metsXml, identifier, workStore);
         }
         
-     private static IMetsResource GetMetsResource(ILogicalStructDiv structMap, IWorkStore workStore)
+        private static IMetsResource? GetMetsResource(ILogicalStructDiv structMap)
         {
-            IMetsResource res = null;
+            IMetsResource? res = null;
             if (structMap.IsManifestation)
             {
                 res = new MetsManifestation(structMap);

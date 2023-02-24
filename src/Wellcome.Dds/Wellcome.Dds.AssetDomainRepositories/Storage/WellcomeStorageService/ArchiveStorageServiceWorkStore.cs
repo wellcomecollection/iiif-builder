@@ -75,13 +75,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         public async Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache)
         {
-            if (useCache && xmlElementCache.TryGetValue(relativePath, out var metsXml)) 
+            if (useCache && xmlElementCache.TryGetValue(relativePath, out var metsXml))
             {
-                return new XmlSource
-                {
-                    XElement = metsXml,
-                    RelativeXmlFilePath = relativePath
-                };
+                return new XmlSource(metsXml, relativePath);
             }
             
             metsXml = await LoadXElementAsync(relativePath);
@@ -91,11 +87,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 xmlElementCache[relativePath] = metsXml;
             }
 
-            return new XmlSource
-            {
-                XElement = metsXml,
-                RelativeXmlFilePath = relativePath
-            };
+            return new XmlSource(metsXml, relativePath);
         }
 
         public async Task<XmlSource> LoadXmlForIdentifier(string identifier)

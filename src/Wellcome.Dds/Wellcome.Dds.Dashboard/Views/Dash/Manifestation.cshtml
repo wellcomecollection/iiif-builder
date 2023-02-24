@@ -259,7 +259,8 @@
                         <ul class="list-unstyled">
                             @foreach (var derivative in Model.AVDerivatives)
                             {
-                                <li>- <a href="@derivative.Id">@derivative.Label</a></li>
+                                <li>- <a target="_blank" href="@derivative.PublicUrl">@derivative.Label</a> | 
+                                    <a target="_blank" href="@derivative.DlcsUrl">(dlcs)</a></li>
                             }
                         </ul>
                     </li>
@@ -629,6 +630,10 @@
                             {
                                 <td>
                                     <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    @if (dlcsImage.Error.HasText())
+                                    {
+                                        <br/><span class="text-danger small">@dlcsImage.Error</span>
+                                    }
                                     @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
                                     {
                                         <div class="tbmetadata">
@@ -670,8 +675,8 @@
                                 <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
                                 {
-                                    <td><small>@adjunct.AssetMetadata.GetImageWidth() x @adjunct.AssetMetadata.GetImageHeight()</small></td>
-                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                    <td><small>@adjunct.AssetMetadata?.GetImageWidth() x @adjunct.AssetMetadata?.GetImageHeight()</small></td>
+                                    <td><small>@adjunct.AssetMetadata?.GetFormatName()</small></td>
                                     <td></td>                                                         
                                 }
                                 else
@@ -726,7 +731,7 @@
             <p>
                 This does not mean that they should be deleted, because they might belong to a different manifestation
                 (e.g., the METS structure has been rearranged across manifestations and not yet synchronised for all manifestations).
-                However, they might also represent images that have been replaced in Preservica but not deleted from the DLCS.
+                However, they might also represent images that have been renamed in storage but not deleted from the DLCS.
             </p>
             <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
             <table class="table table-hover table-condensed">

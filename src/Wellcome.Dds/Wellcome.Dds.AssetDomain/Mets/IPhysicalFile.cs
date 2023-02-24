@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomain.Mets
@@ -17,12 +16,12 @@ namespace Wellcome.Dds.AssetDomain.Mets
     {
         IWorkStore WorkStore { get; set; }
         string Id { get; set; }
-        string Type { get; set; }
+        string? Type { get; set; }
         
         // Added for born digital
         
         // From PREMIS, in Archivematica METS contains a full path.
-        string OriginalName { get; set; }
+        string? OriginalName { get; set; }
         
         DateTime? CreatedDate { get; set; }
         
@@ -34,34 +33,34 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// Order after sorting by Order, always has a value
         /// </summary>
         int Index { get; set; }
-        string OrderLabel { get; set; }
+        string? OrderLabel { get; set; }
 
         //Guid SdbId { get; set; }
-        string StorageIdentifier { get; set; }
+        string? StorageIdentifier { get; set; }
         
-        string MimeType { get; set; }
-        IAssetMetadata AssetMetadata { get; set; }
-        string AccessCondition { get; set; }
+        string? MimeType { get; set; }
+        IAssetMetadata? AssetMetadata { get; set; }
+        string? AccessCondition { get; set; }
         
         /// <summary>
         /// The path of the ACCESS file (e.g., JP2, MP4)
         /// </summary>
-        string RelativePath { get; set; }
+        string? RelativePath { get; set; }
         
         /// <summary>
         /// Gets path to ALTO file associated with this file, if it has one.
         /// </summary>
-        string RelativeAltoPath { get; set; }
+        string? RelativeAltoPath { get; set; }
 
         AssetFamily Family { get; set; }
 
         // Consider replacing these by using the Files property.
         IArchiveStorageStoredFileInfo GetStoredFileInfo();
-        IArchiveStorageStoredFileInfo GetStoredAltoFileInfo();
+        IArchiveStorageStoredFileInfo? GetStoredAltoFileInfo();
         
-        List<IStoredFile> Files { get; set; }
-        string RelativePosterPath { get; set; }
-        string RelativeTranscriptPath { get; set; }
-        string RelativeMasterPath { get; set; }
+        List<IStoredFile>? Files { get; set; }
+        string? RelativePosterPath { get; set; }
+        string? RelativeTranscriptPath { get; set; }
+        string? RelativeMasterPath { get; set; }
     }
 }

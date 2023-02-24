@@ -12,23 +12,29 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
     [Index(nameof(Created))]
     public class DlcsIngestJob
     {
-        public int Id { get; set; }
+        public DlcsIngestJob(string identifier)
+        {
+            Created = DateTime.Now;
+            Identifier = identifier;
+        }
+        
+        public int Id { get; set; } 
         public DateTime Created { get; set; }
         public string Identifier { get; set; }
-        public string Label { get; set; }
+        public string? Label { get; set; }
         public int SequenceIndex { get; set; }
-        public string VolumePart { get; set; }
-        public string IssuePart { get; set; }
+        public string? VolumePart { get; set; }
+        public string? IssuePart { get; set; }
         public int ImageCount { get; set; }
         public DateTime? StartProcessed { get; set; }
         public DateTime? EndProcessed { get; set; }
-        public string AssetType { get; set; }
+        public string? AssetType { get; set; }
 
         public bool Succeeded { get; set; }
-        public string Data { get; set; }
+        public string? Data { get; set; }
         public int ReadyImageCount { get; set; }
 
-        public virtual ICollection<DlcsBatch> DlcsBatches { get; set; }
+        public virtual ICollection<DlcsBatch> DlcsBatches { get; set; } = null!;
 
         /// <summary>
         /// Determine the field of this job that is equivalent to a manifest identifier

@@ -24,19 +24,36 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ILogger<PeekController> logger;
+        private readonly LinkRewriter linkRewriter;
 
         public PeekController(
             IDds dds,
             ICatalogue catalogue,
             IWorkStorageFactory workStorageFactory,
             ILogger<PeekController> logger,
-            IIIIFBuilder iiifBuilder)
+            IIIIFBuilder iiifBuilder,
+            LinkRewriter linkRewriter)
         {
             this.dds = dds;
             this.catalogue = catalogue;
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
             this.iiifBuilder = iiifBuilder;
+            this.linkRewriter = linkRewriter;
+        }
+
+        private ContentResult IIIFContent(string json)
+        {
+            if (json.IsNullOrWhiteSpace())
+            {
+                json = "{\"error\": \"No content to serve\" }";
+            }
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            if (linkRewriter.RequiresRewriting())
+            {
+                json = linkRewriter.RewriteLinks(json);
+            }
+            return Content(json, "application/json");
         }
 
         [AllowAnonymous]
@@ -44,9 +61,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
-            build.IIIFResource.EnsurePresentation3Context();
-            Response.Headers["Access-Control-Allow-Origin"] = "*";
-            return Content(build.IIIFResource.AsJson(), "application/json");
+            build.IIIFResource?.EnsurePresentation3Context();
+            return IIIFContent(build.IIIFResource?.AsJson());
         }
         
         [AllowAnonymous]
@@ -57,7 +73,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (build.MayBeConvertedToV2)
             {
                 var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] { build });
-                return Content(iiif2[id]?.IIIFResource.AsJson() ?? string.Empty, "application/json");
+                return IIIFContent(iiif2[id]?.IIIFResource?.AsJson());
             }
 
             Response.Headers["Access-Control-Allow-Origin"] = "*";
@@ -68,14 +84,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
-            build.IIIFResource.EnsurePresentation3Context();
+            build.IIIFResource?.EnsurePresentation3Context();
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",
                 Description = "This has been built on the fly - it won't have been written to S3 yet.",
                 Identifier = ddsId,
                 RelativePath = ddsId, // ?
-                CodeAsString = build.IIIFResource.AsJson(),
+                CodeAsString = build.IIIFResource?.AsJson(),
                 ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("IIIFRaw", new {id}),

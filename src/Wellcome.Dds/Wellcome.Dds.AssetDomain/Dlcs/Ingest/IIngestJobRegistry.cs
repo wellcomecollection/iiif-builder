@@ -39,6 +39,6 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// </summary>
         Task<IEnumerable<DlcsIngestJob>> GetProblems(int maxToFetch);
         
-        Task<DlcsIngestJob> GetJob(int id);
+        Task<DlcsIngestJob?> GetJob(int id);
     }
 }

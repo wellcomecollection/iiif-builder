@@ -9,14 +9,14 @@
     /// </summary>
     public interface ISectionMetadata
     {
-        string Title { get; set; }
-        string DisplayDate { get; set; }
-        string RecordIdentifier { get; set; }
-        string AccessCondition { get; set; }
-        string DzLicenseCode { get; set; }
+        string? Title { get; set; }
+        string? DisplayDate { get; set; }
+        string? RecordIdentifier { get; set; }
+        string? AccessCondition { get; set; }
+        string? DzLicenseCode { get; set; }
         int PlayerOptions { get; set; }
-        string Usage { get; set; }
-        string Leader6 { get; set; }
+        string? Usage { get; set; }
+        string? Leader6 { get; set; }
         int VolumeNumber { get; set; }
         int CopyNumber { get; set; }
         
@@ -24,9 +24,9 @@
         // They are specific to their observed use in Chemist and Druggist;
         // the could be generalised.
         int PartOrder { get; set; }
-        string Number { get; set; }
+        string? Number { get; set; }
 
-        string GetDisplayTitle();
+        string? GetDisplayTitle();
     }
 
 }

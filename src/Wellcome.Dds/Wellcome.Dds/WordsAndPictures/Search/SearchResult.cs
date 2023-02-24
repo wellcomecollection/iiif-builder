@@ -8,6 +8,6 @@ namespace Wellcome.Dds.WordsAndPictures.Search
     public class SearchResult
     {
         public int Index { get; set; }
-        public List<Rect> Rects { get; set; }
+        public List<Rect>? Rects { get; set; }
     }
 }

@@ -15,64 +15,53 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         private const char FileSeparator = '\\';
         // What gets turned into a collection and what gets turned into a manifest isn't quite so clear cut
         // Collections
-        public const string MultipleManifestation = "MultipleManifestation";
-        public const string Periodical = "Periodical";
-        public const string PeriodicalVolume = "PeriodicalVolume";
+        private const string MultipleManifestation = "MultipleManifestation";
+        private const string Periodical = "Periodical";
+        private const string PeriodicalVolume = "PeriodicalVolume";
 
         // Manifests - with caveats
-        public const string PeriodicalIssue = "PeriodicalIssue";
-        public const string Archive = "Archive";
-        public const string Monograph = "Monograph";
-        public const string Manuscript = "Manuscript";
-        public const string Video = "Video";
-        public const string Audio = "Audio";
-        public const string Artwork = "Artwork";
-        public const string Transcript = "Transcript";
-        public const string Map = "Map";
+        private const string PeriodicalIssue = "PeriodicalIssue";
+        private const string Archive = "Archive";
+        private const string Monograph = "Monograph";
+        private const string Manuscript = "Manuscript";
+        private const string Video = "Video";
+        private const string Audio = "Audio";
+        private const string Artwork = "Artwork";
+        private const string Transcript = "Transcript";
+        private const string Map = "Map";
 
         // dodgy ones:
-        public const string MultipleVolume = "MultipleVolume";
-        public const string MultipleCopy = "MultipleCopy";
-        public const string MultipleVolumeMultipleCopy = "MultipleVolumeMultipleCopy";
+        private const string MultipleVolume = "MultipleVolume";
+        private const string MultipleCopy = "MultipleCopy";
+        private const string MultipleVolumeMultipleCopy = "MultipleVolumeMultipleCopy";
 
 
 
-        public bool IsCollection
-        {
-            get
-            {
-                return  Type == MultipleManifestation || 
-                        Type == Periodical || 
-                        Type == PeriodicalVolume;
-            }
-        }
+        public bool IsCollection => Type is 
+            MultipleManifestation or Periodical or PeriodicalVolume;
 
-        public bool IsManifestation
-        {
-            get
-            {
-                return  Type == Monograph ||
-                        Type == Archive ||
-                        Type == Artwork ||
-                        Type == Manuscript ||
-                        Type == PeriodicalIssue ||
-                        Type == Video ||
-                        Type == Transcript ||
-                        Type == MultipleVolume ||
-                        Type == MultipleCopy ||
-                        Type == MultipleVolumeMultipleCopy ||
-                        Type == Audio ||
-                        Type == Map;
-            }
-        }
+        public bool IsManifestation =>
+            Type is 
+                Monograph or 
+                Archive or 
+                Artwork or 
+                Manuscript or 
+                PeriodicalIssue or 
+                Video or 
+                Transcript or 
+                MultipleVolume or 
+                MultipleCopy or 
+                MultipleVolumeMultipleCopy or 
+                Audio or 
+                Map;
 
         public IWorkStore WorkStore { get; set; }
         public string Id { get; set; }
-        public string ExternalId { get; set; }
+        public string? ExternalId { get; set; }
         public string AdmId { get; set; }
         public string DmdId { get; set; }
-        public string RelativeLinkPath { get; set; }
-        public string LinkId { get; set; }
+        public string? RelativeLinkPath { get; set; }
+        public string? LinkId { get; set; }
         public string Label { get; set; }
         public string Type { get; set; }
         public int? Order { get; set; }
@@ -98,7 +87,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
 
-        public LogicalStructDiv(XElement div, string containingFileRelativePath, string externalId, IWorkStore workStore)
+        public LogicalStructDiv(XElement div, string containingFileRelativePath, string? externalId, IWorkStore workStore)
         {
             ExternalId = externalId;
             ContainingFileRelativePath = containingFileRelativePath;
@@ -114,12 +103,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 if (!path.EndsWith(".xml")) path += ".xml";
                 RelativeLinkPath = path;
             }
-            Id =    (string) div.Attribute("ID");
-            AdmId = (string) div.Attribute("ADMID");
-            DmdId = (string) div.Attribute("DMDID");
-            Id =    (string) div.Attribute("ID");
-            Label = (string) div.Attribute("LABEL");
-            Type =  (string) div.Attribute("TYPE");
+            Id =    (string) div.Attribute("ID")!;
+            AdmId = (string) div.Attribute("ADMID")!;
+            DmdId = (string) div.Attribute("DMDID")!;
+            Label = (string) div.Attribute("LABEL")!;
+            Type =  (string) div.Attribute("TYPE")!;
             Order = (int?)   div.Attribute("ORDER");
 
             Children = div.Elements(XNames.MetsDiv)
@@ -148,10 +136,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
         
-        private ModsData modsData;
+        private ModsData? modsData;
         private bool modsLoaded;
 
-        public ISectionMetadata GetSectionMetadata()
+        public ISectionMetadata? GetSectionMetadata()
         {
             // Lazy loaded mods
             if (!modsLoaded)
@@ -173,8 +161,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return modsData;
         }
 
-        private List<IPhysicalFile> physicalFiles;
-        private Dictionary<string, XElement> fileMap; 
+        private List<IPhysicalFile>? physicalFiles;
+        private Dictionary<string, XElement>? fileMap; 
          
         public List<IPhysicalFile> GetPhysicalFiles()
         {
@@ -186,13 +174,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     .GetSingleElementWithAttribute(XNames.MetsDiv, "TYPE", "physSequence");
                 int index = 0;
                 physicalFiles = rootElement
-                    .Element(XNames.MetsStructLink)
+                    .Element(XNames.MetsStructLink)!
                     .Elements(XNames.MetsSmLink)
-                    .Where(smLink => (string) smLink.Attribute(XNames.XLinkFrom) == Id)
+                    .Where(smLink => (string?) smLink.Attribute(XNames.XLinkFrom) == Id)
                     .Select(
                         smLink =>
                             physicalSequenceElement.GetSingleElementWithAttribute(XNames.MetsDiv, "ID",
-                                (string) smLink.Attribute(XNames.XLinkTo)))
+                                ((string?) smLink.Attribute(XNames.XLinkTo))!))
                     .Select(physFileElement => PhysicalFile.FromDigitisedMets(physFileElement, fileMap, WorkStore))
                     .OrderBy(physicalFile => physicalFile.Order)
                     .ToList();
@@ -210,7 +198,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// This needs to carry on working for the temporary bagging version, as well as the new "official" version
         /// </summary>
         /// <returns></returns>
-        public IStoredFile GetPosterImage()
+        public IStoredFile? GetPosterImage()
         {
             // 1. Legacy migrated poster images
             // See if we have a "bagger" poster image:
@@ -234,10 +222,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             // 2. Interim MXF workflow, with poster image part of the same physicalFile sequence
             if (Type == "Video")
             {
-                var anImage = physicalFiles.FirstOrDefault(pf => pf.MimeType.StartsWith("image"));
+                var anImage = physicalFiles!.FirstOrDefault(pf => pf.MimeType!.StartsWith("image"));
                 if (anImage != null)
                 {
-                    return new StoredFile()
+                    return new StoredFile
                     {
                         WorkStore = WorkStore,
                         AssetMetadata = anImage.AssetMetadata,
@@ -248,8 +236,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             
             // 3. New AV workflow, where PosterImage is a proper file
-            var singleFile = physicalFiles.FirstOrDefault();
-            var poster = singleFile?.Files.FirstOrDefault(f => f.Use == "POSTER");
+            var singleFile = physicalFiles!.FirstOrDefault();
+            var poster = singleFile?.Files!.FirstOrDefault(f => f.Use == "POSTER");
             return poster;
         }
     }

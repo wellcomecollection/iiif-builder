@@ -12,7 +12,7 @@ namespace Utils.Storage
         Task<DateTime?> GetLastWriteTime();
         
         // add folder/key idea here...
-        public string Container { get; }
+        public string? Container { get; }
         
         public string Path { get; }
     }

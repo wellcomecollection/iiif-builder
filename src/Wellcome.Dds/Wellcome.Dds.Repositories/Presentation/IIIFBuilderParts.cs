@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Versioning;
 using IIIF;
 using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
@@ -49,7 +48,6 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService externalAuthServiceV1;
         private readonly IService externalAuthServiceReferenceV1;
         
-        
         // New Auth2 (provisional) services
         private readonly IService clickthroughServiceV2;
         private readonly IService clickthroughServiceReferenceV2;
@@ -58,6 +56,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IService externalAuthServiceV2;
         private readonly IService externalAuthServiceReferenceV2;
 
+        private readonly IAuthServiceProvider authServiceProvider;
+        
         // omit Digitalcollection and Location
         private static readonly string[] DisplayedAggregations = {"Genre", "Subject", "Contributor"};
         
@@ -78,8 +78,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
             manifestStructureHelper = new ManifestStructureHelper();
-            IAuthServiceProvider authServiceProvider = new DlcsIIIFAuthServiceProvider(dlcsEntryPoint);
-
+            authServiceProvider = new IIIFAuthServiceProvider(dlcsEntryPoint, uriPatterns);
             clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
             clickthroughServiceReferenceV1 = new V2ServiceReference(clickthroughServiceV1);
             loginServiceV1 = authServiceProvider.GetClinicalLoginServicesV1();
@@ -89,7 +88,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             clickthroughServiceV2 = authServiceProvider.GetAcceptTermsAuthServicesV2();
             clickthroughServiceReferenceV2 = new AuthAccessService2 { Id = clickthroughServiceV2.Id };
-            loginServiceV2 = authServiceProvider.GetClinicalLoginServicesV2();
+            loginServiceV2 = authServiceProvider.GetLoginServicesV2();
             loginServiceReferenceV2 = new AuthAccessService2 { Id = loginServiceV2.Id };
             externalAuthServiceV2 = authServiceProvider.GetRestrictedLoginServicesV2();
             externalAuthServiceReferenceV2 = new AuthAccessService2 { Id = externalAuthServiceV2.Id };
@@ -102,8 +101,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new("Text")
                 {
-                    Id = uriPatterns.PersistentPlayerUri(work.Id),
-                    Label = Lang.Map(work.Title),
+                    Id = uriPatterns.PersistentPlayerUri(work.Id!),
+                    Label = Lang.Map(work.Title!),
                     Format = "text/html",
                     Language = new List<string>{"en"}
                 }
@@ -141,7 +140,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 new ExternalResource("Dataset")
                 {
-                    Id = uriPatterns.CatalogueApi(work.Id),
+                    Id = uriPatterns.CatalogueApi(work.Id!),
                     Label = Lang.Map("Wellcome Collection Catalogue API"),
                     Format = "application/json",
                     Profile = "https://api.wellcomecollection.org/catalogue/v2/context.json"
@@ -164,7 +163,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             ManifestationMetadata manifestationMetadata,
             bool useRequiredStatement)
         {
-            var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.SectionMetadata.Usage);
+            var usage = LicenceHelpers.GetUsageWithHtmlLinks(metsManifestation.SectionMetadata!.Usage);
             if (!usage.HasText())
             {
                 var code = GetMappedLicenceCode(metsManifestation);
@@ -211,25 +210,25 @@ namespace Wellcome.Dds.Repositories.Presentation
         public void Rights(Manifest manifest, IManifestation metsManifestation)
         {
             var code = GetMappedLicenceCode(metsManifestation);
+            if (!code.HasText()) return;
             var uri = LicenseMap.GetLicenseUri(code);
-            if (uri.HasText())
-            {
-                // the machine-readable versions use http IDs 
-                uri = uri.Replace("https://creativecommons.org/", "http://creativecommons.org/");
-                uri = uri.Replace("https://rightsstatements.org/", "http://rightsstatements.org/");
-                manifest.Rights = uri;
-            }
+            if (!uri.HasText()) return;
+            
+            // the machine-readable versions use http IDs 
+            uri = uri.Replace("https://creativecommons.org/", "http://creativecommons.org/");
+            uri = uri.Replace("https://rightsstatements.org/", "http://rightsstatements.org/");
+            manifest.Rights = uri;
         }
 
-        private static string GetMappedLicenceCode(IManifestation metsManifestation)
+        private static string? GetMappedLicenceCode(IManifestation metsManifestation)
         {
-            var dzl = metsManifestation.SectionMetadata.DzLicenseCode;
+            var dzl = metsManifestation.SectionMetadata!.DzLicenseCode;
             return LicenceCodes.MapLicenseCode(dzl);
         }
 
         public void PagedBehavior(Manifest manifest, IManifestation metsManifestation)
         {
-            var structType = metsManifestation.RootStructRange.Type;
+            var structType = metsManifestation.RootStructRange!.Type;
             if (structType == "Monograph" || structType == "Manuscript")
             {
                 manifest.Behavior ??= new List<string>();
@@ -257,18 +256,18 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // At the moment, "Text" is not really a good Type for the PDF - but what else?
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Identifier),
+                    Id = uriPatterns.DlcsPdf(dlcsEntryPoint, metsManifestation.Identifier!),
                     Label = Lang.Map("View as PDF"),
                     Format = "application/pdf"
                 });
             }
 
-            if (metsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence!.SupportsSearch())
             {
                 manifest.Rendering ??= new List<ExternalResource>();
                 manifest.Rendering.Add(new ExternalResource("Text")
                 {
-                    Id = uriPatterns.RawText(metsManifestation.Identifier),
+                    Id = uriPatterns.RawText(metsManifestation.Identifier!),
                     Label = Lang.Map("View raw text"),
                     Format = "text/plain"
                 });
@@ -277,13 +276,13 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void SearchServices(Manifest manifest, IManifestation metsManifestation)
         {
-            if (metsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence!.SupportsSearch())
             {
                 manifest.EnsureContext(SearchService.Search1Context);
                 manifest.Service ??= new List<IService>();
                 var searchServiceId = referenceV0SearchService ? 
-                    uriPatterns.IIIFContentSearchService0(metsManifestation.Identifier) : 
-                    uriPatterns.IIIFContentSearchService1(metsManifestation.Identifier);
+                    uriPatterns.IIIFContentSearchService0(metsManifestation.Identifier!) : 
+                    uriPatterns.IIIFContentSearchService1(metsManifestation.Identifier!);
                 manifest.Service.Add(new SearchService
                 {
                     Id = searchServiceId,
@@ -291,7 +290,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     Label = new MetaDataValue("Search within this manifest"),
                     Service = new AutoCompleteService
                     {
-                        Id = uriPatterns.IIIFAutoCompleteService1(metsManifestation.Identifier),
+                        Id = uriPatterns.IIIFAutoCompleteService1(metsManifestation.Identifier!),
                         Profile = AutoCompleteService.AutoCompleteService1Profile,
                         Label = new MetaDataValue("Autocomplete words in this manifest")
                     }
@@ -303,15 +302,15 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
-            var manifestIdentifier = metsManifestation.Identifier.ToString();
+            var manifestIdentifier = metsManifestation.Identifier!.ToString();
             manifest.Items = new List<Canvas>();
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
-            foreach (var physicalFile in metsManifestation.Sequence)
+            foreach (var physicalFile in metsManifestation.Sequence!)
             {
                 LanguageMap canvasLabel;
                 if (isBornDigitalManifestation) 
                 {
-                    canvasLabel = Lang.Map("none", physicalFile.OriginalName.GetFileName());
+                    canvasLabel = Lang.Map("none", physicalFile.OriginalName!.GetFileName()!);
                 }
                 else if (physicalFile.OrderLabel.HasText())
                 {
@@ -328,7 +327,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 };
                 manifest.Items.Add(canvas);
 
-                bool isForIIIFManifest = AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition);
+                bool isForIIIFManifest = AccessCondition.IsForIIIFManifest(physicalFile.AccessCondition!);
                 bool includeBecauseExtraConfig = extraAccessConditions.Contains(physicalFile.AccessCondition);
 
                 if (!(isForIIIFManifest || includeBecauseExtraConfig))
@@ -416,7 +415,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             // So how do we know what kind of workflow this is?
                             // Does this IPhysicalFile have an explicit USE="ACCESS" file group?
                             // For now we will assume that this is a sign of the new workflow
-                            var accessFile = physicalFile.Files.FirstOrDefault(f => f.Use == "ACCESS");
+                            var accessFile = physicalFile.Files!.FirstOrDefault(f => f.Use == "ACCESS");
                             if(accessFile == null)
                             {
                                 throw new IIIFBuildStateException(
@@ -433,7 +432,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             }
                         }
                         
-                        double duration = physicalFile.AssetMetadata.GetDuration();
+                        double duration = physicalFile.AssetMetadata!.GetDuration();
                         if (isBornDigitalManifestation && 
                             (physicalFile.MimeType.IsVideoMimeType() || physicalFile.MimeType.IsAudioMimeType()))
                         {
@@ -496,7 +495,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             {
                                 // This is still the DDS-hosted poster image, for old and new AV workflows
                                 AddPosterImage(manifest, assetIdentifier, manifestIdentifier);
-                                var transcriptPdf = physicalFile.Files.FirstOrDefault(f => f.Use == "TRANSCRIPT");
+                                var transcriptPdf = physicalFile.Files!.FirstOrDefault(f => f.Use == "TRANSCRIPT");
                                 if (transcriptPdf != null)
                                 {
                                     // A new workflow transcript for this AV file
@@ -533,10 +532,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                             // This is a born digital file that is not image or AV, and is not
                             // the transcript manifestation for a Goobi AV file.
                             
-                            var bornDigitalFile = physicalFile.Files.FirstOrDefault();
+                            var bornDigitalFile = physicalFile.Files!.FirstOrDefault();
                             if (bornDigitalFile != null)
                             {
-                                canvas.AddNonLangMetadata("File format", physicalFile.AssetMetadata.GetFormatName());
+                                canvas.AddNonLangMetadata("File format", physicalFile.AssetMetadata!.GetFormatName());
                                 canvas.AddNonLangMetadata("File size", StringUtils.FormatFileSize(physicalFile.AssetMetadata.GetFileSize(), true));
                                 canvas.AddNonLangMetadata("Pronom key", physicalFile.AssetMetadata.GetPronomKey());
                                 // AddSupplementingPdfToCanvas(manifestIdentifier, canvas, bornDigitalPdf, 
@@ -592,7 +591,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                 if (isBornDigitalManifestation)
                 {
-                    var originalName = physicalFile.AssetMetadata.GetOriginalName();
+                    var originalName = physicalFile.AssetMetadata!.GetOriginalName();
                     canvas.AddNonLangMetadata("Full path", originalName);
                     var possibleNavDate = physicalFile.AssetMetadata.GetCreatedDate();
                     if (possibleNavDate.HasValue)
@@ -625,9 +624,9 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// <exception cref="NotImplementedException"></exception>
         private void AddBornDigitalCanvasPlaceholderImage(
             Canvas canvas, IPhysicalFile physicalFile, 
-            string manifestIdentifier, string assetIdentifier)
+            string manifestIdentifier, string? assetIdentifier)
         {
-            var pronomKey = physicalFile.AssetMetadata.GetPronomKey();
+            var pronomKey = physicalFile.AssetMetadata!.GetPronomKey();
             if (pronomKey.IsNullOrEmpty())
             {
                 pronomKey = "fmt/0";
@@ -755,7 +754,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             if (logicalStructs.HasItems())
             {
                 var logicalStructsForFile = logicalStructs
-                    .Where(s => s.PhysicalFileIds.Contains(physicalFile.Id))
+                    .Where(s => s.PhysicalFileIds!.Contains(physicalFile.Id))
                     .ToList();
                 if (logicalStructsForFile.Count == 1)
                 {
@@ -792,7 +791,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private LabelValuePair? GetPageCountMetadata(IPhysicalFile physicalFile)
         {
-            var pageCount = physicalFile.AssetMetadata.GetNumberOfPages();
+            var pageCount = physicalFile.AssetMetadata!.GetNumberOfPages();
             if (pageCount > 0)
             {
                 var label = Lang.Map("en", "Number of pages");
@@ -803,7 +802,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return null;
         }
 
-        private void AddPosterImage(Manifest manifest, string assetIdentifier, string manifestIdentifier)
+        private void AddPosterImage(Manifest manifest, string? assetIdentifier, string manifestIdentifier)
         {
             var posterAssetIdentifier = $"poster-{assetIdentifier}";
             var posterCanvasId = uriPatterns
@@ -929,7 +928,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return true;
             }
 
-            if (physicalFile.AssetMetadata.GetDuration() > 0)
+            if (physicalFile.AssetMetadata!.GetDuration() > 0)
             {
                 return true;
             }
@@ -963,25 +962,28 @@ namespace Wellcome.Dds.Repositories.Presentation
                 case AccessCondition.Open:
                     // no auth services needed, we're open and happy.
                     return;
-                case AccessCondition.RequiresRegistration: // i.e., Clickthrough
+                case AccessCondition.RequiresRegistration: // i.e., Clickthrough - which is interactive
                 case AccessCondition.OpenWithAdvisory:     // also Clickthrough
                     AddAuthServiceToDictionary(foundAuthServices, clickthroughServiceV1);
                     AddAuthServiceToDictionary(foundAuthServices, clickthroughServiceV2);
-                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV1, physicalFile);
-                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV2, physicalFile);
+                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV1);
+                    AddAuthServiceToMedia(media, clickthroughServiceReferenceV2, 
+                        authServiceProvider.GetClickthroughProbeService(physicalFile.StorageIdentifier!));
                     break;
-                case AccessCondition.ClinicalImages: // i.e., Login (IIIF standard auth)
+                case AccessCondition.ClinicalImages: // i.e., Login (IIIF interactive auth)
                 case AccessCondition.Degraded:
                     AddAuthServiceToDictionary(foundAuthServices, loginServiceV1);
                     AddAuthServiceToDictionary(foundAuthServices, loginServiceV2);
-                    AddAuthServiceToMedia(media, loginServiceReferenceV1, physicalFile);
-                    AddAuthServiceToMedia(media, loginServiceReferenceV2, physicalFile);
+                    AddAuthServiceToMedia(media, loginServiceReferenceV1);
+                    AddAuthServiceToMedia(media, loginServiceReferenceV2,
+                        authServiceProvider.GetLoginProbeService(physicalFile.StorageIdentifier!));
                     break;
                 case AccessCondition.RestrictedFiles: // i.e., IIIF external auth
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthServiceV1);
                     AddAuthServiceToDictionary(foundAuthServices, externalAuthServiceV2);
-                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV1, physicalFile);
-                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV2, physicalFile);
+                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV1);
+                    AddAuthServiceToMedia(media, externalAuthServiceReferenceV2,
+                        authServiceProvider.GetRestrictedProbeService(physicalFile.StorageIdentifier!));
                     break;
                 default:
                     if (!extraAccessConditions.Contains(physicalFile.AccessCondition))
@@ -1000,13 +1002,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
         
-        private void AddAuthServiceToMedia(ResourceBase? resource, IService? service, IPhysicalFile physicalFile)
+        private void AddAuthServiceToMedia(ResourceBase? resource, IService? service, AuthProbeService2? parentProbe = null)
         {
             if (resource == null || service == null)
             {
                 return;
             }
 
+            var serviceToAdd = service;
+            if (parentProbe != null)
+            {
+                serviceToAdd = parentProbe;
+                parentProbe.Service ??= new List<IService>();
+                parentProbe.Service.Add(service);
+            }
             switch (resource)
             {
                 case Image image:
@@ -1014,39 +1023,27 @@ namespace Wellcome.Dds.Repositories.Presentation
                     {
                         var iiifImageApi2 = (ImageService2) image.Service.First();
                         iiifImageApi2.Service ??= new List<IService>();
-                        AppendAuthService(iiifImageApi2.Service, service, physicalFile);
+                        iiifImageApi2.Service.Add(serviceToAdd);
                     }
                     break;
                 default:
                     resource.Service ??= new List<IService>();
-                    AppendAuthService(resource.Service, service, physicalFile);
+                    resource.Service.Add(serviceToAdd);
                     break;
             }
         }
 
-        private void AppendAuthService(List<IService> services, IService service, IPhysicalFile physicalFile)
-        {
-            if (service is AuthAccessService2)
-            {
-                services.Add(new AuthProbeService2
-                {
-                    Id = uriPatterns.DlcsProbeService(dlcsEntryPoint, physicalFile.StorageIdentifier)
-                });
-            }
-            services.Add(service);
-            
-        }
 
         public void Structures(Manifest manifest, IManifestation metsManifestation)
         {
-            var physIdDict = metsManifestation.Sequence.ToDictionary(
+            var physIdDict = metsManifestation.Sequence!.ToDictionary(
                 pf => pf.Id, pf => pf.StorageIdentifier);
             
             // See MetsRepositoryPackageProvider, line 379, and https://digirati.atlassian.net/browse/WDL-97
-            var wdlRoot = MakeRangeFromMetsStructure(
-                metsManifestation.Identifier,
-                physIdDict,
-                metsManifestation.RootStructRange, 
+            Range wdlRoot = MakeRangeFromMetsStructure(
+                metsManifestation.Identifier!,
+                physIdDict!,
+                metsManifestation.RootStructRange!, 
                 metsManifestation.ParentSectionMetadata);
             if (IsManuscriptStructure(metsManifestation.RootStructRange))
             {
@@ -1055,7 +1052,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // we now have the equivalent of old DDS Section - but the rootsection IS the equivalent
             // of the manifest, which we already have. We don't need a top level Range for everything,
             // we're only interested in Child structure.
-            if (wdlRoot != null && wdlRoot.Items.HasItems())
+            if (wdlRoot.Items.HasItems())
             {
                 var topRanges = wdlRoot.Items.Where(r => r is Range).ToList();
                 if (topRanges.HasItems())
@@ -1067,7 +1064,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        private Range? ConvertFirstChildToRoot(Range wdlRoot)
+        private Range ConvertFirstChildToRoot(Range wdlRoot)
         {
             var newRoot = (Range?) wdlRoot.Items?.FirstOrDefault(r => r is Range);
             if (newRoot == null) return wdlRoot;
@@ -1075,7 +1072,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return newRoot;
         }
 
-        private bool IsManuscriptStructure(IStructRange rootStructRange)
+        private bool IsManuscriptStructure(IStructRange? rootStructRange)
         {
             // return (
             //     rootSection != null
@@ -1091,7 +1088,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 && rootStructRange.Children.HasItems()
                 && rootStructRange.Children.Count == 1
                 && rootStructRange.Children[0].Type == "Manuscript"
-                && rootStructRange.Children[0].PhysicalFileIds.Count == rootStructRange.PhysicalFileIds.Count
+                && rootStructRange.Children[0].PhysicalFileIds!.Count == rootStructRange.PhysicalFileIds!.Count
             );
             
         }
@@ -1100,17 +1097,17 @@ namespace Wellcome.Dds.Repositories.Presentation
             string manifestationId,
             Dictionary<string, string> physIdDict,
             IStructRange structRange,
-            ISectionMetadata parentSectionMetadata)
+            ISectionMetadata? parentSectionMetadata)
         {
             var range = new Range
             {
-                Id = uriPatterns.Range(manifestationId, structRange.Id)
+                Id = uriPatterns.Range(manifestationId, structRange.Id!)
             };
             if (structRange.Type == "PeriodicalIssue" && parentSectionMetadata != null)
             {
                 // for periodicals, some MODS data is held at the VOLUME level, 
                 // which is the dmdSec referenced by the parent structural div
-                MergeExtraPeriodicalVolumeData(structRange.SectionMetadata, parentSectionMetadata);
+                MergeExtraPeriodicalVolumeData(structRange.SectionMetadata!, parentSectionMetadata);
             }
 
             var modsForAccessCondition = structRange.SectionMetadata ?? parentSectionMetadata;
@@ -1119,13 +1116,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 range.Label = GetMappedRangeLabel(structRange);
             }
             
-            
             // physIdDict contains the "significant" assets; we should only add these, not all the assets
             var canvases = new List<Canvas>(); // this was called sectionAssets, int list
-            foreach (string physicalFileId in structRange.PhysicalFileIds)
+            foreach (string physicalFileId in structRange.PhysicalFileIds!)
             {
-                string storageIdentifier = null;
-                if (physIdDict.TryGetValue(physicalFileId, out storageIdentifier))
+                if (physIdDict.TryGetValue(physicalFileId, out var storageIdentifier))
                 {
                     canvases.Add(new Canvas
                     {
@@ -1155,9 +1150,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             return range;
         }
 
-        private LanguageMap GetMappedRangeLabel(IStructRange structRange)
+        private LanguageMap? GetMappedRangeLabel(IStructRange structRange)
         {
             var s = structRange.SectionMetadata?.Title ?? structRange.Type;
+            if (s.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
             var humanFriendly = manifestStructureHelper.GetHumanFriendlySectionLabel(s);
             return Lang.Map("none", humanFriendly); // TODO - "en" is often wrong.
         }
@@ -1196,7 +1195,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void ManifestLevelAnnotations(Manifest manifest, IManifestation metsManifestation, bool addAllContentAnnos)
         {
-            if (metsManifestation.Sequence.SupportsSearch())
+            if (metsManifestation.Sequence!.SupportsSearch())
             {
                 manifest.Annotations = new List<AnnotationPage>
                 {
@@ -1240,7 +1239,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // fills up - it requires a full DB to be accurate.
             // This is OK because we should only get here in runtime, navigating DOWN
             // the archival hierarchy.
-            if (work.Parts.Any() && iiifResource is Collection collection)
+            if (work.Parts.HasItems() && iiifResource is Collection collection)
             {
                 collection.Items = new List<ICollectionItem>();
                 var knownChildManifestations = childManifestationsSource();
@@ -1278,13 +1277,18 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private ICollectionItem? MakePart(Work work, Manifestation? manifestation)
         {
+            if (!work.ReferenceNumber.HasText())
+            {
+                return null;
+            }
+            
             if (manifestation != null || work.HasIIIFDigitalLocation())
             {
                 // definitely a manifest
                 return new Manifest
                 {
                     Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
-                    Label = Lang.Map(work.Title),
+                    Label = Lang.Map(work.Title!),
                     Thumbnail = manifestation?.GetThumbnail()
                 };
             }
@@ -1294,7 +1298,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 return new Collection
                 {
                     Id = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber),
-                    Label = Lang.Map(work.Title)
+                    Label = Lang.Map(work.Title!)
                 };
             }
 
@@ -1305,7 +1309,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             IManifestation metsManifestation,
             State? state)
         {
-            if (metsManifestation.SectionMetadata.CopyNumber > 0)
+            if (metsManifestation.SectionMetadata!.CopyNumber > 0)
             {
                 if (state == null)
                 {
@@ -1314,12 +1318,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                         $"State is required to build {metsManifestation.Identifier}");
                 }
                 state.MultiCopyState ??= new MultiCopyState();
-                state.MultiCopyState.CopyAndVolumes[metsManifestation.Identifier] = new CopyAndVolume
-                {
-                    Id = metsManifestation.Identifier,
-                    CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
-                    VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
-                };
+                state.MultiCopyState.CopyAndVolumes[metsManifestation.Identifier] = 
+                    new CopyAndVolume(metsManifestation.Identifier)
+                    {
+                        CopyNumber = metsManifestation.SectionMetadata.CopyNumber,
+                        VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
+                    };
             }
         }
 
@@ -1337,25 +1341,22 @@ namespace Wellcome.Dds.Repositories.Presentation
             var relevantBuildResults = buildResults
                 .Where(br => br.IIIFResource is Manifest)
                 .Where(br =>
-                    ((Manifest) br.IIIFResource).Items.HasItems() &&
-                    ((Manifest) br.IIIFResource).Items.Exists(c => c.Duration > 0));
+                    ((Manifest) br.IIIFResource!).Items.HasItems() &&
+                    ((Manifest) br.IIIFResource).Items!.Exists(c => c.Duration > 0));
 
             
             string newId = buildResults.Identifier;
             var avCanvases = new List<Canvas>();
-            BuildResult firstManifestationBuildResult = null;
+            BuildResult? firstManifestationBuildResult = null;
             foreach (var relevantBuildResult in relevantBuildResults)
             {
-                var manifest = (Manifest) relevantBuildResult.IIIFResource;
-                if (firstManifestationBuildResult == null)
-                {
-                    firstManifestationBuildResult = relevantBuildResult;
-                }
-                var canvases = manifest.Items.Where(c => c.Duration > 0);
+                Manifest? manifest = (Manifest?) relevantBuildResult.IIIFResource;
+                firstManifestationBuildResult ??= relevantBuildResult;
+                var canvases = manifest!.Items!.Where(c => c.Duration > 0);
                 // we now have the right Manifest, but it has the wrong Identifiers everywhere...
                 string oldId = relevantBuildResult.Id;
                 relevantBuildResult.Id = newId;
-                manifest.Id = manifest.Id.Replace(oldId, newId);
+                manifest.Id = manifest.Id!.Replace(oldId, newId);
                 if (manifest.PartOf.HasItems())
                 {
                     // This is no longer part of a collection
@@ -1379,7 +1380,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     if (tCounter < avCanvases.Count)
                     {
-                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files[0], "transcript", "PDF Transcript");
+                        AddSupplementingPdfToCanvas(buildResults.Identifier, avCanvases[tCounter], transcripts[tCounter].Files![0], "transcript", "PDF Transcript");
                     }
                 }
             }
@@ -1406,7 +1407,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private void AddSupplementingPdfToCanvas(string manifestIdentifier, Canvas canvas, IStoredFile pdfFile,
             string annoIdentifier, string label)
         {
-            var pageCountMetadata = GetPageCountMetadata(pdfFile.PhysicalFile);
+            var pageCountMetadata = GetPageCountMetadata(pdfFile.PhysicalFile!);
             List<LabelValuePair>? resourceMetadata = null;
             if (pageCountMetadata != null)
             {
@@ -1444,20 +1445,20 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
             string oldIdPath = $"/{oldId}/";
             string newIdPath = $"/{newId}/";
-            canvas.Id = canvas.Id.Replace(oldIdPath, newIdPath);
-            canvas.Items[0].Id = canvas.Items[0].Id.Replace(oldIdPath, newIdPath);
-            var anno = (PaintingAnnotation) canvas.Items[0].Items[0];
-            anno.Id = anno.Id.Replace(oldIdPath, newIdPath);
-            var target = anno.Target as ResourceBase;
-            if (target != null)
+            canvas.Id = canvas.Id!.Replace(oldIdPath, newIdPath);
+            var annoPage = canvas.Items![0];
+            annoPage.Id = annoPage.Id!.Replace(oldIdPath, newIdPath);
+            var anno = (PaintingAnnotation) annoPage.Items![0];
+            anno.Id = anno.Id!.Replace(oldIdPath, newIdPath);
+            if (anno.Target is ResourceBase target)
             {
-                target.Id = target.Id.Replace(oldIdPath, newIdPath);
+                target.Id = target.Id!.Replace(oldIdPath, newIdPath);
             }
 
             if (!changeImageBody) return;
             if (anno.Body is Image image)
             {
-                image.Id = image.Id.Replace(oldId, newId);
+                image.Id = image.Id!.Replace(oldId, newId);
             }
         }
 
@@ -1466,7 +1467,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var mdFormat = manifestationMetadata.Manifestations.FirstOrDefault()?.RootSectionType;
             var format = mdFormat.HasText() ? mdFormat : "n/a";
 
-            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal());
+            var partner = PartnerAgents.GetPartner(manifestationMetadata.Metadata.GetLocationOfOriginal()!);
             var institution = partner != null ? partner.Label : "n/a";
 
             var mdDigicode = manifestationMetadata.Metadata.GetDigitalCollectionCodes().FirstOrDefault();
@@ -1506,9 +1507,9 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
         {
-            var accessConditions = metsManifestation.Sequence
+            var accessConditions = metsManifestation.Sequence!
                 .Select(pf => pf.AccessCondition);
-            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions);
+            var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions!);
             string accessHint;
             switch (mostSecureAccessCondition)
             {

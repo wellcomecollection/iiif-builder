@@ -12,7 +12,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
 
     public static class AssetFamilyUtils
     {
-        public static AssetFamily GetAssetFamily(this string mediaType, string[] permittedImages = null)
+        public static AssetFamily GetAssetFamily(this string? mediaType, string[]? permittedImages = null)
         {
             if (mediaType.IsImageMimeType())
             {
@@ -32,22 +32,22 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
             return AssetFamily.File;
         }
         
-        public static bool IsVideoMimeType(this string mimeType)
+        public static bool IsVideoMimeType(this string? mimeType)
         {
             return mimeType != null && mimeType.StartsWith("video/");
         }
 
-        public static bool IsAudioMimeType(this string mimeType)
+        public static bool IsAudioMimeType(this string? mimeType)
         {
             return mimeType != null && mimeType.StartsWith("audio/");
         }
         
-        public static bool IsImageMimeType(this string mimeType)
+        public static bool IsImageMimeType(this string? mimeType)
         {
             return mimeType != null && mimeType.StartsWith("image/");
         }
         
-        public static bool IsTextMimeType(this string mimeType)
+        public static bool IsTextMimeType(this string? mimeType)
         {
             return mimeType != null && mimeType.StartsWith("text/");
         }

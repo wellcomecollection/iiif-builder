@@ -9,7 +9,7 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
 {
     public class SimpleAltoProvider
     {
-        private readonly ILogger logger;
+        private readonly ILogger? logger;
         private static readonly XNamespace ns = "http://www.loc.gov/standards/alto/ns-v2#";
 
         public SimpleAltoProvider()
@@ -24,24 +24,23 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         
 
         public AnnotationPage GetAnnotationPage(
-            XElement altoRoot,
+            XElement? altoRoot,
             int actualWidth, int actualHeight,
-            string manifestationIdentifier, string assetIdentifier,
+            string manifestationIdentifier, string? assetIdentifier,
             int index)
         {
             var textLines = new List<TextLine>();
             var illustrations = new List<Illustration>();
-            var composedBlocks = new List<Illustration>();
 
             if (altoRoot != null)
             {
                 try
                 {
-                    var pageElement = altoRoot.Element(ns + "Layout").Element(ns + "Page");
-                    int srcW = Convert.ToInt32(pageElement.GetRequiredAttributeValue("WIDTH"));
-                    int srcH = Convert.ToInt32(pageElement.GetRequiredAttributeValue("HEIGHT"));
-                    float scaleW = (float)actualWidth / (float)srcW;
-                    float scaleH = (float)actualHeight / (float)srcH;
+                    var pageElement = altoRoot.Element(ns + "Layout")!.Element(ns + "Page");
+                    int srcW = Convert.ToInt32(pageElement!.GetRequiredAttributeValue("WIDTH"));
+                    int srcH = Convert.ToInt32(pageElement!.GetRequiredAttributeValue("HEIGHT"));
+                    float scaleW = actualWidth / (float)srcW;
+                    float scaleH = actualHeight / (float)srcH;
                     // only get strings in textblocks, not page numbers and headers
                     var printSpace = altoRoot.Descendants(ns + "PrintSpace").FirstOrDefault();
                     if (printSpace != null)
@@ -74,7 +73,7 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, 
+                    logger?.LogError(ex, 
                         "SimpleAltoProvider cannot extract page from ALTO for {assetIdentifier}", assetIdentifier);
                 }
             }
@@ -83,7 +82,7 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
             {
                 TextLines = textLines.ToArray(),
                 Illustrations = illustrations.ToArray(),
-                ComposedBlocks = composedBlocks.ToArray(),
+                ComposedBlocks = Array.Empty<Illustration>(),
                 ManifestationIdentifier = manifestationIdentifier,
                 AssetIdentifier = assetIdentifier,
                 Index = index

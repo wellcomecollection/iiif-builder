@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wellcome.Dds.Repositories;
 
+#nullable disable
+
 namespace Wellcome.Dds.Repositories.Migrations
 {
     [DbContext(typeof(DdsContext))]
@@ -15,9 +17,10 @@ namespace Wellcome.Dds.Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 63)
-                .HasAnnotation("ProductVersion", "5.0.5")
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                .HasAnnotation("ProductVersion", "6.0.6")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Wellcome.Dds.Manifestation", b =>
                 {
@@ -187,7 +190,7 @@ namespace Wellcome.Dds.Repositories.Migrations
                     b.HasIndex("PackageIdentifier")
                         .HasDatabaseName("ix_manifestations_package_identifier");
 
-                    b.ToTable("manifestations");
+                    b.ToTable("manifestations", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.Metadata", b =>
@@ -195,22 +198,27 @@ namespace Wellcome.Dds.Repositories.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Identifier")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("identifier");
 
                     b.Property<string>("Label")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("label");
 
                     b.Property<string>("ManifestationId")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("manifestation_id");
 
                     b.Property<string>("StringValue")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("string_value");
 
@@ -220,7 +228,7 @@ namespace Wellcome.Dds.Repositories.Migrations
                     b.HasIndex("ManifestationId")
                         .HasDatabaseName("ix_metadata_manifestation_id");
 
-                    b.ToTable("metadata");
+                    b.ToTable("metadata", (string)null);
                 });
 #pragma warning restore 612, 618
         }

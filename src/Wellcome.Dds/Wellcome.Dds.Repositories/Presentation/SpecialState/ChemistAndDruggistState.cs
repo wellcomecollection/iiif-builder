@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Strings;
+using Utils;
 using Wellcome.Dds.IIIFBuilding;
 using Version = IIIF.Presentation.Version;
 
@@ -35,7 +36,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
             var topCollection = buildResults.First().IIIFResource as Collection;
             // ignore any that have accumulated in the build.
-            topCollection.Items = new List<ICollectionItem>();
+            topCollection!.Items = new List<ICollectionItem>();
             topCollection.Behavior = new List<string> {Behavior.MultiPart};
 
             foreach (var volume in Volumes)
@@ -107,13 +108,17 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
         public List<ChemistAndDruggistVolume> Volumes { get; set; }
         
-        public DateTime GetNavDate(string modsDataOriginDateDisplay)
+        public DateTime GetNavDate(string? modsDataOriginDateDisplay)
         {
             return GetPeriodicalPublicationDate(modsDataOriginDateDisplay);
         }
 
-        private DateTime GetPeriodicalPublicationDate(string modsDate)
+        private DateTime GetPeriodicalPublicationDate(string? modsDate)
         {
+            if (modsDate.IsNullOrWhiteSpace())
+            {
+                return DateTime.MinValue;
+            }
             modsDate = modsDate.Trim();
             if (modsDate.Length == 4)
             {
@@ -147,6 +152,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
     public class ChemistAndDruggistIssue
     {
+        #nullable disable
         public ChemistAndDruggistIssue(string identifier)
         {
             Identifier = identifier;
@@ -156,18 +162,18 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public DateTime NavDate { get; set; }
         public int PartOrder { get; set; }
         public string Number { get; set; }
-        public string? Label { get; set; }
+        public string Label { get; set; }
         public string Volume { get; set; }
         public int Year { get; set; }
-        public string? Month { get; set; }
+        public string Month { get; set; }
         public int MonthNum { get; set; }
-        public string? DisplayDate { get; set; }
+        public string DisplayDate { get; set; }
         
         // For CSV-ing
         public string VolumeIdentifier { get; set; }
         public string VolumeDisplayDate { get; set; }
         public DateTime VolumeNavDate { get; set; }
-        public string? VolumeLabel { get; set; }
+        public string VolumeLabel { get; set; }
         
         
         
@@ -189,6 +195,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 
     public class ChemistAndDruggistVolume
     {
+        #nullable disable
         public ChemistAndDruggistVolume(string identifier)
         {
             Identifier = identifier;
@@ -198,7 +205,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         public string Identifier { get; set; }
         public string DisplayDate { get; set; }
         public DateTime NavDate { get; set; }
-        public string? Label { get; set; }
+        public string Label { get; set; }
         public string Volume { get; set; }
         public List<ChemistAndDruggistIssue> Issues { get; set; }
 

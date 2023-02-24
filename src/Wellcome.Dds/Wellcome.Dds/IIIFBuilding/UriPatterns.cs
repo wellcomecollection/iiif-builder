@@ -79,13 +79,35 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string DlcsVideoTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/full/max/max/0/default.{fileExt}";
         private const string DlcsAudioTemplate        = "{dlcsEntryPoint}av/{assetIdentifier}/full/max/default.{fileExt}";
         private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
-        private const string DlcsProbeServiceTemplate = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
+        
+        // Auth
+        private const string DlcsProbeServiceV2Template               = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
+        private const string DlcsClickthroughLoginServiceIdTemplate   = "{dlcsEntryPoint}auth/clickthrough";
+        private const string DlcsClickthroughLoginServiceV2IdTemplate = "{dlcsEntryPoint}auth/v2/clickthrough";
+        private const string DlcsClinicalLoginServiceIdTemplate       = "{dlcsEntryPoint}auth/clinicalLogin";
+        private const string DlcsLoginServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/login";
+        private const string DlcsRestrictedLoginServiceIdTemplate     = "{dlcsEntryPoint}auth/restrictedlogin";
+        private const string DlcsRestrictedLoginServiceV2IdTemplate   = "{dlcsEntryPoint}auth/v2/restrictedlogin";
+        private const string DlcsTokenServiceIdTemplate               = "{dlcsEntryPoint}auth/token";
+        private const string DlcsTokenServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/token";
+        private const string DlcsLogoutServiceIdTemplate              = "{dlcsEntryPoint}auth/logout";
+        private const string DlcsLogoutServiceV2IdTemplate            = "{dlcsEntryPoint}auth/v2/logout";
 
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
-            schemeAndHostValue = ddsOptions.Value.LinkedDataDomain;
-            apiSchemeAndHostValue = ddsOptions.Value.WellcomeCollectionApi;
-            workTemplate = ddsOptions.Value.ApiWorkTemplate;
+            var opts = ddsOptions.Value;
+            if (opts.LinkedDataDomain.HasText() && 
+                opts.WellcomeCollectionApi.HasText() &&
+                opts.ApiWorkTemplate.HasText())
+            {
+                schemeAndHostValue = opts.LinkedDataDomain;
+                apiSchemeAndHostValue = opts.WellcomeCollectionApi;
+                workTemplate = opts.ApiWorkTemplate;
+            }
+            else
+            {
+                throw new InvalidOperationException("UriPatterns is missing required config data");
+            }
         }
 
         public string Manifest(string identifier)
@@ -100,54 +122,54 @@ namespace Wellcome.Dds.IIIFBuilding
         }
         
         
-        public string Canvas(string manifestIdentifier, string assetIdentifier)
+        public string Canvas(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasFormat, manifestIdentifier, assetIdentifier);
         }       
         
-        public string CanvasPaintingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        public string CanvasPaintingAnnotationPage(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasPaintingAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasPaintingAnnotation(string manifestIdentifier, string assetIdentifier)
+        public string CanvasPaintingAnnotation(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasPaintingAnnotationFormat, manifestIdentifier, assetIdentifier);
         }        
         
-        public string CanvasSupplementingAnnotationPage(string manifestIdentifier, string assetIdentifier)
+        public string CanvasSupplementingAnnotationPage(string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestAndAssetIdentifiers(
                 CanvasSuppAnnotationPageFormat, manifestIdentifier, assetIdentifier);
         }    
-        public string CanvasSupplementingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string CanvasSupplementingAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                 CanvasSuppAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
         }   
         
-        public string CanvasClassifyingAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string CanvasClassifyingAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                 CanvasClassifyingAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
         }   
         
-        public string CanvasOtherAnnotationPageWithVersion(string manifestIdentifier, string assetIdentifier, int version)
+        public string CanvasOtherAnnotationPageWithVersion(string manifestIdentifier, string? assetIdentifier, int version)
         {
             return ManifestAndAssetIdentifiersWithVersion(
                 CanvasOtherAnnotationPageFormat, manifestIdentifier, assetIdentifier, version);
         }
 
-        public string CanvasOtherAnnotationWithVersion(string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
+        public string CanvasOtherAnnotationWithVersion(string manifestIdentifier, string? assetIdentifier, string annoIdentifier, int version)
         {
             return ManifestAndAssetAndAnnoIdentifiersWithVersion(
                 CanvasOtherAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier, version);
         }
         
         
-        public string IIIFSearchAnnotation(string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        public string IIIFSearchAnnotation(string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetAndAnnoIdentifiers(
                     IIIFSearchAnnotationFormat, manifestIdentifier, assetIdentifier, annoIdentifier);
@@ -217,43 +239,98 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(IdentifierToken, identifier);
         }
 
-        public string DlcsThumb(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsThumb(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsThumbServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsImageService(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsImageService(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsImageServiceTemplate, dlcsEntryPoint, assetIdentifier);
         }
 
-        public string DlcsVideo(string dlcsEntryPoint, string assetIdentifier, string fileExt)
+        public string DlcsVideo(string dlcsEntryPoint, string? assetIdentifier, string fileExt)
         {
             return DlcsIdentifier(DlcsVideoTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
 
-        public string DlcsAudio(string dlcsEntryPoint, string assetIdentifier, string fileExt)
+        public string DlcsAudio(string dlcsEntryPoint, string? assetIdentifier, string fileExt)
         {
             return DlcsIdentifier(DlcsAudioTemplate, dlcsEntryPoint, assetIdentifier)
                 .Replace(FileExtensionToken, fileExt);
         }
         
-        public string DlcsFile(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsFile(string dlcsEntryPoint, string? assetIdentifier)
         {
             return DlcsIdentifier(DlcsFileTemplate, dlcsEntryPoint, assetIdentifier);
         }
         
-        public string DlcsProbeService(string dlcsEntryPoint, string assetIdentifier)
+        public string DlcsProbeServiceV2(string dlcsEntryPoint, string? assetIdentifier)
         {
-            return DlcsIdentifier(DlcsProbeServiceTemplate, dlcsEntryPoint, assetIdentifier);
+            return DlcsIdentifier(DlcsProbeServiceV2Template, dlcsEntryPoint, assetIdentifier);
         }
 
-        private string DlcsIdentifier(string template, string dlcsEntryPointToken, string assetIdentifier)
+        public string DlcsClickthroughLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClickthroughLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsClickthroughLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClickthroughLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsClinicalLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsClinicalLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsRestrictedLoginServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsRestrictedLoginServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsRestrictedLoginServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsRestrictedLoginServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsTokenServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsTokenServiceIdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsTokenServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsTokenServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsLogoutServiceId(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLogoutServiceIdTemplate, dlcsEntryPoint);
+        }
+
+        public string DlcsLogoutServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLogoutServiceV2IdTemplate, dlcsEntryPoint);
+        }
+
+        private string DlcsIdentifier(string template, string dlcsEntryPointToken, string? assetIdentifier)
         {
             return template
                 .Replace(DlcsEntryPointToken, dlcsEntryPointToken)
                 .Replace(AssetIdentifierToken, assetIdentifier);
+        }
+
+        private string DlcsService(string template, string dlcsEntryPointToken)
+        {
+            return template.Replace(DlcsEntryPointToken, dlcsEntryPointToken);
         }
 
         public string RawText(string identifier)
@@ -261,7 +338,7 @@ namespace Wellcome.Dds.IIIFBuilding
             return ApiManifestIdentifier(RawTextFormat, identifier);
         }
         
-        public string MetsAlto(string manifestIdentifier, string assetIdentifier)
+        public string MetsAlto(string manifestIdentifier, string? assetIdentifier)
         {
             return ApiManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
         }
@@ -312,31 +389,31 @@ namespace Wellcome.Dds.IIIFBuilding
                 .Replace(VersionToken, version.ToString());
         }
         
-        private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
+        private string ManifestAndAssetIdentifiers(string template, string manifestIdentifier, string? assetIdentifier)
         {
             return ManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ApiManifestAndAssetIdentifiers(string template, string manifestIdentifier, string assetIdentifier)
+        private string ApiManifestAndAssetIdentifiers(string template, string manifestIdentifier, string? assetIdentifier)
         {
             return ApiManifestIdentifier(template, manifestIdentifier)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ManifestAndAssetIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, int version)
+        private string ManifestAndAssetIdentifiersWithVersion(string template, string manifestIdentifier, string? assetIdentifier, int version)
         {
             return ManifestIdentifierWithVersion(template, manifestIdentifier, version)
                 .Replace(AssetIdentifierToken, assetIdentifier);
         }
         
-        private string ManifestAndAssetAndAnnoIdentifiers(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier)
+        private string ManifestAndAssetAndAnnoIdentifiers(string template, string manifestIdentifier, string? assetIdentifier, string annoIdentifier)
         {
             return ManifestAndAssetIdentifiers(template, manifestIdentifier, assetIdentifier)
                 .Replace(AnnoIdentifierToken, annoIdentifier);
         }
         
-        private string ManifestAndAssetAndAnnoIdentifiersWithVersion(string template, string manifestIdentifier, string assetIdentifier, string annoIdentifier, int version)
+        private string ManifestAndAssetAndAnnoIdentifiersWithVersion(string template, string manifestIdentifier, string? assetIdentifier, string annoIdentifier, int version)
         {
             return ManifestAndAssetIdentifiersWithVersion(template, manifestIdentifier, assetIdentifier, version)
                 .Replace(AnnoIdentifierToken, annoIdentifier);
@@ -363,12 +440,12 @@ namespace Wellcome.Dds.IIIFBuilding
             return ManifestIdentifier(WorkThumbnailFormat, manifestIdentifier);
         }
         
-        public string CanvasFilePlaceholderImage(string pronomKey, string mimeType)
+        public string CanvasFilePlaceholderImage(string pronomKey, string? mimeType)
         {
             return ManifestAndAssetIdentifiers(CanvasFilePlaceholderImageFormat, pronomKey, mimeType);
         }
 
-        public string CanvasFilePlaceholderThumbnail(string pronomKey, string mimeType)
+        public string CanvasFilePlaceholderThumbnail(string pronomKey, string? mimeType)
         {
             return ManifestAndAssetIdentifiers(CanvasFilePlaceholderThumbnailFormat, pronomKey, mimeType);
         }

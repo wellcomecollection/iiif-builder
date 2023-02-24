@@ -46,8 +46,13 @@ namespace Utils.Aws.S3
         public Task DeleteCacheFile(string container, string fileName)
             => amazonS3.DeleteObjectAsync(container, fileName);
 
-        public async Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
+        public async Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class
         {
+            if (fileInfo.Container.IsNullOrWhiteSpace())
+            {
+                logger.LogError("No Container specified for ISimpleStoredFileInfo object");
+                return default;
+            }
             var path = options.ReadProtobuf ? GetProtobufKey(fileInfo.Path) : fileInfo.Path;
             try
             {
@@ -82,24 +87,7 @@ namespace Utils.Aws.S3
                 var sw = Stopwatch.StartNew();
                 if (options.WriteBinary)
                 {
-                    var request = new PutObjectRequest
-                    {
-                        BucketName = fileInfo.Container, Key = fileInfo.Path
-                    };
-                    logger.LogDebug("Writing binary cache file '{Bucket}/{Path}' to S3", request.BucketName,
-                        request.Key);
-                    IFormatter formatter = new BinaryFormatter();
-                    await using (request.InputStream = new MemoryStream())
-                    {
-                        sw.Restart();
-                        
-                        formatter.Serialize(request.InputStream, t);
-                        await amazonS3.PutObjectAsync(request);
-                        
-                        logger.LogDebug("Wrote stream for '{Bucket}/{Path}' in {Elapsed}ms", request.BucketName,
-                            request.Key,
-                            sw.ElapsedMilliseconds);
-                    }
+                    throw new NotSupportedException("Binary Serializer is no longer supported");
                 }
 
                 if (options.WriteProtobuf)
@@ -170,15 +158,7 @@ namespace Utils.Aws.S3
                 return ProtoBuf.Serializer.Deserialize<T>(source);
             }
 
-            IFormatter formatter = new BinaryFormatter();
-            var obj = formatter.Deserialize(source);
-            if (obj is T binaryDeserialized)
-            {
-                return binaryDeserialized;
-            }
-
-            throw new InvalidOperationException(
-                $"Attempt to deserialize '{fileInfo.Uri}' from S3 failed, expected {typeof(T)}, found {obj.GetType()}");
+            throw new NotSupportedException("Binary Serializer is no longer supported");
         }
 
         // TODO - having this knowledge here isn't great but is only temporary until everything is moved to protobuf

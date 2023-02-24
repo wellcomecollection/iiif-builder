@@ -27,12 +27,11 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <remarks>
         /// Sample request:
-        ///
+        /// 
         ///     GET /workflow/process/b1675665
         /// 
         /// </remarks>
         /// <param name="id">bNumber to create job for.</param>
-        /// <param name="forceRebuild">if true, forces text resources to be rebuilt.</param>
         /// <returns>202 if accepted, else error.</returns>
         [HttpGet]
         [ProducesResponseType(202)]

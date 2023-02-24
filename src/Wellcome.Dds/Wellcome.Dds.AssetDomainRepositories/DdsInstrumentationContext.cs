@@ -13,7 +13,7 @@ using Wellcome.Dds.Common;
 namespace Wellcome.Dds.AssetDomainRepositories
 {
     /// <summary>
-    /// This class merges WorlflowContext and WorkflowContext from old DDS,
+    /// This class merges CloudIngestContext and WorkflowContext from old DDS,
     /// which both use the Instrumentation database.
     /// 
     /// Two other DbContext classes are present in old Dds:
@@ -29,14 +29,14 @@ namespace Wellcome.Dds.AssetDomainRepositories
         { }
 
         // From CloudIngestContext:
-        public DbSet<DlcsIngestJob> DlcsIngestJobs { get; set; }
-        public DbSet<DlcsBatch> DlcsBatches { get; set; }
-        public DbSet<IngestAction> IngestActions { get; set; }
+        public DbSet<DlcsIngestJob> DlcsIngestJobs => Set<DlcsIngestJob>();
+        public DbSet<DlcsBatch> DlcsBatches => Set<DlcsBatch>();
+        public DbSet<IngestAction> IngestActions => Set<IngestAction>();
 
         // from WorkflowContext:
-        public DbSet<WorkflowJob> WorkflowJobs { get; set; }
-        
-        public DbSet<ControlFlow> ControlFlows { get; set; }
+        public DbSet<WorkflowJob> WorkflowJobs => Set<WorkflowJob>();
+
+        public DbSet<ControlFlow> ControlFlows => Set<ControlFlow>();
 
         public async Task<int> CountBatchesAsync()
         {
@@ -54,7 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
         public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
-            WorkflowJob job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
+            WorkflowJob? job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
                 job = new WorkflowJob {Identifier = ddsId.PackageIdentifier};
@@ -83,7 +83,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return job;
         }
 
-        public string MarkFirstJobAsTaken(int minAgeInMinutes)
+        public string? MarkFirstJobAsTaken(int minAgeInMinutes)
         {
             var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
                 + " select identifier from workflow_jobs "
@@ -95,7 +95,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.MapRawSql(sql, MapString).FirstOrDefault();
         }
 
-        private string MapString(DbDataReader dr)
+        private string? MapString(DbDataReader dr)
         {
             if (dr.IsDBNull(0)) return null;
             return (string) dr[0];

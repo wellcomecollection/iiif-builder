@@ -94,6 +94,7 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
+            services.AddSingleton<LinkRewriter>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -147,7 +148,7 @@ namespace Wellcome.Dds.Dashboard
                 UpdateDatabase(logger);
             }
             
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.EnvironmentName == "Staging-New")
             {
                 app.UseDeveloperExceptionPage();
             }

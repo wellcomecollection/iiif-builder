@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using IIIF.Presentation;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Content;
 using Utils;
@@ -10,6 +9,10 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
 {
     public class CopyAndVolume
     {
+        public CopyAndVolume(string id)
+        {
+            Id = id;
+        }
         public string Id { get; set; }
         public int CopyNumber { get; set; }
         public int VolumeNumber { get; set; }
@@ -23,7 +26,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     /// </summary>
     public class MultiCopyState
     {
-        public Dictionary<string, CopyAndVolume> CopyAndVolumes = new Dictionary<string, CopyAndVolume>();
+        public readonly Dictionary<string, CopyAndVolume> CopyAndVolumes = new Dictionary<string, CopyAndVolume>();
 
         public static void ProcessState(MultipleBuildResult buildResults, State state)
         {
@@ -37,7 +40,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             }
 
             var newItems = bNumberCollection.Items = new List<ICollectionItem>();
-            var copies = state.MultiCopyState.CopyAndVolumes.Values
+            var copies = state.MultiCopyState!.CopyAndVolumes.Values
                 .Select(cv => cv.CopyNumber)
                 .Distinct().ToList(); // leave in the order we find them
             foreach (int copy in copies)
@@ -65,8 +68,8 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                         foreach (var copyAndVolume in identifiersForVolume)
                         {
                             var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
-                            var manifest = (Manifest) manifestResult.IIIFResource;
-                            manifest.Label?.Values.First().Add($"Copy {copy}, Volume {volume}");
+                            var manifest = (Manifest?) manifestResult.IIIFResource;
+                            manifest!.Label!.Values.First().Add($"Copy {copy}, Volume {volume}");
                             copyCollection.Items.Add(new Manifest
                             {
                                 Id = manifest.Id,
@@ -90,8 +93,8 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     foreach (var copyAndVolume in identifiersForCopy)
                     {
                         var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
-                        var manifest = (Manifest) manifestResult.IIIFResource;
-                        manifest.Label?.Values.First().Add($"Copy {copy}");
+                        var manifest = (Manifest?) manifestResult.IIIFResource;
+                        manifest!.Label!.Values.First().Add($"Copy {copy}");
                         newItems.Add(new Manifest
                         {
                             Id = manifest.Id,

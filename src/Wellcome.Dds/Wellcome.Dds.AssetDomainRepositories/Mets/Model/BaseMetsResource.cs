@@ -5,26 +5,26 @@ using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
-    public abstract class BaseMetsResource : IMetsResource, IFileBasedResource
+    public abstract class BaseMetsResource : IMetsResource
     {
-        public DdsIdentifier Identifier { get; set; }
-        public string Label { get; set; }
-        public string Type { get; set; }
+        public DdsIdentifier Identifier { get; set; } = null!;
+        public string? Label { get; set; }
+        public string? Type { get; set; }
         public int? Order { get; set; }
-        public ISectionMetadata SectionMetadata { get; set; }
-        public ISectionMetadata ParentSectionMetadata { get; set; }
-        public IArchiveStorageStoredFileInfo SourceFile { get; set; }
+        public ISectionMetadata? SectionMetadata { get; set; }
+        public ISectionMetadata? ParentSectionMetadata { get; set; }
+        public IArchiveStorageStoredFileInfo? SourceFile { get; set; }
         public bool Partial { get; set; }
         
-        protected string GetLabel(ILogicalStructDiv div, ISectionMetadata sectionMetadata)
+        protected string GetLabel(ILogicalStructDiv div, ISectionMetadata? sectionMetadata)
         {
-            string label = null;
+            string? label = null;
             if (sectionMetadata != null)
             {
                 if (div.Type == "PeriodicalIssue")
                 {
                     var issue = sectionMetadata.GetDisplayTitle();
-                    var issueIsUseful = issue.ToAlphanumeric().HasText();
+                    var issueIsUseful = issue!.ToAlphanumeric().HasText();
                     if (sectionMetadata.DisplayDate.HasText())
                     {
                         label = sectionMetadata.DisplayDate;
@@ -64,7 +64,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// <returns></returns>
         public string GetRootId()
         {
-            return Identifier.PackageIdentifier;
+            return Identifier!.PackageIdentifier;
         }
     }
 }

@@ -22,7 +22,7 @@ namespace Utils.Storage
         /// <summary>
         /// Read object represented by <see cref="ISimpleStoredFileInfo"/>
         /// </summary>
-        Task<T> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class;
+        Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class;
 
         Task<Stream?> GetStream(string container, string fileName);
     }

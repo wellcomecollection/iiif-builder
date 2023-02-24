@@ -42,7 +42,7 @@ public class WorkflowCallRepository : IWorkflowCallRepository
     public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
     {
         logger.LogInformation("Creating workflow job from message: {Message}", message);
-        var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier, true, false, -1, false, false);
+        var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier!, true, false, -1, false, false);
         return workflowJob;
     }
 
@@ -52,7 +52,7 @@ public class WorkflowCallRepository : IWorkflowCallRepository
             .Take(count)
             .ToListAsync();
 
-    public ValueTask<WorkflowJob> GetWorkflowJob(string id) => ddsInstrumentationContext.WorkflowJobs.FindAsync(id);
+    public ValueTask<WorkflowJob?> GetWorkflowJob(string id) => ddsInstrumentationContext.WorkflowJobs.FindAsync(id);
 
     public Task<List<WorkflowJob>> GetRecentErrors(int count = 1000)
         => ddsInstrumentationContext.WorkflowJobs
@@ -160,7 +160,7 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
     public async Task<int> CountMatchingErrors(string msg)
     {
         var count = await ddsInstrumentationContext.WorkflowJobs
-            .CountAsync(j => j.Error.Contains(msg));
+            .CountAsync(j => j.Error!.Contains(msg));
         return count;
     }
 

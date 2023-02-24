@@ -26,8 +26,8 @@ namespace Wellcome.Dds.Dashboard.Models
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
         public IDigitalManifestation DigitisedManifestation { get; set; }
-        public IDigitalCollection Parent { get; set; }
-        public IDigitalCollection GrandParent { get; set; }
+        public ICollection Parent { get; set; }
+        public ICollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
         public DlcsOptions DlcsOptions { get; set; }
 
@@ -188,7 +188,7 @@ namespace Wellcome.Dds.Dashboard.Models
             if (Parent != null) // && GrandParent == null)
             {
                 IsStandardMultipleManifestation = true;
-                Siblings = Parent.MetsCollection.Manifestations.ToList();
+                Siblings = Parent.Manifestations.ToList();
                 PreviousLink = "#";
                 NextLink = "#";
                 for (int i = 0; i < Siblings.Count; i++)
@@ -283,9 +283,9 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public Image GetDlcsImage(string storageIdentifier)
         {
-            if (SyncOperation.ImagesAlreadyOnDlcs.ContainsKey(storageIdentifier))
+            if (SyncOperation.ImagesCurrentlyOnDlcs.ContainsKey(storageIdentifier))
             {
-                return SyncOperation.ImagesAlreadyOnDlcs[storageIdentifier];
+                return SyncOperation.ImagesCurrentlyOnDlcs[storageIdentifier];
             }
             return null;
         }

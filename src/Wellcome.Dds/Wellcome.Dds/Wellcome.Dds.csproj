@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latestmajor</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.1.4" />
-    <PackageReference Include="iiif-net" Version="0.1.6" />
+    <PackageReference Include="iiif-net" Version="0.1.8" />
   </ItemGroup>
 
 </Project>

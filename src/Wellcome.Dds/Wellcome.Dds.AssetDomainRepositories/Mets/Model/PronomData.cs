@@ -10,7 +10,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
 public sealed class PronomData
 {
-    private static readonly PronomData instance = new PronomData();
+    private static readonly PronomData SingleInstance = new();
     
     static PronomData()
     {
@@ -22,13 +22,13 @@ public sealed class PronomData
         var formats = File.ReadAllText(dataPath);
         var rawDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(formats);
         // we only want the first mimetype if there are many
-        formatMap = new Dictionary<string, string>(rawDict.Count);
+        formatMap = new Dictionary<string, string?>(rawDict!.Count);
         foreach (var kvp in rawDict)
         {
             if (kvp.Value.HasText())
             {
                 var mimes = kvp.Value.Split(',').Select(m => m.Trim()).ToArray();
-                string mimeType = null;
+                string? mimeType = null;
                 if (mimes.Length > 1)
                 {
                     // if there are multiple mime types, favour those that are explicitly "paintable"
@@ -50,7 +50,7 @@ public sealed class PronomData
                 {
                     mimeType = mimes[0];
                 }
-                formatMap[kvp.Key] = mimeType?.Trim();
+                formatMap[kvp.Key] = mimeType.Trim();
             }
             else
             {
@@ -59,10 +59,10 @@ public sealed class PronomData
         }
     }
     
-    public static PronomData Instance => instance;
+    public static PronomData Instance => SingleInstance;
 
-    private Dictionary<string, string> formatMap;
+    private readonly Dictionary<string, string?> formatMap;
 
 
-    public Dictionary<string, string> FormatMap => formatMap;
+    public Dictionary<string, string?> FormatMap => formatMap;
 }

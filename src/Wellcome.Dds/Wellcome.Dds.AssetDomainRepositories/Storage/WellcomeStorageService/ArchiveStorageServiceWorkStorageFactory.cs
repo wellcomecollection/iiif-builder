@@ -42,20 +42,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         public async Task<IWorkStore> GetWorkStore(DdsIdentifier ddsId)
         {
-            Func<Task<WellcomeBagAwareArchiveStorageMap>> getFromSource = () => 
-                BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
-            
+            Task<WellcomeBagAwareArchiveStorageMap?> GetFromSource() => BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
+
             logger.LogInformation("Getting IWorkStore for {Identifier}", ddsId.PackageIdentifier);
             
-            WellcomeBagAwareArchiveStorageMap storageMap =
-                await storageMapCache.GetCachedObject(ddsId.PackageIdentifier, getFromSource, NeedsRebuilding);
-            
+            WellcomeBagAwareArchiveStorageMap? storageMap =
+                await storageMapCache.GetCachedObject(ddsId.PackageIdentifier, GetFromSource, NeedsRebuilding);
+
+            if (storageMap == null)
+            {
+                throw new InvalidOperationException($"Could not retrieve storage map for {ddsId}");
+            }
             return new ArchiveStorageServiceWorkStore(
                 ddsId.StorageSpace, ddsId.PackageIdentifier,
                 storageMap, storageServiceClient, xmlElementCache, storageServiceS3);
         }
 
-        private async Task<WellcomeBagAwareArchiveStorageMap> BuildStorageMap(string storageSpace, string packageIdentifier)
+        private async Task<WellcomeBagAwareArchiveStorageMap?> BuildStorageMap(string storageSpace, string packageIdentifier)
         {
             logger.LogInformation("Requires new build of storage map for {Identifier}", packageIdentifier);
             var storageManifest = await storageServiceClient.LoadStorageManifest(storageSpace, packageIdentifier);
@@ -67,8 +70,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             return wellcomeBagAwareArchiveStorageMap;
         }
         
-        private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap map)
+        private bool NeedsRebuilding(WellcomeBagAwareArchiveStorageMap? map)
         {
+            if (map == null)
+            {
+                return true;
+            }
             if (map.VersionSets.IsNullOrEmpty())
             {
                 logger.LogWarning("Cached StorageMap found with null or empty VersionSet. {Identifier}",

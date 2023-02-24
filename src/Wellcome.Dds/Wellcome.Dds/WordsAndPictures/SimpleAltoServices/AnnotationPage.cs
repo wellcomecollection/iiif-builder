@@ -8,6 +8,8 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
     [ProtoContract]
     public class AnnotationPage
     {
+        #nullable disable
+        
         [ProtoMember(1)]
         public int Index { get; set; }
         

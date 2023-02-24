@@ -20,7 +20,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// Get specified WorkflowJob.
         /// </summary>
         /// <param name="id">Id of workflow job to fetch.</param>
-        ValueTask<WorkflowJob> GetWorkflowJob(string id);
+        ValueTask<WorkflowJob?> GetWorkflowJob(string id);
         
         /// <summary>
         /// Get the most recent WorkflowJobs

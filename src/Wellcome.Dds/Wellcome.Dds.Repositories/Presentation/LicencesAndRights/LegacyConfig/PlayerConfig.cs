@@ -2,6 +2,7 @@
 
 namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights.LegacyConfig
 {
+    #nullable disable
     /// <summary>
     /// This class can be extended to match the player's Javascript configuration
     /// </summary>

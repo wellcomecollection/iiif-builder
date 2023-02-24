@@ -29,6 +29,8 @@ namespace Wellcome.Dds.WordsAndPictures
     [Serializable]
     public class Text
     {
+        #nullable disable
+        
         [ProtoMember(1)]
         public string NormalisedFullText { get; set; }
         
@@ -148,7 +150,7 @@ namespace Wellcome.Dds.WordsAndPictures
             for (int i = 1; i < results.Count; i++)
             {
                 var nextWord = results[i];
-                if (coalescedWord.Li == nextWord.Li && coalescedWord.Wds.Last() == nextWord.Wd - 1)
+                if (coalescedWord.Li == nextWord.Li && coalescedWord.Wds!.Last() == nextWord.Wd - 1)
                 {
                     // these two words are adjacent on the same line
                     coalescedWord.Y = Math.Min(coalescedWord.Y, nextWord.Y);
@@ -159,8 +161,8 @@ namespace Wellcome.Dds.WordsAndPictures
 
                     // new version - calculates width based on nextWord's coordinates
                     coalescedWord.W = (nextWord.X + nextWord.W) - coalescedWord.X;
-                    coalescedWord.Wds.Add(nextWord.Wd);
-                    coalescedWord.PosNorms.Add(nextWord.PosNorm);
+                    coalescedWord.Wds!.Add(nextWord.Wd);
+                    coalescedWord.PosNorms!.Add(nextWord.PosNorm);
                     coalescedWord.Sp = nextWord.Sp;
                     coalescedWord.ContentNorm += " " + nextWord;
                     coalescedWord.ContentRaw += " " + nextWord.ToRawString();

@@ -78,7 +78,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
-                errorsByMetadataPage = await digitalObjectRepository.GetErrorsByMetadata(page);
+                errorsByMetadataPage = await digitalObjectRepository.GetErrorsByMetadata(
+                    page, new DlcsCallContext("DashController::Status", "[no-id]"));
             }
             catch (Exception ex)
             {
@@ -127,7 +128,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             DdsIdentifier ddsId = null;
-
+            logger.LogDebug("Generating Manifestation Page for {identifier}", id);
             try
             {
                 ddsId = new DdsIdentifier(id);
@@ -179,9 +180,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
             bool showError = false;
             try
             {
+                var dlcsCallContext = new DlcsCallContext("DashController::Collection", id);
+                logger.LogDebug("Starting DlcsCallContext: {callContext}", dlcsCallContext);
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await digitalObjectRepository.GetDigitalObject(id)) as IDigitalCollection;
+                collection = await digitalObjectRepository.GetDigitalObject(
+                    id, dlcsCallContext) as IDigitalCollection;
             }
             catch (Exception metsEx)
             {
@@ -403,7 +407,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> DeleteOrphans(string id)
         {
             digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
-            int removed = await digitalObjectRepository.DeleteOrphans(id);
+            int removed = await digitalObjectRepository.DeleteOrphans(id, new DlcsCallContext("DashController::DeleteOrphans", id));
             TempData["orphans-deleted"] = removed;
             return RedirectToAction("Manifestation", new { id });
         }

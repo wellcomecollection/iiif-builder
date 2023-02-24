@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -13,14 +14,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     /// </summary>
     public class Manifestation : BaseMetsResource, IManifestation
     {
-        public List<IPhysicalFile> Sequence
+        public List<IPhysicalFile>? Sequence
         {
             get
             {
                 LazyInit();
                 return sequence;
             }
-            set { sequence = value; }
+            set => sequence = value;
         }
 
         /// <summary>
@@ -28,7 +29,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         /// One PhysicalFile might have more than one File pointer - e.g., Images have JP2 and ALTO
         /// but only the JP2 is synchronisable, or a video might have mpeg and transcript
         /// </summary>
-        public List<IStoredFile> SynchronisableFiles
+        public List<IStoredFile>? SynchronisableFiles
         {
             get
             {
@@ -37,18 +38,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
-        public IStructRange RootStructRange
+        public IStructRange? RootStructRange
         {
             get
             {
                 LazyInit();
                 return rootStructRange;
             }
-            set { rootStructRange = value; }
+            set => rootStructRange = value;
         }
 
         
-        public string FirstInternetType
+        public string? FirstInternetType
         {
             get
             {
@@ -57,7 +58,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
         }
 
-        public List<string> IgnoredStorageIdentifiers
+        public List<string>? IgnoredStorageIdentifiers
         {
             get
             {
@@ -89,40 +90,43 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 if (SectionMetadata != null && SectionMetadata.DzLicenseCode.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        SectionMetadata.DzLicenseCode, Type, FirstInternetType);
+                        SectionMetadata.DzLicenseCode, Type!, FirstInternetType);
                 }
                 return new string[] {};
             }
         }
 
 
-        public IStoredFile PosterImage
+        public IStoredFile? PosterImage
         {
             get
             {
                 LazyInit();
                 return posterImage;
             }
-            set { posterImage = value; }
+            set => posterImage = value;
         }
 
-        private ILogicalStructDiv logicalStructDiv;
-        private ILogicalStructDiv parentLogicalStructDiv;
-        private IStoredFile posterImage;
+        private readonly ILogicalStructDiv logicalStructDiv;
+        private IStoredFile? posterImage;
         private bool initialised;
-        private List<IPhysicalFile> sequence;
+        private List<IPhysicalFile>? sequence;
         // private List<IPhysicalFile> significantSequence;
-        private List<IStoredFile> synchronisableFiles;
-        private IStructRange rootStructRange;
-        private List<string> ignoredStorageIdentifiers;
-        private string firstInternetType;
+        private List<IStoredFile>? synchronisableFiles;
+        private IStructRange? rootStructRange;
+        private List<string>? ignoredStorageIdentifiers;
+        private string? firstInternetType;
 
-        public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv parentStructDiv = null)
+        public Manifestation(ILogicalStructDiv structDiv, ILogicalStructDiv? parentStructDiv = null)
         {
+            if (structDiv.ExternalId.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("Logical Struct Div for Manifestation must have an ExternalID");
+            }
             logicalStructDiv = structDiv;
             Identifier = new DdsIdentifier(logicalStructDiv.ExternalId);
             SectionMetadata = logicalStructDiv.GetSectionMetadata();
-            parentLogicalStructDiv = parentStructDiv;
+            var parentLogicalStructDiv = parentStructDiv;
             if (parentLogicalStructDiv != null)
             {
                 ParentSectionMetadata = parentLogicalStructDiv.GetSectionMetadata();
@@ -145,30 +149,33 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 posterImage = logicalStructDiv.GetPosterImage();
                 PhysicalFileMap = sequence.ToDictionary(pf => pf.Id);
                 rootStructRange = BuildStructRange(logicalStructDiv);
-                var ignoreAssetFilter = new IgnoreAssetFilter();
                 if (sequence.HasItems())
                 {                    
                     // When we want to include POSTER images in the DLCS sync operation, 
                     // we can add || f.Use == "POSTER" here. Wait till new DLCS before doing that.
-                    synchronisableFiles = sequence.SelectMany(pf => pf.Files)
+                    synchronisableFiles = sequence.SelectMany(pf => pf.Files!)
                         .Where(sf => 
                             sf.Use == "OBJECTS" ||  // Old workflows
                             sf.Use == "ACCESS" ||   // New workflows
                             sf.Use == "TRANSCRIPT")
                         .ToList();
-                    var ignoredFiles = sequence.SelectMany(pf => pf.Files)
+                    var ignoredFiles = sequence.SelectMany(pf => pf.Files!)
                         .Where(sf => 
                             sf.Use == "POSTER" || 
                             sf.Use == "ALTO" || 
-                            sf.Use == "PRESERVATION")
+                            sf.Use == "PRESERVATION" ||
+                            sf.Use == "MASTER")
                         .ToList();
                     
-                    ignoredStorageIdentifiers = ignoredFiles.Select(sf => sf.StorageIdentifier).ToList();
+                    ignoredStorageIdentifiers = ignoredFiles.Select(sf => 
+                        sf.StorageIdentifier ?? 
+                        throw new InvalidOperationException("Could not obtain storage identifier"))
+                        .ToList();
 
                     var firstFile = sequence.FirstOrDefault();
                     if (firstFile != null)
                     {
-                        firstInternetType = firstFile.MimeType.ToLowerInvariant().Trim();
+                        firstInternetType = firstFile.MimeType!.ToLowerInvariant().Trim();
                     }
                 }
                 else
@@ -195,7 +202,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 foreach (var fileId in sr.PhysicalFileIds)
                 {
-                    var file = PhysicalFileMap[fileId];
+                    var file = PhysicalFileMap![fileId];
                     if (!file.AccessCondition.HasText())
                     {
                         file.AccessCondition = mods.AccessCondition;
@@ -215,6 +222,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             return sr;
         }
 
-        public Dictionary<string, IPhysicalFile> PhysicalFileMap { get; set; }
+        public Dictionary<string, IPhysicalFile>? PhysicalFileMap { get; set; }
     }
 }

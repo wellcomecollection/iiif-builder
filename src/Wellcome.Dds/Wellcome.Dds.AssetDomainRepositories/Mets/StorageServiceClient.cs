@@ -36,7 +36,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 return cachedJson;
             
             var storageManifestUrl = string.Format(
-                storageOptions.StorageApiTemplate, storageSpace, packageIdentifier);
+                storageOptions.StorageApiTemplate!, storageSpace, packageIdentifier);
             // temporary workaround to Cloudfront 404 caching
             storageManifestUrl += $"?ts={DateTime.Now.Ticks}";
 
@@ -49,8 +49,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public async Task<JObject> LoadStorageManifest(string storageSpace, string packageIdentifier)
         {
             logger.LogInformation("Getting storage manifest for {identifier}", packageIdentifier);
-            JObject storageManifest = null;
-            Exception apiException = null;
+            JObject? storageManifest = null;
+            Exception? apiException = null;
             int tries = 1;
             
             // NOTE - if we expose HttpClient we could use Polly here

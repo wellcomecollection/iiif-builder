@@ -44,11 +44,15 @@ namespace Wellcome.Dds.Repositories
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns)
         {
+            this.dlcsOptions = dlcsOptions.Value;
+            if (this.dlcsOptions.ResourceEntryPoint.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("DLCS Resource Entry Point not specified in options");
+            }
             this.metsRepository = metsRepository;
             this.logger = logger;
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
-            this.dlcsOptions = dlcsOptions.Value;
             this.uriPatterns = uriPatterns;
         }
         
@@ -77,7 +81,7 @@ namespace Wellcome.Dds.Repositories
         public async Task RefreshDdsManifestations(DdsIdentifier identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
-            var shortB = -1;
+            // var shortB = -1;
             var manifestationIdsProcessed = new List<string>();
             var containsRestrictedFiles = false;
             IMetsResource? packageMetsResource = null;
@@ -101,7 +105,7 @@ namespace Wellcome.Dds.Repositories
                 await ddsContext.SaveChangesAsync();
 
                 // WHAT TO DO... leave shortB as -1?
-                shortB = identifier.HasBNumber ? identifier.BNumber.ToShortBNumber() : 0; 
+                // shortB = identifier.HasBNumber ? identifier.BNumber.ToShortBNumber() : 0; 
                 logger.LogInformation("Getting METS resource for synchroniser: {identifier}", identifier);
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
@@ -113,23 +117,23 @@ namespace Wellcome.Dds.Repositories
             // all possible manifestations currently defined in METS for this b number.
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
-                var metsManifestation = mic.Manifestation;
+                IManifestation metsManifestation = mic.Manifestation;
                 if (metsManifestation.Partial)
                 {
                     logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Identifier);
-                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Identifier);
+                    metsManifestation = (IManifestation) (await metsRepository.GetAsync(metsManifestation.Identifier!))!;
                 }
                 if (identifier.IsPackageLevelIdentifier)
                 {
-                    if (metsManifestation.SectionMetadata.AccessCondition == "Restricted files")
+                    if (metsManifestation.SectionMetadata!.AccessCondition == "Restricted files")
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIdsProcessed.Add(metsManifestation.Identifier);
+                    manifestationIdsProcessed.Add(metsManifestation.Identifier!);
                 }
 
-                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier.ToString());
-                var assets = metsManifestation.Sequence;
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier!.ToString());
+                var assets = metsManifestation.Sequence ?? throw new InvalidOperationException("Manifestation has no Sequence");
                 
                 // (some Change code removed here) - we're not going to implement this for now
                 if (ddsManifestation == null)
@@ -155,7 +159,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.Label =
                     metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)";
                 ddsManifestation.WorkId = work.Id;
-                ddsManifestation.WorkType = work.WorkType.Id;
+                ddsManifestation.WorkType = work.WorkType!.Id;
                 ddsManifestation.ReferenceNumber = work.ReferenceNumber;
                 ddsManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
                 ddsManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
@@ -192,7 +196,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
                 ddsManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
                 ddsManifestation.PermittedOperations = string.Join(",", metsManifestation.PermittedOperations);
-                ddsManifestation.RootSectionAccessCondition = metsManifestation.SectionMetadata.AccessCondition;
+                ddsManifestation.RootSectionAccessCondition = metsManifestation.SectionMetadata!.AccessCondition;
                 if (assets.HasItems())
                 {
                     ddsManifestation.FileCount = assets.Count;
@@ -205,7 +209,7 @@ namespace Wellcome.Dds.Repositories
                         //     ddsManifestation.AssetType = "seadragon/dzi";
                         ddsManifestation.FirstFileStorageIdentifier = asset.StorageIdentifier;
                         ddsManifestation.FirstFileExtension =
-                            asset.AssetMetadata.GetFileName().GetFileExtension().ToLowerInvariant();
+                            asset.AssetMetadata!.GetFileName()!.GetFileExtension().ToLowerInvariant();
                         ddsManifestation.DipStatus = null;
                         switch (ddsManifestation.AssetType.GetAssetFamily())
                         {
@@ -215,7 +219,7 @@ namespace Wellcome.Dds.Repositories
                                 if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
-                                    IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
+                                    IPhysicalFile? catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
                                         ddsManifestation.CatalogueThumbnailDimensions = catThumbAsset.GetAvailableSizeAsString();
@@ -233,11 +237,11 @@ namespace Wellcome.Dds.Repositories
                 }
                 if (packageFileResource != null)
                 {
-                    ddsManifestation.PackageFile = packageFileResource.SourceFile.Uri;
+                    ddsManifestation.PackageFile = packageFileResource.SourceFile!.Uri;
                     ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
                 }
                 var fsr = (IFileBasedResource) metsManifestation;
-                ddsManifestation.ManifestationFile = fsr.SourceFile.Uri;
+                ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
                 ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
                 ddsManifestation.Processed = DateTime.Now;
 
@@ -303,10 +307,10 @@ namespace Wellcome.Dds.Repositories
         private IPhysicalFile? GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
         {
             if (work.Thumbnail == null) return null;
-            var match = wcorgThumbRegex.Match(work.Thumbnail.Url);
+            var match = wcorgThumbRegex.Match(work.Thumbnail.Url!);
             if (!match.Success)
             {
-                match = dlcsThumbRegex.Match(work.Thumbnail.Url);
+                match = dlcsThumbRegex.Match(work.Thumbnail.Url!);
                 if (!match.Success) return null;
             }
             var storageIdentifier = match.Groups[1].Value;
@@ -315,7 +319,7 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint, asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint!, asset.StorageIdentifier);
         }
         
   

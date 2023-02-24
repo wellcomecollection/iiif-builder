@@ -5,11 +5,21 @@ using IIIF.Auth.V2;
 using IIIF.Presentation.V2.Strings;
 using IIIF.Presentation.V3.Strings;
 using Utils;
+using Wellcome.Dds.IIIFBuilding;
 
 namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 {
-    public abstract class IIIFAuthServiceProvider : IAuthServiceProvider
+    public class IIIFAuthServiceProvider : IAuthServiceProvider
     {
+        private readonly string dlcsEntryPoint;
+        private readonly UriPatterns uriPatterns;
+        
+        public IIIFAuthServiceProvider(string dlcsEntryPoint, UriPatterns uriPatterns)
+        {
+            this.dlcsEntryPoint = dlcsEntryPoint;
+            this.uriPatterns = uriPatterns;
+        }
+        
         // TODO: https://github.com/wellcomecollection/platform/issues/5634
         private const string ClickthroughHeader = "Content advisory";
         private const string ClickthroughConfirmlabel = "Accept Terms and Open";
@@ -42,18 +52,11 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 
         private const string LogoutLabel = "Log out of Wellcome Collection";
 
-
-        protected abstract string GetClickthroughLoginServiceId();
-        protected abstract string GetLogoutServiceId();
-        protected abstract string GetClinicalLoginServiceId();
-        protected abstract string GetRestrictedLoginServiceId();
-        protected abstract string GetTokenServiceId();
-
         public IService GetAcceptTermsAuthServicesV1()
         {
             // for UV compliant with 0.9.3
             var clickthroughV1Service = AuthCookieService.NewClickthroughInstance();
-            clickthroughV1Service.Id = GetClickthroughLoginServiceId();
+            clickthroughV1Service.Id = uriPatterns.DlcsClickthroughLoginServiceId(dlcsEntryPoint);
             clickthroughV1Service.Label = new MetaDataValue(ClickthroughHeader);
             clickthroughV1Service.Header = new MetaDataValue(ClickthroughHeader);
             clickthroughV1Service.Description = new MetaDataValue(ClickthroughLoginDescription);
@@ -68,14 +71,12 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new AuthAccessService2
             {
-                Id = AsV2(GetClickthroughLoginServiceId()),
+                Id = uriPatterns.DlcsClickthroughLoginServiceV2Id(dlcsEntryPoint),
                 Profile = AuthAccessService2.InteractiveProfile,
                 Label = new LanguageMap("en", ClickthroughHeader),
-                Header = new LanguageMap("en", ClickthroughHeader),
-                Description = new LanguageMap("en", ClickthroughLoginDescription),
+                Heading = new LanguageMap("en", ClickthroughHeader),
+                Note = new LanguageMap("en", ClickthroughLoginDescription),
                 ConfirmLabel = new LanguageMap("en", ClickthroughConfirmlabel),
-                FailureHeader = new LanguageMap("en", ClickthroughFailureHeader),
-                FailureDescription = new LanguageMap("en", ClickthroughFailureDescription),
                 Service = GetCommonChildAuthServicesV2()
             };
         }
@@ -83,7 +84,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         public IService GetClinicalLoginServicesV1()
         {
             var clinicalLoginV1Service = AuthCookieService.NewLoginInstance();
-            clinicalLoginV1Service.Id = GetClinicalLoginServiceId();
+            clinicalLoginV1Service.Id = uriPatterns.DlcsClinicalLoginServiceId(dlcsEntryPoint);
             clinicalLoginV1Service.ConfirmLabel = new MetaDataValue("LOGIN");
             clinicalLoginV1Service.Label = new MetaDataValue(ClinicalHeader);
             clinicalLoginV1Service.Header = new MetaDataValue(ClinicalHeader);
@@ -94,18 +95,16 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             return clinicalLoginV1Service;
         }
 
-        public IService GetClinicalLoginServicesV2()
+        public IService GetLoginServicesV2()
         {
             return new AuthAccessService2
             {
-                Id = AsV2(GetClinicalLoginServiceId()),
+                Id = uriPatterns.DlcsLoginServiceV2Id(dlcsEntryPoint),
                 Profile = AuthAccessService2.InteractiveProfile,
                 Label = new LanguageMap("en", ClinicalHeader),
-                Header = new LanguageMap("en", ClinicalHeader),
-                Description = new LanguageMap("en", ClinicalLoginDescription),
+                Heading = new LanguageMap("en", ClinicalHeader),
+                Note = new LanguageMap("en", ClinicalLoginDescription),
                 ConfirmLabel = new LanguageMap("en", "LOGIN"),
-                FailureHeader = new LanguageMap("en", ClinicalFailureDescription),
-                FailureDescription = new LanguageMap("en", ClinicalFailureDescription),
                 Service = GetCommonChildAuthServicesV2()
             };
         }
@@ -113,7 +112,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         public IService GetRestrictedLoginServicesV1()
         {
             var externalServiceV1 = AuthCookieService.NewExternalInstance();
-            externalServiceV1.Id = GetRestrictedLoginServiceId();
+            externalServiceV1.Id = uriPatterns.DlcsRestrictedLoginServiceId(dlcsEntryPoint);
             externalServiceV1.Label = new MetaDataValue(RestrictedHeader);
             externalServiceV1.FailureHeader = new MetaDataValue(RestrictedHeader);
             externalServiceV1.Description = new MetaDataValue(RestrictedFailureDescription);
@@ -127,27 +126,56 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new AuthAccessService2
             {
-                Id = AsV2(GetRestrictedLoginServiceId()),
+                Id = uriPatterns.DlcsRestrictedLoginServiceV2Id(dlcsEntryPoint),
                 Profile = AuthAccessService2.ExternalProfile,
                 Label = new LanguageMap("en", RestrictedHeader),
-                FailureHeader = new LanguageMap("en", RestrictedHeader),
-                Description = new LanguageMap("en", RestrictedFailureDescription),
-                FailureDescription = new LanguageMap("en", RestrictedFailureDescription),
+                Heading = new LanguageMap("en", RestrictedHeader),
+                Note = new LanguageMap("en", RestrictedFailureDescription),
                 Service = GetCommonChildAuthServicesV2()
             };
         }
 
+        public AuthProbeService2 GetClickthroughProbeService(string assetIdentifier)
+        {
+            return new AuthProbeService2
+            {
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
+                ErrorHeading = new LanguageMap("en", ClickthroughFailureHeader),
+                ErrorNote = new LanguageMap("en", ClickthroughFailureDescription)
+            };
+        }
+        
+        public AuthProbeService2 GetLoginProbeService(string assetIdentifier)
+        {
+            return new AuthProbeService2
+            {
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
+                ErrorHeading = new LanguageMap("en", ClinicalFailureDescription),
+                ErrorNote = new LanguageMap("en", ClinicalFailureDescription),
+            };
+        }
+        
+        public AuthProbeService2 GetRestrictedProbeService(string assetIdentifier)
+        {
+            return new AuthProbeService2
+            {
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
+                ErrorHeading = new LanguageMap("en", RestrictedHeader),
+                ErrorNote = new LanguageMap("en", RestrictedFailureDescription)
+            };
+        }
+        
         private List<IService> GetCommonChildAuthServicesV1()
         {
             return new List<IService>
             {
                 new AuthTokenService
                 {
-                    Id = GetTokenServiceId()
+                    Id = uriPatterns.DlcsTokenServiceId(dlcsEntryPoint)
                 },           
                 new AuthLogoutService
                 {
-                    Id = GetLogoutServiceId(),
+                    Id = uriPatterns.DlcsLogoutServiceId(dlcsEntryPoint),
                     Label = new MetaDataValue(LogoutLabel)
                 }
             };
@@ -157,21 +185,16 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new List<IService>
             {
-                new AuthTokenService2
+                new AuthAccessTokenService2
                 {
-                    Id = AsV2(GetTokenServiceId())
+                    Id = uriPatterns.DlcsTokenServiceV2Id(dlcsEntryPoint)
                 },
                 new AuthLogoutService2
                 {
-                    Id = AsV2(GetLogoutServiceId()),
+                    Id = uriPatterns.DlcsLogoutServiceV2Id(dlcsEntryPoint),
                     Label = new LanguageMap("en", LogoutLabel)
                 }
             };
-        }
-
-        private string AsV2(string originalUrl)
-        {
-            return originalUrl.ReplaceFirst("/auth/", "/auth/v2/");
         }
     }
 }

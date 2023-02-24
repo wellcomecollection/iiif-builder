@@ -62,7 +62,7 @@ namespace Wellcome.Dds.Catalogue
             {"digfugitive", "Fugitive sheets (pre-Player)"}
         };
 
-        public static string GetFriendlyName(string collectionCode)
+        public static string? GetFriendlyName(string collectionCode)
         {
             return Lookups.ContainsKey(collectionCode) ? Lookups[collectionCode] : null;
         }

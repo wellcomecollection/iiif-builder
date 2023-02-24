@@ -48,10 +48,10 @@ namespace Wellcome.Dds.Repositories.Catalogue
             this.logger = logger;
         }
 
-        public async Task<Work> GetWorkByOtherIdentifier(string identifier)
+        public async Task<Work?> GetWorkByOtherIdentifier(string identifier)
         {
             var resultPage = await GetWorkResultPage(null, identifier, null, 0);
-            if(resultPage.Results.HasItems())
+            if(resultPage != null && resultPage.Results.HasItems())
             {
                 if(resultPage.Results.Length == 1)
                 {
@@ -59,13 +59,13 @@ namespace Wellcome.Dds.Repositories.Catalogue
                     // see https://digirati.slack.com/archives/CBT40CMKQ/p1597936607018500
                     // We need to obtain the work by its WorkID to make sure we're not missing anything
                     // return resultPage.Results[0];
-                    return await GetWorkByWorkId(resultPage.Results[0].Id);
+                    return await GetWorkByWorkId(resultPage.Results[0].Id!);
                 }
 
                 // TODO - handle paging, if there is a nextPage in this result set
                 // The API can return more than one work for a given identifier.
                 // See b14658197
-                Work matchedWork = null;
+                Work? matchedWork = null;
                 List<Work> relatedWorks = new List<Work>();
                 foreach(var work in resultPage.Results)
                 {
@@ -91,14 +91,14 @@ namespace Wellcome.Dds.Repositories.Catalogue
                     return null;
                 }
                 matchedWork.RelatedByIdentifier = relatedWorks.ToArray();
-                return await GetWorkByWorkId(matchedWork.Id);
+                return await GetWorkByWorkId(matchedWork.Id!);
             }
             return null;
         }
 
 
         /// <summary>
-        /// This is NOT the real implementation yet! Need to try it on all the bnumbers and build these rules out.
+        /// This is NOT the real implementation yet! Need to try it on all the b numbers and build these rules out.
         /// </summary>
         /// <param name="work"></param>
         /// <param name="identifier"></param>
@@ -107,8 +107,8 @@ namespace Wellcome.Dds.Repositories.Catalogue
         {
             if (
                 identifier.IsBNumber() 
-                && work.Identifiers.Any(workId => 
-                    workId.IdentifierType.Id == "sierra-identifier" 
+                && work.Identifiers.AnyItems().Any(workId => 
+                    workId.IdentifierType?.Id == "sierra-identifier" 
                     && workId.Value == identifier.ToShortBNumber().ToString()))
             {
                 // If we asked the catalogue API to search by b number, then
@@ -117,7 +117,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
                 // instead of b{7-digits}{checksum}
                 return true;
             }
-            if(work.WorkType.Id == "k")
+            if(work.WorkType?.Id == "k")
             {
                 // This is unlikely to be a Miro item
                 return true;
@@ -125,26 +125,27 @@ namespace Wellcome.Dds.Repositories.Catalogue
             return false;
         }
 
-        public Task<WorkResultPage> GetWorkResultPage(string query, string identifiers)
+        public Task<WorkResultPage?> GetWorkResultPage(string? query, string identifiers)
         {
             return GetWorkResultPage(query, identifiers, null, 0);
         }
 
-        public async Task<WorkResultPage> GetWorkResultPage(string query, string identifiers, IEnumerable<string> include, int pageSize)
+        public async Task<WorkResultPage?> GetWorkResultPage(string? query, string identifiers, IEnumerable<string>? include, int pageSize)
         {
             var queryString = BuildQueryString(query, identifiers, include, pageSize);
             var url = options.ApiWorkTemplate + queryString;
             var response = await MakeRequest(url);
-            return await response.Content.ReadFromJsonAsync<WorkResultPage>();
+            var wrp = await response.Content.ReadFromJsonAsync<WorkResultPage>();
+            return wrp;
         }
 
-        public string GetCatalogueApiUrl(string workId, string[] include = null)
+        public string GetCatalogueApiUrl(string workId, string[]? include = null)
         {
             var queryString = BuildQueryString(null, null, include, -1);
             return $"{options.ApiWorkTemplate}/{workId}{queryString}";
         }
 
-        public async Task<Work> GetWorkByWorkId(string workId)
+        public async Task<Work?> GetWorkByWorkId(string workId)
         {
             var url = GetCatalogueApiUrl(workId);
             var response = await MakeRequest(url);
@@ -163,18 +164,16 @@ namespace Wellcome.Dds.Repositories.Catalogue
             return response;
         }
 
-        public Work FromDumpLine(string line, JsonSerializerOptions options)
+        public Work? FromDumpLine(string line, JsonSerializerOptions? serializerOptions)
         {
-            return JsonSerializer.Deserialize<Work>(line, options);
+            return JsonSerializer.Deserialize<Work>(line, serializerOptions);
         }
 
-        private string BuildQueryString(string query, string identifiers, IEnumerable<string> include, int pageSize)
+        private string BuildQueryString(string? query, string? identifiers, IEnumerable<string>? include, int pageSize)
         {
             var args = new List<string>();
-            if (include == null)
-            {
-                include = allIncludes;
-            }
+            include ??= allIncludes;
+            
             var includes = include.ToArray();
             if (query.HasText())
             {

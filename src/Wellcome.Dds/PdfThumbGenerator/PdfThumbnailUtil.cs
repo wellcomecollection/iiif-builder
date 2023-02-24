@@ -14,12 +14,21 @@ using Wellcome.Dds.Common;
 
 namespace PdfThumbGenerator
 {
+    /// <summary>
+    /// Wrapper round GhostScript executable call to generate an image from the first page of a PDF
+    /// </summary>
     public class PdfThumbnailUtil
     {
         private readonly ILogger<PdfThumbnailUtil> logger;
         private readonly IAmazonS3 ddsServiceS3;
         private readonly DdsOptions ddsOptions;
         
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="s3ClientFactory"></param>
+        /// <param name="ddsOptions"></param>
+        /// <param name="logger"></param>
         public PdfThumbnailUtil(
             INamedAmazonS3ClientFactory s3ClientFactory,
             IOptions<DdsOptions> ddsOptions,
@@ -30,6 +39,11 @@ namespace PdfThumbGenerator
             this.ddsOptions = ddsOptions.Value;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pdfStreamSource"></param>
+        /// <param name="identifier"></param>
         public async Task EnsurePdfThumbnails(Func<Task<Stream>> pdfStreamSource, string identifier)
         {
             var folder = Path.Combine(Path.GetTempPath(), "pdf_thumbs");
@@ -79,7 +93,7 @@ namespace PdfThumbGenerator
                 $"-dNOPAUSE -dBATCH -r96 -sDEVICE=jpeg -sOutputFile=\"{outputJpgPath}\" -dLastPage=1 \"{inputPdfPath}\"";
             logger.LogInformation("Calling ghostscript with args {Args}", args);
 
-            using (var ghostScriptProcess = new Process
+            using var ghostScriptProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -89,13 +103,11 @@ namespace PdfThumbGenerator
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                 }
-            })
-            {
-                ghostScriptProcess.Start();
-                var output = await ghostScriptProcess.StandardOutput.ReadToEndAsync();
-                logger.LogInformation(output);
-                await ghostScriptProcess.WaitForExitAsync();
-            }
+            };
+            ghostScriptProcess.Start();
+            var output = await ghostScriptProcess.StandardOutput.ReadToEndAsync();
+            logger.LogInformation(output);
+            await ghostScriptProcess.WaitForExitAsync();
         }
 
         private async Task ResizeImageToS3(string outputJpgPath, string key, string identifier)

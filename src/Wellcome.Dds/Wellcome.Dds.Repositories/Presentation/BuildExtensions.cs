@@ -23,22 +23,27 @@ namespace Wellcome.Dds.Repositories.Presentation
             if (metadataString.HasText())
             {
                 var allSizes = JsonConvert.DeserializeObject<List<int[]>>(metadataString);
-                return allSizes.Skip(1)
-                    .Select(s => new Size(s[0], s[1]))
-                    .ToList();
+                if (allSizes != null)
+                {
+                    return allSizes.Skip(1)
+                        .Select(s => new Size(s[0], s[1]))
+                        .ToList();
+                }
             }
             return new List<Size>();
         }
 
-        public static Size GetActualSize(this string metadataString)
+        public static Size? GetActualSize(this string metadataString)
         {
             if (metadataString.HasText())
             {
                 var allSizes = JsonConvert.DeserializeObject<List<int[]>>(metadataString);
-                return new Size(allSizes[0][0], allSizes[0][1]);
+                if (allSizes != null)
+                {
+                    return new Size(allSizes[0][0], allSizes[0][1]);
+                }
             }
             return null;
-
         }
 
         public static string GetAvailableSizeAsString(this IPhysicalFile asset)
@@ -51,7 +56,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var sizes = new List<Size>();
             var actualSize = new Size(
-                asset.AssetMetadata.GetImageWidth(),
+                asset.AssetMetadata!.GetImageWidth(),
                 asset.AssetMetadata.GetImageHeight());
             sizes.Add(new Size(actualSize.Width, actualSize.Height));
             var usableThumbs = new List<int>();
@@ -79,7 +84,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         // still need posters:
         // still need PDF thumbs
         // https://github.com/wellcomelibrary/dds-ecosystem/blob/new-storage-service/wellcome-dds/Wellcome.Dds/LinkedData/LodProviders/PackageTripleProvider.cs#L131
-        public static List<ExternalResource> GetThumbnail(
+        public static List<ExternalResource>? GetThumbnail(
             this List<Manifestation> manifestations, 
             string digitisedManifestationIdentifier)
         {
@@ -92,7 +97,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return manifestation.GetThumbnail();
         }
 
-        public static List<ExternalResource> GetThumbnail(this Manifestation manifestation)
+        public static List<ExternalResource>? GetThumbnail(this Manifestation manifestation)
         {
             var thumbSource = manifestation.CatalogueThumbnail;
             var sizeSource = manifestation.CatalogueThumbnailDimensions;
@@ -100,6 +105,11 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 thumbSource = manifestation.FirstFileThumbnail;
                 sizeSource = manifestation.FirstFileThumbnailDimensions;
+            }
+
+            if (thumbSource.IsNullOrWhiteSpace() || sizeSource.IsNullOrWhiteSpace())
+            {
+                return null;
             }
             if (!StringUtils.AllHaveText(thumbSource, sizeSource))
             {
@@ -161,7 +171,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             };
         }
 
-        public static string GetLocationOfOriginal(this List<Metadata> metadata)
+        public static string? GetLocationOfOriginal(this List<Metadata> metadata)
         {
             var locationOfOriginal = metadata
                 .FirstOrDefault(m => m.Label == "Location");
