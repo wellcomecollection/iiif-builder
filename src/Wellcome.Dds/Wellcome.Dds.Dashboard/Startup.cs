@@ -82,6 +82,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<DashOptions>(Configuration.GetSection("Dash"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
+            services.Configure<CacheInvalidationOptions>(Configuration.GetSection("CacheInvalidation"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
@@ -124,6 +125,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<ManifestationModelBuilder>(opts =>
                 ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
+            services.AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
+            
+            
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
 

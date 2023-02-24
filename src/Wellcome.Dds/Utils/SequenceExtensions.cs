@@ -61,7 +61,7 @@ namespace Utils
         {
             if (items == null)
             {
-                return new List<T>(0);
+                return Enumerable.Empty<T>();
             }
 
             return items;

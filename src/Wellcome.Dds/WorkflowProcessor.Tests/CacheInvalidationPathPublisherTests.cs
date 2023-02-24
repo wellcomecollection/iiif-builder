@@ -8,18 +8,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Xunit;
 
 namespace WorkflowProcessor.Tests
 {
-    public class WorkflowJobPostProcessorTests
+    public class CacheInvalidationPathPublisherTests
     {
-        private readonly WorkflowJobPostProcessor sut;
+        private readonly CacheInvalidationPathPublisher sut;
         private readonly IAmazonSimpleNotificationService sns;
         
-        public WorkflowJobPostProcessorTests()
+        public CacheInvalidationPathPublisherTests()
         {
             sns = A.Fake<IAmazonSimpleNotificationService>();
             
@@ -36,21 +37,8 @@ namespace WorkflowProcessor.Tests
                 ApiWorkTemplate = "(unused in this test)"
             });
             var uriPatterns = new UriPatterns(ddsOptions);
-            sut = new WorkflowJobPostProcessor(sns, uriPatterns,
-                Options.Create(invalidationOptions), NullLogger<WorkflowJobPostProcessor>.Instance);
-        }
-
-        [Fact]
-        public async Task PostProcess_DoesNothing_IfFlushCacheFalse()
-        {
-            // Arrange
-            var workflowJob = new WorkflowJob {FlushCache = false};
-            
-            // Act
-            await sut.PostProcess(workflowJob, new RunnerOptions());
-            
-            // Assert
-            A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._)).MustNotHaveHappened();
+            sut = new CacheInvalidationPathPublisher(sns, uriPatterns,
+                Options.Create(invalidationOptions), NullLogger<CacheInvalidationPathPublisher>.Instance);
         }
 
         [Theory]
@@ -61,16 +49,14 @@ namespace WorkflowProcessor.Tests
         public async Task PostProcess_FlushesIIIFCache_IfInvalidateTrue(int options)
         {
             // Arrange
-            var workflowJob = new WorkflowJob
-            {
-                FlushCache = true, Identifier = "b1231231"
-            };
+            string identifier = "b1231231";
+            RunnerOptions runnerOptions = RunnerOptions.FromInt32(options);
             PublishRequest request = null;
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))
                 .Invokes((PublishRequest pr, CancellationToken ct) => request = pr);
 
             // Act
-            await sut.PostProcess(workflowJob, RunnerOptions.FromInt32(options));
+            await sut.PublishInvalidation(identifier, runnerOptions.RebuildTextCaches);
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -88,10 +74,8 @@ namespace WorkflowProcessor.Tests
         public async Task PostProcess_FlushesIIIFCacheAndApiCache_IfInvalidateTrue_AndOptionsText(int options)
         {
             // Arrange
-            var workflowJob = new WorkflowJob
-            {
-                FlushCache = true, Identifier = "b1231231"
-            };
+            string identifier = "b1231231";
+            RunnerOptions runnerOptions = RunnerOptions.FromInt32(options);
             PublishRequest requestIiif = null;
             PublishRequest requestApi = null;
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))
@@ -108,7 +92,7 @@ namespace WorkflowProcessor.Tests
                 });
 
             // Act
-            await sut.PostProcess(workflowJob, RunnerOptions.FromInt32(options));
+            await sut.PublishInvalidation(identifier, runnerOptions.RebuildTextCaches);
             
             // Assert
             A.CallTo(() => sns.PublishAsync(A<PublishRequest>._, A<CancellationToken>._))
