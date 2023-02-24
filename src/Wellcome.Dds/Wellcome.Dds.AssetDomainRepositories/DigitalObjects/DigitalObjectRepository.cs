@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
@@ -12,6 +13,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
@@ -24,6 +26,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly IDlcs dlcs;
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly DdsOptions ddsOptions;
 
         public int DefaultSpace { get; }
         public int DefaultCustomer { get; }
@@ -33,7 +36,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             UriPatterns uriPatterns,
             IDlcs dlcs,
             IMetsRepository metsRepository,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            IOptions<DdsOptions> ddsOptions)
         {
             this.logger = logger;
             this.uriPatterns = uriPatterns;
@@ -42,9 +46,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             DefaultCustomer = dlcs.DefaultCustomer;
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.ddsOptions = ddsOptions.Value;
         }
 
-        // make all the things, then hand back to DashboarcCloudServicesJobProcessor process job.
+        // make all the things, then hand back to DashboardCloudServicesJobProcessor process job.
         // the code that makes the calls to DLCS needs to go in here
 
         // and th sync...
@@ -587,9 +592,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             // In DDS we never change these but they would need to be considered here
+            // We also need to consider what's significant when either new or existing are null
             //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
             //    return newDlcsImage;
             //if (existingDlcsImage.ThumbnailPolicy != newDlcsImage.ThumbnailPolicy)
+            //    return newDlcsImage;
+            //if (existingDlcsImage.DeliveryChannel != newDlcsImage.DeliveryChannel)
             //    return newDlcsImage;
 
             return reingestImage;
@@ -756,9 +764,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.MaxUnauthorised = -1;
             }
 
+            if (dlcs.SupportsDeliveryChannels)
+            {
+                var processing = asset.PhysicalFile.ProcessingBehaviour;
+                imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
+                imageRegistration.DeliveryChannel = processing.DeliveryChannels.ToCommaDelimitedList();
+                imageRegistration.Family = null;
+            }
             return imageRegistration;
         }
-
+  
         public async Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number)
         {
             // int sequenceIndex = await metsRepository.FindSequenceIndex(identifier);

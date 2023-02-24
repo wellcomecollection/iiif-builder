@@ -25,7 +25,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
 
                 return AssetFamily.File;
             }
-            if (mediaType.IsVideoMimeType() || mediaType.IsAudioMimeType())
+            if (mediaType.IsTimeBasedMimeType())
             {
                 return AssetFamily.TimeBased;
             }
@@ -40,6 +40,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         public static bool IsAudioMimeType(this string? mimeType)
         {
             return mimeType != null && mimeType.StartsWith("audio/");
+        }
+
+        public static bool IsTimeBasedMimeType(this string? mimeType)
+        {
+            return mimeType.IsVideoMimeType() || mimeType.IsAudioMimeType();
         }
         
         public static bool IsImageMimeType(this string? mimeType)

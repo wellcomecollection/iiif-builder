@@ -139,9 +139,9 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new AuthProbeService2
             {
-                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
-                ErrorHeading = new LanguageMap("en", ClickthroughFailureHeader),
-                ErrorNote = new LanguageMap("en", ClickthroughFailureDescription)
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier)
+                // ErrorHeading = new LanguageMap("en", ClickthroughFailureHeader),
+                // ErrorNote = new LanguageMap("en", ClickthroughFailureDescription)
             };
         }
         
@@ -149,9 +149,9 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new AuthProbeService2
             {
-                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
-                ErrorHeading = new LanguageMap("en", ClinicalFailureDescription),
-                ErrorNote = new LanguageMap("en", ClinicalFailureDescription),
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier)
+                // ErrorHeading = new LanguageMap("en", ClinicalFailureDescription),
+                // ErrorNote = new LanguageMap("en", ClinicalFailureDescription),
             };
         }
         
@@ -159,9 +159,9 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         {
             return new AuthProbeService2
             {
-                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier),
-                ErrorHeading = new LanguageMap("en", RestrictedHeader),
-                ErrorNote = new LanguageMap("en", RestrictedFailureDescription)
+                Id = uriPatterns.DlcsProbeServiceV2(dlcsEntryPoint, assetIdentifier)
+                // ErrorHeading = new LanguageMap("en", RestrictedHeader),
+                // ErrorNote = new LanguageMap("en", RestrictedFailureDescription)
             };
         }
         

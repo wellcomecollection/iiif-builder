@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Amazon.Runtime.Internal;
 using IIIF;
 using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
@@ -38,6 +39,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
         private readonly string[] extraAccessConditions;
+        private readonly bool useDeliveryChannels;
         private readonly ManifestStructureHelper manifestStructureHelper;
 
         // Existing Auth1 (actually 0.9.3) services
@@ -71,12 +73,14 @@ namespace Wellcome.Dds.Repositories.Presentation
             UriPatterns uriPatterns,
             string dlcsEntryPoint,
             bool referenceV0SearchService, 
-            string[] extraAccessConditions)
+            string[] extraAccessConditions,
+            bool useDeliveryChannels)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
+            this.useDeliveryChannels = useDeliveryChannels;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new IIIFAuthServiceProvider(dlcsEntryPoint, uriPatterns);
             clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
@@ -302,7 +306,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
-            var manifestIdentifier = metsManifestation.Identifier!.ToString();
+            var manifestIdentifier = metsManifestation.Identifier.ToString();
             manifest.Items = new List<Canvas>();
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence!)
@@ -398,7 +402,22 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 }
                             };
                         }
+
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
+                        
+                        if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
+                        {
+                            var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
+                            var rendering = new Image
+                            {
+                                Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                                Format = physicalFile.MimeType,
+                                Label = Lang.Map(label ?? "(unknown format)")
+                            };
+                            canvas.Rendering ??= new List<ExternalResource>();
+                            canvas.Rendering.Add(rendering);
+                            AddAuthServices(rendering, physicalFile, foundAuthServices);
+                        }
                         break;
                     
                     case AssetFamily.TimeBased:
@@ -483,11 +502,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                                 }
                             };
                             
+                            // Also add the same videos as renderings for download:
+                            canvas.Rendering ??= new List<ExternalResource>();
+                            
+                            // Now add auth services, and add them to the rendering
                             foreach (var paintable in avChoice.Items)
                             {
                                 if (paintable is ResourceBase resource)
                                 {
                                     AddAuthServices(resource, physicalFile, foundAuthServices);
+                                    canvas.Rendering.Add((ExternalResource)resource);
                                 }
                             }
 
@@ -872,39 +896,70 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The other issue here is that the DLCS probably won't have got round to processing this,
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
+            var deliveryChannels = useDeliveryChannels ? 
+                physicalFile.ProcessingBehaviour.DeliveryChannels : new HashSet<string> { "iiif-av" };
             if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
             {
+                // First do the <= 720p video which is going to     
                 var confineToBox = new Size(1280, 720);
                 // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
                 var computedSize = Size.Confine(confineToBox, videoSize);
-                choice.Items.Add(new Video
+                var video = new Video
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4"),
-                    Format = "video/mp4",
-                    Label = Lang.Map("MP4"),
                     Duration = duration,
                     Width = computedSize.Width,
-                    Height = computedSize.Height
-                });
-                choice.Items.Add(new Video
+                    Height = computedSize.Height,
+                    Label = Lang.Map($"Access copy video: {computedSize.Width} x {computedSize.Height}")
+                };
+                if (deliveryChannels.Contains("file") && videoSize.Height <= 720)
                 {
-                    Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "webm"),
-                    Format = "video/webm",
-                    Label = Lang.Map("WebM"),
-                    Duration = duration,
-                    Width = computedSize.Width,
-                    Height = computedSize.Height
-                });
+                    video.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
+                    video.Format = physicalFile.MimeType; // at the moment this also will be "video/mp4"
+                }
+                else 
+                {
+                    video.Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4");
+                    video.Format = "video/mp4";
+                }
+                choice.Items.Add(video);
+                
+                // is there another hi-res file video to offer? We won't have used this file channel already.
+                if (deliveryChannels.Contains("file") && videoSize.Height > 720)
+                {
+                    var hiResFileVideo = new Video
+                    {
+                        Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                        Format = physicalFile.MimeType, // at the moment this also will be "video/mp4"
+                        Duration = duration,
+                        Width = videoSize.Width,
+                        Height = videoSize.Height,
+                        Label = Lang.Map($"Higher resolution video: {videoSize.Width} x {videoSize.Height}")
+                    };
+                    choice.Items.Add(hiResFileVideo);
+                }
+                
+                // We have removed the WebM transcode from this output, and need to remove it from the 
+                // DLCS ElasticTranscoder settings.
             }
             else if (IsAudioFile(metsManifestation, physicalFile))
             {
-                choice.Items.Add(new Audio
+                var audio = new Audio
                 {
-                    Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3"),
-                    Format = "audio/mp3",
                     Label = Lang.Map("MP3"),
                     Duration = duration
-                });
+                };
+                if (deliveryChannels.Contains("iiif-av"))
+                {
+                    audio.Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3");
+                    audio.Format = "audio/mp3";
+                }
+                else
+                {
+                    audio.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
+                    audio.Format = physicalFile.MimeType;
+                }
+
+                choice.Items.Add(audio);
             }
             else
             {
@@ -1019,9 +1074,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             switch (resource)
             {
                 case Image image:
-                    if (image.Service != null)
+                    image.Service ??= new List<IService>();
+                    image.Service.Add(serviceToAdd);
+                    
+                    // does this have an image service?
+                    var iiifImageApi2 = image.Service.OfType<ImageService2>().SingleOrDefault();
+                    if (iiifImageApi2 != null)
                     {
-                        var iiifImageApi2 = (ImageService2) image.Service.First();
                         iiifImageApi2.Service ??= new List<IService>();
                         iiifImageApi2.Service.Add(serviceToAdd);
                     }
