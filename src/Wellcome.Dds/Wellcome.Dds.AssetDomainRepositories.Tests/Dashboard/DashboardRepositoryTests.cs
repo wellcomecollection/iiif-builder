@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FizzWare.NBuilder;
@@ -12,6 +13,7 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.Catalogue;
@@ -34,6 +36,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             dlcs = A.Fake<IDlcs>();
             catalogue = A.Fake<ICatalogue>();
             A.CallTo(() => dlcs.DefaultSpace).Returns(999);
+            A.CallTo(() => dlcs.RegisterImages(
+                    A<HydraImageCollection>._, 
+                    A<DlcsCallContext>._, 
+                    A<bool>._))
+                .Returns(new Operation<HydraImageCollection, Batch>(new Uri("https://fake.io"), HttpMethod.Post));
+            A.CallTo(() => dlcs.PatchImages(
+                    A<HydraImageCollection>._, 
+                    A<DlcsCallContext>._))
+                .Returns(new Operation<HydraImageCollection, HydraImageCollection>(new Uri("https://fake.io"), HttpMethod.Post));
             metsRepository = A.Fake<IMetsRepository>();
             
             // WARNING - using in-memory database. This acts differently from Postgres.
@@ -250,65 +261,65 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             await action.Should().ThrowAsync<InvalidOperationException>();
         }
         
-        // [Theory]
-        // [InlineData(true)]
-        // [InlineData(false)]
-        // public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_IfPatchAndIngest(bool priority)
-        // {
-        //     // Arrange
-        //     A.CallTo(() => dlcs.BatchSize).Returns(2);
-        //     var ctx = new DlcsCallContext("[test]", "[id]");
-        //     var syncOp = new SyncOperation(ctx)
-        //     {
-        //         DlcsImagesToIngest = Builder<Image>.CreateListOfSize(4).Build().ToList(),
-        //         DlcsImagesToPatch = Builder<Image>.CreateListOfSize(6).Build().ToList(),
-        //     };
-        //     
-        //     // Act
-        //     await sut.ExecuteDlcsSyncOperation(syncOp, priority, ctx);
-        //     
-        //     // Assert
-        //     A.CallTo(() => dlcs.RegisterImages(A<HydraImageCollection>._, ctx, priority)).MustHaveHappened(2, Times.Exactly);
-        //     A.CallTo(() => dlcs.PatchImages(A<HydraImageCollection>._, ctx)).MustHaveHappened(3, Times.Exactly);
-        // }
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_IfPatchAndIngest(bool priority)
+        {
+            // Arrange
+            A.CallTo(() => dlcs.BatchSize).Returns(2);
+            var ctx = new DlcsCallContext("[test]", "[id]");
+            var syncOp = new SyncOperation(ctx)
+            {
+                DlcsImagesToIngest = Builder<Image>.CreateListOfSize(4).Build().ToList(),
+                DlcsImagesToPatch = Builder<Image>.CreateListOfSize(6).Build().ToList(),
+            };
+            
+            // Act
+            await sut.ExecuteDlcsSyncOperation(syncOp, priority, ctx);
+            
+            // Assert
+            A.CallTo(() => dlcs.RegisterImages(A<HydraImageCollection>._, ctx, priority)).MustHaveHappened(2, Times.Exactly);
+            A.CallTo(() => dlcs.PatchImages(A<HydraImageCollection>._, ctx)).MustHaveHappened(3, Times.Exactly);
+        }
         
-        // [Theory]
-        // [InlineData(true)]
-        // [InlineData(false)]
-        // public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_IngestOnly(bool priority)
-        // {
-        //     // Arrange
-        //     A.CallTo(() => dlcs.BatchSize).Returns(10);
-        //     var ctx = new DlcsCallContext("[test]", "[id]");
-        //     var syncOp = new SyncOperation(ctx)
-        //     {
-        //         DlcsImagesToIngest = Builder<Image>.CreateListOfSize(4).Build().ToList()
-        //     };
-        //     
-        //     // Act
-        //     await sut.ExecuteDlcsSyncOperation(syncOp, priority, ctx);
-        //     
-        //     // Assert
-        //     A.CallTo(() => dlcs.RegisterImages(A<HydraImageCollection>._, ctx, priority)).MustHaveHappenedOnceExactly();
-        // }
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_IngestOnly(bool priority)
+        {
+            // Arrange
+            A.CallTo(() => dlcs.BatchSize).Returns(10);
+            var ctx = new DlcsCallContext("[test]", "[id]");
+            var syncOp = new SyncOperation(ctx)
+            {
+                DlcsImagesToIngest = Builder<Image>.CreateListOfSize(4).Build().ToList()
+            };
+            
+            // Act
+            await sut.ExecuteDlcsSyncOperation(syncOp, priority, ctx);
+            
+            // Assert
+            A.CallTo(() => dlcs.RegisterImages(A<HydraImageCollection>._, ctx, priority)).MustHaveHappenedOnceExactly();
+        }
         
-        // [Fact]
-        // public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_PatchOnly()
-        // {
-        //     // Arrange
-        //     A.CallTo(() => dlcs.BatchSize).Returns(10);
-        //     var ctx = new DlcsCallContext("[test]", "[id]");
-        //     var syncOp = new SyncOperation(ctx)
-        //     {
-        //         DlcsImagesToPatch = Builder<Image>.CreateListOfSize(6).Build().ToList(),
-        //     };
-        //     
-        //     // Act
-        //     await sut.ExecuteDlcsSyncOperation(syncOp, false, ctx);
-        //     
-        //     // Assert
-        //     A.CallTo(() => dlcs.PatchImages(A<HydraImageCollection>._, ctx)).MustHaveHappenedOnceExactly();
-        // }
+        [Fact]
+        public async Task ExecuteDlcsSyncOperation_MakesRequestsToDlcs_PatchOnly()
+        {
+            // Arrange
+            A.CallTo(() => dlcs.BatchSize).Returns(10);
+            var ctx = new DlcsCallContext("[test]", "[id]");
+            var syncOp = new SyncOperation(ctx)
+            {
+                DlcsImagesToPatch = Builder<Image>.CreateListOfSize(6).Build().ToList(),
+            };
+            
+            // Act
+            await sut.ExecuteDlcsSyncOperation(syncOp, false, ctx);
+            
+            // Assert
+            A.CallTo(() => dlcs.PatchImages(A<HydraImageCollection>._, ctx)).MustHaveHappenedOnceExactly();
+        }
 
         public class TestManifestation : IManifestation
         {
