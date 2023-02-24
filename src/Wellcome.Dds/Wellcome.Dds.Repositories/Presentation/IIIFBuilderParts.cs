@@ -504,6 +504,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                             
                             // Also add the same videos as renderings for download:
                             canvas.Rendering ??= new List<ExternalResource>();
+                            
+                            // Now add auth services, and add them to the rendering
                             foreach (var paintable in avChoice.Items)
                             {
                                 if (paintable is ResourceBase resource)
