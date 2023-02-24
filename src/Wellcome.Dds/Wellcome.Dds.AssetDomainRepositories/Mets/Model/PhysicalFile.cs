@@ -16,11 +16,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         // Only set AssetFamily to Image for born digital mimetypes image/{type} where {type} is one of:
         private static readonly string[] BornDigitalImageTypes = { "jpeg", "tiff" };
 
-        public PhysicalFile()
-        {
-            
-        }
-        private PhysicalFile(IWorkStore workStore, string id)
+        public PhysicalFile(IWorkStore workStore, string id)
         {
             WorkStore = workStore;
             Id = id;
