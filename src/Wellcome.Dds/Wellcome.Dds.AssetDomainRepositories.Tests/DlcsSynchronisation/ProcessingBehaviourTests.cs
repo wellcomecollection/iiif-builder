@@ -3,16 +3,22 @@ using FakeItEasy;
 using FluentAssertions;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
+using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.DlcsSynchronisation;
 
 public class ProcessingBehaviourTests
 {
+    private PhysicalFile MakePhysicalFile()
+    {
+        return new PhysicalFile(A.Fake<ArchiveStorageServiceWorkStore>(), "dummy");
+    }
+    
     [Fact]
     public void Image_Has_IIIF_and_thumbs_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "image/jpg";
 
         var processing = pf.ProcessingBehaviour;
@@ -24,7 +30,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void MP3_Has_File_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "audio/x-mpeg-3";
 
         var processing = pf.ProcessingBehaviour;
@@ -36,7 +42,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void MP3_Has_None_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "audio/x-mpeg-3";
 
         var processing = pf.ProcessingBehaviour;
@@ -48,7 +54,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Wav_Has_IIIF_AV_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "audio/wav";
 
         var processing = pf.ProcessingBehaviour;
@@ -59,7 +65,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Wav_Has_Null_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "audio/wav";
 
         var processing = pf.ProcessingBehaviour;
@@ -70,7 +76,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void mpeg_Has_IIIF_AV_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "video/mpeg-2";
 
         var processing = pf.ProcessingBehaviour;
@@ -81,7 +87,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void mpeg_Has_Null_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.MimeType = "video/mpeg-2";
 
         var processing = pf.ProcessingBehaviour;
@@ -92,7 +98,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Normal_MP4_Has_IIIF_AV_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" }
@@ -107,7 +113,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Normal_MP4_Has_Null_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" }  // Mp4 on its own
@@ -122,7 +128,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Access_MP4_720_Has_File_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" },       // the access copy
@@ -138,7 +144,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Access_MP4_1440_Has_iiif_av_and_file_Delivery_Channel()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" },       // the access copy
@@ -163,7 +169,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Access_MP4_720_Has_None_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" },       // the access copy
@@ -180,7 +186,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Access_MP4_1440_Has_Null_IOP()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" },       // the access copy
@@ -199,7 +205,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Resolution_determines_transcode()
     {
-        var pf = A.Fake<PhysicalFile>();
+        var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
             new StoredFile { MimeType = "video/mp4" }
