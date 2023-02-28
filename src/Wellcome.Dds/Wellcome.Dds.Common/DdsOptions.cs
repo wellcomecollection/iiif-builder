@@ -65,7 +65,7 @@
         public string? AnnotationContainer { get; set; }
         
         // Workflow
-        public string? WorkflowMessageQueue { get; set; }
+        public string[]? WorkflowMessageQueues { get; set; }
         public bool WorkflowMessagePoll { get; set; }
         
         public bool ReferenceV0SearchService { get; set; }
