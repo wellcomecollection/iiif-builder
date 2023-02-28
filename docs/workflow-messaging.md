@@ -56,23 +56,23 @@ SNS Topics
 
 SQS Queues
 
-- born-digital-bag-notifications-prod*
-- digitised-bag-notifications-prod
-- born-digital-bag-notifications-staging*
-- digitised-bag-notifications-staging
-- born-digital-bag-notifications-test (subscribes to topic born-digital-bag-notifications-prod)
-- digitised-bag-notifications-test (subscribes to topic digitised-bag-notifications-prod)
-- born-digital-bag-notifications-dev
-- digitised-bag-notifications-dev
+- born-digital-notifications-prod*
+- digitised-notifications-prod
+- born-digital-notifications-staging*
+- digitised-notifications-staging
+- born-digital-notifications-test (subscribes to topic born-digital-bag-notifications-prod)
+- digitised-notifications-test (subscribes to topic digitised-bag-notifications-prod)
+- born-digital-notifications-dev
+- digitised-notifications-dev
 
 *existing
 
 These last 2 subscribe to the staging storage topics by default but can be switched to subscribe to the prod storage topics if required. Or, if we don't mind a profusion of SQS, we could replace the last two by:
 
-- born-digital-bag-notifications-dev-prod-storage
-- digitised-bag-notifications-dev-prod-storage
-- born-digital-bag-notifications-dev-stage-storage
-- digitised-bag-notifications-dev-stage-storage
+- born-digital-notifications-dev-prod-storage
+- digitised-notifications-dev-prod-storage
+- born-digital-notifications-dev-stage-storage
+- digitised-notifications-dev-stage-storage
 
 ... to give us independent queues that won't be getting picked up by any deployed WorkflowProcessor, for all combinations we'd want to debug / investigate.
 This requires 4 queues being kept up that are hardly ever used, though. Maybe **not** have these but just have the dev ones as in the previous list but have two extra _topics_:
