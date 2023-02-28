@@ -12,7 +12,5 @@
         public int MapHttpRuntimeCacheSeconds { get; set; }
         public bool PreferCachedStorageMap { get; set; }
         public int MaxAgeStorageMap { get; set; }
-        
-        public string? WorkflowMessageTopic { get; set; }
     }
 }

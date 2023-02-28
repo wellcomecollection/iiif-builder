@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Aws.SQS;
@@ -357,10 +356,10 @@ namespace WorkflowProcessor
         {
             var dict = new Dictionary<string, string>();
             if (ddsOptions.WorkflowMessagePoll && 
-                ddsOptions.WorkflowMessageQueues != null && 
-                ddsOptions.WorkflowMessageQueues.HasItems())
+                ddsOptions.WorkflowMessageListenQueues != null && 
+                ddsOptions.WorkflowMessageListenQueues.HasItems())
             {
-                foreach (var queueName in ddsOptions.WorkflowMessageQueues)
+                foreach (var queueName in ddsOptions.WorkflowMessageListenQueues)
                 {
                     string queueUrl = null;
                     try

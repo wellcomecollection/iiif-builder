@@ -65,8 +65,10 @@
         public string? AnnotationContainer { get; set; }
         
         // Workflow
-        public string[]? WorkflowMessageQueues { get; set; }
+        public string[]? WorkflowMessageListenQueues { get; set; }
         public bool WorkflowMessagePoll { get; set; }
+        public string? DashboardPushBornDigitalQueue { get; set; }
+        public string? DashboardPushDigitisedQueue { get; set; }
         
         public bool ReferenceV0SearchService { get; set; }
         public bool UseRequiredStatement { get; set; }

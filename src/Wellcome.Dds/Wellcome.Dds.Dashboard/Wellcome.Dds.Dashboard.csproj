@@ -217,4 +217,10 @@
     <Folder Include="Pages" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="AWSSDK.SQS">
+      <HintPath>..\..\..\..\..\..\.nuget\packages\awssdk.sqs\3.7.2.115\lib\netcoreapp3.1\AWSSDK.SQS.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
  </Project>

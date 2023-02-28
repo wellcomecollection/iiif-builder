@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using Amazon.SimpleNotificationService;
-using Amazon.SimpleNotificationService.Model;
+using Amazon.SQS;
+using Amazon.SQS.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Utils;
 using Wellcome.Dds.AssetDomain.Workflow;
-using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 
@@ -23,19 +21,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowCallController> logger;
-        private readonly StorageOptions storageOptions;
-        private readonly IAmazonSimpleNotificationService simpleNotificationService;
+        private readonly DdsOptions ddsOptions;
+        private readonly IAmazonSQS sqsClient;
 
         public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowCallController> logger,
-            IOptions<StorageOptions> options,
-            IAmazonSimpleNotificationService simpleNotificationService)
+            IOptions<DdsOptions> options,
+            IAmazonSQS sqsClient)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
-            this.storageOptions = options.Value;
-            this.simpleNotificationService = simpleNotificationService;
+            this.ddsOptions = options.Value;
+            this.sqsClient = sqsClient;
         }
 
         public async Task<ActionResult> Recent()
@@ -107,13 +105,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
 
-        public async Task<ActionResult> NotifyTopic(string id)
+        public async Task<ActionResult> PutWorkflowMessageOnQueue(string id)
         {
             var ddsId = new DdsIdentifier(id);
-            var topic = storageOptions.WorkflowMessageTopic;
-            if (topic.IsNullOrWhiteSpace())
+            string queueName = ddsId.StorageSpace switch
             {
-                var errorMessage = $"No topic specified for workflow; could not notify for '{ddsId}'";
+                DdsIdentifier.Digitised => ddsOptions.DashboardPushDigitisedQueue,
+                DdsIdentifier.BornDigital => ddsOptions.DashboardPushBornDigitalQueue,
+                _ => null
+            };
+
+            if (queueName.IsNullOrWhiteSpace())
+            {
+                var errorMessage = $"No queue specified for workflow; could not notify for '{ddsId}'";
                 logger.LogError(errorMessage);
                 TempData["new-workflow-notification-error"] = errorMessage;
                 return RedirectToAction("WorkflowCall", new {id});
@@ -129,15 +133,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     TimeSent = DateTime.Now
                 };
             
-                logger.LogDebug("Simulating workflow SNS call from dashboard for {Identifier}", ddsId);
+                logger.LogDebug("Simulating workflow SQS call from dashboard for {Identifier}", ddsId);
                 var serialiserSettings = new JsonSerializerSettings
                 {
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
-                var request = new PublishRequest(topic, JsonConvert.SerializeObject(message, serialiserSettings));
-                var response = await simpleNotificationService.PublishAsync(request);
+                
+                
+                var queueUrlResult = await sqsClient.GetQueueUrlAsync(queueName);
+                var queueUrl = queueUrlResult.QueueUrl;
+                
+                var request = new SendMessageRequest(queueUrl, JsonConvert.SerializeObject(message, serialiserSettings));
+                var response = await sqsClient.SendMessageAsync(request);
                 logger.LogDebug(
-                    "Received statusCode {StatusCode} for publishing invalidation for {Identifier} - {MessageId}",
+                    "Received statusCode {StatusCode} for sending SQS for {Identifier} - {MessageId}",
                     response.HttpStatusCode, ddsId, response.MessageId);
                 
                 TempData["new-workflow-notification"] = $"Workflow notification sent for '{ddsId}'";
@@ -146,7 +155,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error making workflow topic notification for '{id}'", id);
+                logger.LogError(e, "Error making workflow queue call for '{id}'", id);
                 TempData["new-workflow-notification-error"] = e.Message;
                 return RedirectToAction("WorkflowCall", new {id});
             }
