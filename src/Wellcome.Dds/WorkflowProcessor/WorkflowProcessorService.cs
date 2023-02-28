@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Utils;
+using Utils.Aws.SQS;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
@@ -466,8 +467,17 @@ namespace WorkflowProcessor
                         foreach (var message in response!.Messages!)
                         {
                             if (cancellationToken.IsCancellationRequested) return;
-                            var body = JObject.Parse(message.Body)["Message"]!.ToString();
-                            var workflowMessage = JsonConvert.DeserializeObject<WorkflowMessage>(body);
+
+                            var queueMessage = new QueueMessage
+                            {
+                                Attributes = message.Attributes,
+                                Body = JObject.Parse(message.Body),
+                                MessageId = message.MessageId,
+                                QueueName = queue.Key
+                            };
+
+                            var body = queueMessage.GetMessageContents();
+                            var workflowMessage = body.ToObject<WorkflowMessage>();
                             if (workflowMessage != null)
                             {
                                 await dbContext.PutJob(workflowMessage.Identifier, 
