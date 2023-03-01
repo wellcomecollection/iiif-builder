@@ -468,12 +468,12 @@ namespace WorkflowProcessor
                             if (cancellationToken.IsCancellationRequested) return;
 
                             var queueMessage = new QueueMessage
-                            {
-                                Attributes = message.Attributes,
-                                Body = JObject.Parse(message.Body),
-                                MessageId = message.MessageId,
-                                QueueName = queue.Key
-                            };
+                            (
+                                JObject.Parse(message.Body),
+                                message.Attributes,
+                                message.MessageId,
+                                queue.Key
+                            );
 
                             var body = queueMessage.GetMessageContents();
                             var workflowMessage = body.ToObject<WorkflowMessage>();

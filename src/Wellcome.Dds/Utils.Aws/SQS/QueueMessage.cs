@@ -10,6 +10,14 @@ namespace Utils.Aws.SQS;
 /// </summary>
 public class QueueMessage
 {
+    public QueueMessage(JObject body, Dictionary<string, string> attributes, string messageId, string queueName)
+    {
+        Body = body;
+        Attributes = attributes;
+        MessageId = messageId;
+        QueueName = queueName;
+    }
+
     /// <summary>
     /// The full message body property
     /// </summary>
@@ -55,7 +63,7 @@ public static class QueueMessageX
             try
             {
                 var value = queueMessage.Body[messageKey]!.Value<string>();
-                return JObject.Parse(value);
+                return value.HasText() ? JObject.Parse(value) : null;
             }
             catch (Exception)
             {
