@@ -480,7 +480,7 @@ namespace WorkflowProcessor
                             if (workflowMessage != null)
                             {
                                 await dbContext.PutJob(workflowMessage.Identifier, 
-                                    true, false, null, false, false);
+                                    true, false, null, false, true);
                                 await dbContext.SaveChangesAsync(cancellationToken);
                             }
                             await sqsClient.DeleteMessageAsync(new DeleteMessageRequest
@@ -506,7 +506,7 @@ namespace WorkflowProcessor
                 using var scope = serviceScopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
                 
-                var workflowJob = await dbContext.PutJob(identifier, true, true, workflowOptions, false, false);
+                var workflowJob = await dbContext.PutJob(identifier, true, true, workflowOptions, false, true);
                 
                 var runner = GetWorkflowRunner(scope);
                 await runner.ProcessJob(workflowJob, stoppingToken);

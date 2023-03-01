@@ -30,7 +30,7 @@
     {
         <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Success!</strong> A notification has been sent to the Workflow topic, and the job will be picked up by the workflow processor.
+            <strong>Success!</strong> A message has been sent to the Workflow queue, and the job will be picked up by the workflow processor.
             @if (Model.Created.HasValue)
             {
                 <span>(The workflow call below is the previous call for this item.)</span>
@@ -41,7 +41,7 @@
     {
         <div class="alert alert-danger alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>Failed to notify workflow topic!</strong> @TempData["new-workflow-notification-error"]
+            <strong>Failed to notify workflow queue!</strong> @TempData["new-workflow-notification-error"]
         </div>
     }
     @if (TempData["job-deleted"] != null)
