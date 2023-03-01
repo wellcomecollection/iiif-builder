@@ -355,26 +355,31 @@ namespace WorkflowProcessor
         private async Task<Dictionary<string, string>> GetPollQueues(CancellationToken cancellationToken)
         {
             var dict = new Dictionary<string, string>();
-            if (ddsOptions.WorkflowMessagePoll && 
-                ddsOptions.WorkflowMessageListenQueues != null && 
-                ddsOptions.WorkflowMessageListenQueues.HasItems())
+            if (!ddsOptions.WorkflowMessagePoll)
             {
-                foreach (var queueName in ddsOptions.WorkflowMessageListenQueues)
-                {
-                    string queueUrl = null;
-                    try
-                    {
-                        var result = await sqsClient.GetQueueUrlAsync(queueName, cancellationToken);
-                        queueUrl = result.QueueUrl;
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "Could not resolve queue name {queueName}", queueName);
-                    }
-                    dict.Add(queueName, queueUrl);
-                }
+                logger.LogWarning("WorkflowMessage polling is turned off: DdsOptions::WorkflowMessagePoll");
+                return dict;
             }
 
+            if (!ddsOptions.WorkflowMessageListenQueues.HasItems())
+            {
+                logger.LogWarning("No entries in DdsOptions::WorkflowMessageListenQueues");
+                return dict;
+            }
+            foreach (var queueName in ddsOptions.WorkflowMessageListenQueues)
+            {
+                string queueUrl = null;
+                try
+                {
+                    var result = await sqsClient.GetQueueUrlAsync(queueName, cancellationToken);
+                    queueUrl = result.QueueUrl;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Could not resolve queue name {queueName}", queueName);
+                }
+                dict.Add(queueName, queueUrl);
+            }
             return dict;
         }
 
