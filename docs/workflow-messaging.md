@@ -1,23 +1,23 @@
 ## Workflow queues and topics - questions/decisions
 
-There are two SNS topics owned by storage:
+There are two existing SNS topics owned by _*storage*_:
 
 - born-digital-bag-notifications-prod
 - born-digital-bag-notifications-staging
 
-There will be two new SNS topics for Goobi:
+We think there will be two new SNS topics for Goobi:
 
 - digitised-bag-notifications-prod
 - digitised-bag-notifications-staging
 
-_(I assume, or similar names anyway)_
+_(or similar names: "born-digital" and "digitised" match the current storage prefixes)_
 
 At the time these first two topics were created, queues were also created, subscribing to these topics:
 
-arn:aws:sqs:eu-west-1:975596993436:born-digital-notifications-prod (in storage acct)
-arn:aws:sqs:eu-west-1:653428163053:born-digital-notifications-prod (in digirati acct)
+* arn:aws:sqs:eu-west-1:975596993436:born-digital-notifications-prod (in storage acct)
+* arn:aws:sqs:eu-west-1:653428163053:born-digital-notifications-prod (in digirati acct)
 
-There is also similar for staging. 
+There is also an equivalent queue for staging storage. 
 
 Having just implemented all the DDS code in all the different environments to handle this messaging and perform the workflows, we took a slightly different approach.
 
@@ -32,4 +32,3 @@ This means the running DDS has no knowledge of the topics, and certainly never p
 The WorkflowProcessor listens to a list of queues (so we can add others for testing), and the dashboard is capable of sending messages to one of two specific queues for its environment, one for born digital and one for digitised. In practice, the workflowProcessor in that environment is listening to these same two queues, but it can listen to others.
 
 This means that DDS tf manages all the notification queues it uses, the only point of contact with storage infra is the queue subscription.
-
