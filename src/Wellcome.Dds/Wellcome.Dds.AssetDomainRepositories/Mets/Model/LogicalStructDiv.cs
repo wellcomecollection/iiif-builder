@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using Utils;
@@ -108,7 +109,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             DmdId = (string) div.Attribute("DMDID")!;
             Label = (string) div.Attribute("LABEL")!;
             Type =  (string) div.Attribute("TYPE")!;
-            Order = (int?)   div.Attribute("ORDER");
+            Order = SanitiseOrder(div.Attribute("ORDER"));
 
             Children = div.Elements(XNames.MetsDiv)
                         .Select(md => new LogicalStructDiv(md, containingFileRelativePath, null, workStore) as ILogicalStructDiv)
@@ -135,7 +136,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
             }
         }
-        
+
+        private int? SanitiseOrder(XAttribute? attribute)
+        {
+            // Some order labels from Internet Archive workflows look like this: "167402"
+            // Where the first 4 digits are the publication year and the second two are the "real" order.
+            var asString = (string?) attribute;
+            if (asString.HasText() && asString.Length == 6 && asString.All(char.IsDigit))
+            {
+                return Convert.ToInt32(asString[4..]);
+            }
+
+            return (int?) attribute;
+        }
+
         private ModsData? modsData;
         private bool modsLoaded;
 
