@@ -12,9 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Utils;
+using Utils.Aws.SQS;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
@@ -352,15 +352,42 @@ namespace WorkflowProcessor
             logger.LogInformation($"Job {job.Identifier} created with options {displayString}");
         }
 
+        private async Task<Dictionary<string, string>> GetPollQueues(CancellationToken cancellationToken)
+        {
+            var dict = new Dictionary<string, string>();
+            if (!ddsOptions.WorkflowMessagePoll)
+            {
+                logger.LogWarning("WorkflowMessage polling is turned off: DdsOptions::WorkflowMessagePoll");
+                return dict;
+            }
+
+            if (!ddsOptions.WorkflowMessageListenQueues.HasItems())
+            {
+                logger.LogWarning("No entries in DdsOptions::WorkflowMessageListenQueues");
+                return dict;
+            }
+            foreach (var queueName in ddsOptions.WorkflowMessageListenQueues)
+            {
+                string queueUrl = null;
+                try
+                {
+                    var result = await sqsClient.GetQueueUrlAsync(queueName, cancellationToken);
+                    queueUrl = result.QueueUrl;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Could not resolve queue name {queueName}", queueName);
+                }
+                dict.Add(queueName, queueUrl);
+            }
+            return dict;
+        }
+
         private async Task PollForWorkflowJobs(CancellationToken cancellationToken)
         {
             int waitMs = 2;
-            string queueUrl = null;
-            if (ddsOptions.WorkflowMessagePoll && ddsOptions.WorkflowMessageQueue.HasText())
-            {
-                var result = await sqsClient.GetQueueUrlAsync(ddsOptions.WorkflowMessageQueue, cancellationToken);
-                queueUrl = result.QueueUrl;
-            }
+            int iterationsSinceQueuesPolled = 0;
+            var queues = await GetPollQueues(cancellationToken);
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -382,20 +409,21 @@ namespace WorkflowProcessor
                         var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
                         if (jobId == null)
                         {
+                            // No job ready to be processed from database
                             waitMs = GetWaitMs(waitMs);
-                            if (waitMs > 10000)
+                            if (waitMs > 30000)
                             {
-                                // idle more than 30s
-                                await PollQueue(queueUrl, dbContext, cancellationToken);
+                                // idle more than 30s, see if we can make more jobs form queues
+                                await PollQueues(queues, dbContext, cancellationToken);
                             }
                             continue;
                         }
 
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
-                        var job = await dbContext.WorkflowJobs.FindAsync(jobId);
+                        var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
                         await runner.ProcessJob(job, cancellationToken);
-                        job.Finished = true;
+                        job!.Finished = true;
                         try
                         {
                             await dbContext.SaveChangesAsync(cancellationToken);
@@ -403,6 +431,14 @@ namespace WorkflowProcessor
                         catch (DbUpdateException e)
                         {
                             throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                        }
+                        
+                        iterationsSinceQueuesPolled++;
+                        if (iterationsSinceQueuesPolled > 50)
+                        {
+                            // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
+                            await PollQueues(queues, dbContext, cancellationToken);
+                            iterationsSinceQueuesPolled = 0;
                         }
                     }
                 }
@@ -415,45 +451,65 @@ namespace WorkflowProcessor
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
         }
 
-        private async Task PollQueue(string queueUrl, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
         {
-            if (queueUrl.IsNullOrWhiteSpace())
+            if (queues.Keys.Count == 0)
             {
+                logger.LogInformation("No queues configured to poll");
                 return;
             }
-            
-            var response = await sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
+
+            foreach (var queue in queues)
             {
-                QueueUrl = queueUrl,
-                WaitTimeSeconds = 5,
-                MaxNumberOfMessages = 10,
-            }, cancellationToken);
-            var messageCount = response.Messages?.Count ?? 0;
-            if (messageCount > 0)
-            {
-                try
+                if (queue.Value.IsNullOrWhiteSpace())
                 {
-                    foreach (var message in response!.Messages!)
-                    {
-                        if (cancellationToken.IsCancellationRequested) return;
-                        var body = JObject.Parse(message.Body)["Message"]!.ToString();
-                        var workflowMessage = JsonConvert.DeserializeObject<WorkflowMessage>(body);
-                        if (workflowMessage != null)
-                        {
-                            await dbContext.PutJob(workflowMessage.Identifier, 
-                                true, false, null, false, false);
-                            await dbContext.SaveChangesAsync(cancellationToken);
-                        }
-                        await sqsClient.DeleteMessageAsync(new DeleteMessageRequest
-                        {
-                            QueueUrl = queueUrl,
-                            ReceiptHandle = message.ReceiptHandle
-                        }, cancellationToken);
-                    }
+                    logger.LogWarning("Queue with name {queueName} has no URL", queue.Key);
+                    continue;
                 }
-                catch (Exception ex)
+                var response = await sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
                 {
-                    logger.LogError(ex, "Error in listen loop for queue {Queue}", queueUrl);
+                    QueueUrl = queue.Value,
+                    WaitTimeSeconds = 5,
+                    MaxNumberOfMessages = 10,
+                }, cancellationToken);
+                var messageCount = response.Messages?.Count ?? 0;
+                if (messageCount > 0)
+                {
+                    logger.LogDebug("Received {messageCount} message(s) from queue {queueName}", messageCount, queue.Key);
+                    try
+                    {
+                        foreach (var message in response!.Messages!)
+                        {
+                            if (cancellationToken.IsCancellationRequested) return;
+
+                            var queueMessage = new QueueMessage
+                            (
+                                JObject.Parse(message.Body),
+                                message.Attributes,
+                                message.MessageId,
+                                queue.Key
+                            );
+
+                            var body = queueMessage.GetMessageContents();
+                            var workflowMessage = body.ToObject<WorkflowMessage>();
+                            if (workflowMessage != null)
+                            {
+                                await dbContext.PutJob(workflowMessage.Identifier, 
+                                    true, false, null, false, true);
+                                await dbContext.SaveChangesAsync(cancellationToken);
+                            }
+                            await sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                            {
+                                QueueUrl = queue.Value,
+                                ReceiptHandle = message.ReceiptHandle
+                            }, cancellationToken);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error in listen loop for queue {queueName}, {queueUrl}", 
+                            queue.Key, queue.Value);
+                    }
                 }
             }
         }
@@ -465,7 +521,7 @@ namespace WorkflowProcessor
                 using var scope = serviceScopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
                 
-                var workflowJob = await dbContext.PutJob(identifier, true, true, workflowOptions, false, false);
+                var workflowJob = await dbContext.PutJob(identifier, true, true, workflowOptions, false, true);
                 
                 var runner = GetWorkflowRunner(scope);
                 await runner.ProcessJob(workflowJob, stoppingToken);
