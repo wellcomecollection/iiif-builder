@@ -386,6 +386,7 @@ namespace WorkflowProcessor
         private async Task PollForWorkflowJobs(CancellationToken cancellationToken)
         {
             int waitMs = 2;
+            int iterationsSinceQueuesPolled = 0;
             var queues = await GetPollQueues(cancellationToken);
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -408,10 +409,11 @@ namespace WorkflowProcessor
                         var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
                         if (jobId == null)
                         {
+                            // No job ready to be processed from database
                             waitMs = GetWaitMs(waitMs);
-                            if (waitMs > 10000)
+                            if (waitMs > 30000)
                             {
-                                // idle more than 30s
+                                // idle more than 30s, see if we can make more jobs form queues
                                 await PollQueues(queues, dbContext, cancellationToken);
                             }
                             continue;
@@ -419,9 +421,9 @@ namespace WorkflowProcessor
 
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
-                        var job = await dbContext.WorkflowJobs.FindAsync(jobId);
+                        var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
                         await runner.ProcessJob(job, cancellationToken);
-                        job.Finished = true;
+                        job!.Finished = true;
                         try
                         {
                             await dbContext.SaveChangesAsync(cancellationToken);
@@ -429,6 +431,14 @@ namespace WorkflowProcessor
                         catch (DbUpdateException e)
                         {
                             throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
+                        }
+                        
+                        iterationsSinceQueuesPolled++;
+                        if (iterationsSinceQueuesPolled > 50)
+                        {
+                            // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
+                            await PollQueues(queues, dbContext, cancellationToken);
+                            iterationsSinceQueuesPolled = 0;
                         }
                     }
                 }
