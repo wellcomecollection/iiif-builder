@@ -3,7 +3,7 @@
 You need:
 
 * [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) installed
-* [.NET Framework](https://dotnet.microsoft.com/download) SDK 5.x installed (latest version of .NET 5)
+* [.NET Framework](https://dotnet.microsoft.com/download) The version of the .NET framework SDK specified as `TargetFramework` in the [dashboard csproj file](https://github.com/wellcomecollection/iiif-builder/blob/main/src/Wellcome.Dds/Wellcome.Dds.Dashboard/Wellcome.Dds.Dashboard.csproj).
 * A WellcomeCloud account (name@Wellcomecloud.onmicrosoft.com) that has the necessary AWS permissions. This allows you to log in to the AWS console via the wellcomecloud.org portal (Azure Active Directory).
 * (Optional) The AWS Extend Switch Roles plugin for Chrome, for easily switching roles in the Console
 * (Optional) a .NET IDE such as Rider or Visual Studio 2019. You can use any text editor, though.
