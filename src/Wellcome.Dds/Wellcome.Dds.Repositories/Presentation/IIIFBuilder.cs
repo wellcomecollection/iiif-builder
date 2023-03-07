@@ -394,8 +394,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                         {
                             ["en"] = new()
                             {
-                                $"Volume {order}",
-                                work.Title!
+                                work.Title!,
+                                $"Volume {order}"
                             }
                         },
                         Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!)

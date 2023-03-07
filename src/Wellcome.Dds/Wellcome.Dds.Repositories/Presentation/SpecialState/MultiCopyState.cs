@@ -34,7 +34,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             // Each Manifest will have a copy number.
             // There might be more than one volume per copy, in which case we have
             // a nested collection.
-            if (!(buildResults.First().IIIFResource is Collection bNumberCollection))
+            if (buildResults.First().IIIFResource is not Collection bNumberCollection)
             {
                 throw new IIIFBuildStateException("State is missing the parent collection");
             }
