@@ -70,9 +70,9 @@ namespace Wellcome.Dds.Dashboard
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
             var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
-            var storageAwsOptions = Configuration.GetAWSOptions("Storage-AWS");
+            var platformAwsOptions = Configuration.GetAWSOptions("Platform-AWS");
             services.AddDefaultAWSOptions(ddsAwsOptions);   
-            services.AddAWSService<IAmazonSimpleNotificationService>(storageAwsOptions);
+            services.AddAWSService<IAmazonSimpleNotificationService>(platformAwsOptions);
 
             var dlcsSection = Configuration.GetSection("Dlcs");
             var dlcsOptions = dlcsSection.Get<DlcsOptions>();
