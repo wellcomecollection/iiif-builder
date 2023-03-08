@@ -19,8 +19,6 @@ namespace Wellcome.Dds.Dashboard.Models
 {
     public class ManifestationModel
     {
-        const string PortalPageTemplate = "https://portal.dlcs.io/Image.aspx?space={0}&image={1}";
-        const string PortalBatchTemplate = "https://portal.dlcs.io/Batch.aspx?batch={0}";
         const string GlyphTemplate = "<span class=\"glyphicon glyphicon-{0}\"></span>";
 
         private static readonly char[] SlashSeparator = new[] { '/' };
@@ -176,11 +174,11 @@ namespace Wellcome.Dds.Dashboard.Models
         public string GetPortalPageForImage(Image image)
         {
             int? space = image.Space ?? DefaultSpace;
-            return string.Format(PortalPageTemplate, space, image.StorageIdentifier);
+            return string.Format(DlcsOptions.PortalPageTemplate, space, image.StorageIdentifier);
         }
         public string GetPortalPageForBatch(Batch batch)
         {
-            return string.Format(PortalBatchTemplate, batch.Id.Split(SlashSeparator).Last());
+            return string.Format(DlcsOptions.PortalBatchTemplate, batch.Id.Split(SlashSeparator).Last());
         }
 
         public void MakeManifestationNavData()

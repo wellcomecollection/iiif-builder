@@ -670,7 +670,7 @@
                             @if (dlcsImage != null)
                             {
                                 <td>
-                                    <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
+                                    <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@pf.StorageIdentifier</a>
                                     @if (dlcsImage.Error.HasText())
                                     {
                                         <br/><span class="text-danger small">@dlcsImage.Error</span>
@@ -745,7 +745,7 @@
                                     if (dlcsImage != null)
                                     {
                                         <td>
-                                            <a href="@Model.GetPortalPageForImage(dlcsImage)">@adjunct.StorageIdentifier</a>
+                                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@adjunct.StorageIdentifier</a>
                                         </td>
                                     }
                                     else
@@ -794,7 +794,7 @@
                             @*<td>@orphan.Width x @orphan.Height</td>*@
                             <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
                             <td>@orphan.Error</td>
-                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)">@orphan.StorageIdentifier</a></td>
+                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)" target="_blank">@orphan.StorageIdentifier</a></td>
                             <td>@orphan.Ingesting</td>
                         </tr>
                     }
@@ -885,7 +885,7 @@
         if (batch.Completed != batch.Count)
         {
             <div class="progress">
-                <a href="@Model.GetPortalPageForBatch(batch)" title="@batch.Submitted">
+                <a href="@Model.GetPortalPageForBatch(batch)" title="@batch.Submitted" target="_blank">
                     <div class="progress-bar progress-bar-success" role="progressbar"
                          aria-valuenow="@batch.Completed" aria-valuemin="0" aria-valuemax="@batch.Count"
                          style="width: @percentComplete">
@@ -946,7 +946,7 @@
                         <br/>
                         @if (dlcsImage != null)
                         {
-                            <a href="@Model.GetPortalPageForImage(dlcsImage)">@file.StorageIdentifier</a>
+                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@file.StorageIdentifier</a>
                             @if (dlcsImage.Error.HasText())
                             {
                                 <br/>
