@@ -16,10 +16,12 @@ using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
+using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Xunit;
+using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 {
@@ -255,6 +257,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.PreventSynchronisation).Returns(true);
             var ctx = new DlcsCallContext("[test]", "[id]");
             var syncOp = new SyncOperation(ctx);
+            Func<Task> action = () => sut.ExecuteDlcsSyncOperation(syncOp, true, ctx);
+            
+            // Assert
+            await action.Should().ThrowAsync<InvalidOperationException>();
+        }
+        
+        
+        [Fact]
+        public async Task ExecuteDlcsSyncOperation_Throws_IfMissingAccessConditions()
+        {
+            // Arrange
+            var pf = new PhysicalFile(A.Fake<IWorkStore>(), "test")
+            {
+                AccessCondition = AccessCondition.Missing
+            };
+            var sf = new StoredFile { PhysicalFile = pf };
+            var ctx = new DlcsCallContext("[test]", "[id]");
+            var syncOp = new SyncOperation(ctx);
+            syncOp.MissingAccessConditions = new List<IStoredFile> { sf };
             Func<Task> action = () => sut.ExecuteDlcsSyncOperation(syncOp, true, ctx);
             
             // Assert

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
@@ -60,6 +61,11 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// The sync operation has at least one invalid access condition and should not be synced
         /// </summary>
         public bool HasInvalidAccessCondition { get; set; }
+
+        /// <summary>
+        /// Files with no access condition in METS
+        /// </summary>
+        public List<IStoredFile> MissingAccessConditions { get; set; }
 
         public SyncOperation(DlcsCallContext dlcsCallContext)
         {
