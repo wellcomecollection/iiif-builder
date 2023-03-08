@@ -161,7 +161,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             logger.LogDebug("Will construct a SyncOperation for context: {callContext}", dlcsCallContext.Id);
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var imagesAlreadyOnDlcs = digitisedManifestation.DlcsImages!.ToList();
-            var missingAccessConditions = metsManifestation!.SynchronisableFiles
+            var missingAccessConditions = metsManifestation!.SynchronisableFiles.AnyItems()
                 .Where(sf => sf.PhysicalFile!.AccessCondition == AccessCondition.Missing).ToList();
             logger.LogDebug(
                 "There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
