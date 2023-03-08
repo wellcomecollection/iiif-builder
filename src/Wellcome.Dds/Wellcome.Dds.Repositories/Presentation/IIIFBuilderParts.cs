@@ -1567,7 +1567,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
         {
             var accessConditions = metsManifestation.Sequence!
-                .Select(pf => pf.AccessCondition);
+                .Select(pf => pf.AccessCondition).ToList();
             var mostSecureAccessCondition = AccessCondition.GetMostSecureAccessCondition(accessConditions!);
             string accessHint;
             switch (mostSecureAccessCondition)
@@ -1583,15 +1583,31 @@ namespace Wellcome.Dds.Repositories.Presentation
                 default:
                     accessHint = "credentials";
                     break;
-            }            
+            }        
             manifest.Services ??= new List<IService>();
-            manifest.Services?.Add(
-                new ExternalResource("Text")
+            var accessHintService = new ExternalResource("Text")
+            {
+                Id = manifest.Id + "#accesscontrolhints",
+                Profile = Constants.Profiles.AccessControlHints,
+                Label = Lang.Map(accessHint)
+            };
+            var accessHintGroups = accessConditions.GroupBy(ac => ac).ToList();
+            foreach (var hintGroup in accessHintGroups)
+            {
+                if (hintGroup.Key.HasText())
                 {
-                    Id = manifest.Id + "#accesscontrolhints",
-                    Profile = Constants.Profiles.AccessControlHints,
-                    Label = Lang.Map(accessHint)
-                });
+                    var label = hintGroup.Key;
+                    if (label == AccessCondition.RequiresRegistration)
+                    {
+                        // Rename this old access condition for the public IIIF Manifest
+                        label = AccessCondition.OpenWithAdvisory;
+                    }
+                    accessHintService.Metadata ??= new List<LabelValuePair>();
+                    accessHintService.Metadata.AddNonlang(label, hintGroup.Count().ToString());
+                }
+            }
+            manifest.Services?.Add(accessHintService);
+            
 
         }
     }
