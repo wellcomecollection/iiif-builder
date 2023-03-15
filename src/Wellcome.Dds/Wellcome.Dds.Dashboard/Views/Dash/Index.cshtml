@@ -47,8 +47,9 @@
 
                 @foreach (var di in Model)
                 {
+                    DdsIdentifier ddsId = new DdsIdentifier(di.Identifier);
                     <tr>
-                        <td>@Html.ActionLink(di.Identifier, "Manifestation", "Dash", new { id = di.Identifier }, new { })</td>
+                        <td>@Html.ActionLink(ddsId, "Manifestation", "Dash", new { id = ddsId.PackageIdentifierPathElementSafe }, new { })</td>
                         <td width="165">@di.Date</td>
                         <td>@di.Label</td>
                     </tr>
