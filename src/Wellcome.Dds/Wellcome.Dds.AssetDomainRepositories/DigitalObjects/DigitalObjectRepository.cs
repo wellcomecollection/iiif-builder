@@ -120,6 +120,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 throw new InvalidOperationException(syncError);
             }
 
+            if (syncOperation.MissingAccessConditions.HasItems())
+            {
+                throw new InvalidOperationException($"Cannot execute sync operation for {dlcsCallContext.Id} " +
+                                                    $"because it contains {syncOperation.MissingAccessConditions.Count} " +
+                                                    $"file(s) with missing access conditions");
+            }
+            
             var ingestOps = new List<Task>(2);
             logger.LogInformation(
                 "Registering BATCH INGESTS for METS resource (manifestation) with Id {0}, context {callContext}",
@@ -154,17 +161,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             logger.LogDebug("Will construct a SyncOperation for context: {callContext}", dlcsCallContext.Id);
             var metsManifestation = digitisedManifestation.MetsManifestation;
             var imagesAlreadyOnDlcs = digitisedManifestation.DlcsImages!.ToList();
+            var missingAccessConditions = metsManifestation!.SynchronisableFiles.AnyItems()
+                .Where(sf => sf.PhysicalFile!.AccessCondition == AccessCondition.Missing).ToList();
             logger.LogDebug(
                 "There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
                 imagesAlreadyOnDlcs.Count, digitisedManifestation.Identifier, dlcsCallContext.Id);
             var syncOperation = new SyncOperation(dlcsCallContext)
             {
-                ManifestationIdentifier = metsManifestation!.Identifier,
+                ManifestationIdentifier = metsManifestation.Identifier,
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers,
                 ImagesCurrentlyOnDlcs =
                     await GetImagesExpectedOnDlcs(metsManifestation, imagesAlreadyOnDlcs, dlcsCallContext),
-                ImagesThatShouldBeOnDlcs = new Dictionary<string, Image?>()
+                ImagesThatShouldBeOnDlcs = new Dictionary<string, Image?>(),
+                MissingAccessConditions = missingAccessConditions
             };
 
             /*
