@@ -117,5 +117,6 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         string InternalResourceEntryPoint { get; }
         
         bool SupportsDeliveryChannels { get; }
+        Task<Image?> GetImage(int space, string id, DlcsCallContext dlcsCallContext);
     }
 }

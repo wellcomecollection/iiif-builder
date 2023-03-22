@@ -193,6 +193,27 @@ namespace DlcsWebClient.Dlcs
             return last;
         }
         
+        
+        public async Task<Image?> GetImage(int space, string id, DlcsCallContext dlcsCallContext)
+        {
+            var imageQueryUri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{space}/images/{id}";
+            var operation = await DoOperation<string, Image>(HttpMethod.Get, new Uri(imageQueryUri), null, dlcsCallContext);
+            var image = operation.ResponseObject;
+
+            if (image != null)
+            {
+                // check if we need this...
+                image.StorageIdentifier = GetLocalStorageIdentifier(image.Id!);
+                // same as: if(options.SupportsDeliveryChannels) - we can retire Family later
+                if (image.MediaType.IsTimeBasedMimeType() || image.Family == 'T')
+                {
+                    await LoadMetadata(image);
+                }
+            }
+
+            return image;
+        }
+        
         public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(
             ImageQuery query, int defaultSpace, DlcsCallContext dlcsCallContext)
         {
@@ -720,7 +741,6 @@ namespace DlcsWebClient.Dlcs
 
         public string ResourceEntryPoint => options.ResourceEntryPoint!;
         public string InternalResourceEntryPoint => options.InternalResourceEntryPoint!;
-
         public bool SupportsDeliveryChannels => options.SupportsDeliveryChannels;
     }
 

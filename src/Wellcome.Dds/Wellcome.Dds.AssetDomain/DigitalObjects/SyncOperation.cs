@@ -65,7 +65,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// <summary>
         /// Files with no access condition in METS
         /// </summary>
-        public List<IStoredFile> MissingAccessConditions { get; set; }
+        public List<IStoredFile>? MissingAccessConditions { get; set; }
 
         public SyncOperation(DlcsCallContext dlcsCallContext)
         {

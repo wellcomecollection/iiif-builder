@@ -1,0 +1,171 @@
+@model AssetModel
+
+<h2>Space @Model.Space<text>:</text> @Model.ModelId</h2>
+
+<div class="row" style="margin-top: 1em;">
+
+    <div class="col-md-3">
+        <h3>Jobs</h3>
+        <ul class="list-group">
+            <li class="list-group-item">
+                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Edit</a>
+            </li>    
+            <li class="list-group-item">
+                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Reingest</a>
+            </li>    
+            <li class="list-group-item">
+                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Delete</a>
+            </li>   
+        </ul>
+    </div>
+    
+    <div class="col-md-9">
+        
+<p><a href="@Model.DlcsPortalPage" target="_blank">View in DLCS portal</a></p>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Property</th>
+        <th>Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>API Endpoint</td>
+        <td><a href="@Model.Asset.Id">@Model.Asset.Id</a></td>
+    </tr>
+    <tr>
+        <td>Image API Endpoint (info.json)</td>
+        <td><a href="@Model.Asset.InfoJson">@Model.Asset.InfoJson</a></td>
+    </tr>
+    <tr>
+        <td>Thumbnail Image API Endpoint (info.json)</td>
+        <td><a href="@Model.Asset.ThumbnailInfoJson">@Model.Asset.ThumbnailInfoJson</a></td>
+    </tr>
+    <tr>
+        <td>Family / Media Type</td>
+        <td>@Model.Asset.Family / @Model.Asset.MediaType</td>
+    </tr>
+    <tr>
+        <td>Size</td>
+        <td>(todo - not on Asset)</td>
+    </tr>
+    <tr>
+        <td>Thumbnail size</td>
+        <td>(todo - not on Asset)</td>
+    </tr>
+    <tr>
+        <td>AV derivatives</td>
+        <td>(todo - not on Asset, will be storage)</td>
+    </tr>
+    <tr>
+        <td>Created</td>
+        <td>@StringUtils.GetFriendlyAge(Model.Asset.Created)</td>
+    </tr>
+    <tr>
+        <td>Ingesting</td>
+        <td>@Model.Asset.Ingesting</td>
+    </tr>
+    <tr>
+        <td>Finished</td>
+        <td>@StringUtils.GetFriendlyAge(Model.Asset.Finished)</td>
+    </tr>
+    <tr>
+        <td>Origin</td>
+        <td><a href="@Model.Asset.Origin">@Model.Asset.Origin</a></td>
+    </tr>
+    <tr>
+        <td>Width x Height</td>
+        <td>@Model.Asset.Width x @Model.Asset.Height</td>
+    </tr>
+    <tr>
+        <td>Duration</td>
+        <td>@Model.Asset.Duration</td>
+    </tr>
+    <tr>
+        <td>String1</td>
+        <td>@Model.Asset.String1</td>
+    </tr>
+    <tr>
+        <td>String2</td>
+        <td>@Model.Asset.String2</td>
+    </tr>
+    <tr>
+        <td>String3</td>
+        <td>@Model.Asset.String3</td>
+    </tr>
+    <tr>
+        <td>Number1</td>
+        <td>@Model.Asset.Number1</td>
+    </tr>
+    <tr>
+        <td>Number2</td>
+        <td>@Model.Asset.Number2</td>
+    </tr>
+    <tr>
+        <td>Number3</td>
+        <td>@Model.Asset.Number3</td>
+    </tr>
+    <tr>
+        <td>Tags</td>
+        <td>@string.Join(',', Model.Asset.Tags ?? Array.Empty<string>())</td>
+    </tr>
+    <tr>
+        <td>Roles</td>
+        <td>@string.Join(',', Model.Asset.Roles ?? Array.Empty<string>())</td>
+    </tr>
+    <tr>
+        <td>Max Unauthorised</td>
+        <td>@Model.Asset.MaxUnauthorised</td>
+    </tr>
+    <tr>
+        <td>Batch</td>
+        <td><a href="@Model.Asset.Batch">@Model.Asset.Batch</a></td>
+    </tr>
+    <tr>
+        <td>Error</td>
+        <td>@Model.Asset.Error</td>
+    </tr>
+    </tbody>
+</table>
+
+@{
+    if (Model.Asset.InfoJson.HasText())
+    {
+        <h2>IIIF Image</h2>
+        <div id="osd" style="width:100%; height: 500px; border: 1px solid gray;"></div>
+    }
+
+
+    if (Model.Asset.ThumbnailInfoJson.HasText())
+    {
+        <h2>Thumbnails</h2>
+        @foreach (var thumb in Model.Thumbnails)
+        {
+            <p>@thumb.Width x @thumb.Height</p>
+            <img src="@thumb.Src" />                    
+        }
+        
+    }
+}
+    </div>
+    
+</div>
+
+
+
+@section scripts
+{
+    @if (Model.Asset.InfoJson.HasText())
+    {
+        <script>
+            const viewer1 = OpenSeadragon({
+                id: "osd",
+                showNavigationControl: false,
+                tileSources: "@Model.Asset.InfoJson"
+            });
+        </script>
+    }
+}
+    

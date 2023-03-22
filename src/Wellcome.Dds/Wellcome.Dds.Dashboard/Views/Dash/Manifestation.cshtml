@@ -670,7 +670,7 @@
                             @if (dlcsImage != null)
                             {
                                 <td>
-                                    <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@pf.StorageIdentifier</a>
+                                    <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@pf.StorageIdentifier</a>
                                     @if (dlcsImage.Error.HasText())
                                     {
                                         <br/><span class="text-danger small">@dlcsImage.Error</span>

@@ -15,7 +15,6 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         public int? Space { get; set; }
 
         [JsonProperty(Order = 11, PropertyName = "infoJson")]
-        [Obsolete("Use metadata instead; the infoJson is produced from templates at runtime")]
         public string? InfoJson { get; set; }
 
         [JsonProperty(Order = 12, PropertyName = "degradedInfoJson")]
