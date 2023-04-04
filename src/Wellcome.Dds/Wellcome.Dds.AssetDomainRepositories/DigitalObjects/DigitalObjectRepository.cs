@@ -223,6 +223,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
             syncOperation.DlcsImagesToIngest = new List<Image>();
             syncOperation.DlcsImagesToPatch = new List<Image>();
+            syncOperation.Mismatches = new Dictionary<string, List<string>>();
             syncOperation.Orphans = imagesAlreadyOnDlcs
                 .Where(image => !syncOperation.ImagesCurrentlyOnDlcs.ContainsKey(image.StorageIdentifier!)).ToList();
             logger.LogDebug("There are {orphanCount} orphan assets, callContext {callContext}",
@@ -260,18 +261,27 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 else if (existingDlcsImage != null)
                 {
                     // The DLCS already has this image...
-                    var ingestDiffImage = GetIngestDiffImage(newDlcsImage, existingDlcsImage);
+                    var ingestDiffImage = GetIngestDiffImage(newDlcsImage, existingDlcsImage, out var ingestMismatchReasons);
                     if (ingestDiffImage != null)
                     {
                         // ...and it can't be batch-patched, we need to reingest it
                         syncOperation.DlcsImagesToIngest.Add(ingestDiffImage);
+                        syncOperation.Mismatches[storedFile.StorageIdentifier!] = ingestMismatchReasons;
                     }
 
-                    var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage);
+                    var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage, out var patchMismatchReasons);
                     if (patchDiffImage != null && ingestDiffImage == null)
                     {
                         // ...and it's a metadata change that can go in a batch patch
                         syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
+                        if (syncOperation.Mismatches.ContainsKey(storedFile.StorageIdentifier!))
+                        {
+                            syncOperation.Mismatches[storedFile.StorageIdentifier!].AddRange(patchMismatchReasons);
+                        }
+                        else
+                        {
+                            syncOperation.Mismatches[storedFile.StorageIdentifier!] = patchMismatchReasons;
+                        }
                     }
 
                     if (existingDlcsImage.Ingesting == true)
@@ -578,17 +588,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// </summary>
         /// <param name="newDlcsImage"></param>
         /// <param name="existingDlcsImage"></param>
+        /// <param name="reasons"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        private Image? GetIngestDiffImage(Image newDlcsImage, Image existingDlcsImage)
+        private Image? GetIngestDiffImage(Image newDlcsImage, Image existingDlcsImage, out List<string> reasons)
         {
+            reasons = new List<string>();
             Image? reingestImage = null;
-            const string reingestMessageFormat =
+            const string reingestMessageStructuredLoggingFormat =
                 "Reingest required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
+            const string reingestMessageUIFormat =
+                "REINGEST because mismatch for {0} - new: '{1}', existing: '{2}'";
             if (existingDlcsImage.Origin != newDlcsImage.Origin)
             {
-                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "origin", newDlcsImage.Origin,
-                    existingDlcsImage.Origin);
+                logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "origin", newDlcsImage.Origin, existingDlcsImage.Origin);
+                reasons.Add(string.Format(reingestMessageUIFormat,
+                    "origin", newDlcsImage.Origin, existingDlcsImage.Origin));
                 reingestImage ??= newDlcsImage;
             }
 
@@ -596,19 +612,44 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // But later it could go into regular batch-patch if protagonist no longer rejects it.
             if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
             {
-                logger.LogDebug(reingestMessageFormat, newDlcsImage.StorageIdentifier, "maxUnauthorised",
-                    newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
+                logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
+                reasons.Add(string.Format(reingestMessageUIFormat,
+                    "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised));
                 reingestImage ??= newDlcsImage;
             }
 
             // In DDS we never change these but they would need to be considered here
             // We also need to consider what's significant when either new or existing are null
-            //if (existingDlcsImage.ImageOptimisationPolicy != newDlcsImage.ImageOptimisationPolicy)
-            //    return newDlcsImage;
-            //if (existingDlcsImage.ThumbnailPolicy != newDlcsImage.ThumbnailPolicy)
-            //    return newDlcsImage;
-            //if (existingDlcsImage.DeliveryChannel != newDlcsImage.DeliveryChannel)
-            //    return newDlcsImage;
+            if (dlcs.SupportsDeliveryChannels)
+            {
+                if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ImageOptimisationPolicy, newDlcsImage.ImageOptimisationPolicy))
+                {
+                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                        "imageOptimisationPolicy", newDlcsImage.ImageOptimisationPolicy, existingDlcsImage.ImageOptimisationPolicy);
+                    reasons.Add(string.Format(reingestMessageUIFormat,
+                        "imageOptimisationPolicy", newDlcsImage.ImageOptimisationPolicy, existingDlcsImage.ImageOptimisationPolicy));
+                    reingestImage ??= newDlcsImage;
+                }
+
+                if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ThumbnailPolicy, newDlcsImage.ThumbnailPolicy))
+                {
+                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                        "thumbnailPolicy", newDlcsImage.ThumbnailPolicy, existingDlcsImage.ThumbnailPolicy);
+                    reasons.Add(string.Format(reingestMessageUIFormat,
+                        "thumbnailPolicy", newDlcsImage.ThumbnailPolicy, existingDlcsImage.ThumbnailPolicy));
+                    reingestImage ??= newDlcsImage;
+                }
+
+                if (!AreEqual(existingDlcsImage.DeliveryChannels, newDlcsImage.DeliveryChannels))
+                {
+                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,
+                        "deliveryChannels", newDlcsImage.DeliveryChannels.ToCommaDelimitedList(), existingDlcsImage.DeliveryChannels.ToCommaDelimitedList());
+                    reasons.Add(string.Format(reingestMessageUIFormat,
+                        "deliveryChannels", newDlcsImage.DeliveryChannels.ToCommaDelimitedList(), existingDlcsImage.DeliveryChannels.ToCommaDelimitedList()));
+                    reingestImage ??= newDlcsImage;
+                }
+            }
 
             return reingestImage;
         }
@@ -619,74 +660,96 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// </summary>
         /// <param name="newDlcsImage"></param>
         /// <param name="existingDlcsImage"></param>
+        /// <param name="reasons"></param>
         /// <returns></returns>
-        private Image? GetPatchImage(Image newDlcsImage, Image existingDlcsImage)
+        private Image? GetPatchImage(Image newDlcsImage, Image existingDlcsImage, out List<string> reasons)
         {
+            reasons = new List<string>();
             Image? patchImage = null;
-            const string patchMessageFormat =
+            const string patchMessageStructuredLoggingFormat =
                 "Patch required for {identifier}. Mismatch for {field} - new: {newValue}, existing: {existingValue}";
+            const string patchMessageUIFormat =
+                "PATCH because mismatch for {0} - new: {1}, existing: {2}";
 
             if (existingDlcsImage.String1 != newDlcsImage.String1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string1", newDlcsImage.String1,
-                    existingDlcsImage.String1);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "string1", newDlcsImage.String1, existingDlcsImage.String1);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "string1", newDlcsImage.String1, existingDlcsImage.String1));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.String2 != newDlcsImage.String2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string2", newDlcsImage.String2,
-                    existingDlcsImage.String2);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "string2", newDlcsImage.String2, existingDlcsImage.String2);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "string2", newDlcsImage.String2, existingDlcsImage.String2));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.String3 != newDlcsImage.String3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "string3", newDlcsImage.String3,
-                    existingDlcsImage.String3);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "string3", newDlcsImage.String3, existingDlcsImage.String3);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "string3", newDlcsImage.String3, existingDlcsImage.String3));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.Number1 != newDlcsImage.Number1)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number1", newDlcsImage.Number1,
-                    existingDlcsImage.Number1);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "number1", newDlcsImage.Number1, existingDlcsImage.Number1);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "number1", newDlcsImage.Number1, existingDlcsImage.Number1));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.Number2 != newDlcsImage.Number2)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number2", newDlcsImage.Number2,
-                    existingDlcsImage.Number2);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "number2", newDlcsImage.Number2, existingDlcsImage.Number2);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "number2", newDlcsImage.Number2, existingDlcsImage.Number2));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.Number3 != newDlcsImage.Number3)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "number3", newDlcsImage.Number3,
-                    existingDlcsImage.Number3);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "number3", newDlcsImage.Number3, existingDlcsImage.Number3);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "number3", newDlcsImage.Number3, existingDlcsImage.Number3));
                 patchImage ??= newDlcsImage;
             }
 
             if (existingDlcsImage.MediaType != newDlcsImage.MediaType)
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "mediaType", newDlcsImage.MediaType,
-                    existingDlcsImage.MediaType);
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "mediaType", newDlcsImage.MediaType, existingDlcsImage.MediaType);
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "mediaType", newDlcsImage.MediaType, existingDlcsImage.MediaType));
                 patchImage ??= newDlcsImage;
             }
 
             // Do we care about ordering?
             if (!AreEqual(existingDlcsImage.Tags, newDlcsImage.Tags))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "tags",
-                    newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "tags", newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList());
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "tags", newDlcsImage.Tags.ToCommaDelimitedList(), existingDlcsImage.Tags.ToCommaDelimitedList()));
                 patchImage ??= newDlcsImage;
             }
 
             if (!AreEqual(existingDlcsImage.Roles, newDlcsImage.Roles))
             {
-                logger.LogDebug(patchMessageFormat, newDlcsImage.StorageIdentifier, "roles",
-                    newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                    "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
+                reasons.Add(string.Format(patchMessageUIFormat,
+                    "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList()));
                 patchImage ??= newDlcsImage;
             }
 
@@ -715,6 +778,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             return s1.SequenceEqual(s2);
         }
+
 
         private Image MakeDlcsImage(
             IStoredFile asset,

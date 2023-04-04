@@ -14,14 +14,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 10, PropertyName = "space")]
         public int? Space { get; set; }
 
-        [JsonProperty(Order = 11, PropertyName = "infoJson")]
-        public string? InfoJson { get; set; }
+        [JsonProperty(Order = 11, PropertyName = "imageService")]
+        public string? ImageService { get; set; }
 
-        [JsonProperty(Order = 12, PropertyName = "degradedInfoJson")]
-        public string? DegradedInfoJson { get; set; }
-
-        [JsonProperty(Order = 13, PropertyName = "thumbnailInfoJson")]
-        public string? ThumbnailInfoJson { get; set; }
+        [JsonProperty(Order = 13, PropertyName = "thumbnailImageService")]
+        public string? ThumbnailImageService { get; set; }
 
         [JsonProperty(Order = 13, PropertyName = "thumbnail400")]
         public string? Thumbnail400 { get; set; }

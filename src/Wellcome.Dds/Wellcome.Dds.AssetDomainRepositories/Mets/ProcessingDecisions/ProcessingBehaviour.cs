@@ -23,7 +23,10 @@ public class ProcessingBehaviour : IProcessingBehaviour
         if (physicalFile.MimeType.IsImageMimeType())
         {
             DeliveryChannels.Add("iiif-img");
-            DeliveryChannels.Add("thumbs");
+            if (options.AddThumbsAsSeparateChannel)
+            {
+                DeliveryChannels.Add("thumbs");
+            }
             if (options.MakeAllSourceImagesAvailable)
             {
                 DeliveryChannels.Add("file");

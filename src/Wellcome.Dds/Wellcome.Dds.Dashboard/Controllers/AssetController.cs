@@ -51,7 +51,7 @@ public class AssetController : Controller
             Asset = image,
             DlcsPortalPage = string.Format(dlcsOptions.PortalPageTemplate!, space, image?.StorageIdentifier),
             SingleAssetManifest = string.Format(dlcsOptions.SingleAssetManifestTemplate!, space, image?.StorageIdentifier),
-            Thumbnails = await GetThumbnails(image?.ThumbnailInfoJson)
+            Thumbnails = await GetThumbnails(image?.ThumbnailImageService)
             // Storage = some new storage object from API,
             // see https://api.dlcs.io/customers/2/spaces/5/images/b31404777_0001.jp2/storage and 
             // https://api.dlcs.io/customers/2/spaces/5/images/b20018484_0055-0000-7064-0000-0-0000-0000-0.mpg/storage

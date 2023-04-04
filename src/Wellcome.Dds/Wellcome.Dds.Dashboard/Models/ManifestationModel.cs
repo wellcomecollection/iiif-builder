@@ -288,6 +288,16 @@ namespace Wellcome.Dds.Dashboard.Models
             return null;
         }
 
+        public List<string> GetProblems(string storageIdentifier)
+        {
+            if (SyncOperation.Mismatches.ContainsKey(storageIdentifier))
+            {
+                return SyncOperation.Mismatches[storageIdentifier];
+            }
+
+            return new List<string>(0);
+        }
+
         public bool IsIgnored(string storageIdentifier)
         {
             return SyncOperation.StorageIdentifiersToIgnore.Contains(storageIdentifier);

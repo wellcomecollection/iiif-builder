@@ -58,12 +58,12 @@
         <td><a href="@Model.Asset.Id">@Model.Asset.Id</a></td>
     </tr>
     <tr>
-        <td>Image API Endpoint (info.json)</td>
-        <td><a href="@Model.Asset.InfoJson">@Model.Asset.InfoJson</a></td>
+        <td>Image API Endpoint (image service)</td>
+        <td><a href="@Model.Asset.ImageService">@Model.Asset.ImageService</a></td>
     </tr>
     <tr>
-        <td>Thumbnail Image API Endpoint (info.json)</td>
-        <td><a href="@Model.Asset.ThumbnailInfoJson">@Model.Asset.ThumbnailInfoJson</a></td>
+        <td>Thumbnail Image API Endpoint</td>
+        <td><a href="@Model.Asset.ThumbnailImageService">@Model.Asset.ThumbnailImageService</a></td>
     </tr>
     <tr>
         <td>Family / Media Type</td>
@@ -100,6 +100,14 @@
     <tr>
         <td>Origin</td>
         <td><a href="@Model.Asset.Origin">@Model.Asset.Origin</a></td>
+    </tr>
+    <tr>
+        <td>Image Optimisation Policy</td>
+        <td>@Model.Asset.ImageOptimisationPolicy</td>
+    </tr>
+    <tr>
+        <td>Thumbnail Policy</td>
+        <td>@Model.Asset.ThumbnailPolicy</td>
     </tr>
     <tr>
         <td>Width x Height</td>
@@ -157,14 +165,14 @@
 </table>
 
 @{
-    if (Model.Asset.InfoJson.HasText())
+    if (Model.Asset.ImageService.HasText())
     {
         <h2>IIIF Image</h2>
         <div id="osd" style="width:100%; height: 500px; border: 1px solid gray;"></div>
     }
 
 
-    if (Model.Asset.ThumbnailInfoJson.HasText())
+    if (Model.Asset.ThumbnailImageService.HasText())
     {
         <h2>Thumbnails</h2>
         @foreach (var thumb in Model.Thumbnails)
@@ -183,13 +191,13 @@
 
 @section scripts
 {
-    @if (Model.Asset.InfoJson.HasText())
+    @if (Model.Asset.ImageService.HasText())
     {
         <script>
             const viewer1 = OpenSeadragon({
                 id: "osd",
                 showNavigationControl: false,
-                tileSources: "@Model.Asset.InfoJson"
+                tileSources: "@Model.Asset.ImageService"
             });
         </script>
     }

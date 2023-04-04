@@ -597,5 +597,33 @@ namespace Utils
 
             return String.Join(',', strings);
         }
+        
+        /// <summary>
+        /// To be used carefully when comparing raw strings and RESt resources
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <param name="countBack">How many path elements at the end to consider when matching</param>
+        /// <returns></returns>
+        public static bool EndWithSamePathElements(string? s1, string? s2, int countBack = 1)
+        {
+            if (s1 == s2) return true;
+            if (s1.IsNullOrEmpty() && s2.IsNullOrEmpty()) return true;
+            var parts1 = s1.SplitByDelimiterIntoArray('/');
+            var parts2 = s2.SplitByDelimiterIntoArray('/');
+            if (parts1.Length < countBack || parts2.Length < countBack)
+            {
+                return false;
+            }
+            for (int i = 1; i <= countBack; i++)
+            {
+                if (parts1[^i] != parts2[^i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

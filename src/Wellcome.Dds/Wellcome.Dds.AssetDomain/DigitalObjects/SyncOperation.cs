@@ -47,6 +47,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         public Dictionary<string, Image?>? ImagesThatShouldBeOnDlcs { get; set; }
         public List<Image>? DlcsImagesToIngest { get; set; }
         public List<Image>? DlcsImagesToPatch { get; set; }
+        public Dictionary<string, List<string>>? Mismatches { get; set; }
         public List<Image>? DlcsImagesCurrentlyIngesting { get; set; }
         public List<Image>? Orphans { get; set; }
         /// <summary>

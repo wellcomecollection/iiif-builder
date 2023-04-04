@@ -144,5 +144,34 @@ namespace Utils.Tests
             // Assert
             actual.Should().Be(expected);
         }
+
+        [Theory]
+        [InlineData(null, "")]
+        [InlineData("", "")]
+        [InlineData("path", "path")]
+        [InlineData("/path", "path")]
+        [InlineData("https://example.org/some/path", "path")]
+        [InlineData("https://example.org/some/long/path", "https://example.org/some/long/path")]
+        [InlineData("https://example.org/some/xxx/path", "https://example.org/some/long/path")]
+        [InlineData("https://example.org/some/long/path", "https://example.org/some/long/path", 2)]
+        [InlineData("https://example.org/xxx/long/path", "https://example.org/some/long/path", 2)]
+        public void PathElements_Are_Equivalent(string path1, string path2, int walkback = 1)
+        {
+            StringUtils.EndWithSamePathElements(path1, path2, walkback).Should().BeTrue();
+        }
+        
+        [Theory]
+        [InlineData(null, "xxx")]
+        [InlineData("", "xxx")]
+        [InlineData("path", "xxx")]
+        [InlineData("/path", "xxx")]
+        [InlineData("https://example.org/some/path", "xxx")]
+        [InlineData("https://example.org/some/long/path", "https://example.org/some/long/xxx")]
+        [InlineData("https://example.org/some/long/path", "https://example.org/some/xxx/path", 2)]
+        [InlineData("https://example.org/xxx/long/path", "https://example.org/some/long/path", 3)]
+        public void PathElements_Are_Not_Equivalent(string path1, string path2, int walkback = 1)
+        {
+            StringUtils.EndWithSamePathElements(path1, path2, walkback).Should().BeFalse();
+        }
     }
 }

@@ -618,9 +618,23 @@
                     @foreach (IPhysicalFile pf in metsManifestation.Sequence)
                     {
                         var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
+                        var problems = Model.GetProblems(pf.StorageIdentifier);
                         bool ignored = false; // The physical file itself is never ignored.
                         <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
-                            <td><small>@pf.Order</small></td>
+                            <td>
+                                <small>@pf.Order</small>
+                                @if (problems.HasItems())
+                                {
+                                    <a class="sync-problem" href="#" data-placement="auto" title="
+@foreach (var problem in problems)
+{
+@problem
+<text>
+</text>      
+}    
+"><span class="glyphicon glyphicon-exclamation-sign"></span> </a>
+                                }
+                            </td>
 
                             @if (Model.ManifestationFamily == AssetFamily.Image)
                             {
