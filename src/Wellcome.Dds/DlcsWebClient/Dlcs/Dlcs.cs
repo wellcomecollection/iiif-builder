@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
@@ -79,7 +80,11 @@ namespace DlcsWebClient.Dlcs
                 switch (operation.HttpMethod.Method)
                 {
                     case "POST":
-                        requestMessage.Content = GetJsonContent(operation.RequestJson!);
+                        if (operation.RequestJson.HasText())
+                        {
+                            // a POST to /reingest has no content
+                            requestMessage.Content = GetJsonContent(operation.RequestJson);
+                        }
                         break;
                     case "PATCH":
                         requestMessage.Content = GetJsonContent(operation.RequestJson!);
@@ -213,7 +218,15 @@ namespace DlcsWebClient.Dlcs
 
             return image;
         }
-        
+
+        public async Task<Image?> ReingestImage(int space, string id, DlcsCallContext dlcsCallContext)
+        {
+            var imageReingestUri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{space}/images/{id}/reingest";
+            var operation = await DoOperation<string, Image>(HttpMethod.Post, new Uri(imageReingestUri), null, dlcsCallContext);
+            var image = operation.ResponseObject;
+            return image;
+        }
+
         public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(
             ImageQuery query, int defaultSpace, DlcsCallContext dlcsCallContext)
         {

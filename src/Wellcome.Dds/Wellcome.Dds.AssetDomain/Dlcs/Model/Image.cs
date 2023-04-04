@@ -120,7 +120,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         public string? ThumbnailPolicy { get; set; }
 
         [JsonProperty(Order = 82, PropertyName = "deliveryChannel")]
-        public string? DeliveryChannel { get; set; }
+        public string[]? DeliveryChannels { get; set; }
     }
 
     public class Thumbnail

@@ -118,5 +118,6 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         
         bool SupportsDeliveryChannels { get; }
         Task<Image?> GetImage(int space, string id, DlcsCallContext dlcsCallContext);
+        Task<Image?> ReingestImage(int space, string id, DlcsCallContext dlcsCallContext);
     }
 }

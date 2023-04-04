@@ -28,5 +28,6 @@
         
         public string? PortalPageTemplate { get; set; }
         public string? PortalBatchTemplate { get; set; }
+        public string? SingleAssetManifestTemplate { get; set; }
     }
 }

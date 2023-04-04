@@ -73,6 +73,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string PersistentCatalogueRecordFormat = "https://search.wellcomelibrary.org/iii/encore/record/C__R{identifier}";
         
         // DLCS Paths
+        // Note that {dlcsEntryPoint} is the public-facing, proxied, Wellcome root, not the raw DLCS orchestrator
         private const string DlcsPdfTemplate          = "{dlcsEntryPoint}pdf/{identifier}";
         private const string DlcsThumbServiceTemplate = "{dlcsEntryPoint}thumbs/{assetIdentifier}";
         private const string DlcsImageServiceTemplate = "{dlcsEntryPoint}image/{assetIdentifier}";

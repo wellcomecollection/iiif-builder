@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -49,6 +50,7 @@ public class AssetController : Controller
             ModelId = id,
             Asset = image,
             DlcsPortalPage = string.Format(dlcsOptions.PortalPageTemplate!, space, image?.StorageIdentifier),
+            SingleAssetManifest = string.Format(dlcsOptions.SingleAssetManifestTemplate!, space, image?.StorageIdentifier),
             Thumbnails = await GetThumbnails(image?.ThumbnailInfoJson)
             // Storage = some new storage object from API,
             // see https://api.dlcs.io/customers/2/spaces/5/images/b31404777_0001.jp2/storage and 
@@ -58,30 +60,52 @@ public class AssetController : Controller
         return View(model);
     }
 
-    private async Task<List<Thumbnail>> GetThumbnails(string thumbnailInfoJsonJson)
+    private async Task<List<Thumbnail>> GetThumbnails(string thumbnailInfoJson)
     {
-        if (thumbnailInfoJsonJson.HasText())
+        if (thumbnailInfoJson.HasText())
         {
             var thumbs = new List<Thumbnail>();
             try
             {
-                var info = JObject.Parse(await httpClient.GetStringAsync(thumbnailInfoJsonJson));
-                var sizes = info["sizes"];
+                var info = JObject.Parse(await httpClient.GetStringAsync(thumbnailInfoJson));
+                var sizes = info["sizes"] ?? new JArray();
                 foreach (var size in sizes.Cast<JObject>())
                 {
-                    var thumb = new Thumbnail()
+                    var thumb = new Thumbnail
                     {
                         Width = size.Value<int>("width"),
                         Height = size.Value<int>("height"),
                     };
-                    thumb.Src = $"{thumbnailInfoJsonJson}/full/{thumb.Width},{thumb.Height}/0/default.jpg";
+                    thumb.Src = $"{thumbnailInfoJson.Replace("/info.json", "")}/full/{thumb.Width},{thumb.Height}/0/default.jpg";
                     thumbs.Add(thumb);
                 }
 
                 return thumbs;
-            } catch {}
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         return null;
+    }
+
+    [HttpGet]
+    [Route("reingest/{space}/{id}")]
+    public async Task<ActionResult> Reingest(int space, string id)
+    {
+        var reingestCallContext = new DlcsCallContext("AssetController::Index-ReingestImage", $"{space}/{id}");
+        var result = await dlcs.ReingestImage(space, id, reingestCallContext);
+        TempData["reingest-asset"] = result?.ModelId;
+        return RedirectToAction("Index", "Asset", new { space, id });
+    }
+    
+    
+    [HttpGet]
+    [Route("delete/{space}/{id}")]
+    public Task<ActionResult> Delete(int space, string id)
+    {
+        throw new NotSupportedException("To be implemented");
     }
 }

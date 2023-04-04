@@ -778,7 +778,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 var processing = asset.PhysicalFile.ProcessingBehaviour;
                 imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
-                imageRegistration.DeliveryChannel = processing.DeliveryChannels.ToCommaDelimitedList();
+                imageRegistration.DeliveryChannels = processing.DeliveryChannels.ToArray();
                 imageRegistration.Family = null;
             }
             return imageRegistration;

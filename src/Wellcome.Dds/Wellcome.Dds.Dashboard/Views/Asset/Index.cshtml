@@ -4,18 +4,40 @@
 
 <div class="row" style="margin-top: 1em;">
 
+    
+    @if (TempData["reingest-asset"] != null)
+    {
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>The DLCS was told to reingest this asset.</strong>
+        </div>
+    }
+    
     <div class="col-md-3">
-        <h3>Jobs</h3>
+        <h3>Preview</h3>
         <ul class="list-group">
             <li class="list-group-item">
-                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Edit</a>
+                <a href="@Model.SingleAssetManifest"><span class="glyphicon glyphicon-file"></span> Single IIIF Manifest</a>
             </li>    
             <li class="list-group-item">
-                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Reingest</a>
+                <a href="https://universalviewer.io/examples/#?manifest=@Model.SingleAssetManifest"><span class="glyphicon glyphicon-eye-open"></span> In UV</a>
             </li>    
             <li class="list-group-item">
-                <a href="#"><span class="glyphicon glyphicon-info-sign"></span> Delete</a>
+                <a href="https://tomcrane.github.io/scratch/mirador3/index.html?iiif-content=@Model.SingleAssetManifest"><span class="glyphicon glyphicon-eye-open"></span> In Mirador</a>
             </li>   
+        </ul>
+        
+        <h3>Actions</h3>
+        <ul class="list-group">
+            <li class="list-group-item">
+                <a href="#"><span class="glyphicon glyphicon-pencil"></span> Edit (soon)</a>
+            </li>
+            <li class="list-group-item">    
+                <a href="@Url.Action("Reingest", new { space = Model.Space, id=Model.ModelId })"><span class="glyphicon glyphicon-transfer"></span> Reingest</a>
+            </li>
+            <li class="list-group-item">
+                <a href="@Url.Action("Delete", new { space = Model.Space, id=Model.ModelId })"><span class="glyphicon glyphicon-remove"></span> Delete</a>
+            </li>
         </ul>
     </div>
     
@@ -46,6 +68,10 @@
     <tr>
         <td>Family / Media Type</td>
         <td>@Model.Asset.Family / @Model.Asset.MediaType</td>
+    </tr>
+    <tr>
+        <td>Delivery Channels</td>
+        <td>@String.Join(", ", Model.Asset.DeliveryChannels ?? new[]{"(no delivery channels)"})</td>
     </tr>
     <tr>
         <td>Size</td>
