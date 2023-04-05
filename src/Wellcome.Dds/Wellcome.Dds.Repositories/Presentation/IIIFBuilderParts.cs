@@ -405,7 +405,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
                         
-                        if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
+                        if (useDeliveryChannels && physicalFile.GetDefaultProcessingBehaviour().DeliveryChannels.Contains("file"))
                         {
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
                             var rendering = new Image
@@ -897,7 +897,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
             var deliveryChannels = useDeliveryChannels ? 
-                physicalFile.ProcessingBehaviour.DeliveryChannels : new HashSet<string> { "iiif-av" };
+                physicalFile.GetDefaultProcessingBehaviour().DeliveryChannels : new HashSet<string> { "iiif-av" };
             if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
             {
                 // First do the <= 720p video which is going to     

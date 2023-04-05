@@ -851,7 +851,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             if (dlcs.SupportsDeliveryChannels)
             {
-                var processing = asset.PhysicalFile.ProcessingBehaviour;
+                var processing = asset.ProcessingBehaviour;
                 imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
                 imageRegistration.DeliveryChannels = processing.DeliveryChannels.ToArray();
                 imageRegistration.Family = null;

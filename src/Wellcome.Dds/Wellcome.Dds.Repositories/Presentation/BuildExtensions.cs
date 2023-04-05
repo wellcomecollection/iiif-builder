@@ -7,7 +7,9 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Image = IIIF.Presentation.V3.Content.Image;
 using Size = IIIF.Size;
@@ -50,6 +52,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         {
             var sizes = asset.GetAvailableSizes();
             return JsonConvert.SerializeObject(sizes.Select(s => new []{s.Width,s.Height}.ToList()));
+        }
+
+        public static IProcessingBehaviour GetDefaultProcessingBehaviour(this IPhysicalFile asset)
+        {
+            var defaultStoredFile = asset.Files!.SingleOrDefault(f => f.StorageIdentifier == asset.StorageIdentifier);
+            return defaultStoredFile!.ProcessingBehaviour;
         }
 
         public static List<Size> GetAvailableSizes(this IPhysicalFile asset)

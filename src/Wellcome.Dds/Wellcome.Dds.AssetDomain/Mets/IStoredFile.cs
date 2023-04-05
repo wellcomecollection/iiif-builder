@@ -1,4 +1,5 @@
 ﻿using Utils.Storage;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomain.Mets
@@ -48,6 +49,9 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// The METS PhysicalFile this stored file belongs to
         /// </summary>
         IPhysicalFile? PhysicalFile { get; set; }
+        
+        
+        IProcessingBehaviour ProcessingBehaviour { get; }
         
     }
 }

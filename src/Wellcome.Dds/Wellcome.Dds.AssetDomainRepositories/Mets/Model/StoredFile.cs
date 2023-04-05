@@ -1,6 +1,8 @@
 ﻿using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
@@ -20,5 +22,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string? Use { get; set; }
         public AssetFamily Family { get; set; }
         public IPhysicalFile? PhysicalFile { get; set; }
+        
+        private IProcessingBehaviour? processingBehaviour;
+        public IProcessingBehaviour ProcessingBehaviour => processingBehaviour ??= new ProcessingBehaviour(
+            this, new ProcessingBehaviourOptions());
     }
 }

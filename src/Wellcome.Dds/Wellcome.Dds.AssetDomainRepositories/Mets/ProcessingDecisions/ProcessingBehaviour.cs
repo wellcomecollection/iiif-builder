@@ -10,7 +10,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
     public HashSet<string> DeliveryChannels { get; }
     public string? ImageOptimisationPolicy { get; }
 
-    public ProcessingBehaviour(PhysicalFile physicalFile, ProcessingBehaviourOptions options)
+    public ProcessingBehaviour(StoredFile storedFile, ProcessingBehaviourOptions options)
     {
         DeliveryChannels = new HashSet<string>();
         string? videoDefault = options.UseNamedAVDefaults ? "video-max" : null;
@@ -20,7 +20,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // if we leave ImageOptimisationPolicy empty.
 
         // Images:
-        if (physicalFile.MimeType.IsImageMimeType())
+        if (storedFile.MimeType.IsImageMimeType())
         {
             DeliveryChannels.Add("iiif-img");
             if (options.AddThumbsAsSeparateChannel)
@@ -32,7 +32,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
                 DeliveryChannels.Add("file");
             }
 
-            if (physicalFile.MimeType == "image/jp2")
+            if (storedFile.MimeType == "image/jp2")
             {
                 ImageOptimisationPolicy = "use-original";
                 if (options.MakeJP2Available || options.MakeAllSourceImagesAvailable)
@@ -43,9 +43,9 @@ public class ProcessingBehaviour : IProcessingBehaviour
         }
 
         // Audio:
-        else if (physicalFile.MimeType.IsAudioMimeType())
+        else if (storedFile.MimeType.IsAudioMimeType())
         {
-            if (physicalFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
+            if (storedFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
             {
                 ImageOptimisationPolicy = "none";
                 DeliveryChannels.Add("file");
@@ -58,12 +58,12 @@ public class ProcessingBehaviour : IProcessingBehaviour
         }
 
         // Video:
-        else if (physicalFile.MimeType.IsVideoMimeType())
+        else if (storedFile.MimeType.IsVideoMimeType())
         {
-            var height = physicalFile.AssetMetadata?.GetMediaDimensions().Height;
+            var height = storedFile.AssetMetadata?.GetMediaDimensions().Height;
 
-            if (physicalFile.MimeType == "video/mp4" &&
-                physicalFile.Files!.Exists(f => f.MimeType == "application/mxf"))
+            if (storedFile.MimeType == "video/mp4" &&
+                storedFile.PhysicalFile!.Files!.Exists(f => f.MimeType == "application/mxf"))
             {
                 // At the moment we are saying that if this MP4 accompanies an MXF master,
                 // then it is the access copy and we can use it as-is.

@@ -303,9 +303,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                                       ?? throw new InvalidOperationException("File Element has no ID attribute"));
         }
 
-        private IProcessingBehaviour? processingBehaviour;
-        public IProcessingBehaviour ProcessingBehaviour => processingBehaviour ??= new ProcessingBehaviour(
-            this, new ProcessingBehaviourOptions());
     }
     
 }
