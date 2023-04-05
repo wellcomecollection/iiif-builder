@@ -632,6 +632,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     reingestImage ??= newDlcsImage;
                 }
 
+                // We don't yet support editing the thumbnail policy, but when we do, it will look like this.
+                // For that to work, the expected policy will need to be set in ProcessingBehaviour
+                /*
                 if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ThumbnailPolicy, newDlcsImage.ThumbnailPolicy))
                 {
                     logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
@@ -640,7 +643,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         "thumbnailPolicy", newDlcsImage.ThumbnailPolicy, existingDlcsImage.ThumbnailPolicy));
                     reingestImage ??= newDlcsImage;
                 }
-
+                */
+                
                 if (!AreEqual(existingDlcsImage.DeliveryChannels, newDlcsImage.DeliveryChannels))
                 {
                     logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,

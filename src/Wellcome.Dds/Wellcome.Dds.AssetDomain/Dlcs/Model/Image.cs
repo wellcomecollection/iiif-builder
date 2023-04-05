@@ -116,7 +116,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 81, PropertyName = "thumbnailPolicy")]
         public string? ThumbnailPolicy { get; set; }
 
-        [JsonProperty(Order = 82, PropertyName = "deliveryChannel")]
+        [JsonProperty(Order = 82, PropertyName = "deliveryChannels")]
         public string[]? DeliveryChannels { get; set; }
     }
 
