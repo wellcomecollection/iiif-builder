@@ -623,6 +623,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // We also need to consider what's significant when either new or existing are null
             if (dlcs.SupportsDeliveryChannels)
             {
+                // While we now set IOP to `use-original` for JP2s, we're relying on DLCS defaults for everything else still.
+                // So we can't make this check just yet, because the DDS will assume no policy, which is a mismatch from 
+                // the DLCS' assigned default policy (e.g., `video-max`)
+                /*
                 if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ImageOptimisationPolicy, newDlcsImage.ImageOptimisationPolicy))
                 {
                     logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
@@ -631,6 +635,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         "imageOptimisationPolicy", newDlcsImage.ImageOptimisationPolicy, existingDlcsImage.ImageOptimisationPolicy));
                     reingestImage ??= newDlcsImage;
                 }
+                */
 
                 // We don't yet support editing the thumbnail policy, but when we do, it will look like this.
                 // For that to work, the expected policy will need to be set in ProcessingBehaviour
