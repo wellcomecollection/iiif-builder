@@ -726,8 +726,25 @@
                         {
                             dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
                             ignored = Model.IsIgnored(adjunct.StorageIdentifier);
+                            problems = Model.GetProblems(adjunct.StorageIdentifier);
                             <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
-                                <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
+                                <td class="adjunct"><span>&#10551;</span>
+                                    
+                                    
+@if (problems.HasItems())
+{
+    <a class="sync-problem" href="#" data-placement="auto" title="
+@foreach (var problem in problems)
+{
+@problem
+<text>
+</text>      
+}    
+"><span class="glyphicon glyphicon-exclamation-sign"></span> </a>
+                                                                    }
+                                    
+                                    
+                                    @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
                                 {
                                     <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
@@ -759,7 +776,7 @@
                                     if (dlcsImage != null)
                                     {
                                         <td>
-                                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@adjunct.StorageIdentifier</a>
+                                            <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@adjunct.StorageIdentifier</a>
                                         </td>
                                     }
                                     else
@@ -808,7 +825,7 @@
                             @*<td>@orphan.Width x @orphan.Height</td>*@
                             <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
                             <td>@orphan.Error</td>
-                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)" target="_blank">@orphan.StorageIdentifier</a></td>
+                            <td width="30%"><a href="@Url.Action("Index", "Asset", new { space = orphan.Space, id = orphan.ModelId })" target="_blank">@orphan.StorageIdentifier</a></td>
                             <td>@orphan.Ingesting</td>
                         </tr>
                     }
@@ -960,7 +977,7 @@
                         <br/>
                         @if (dlcsImage != null)
                         {
-                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@file.StorageIdentifier</a>
+                            <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@file.StorageIdentifier</a>
                             @if (dlcsImage.Error.HasText())
                             {
                                 <br/>

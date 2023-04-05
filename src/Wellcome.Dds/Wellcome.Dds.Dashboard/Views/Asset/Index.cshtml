@@ -165,14 +165,14 @@
 </table>
 
 @{
-    if (Model.Asset.ImageService.HasText())
+    if (Model.Asset.MediaType.IsImageMimeType())
     {
         <h2>IIIF Image</h2>
         <div id="osd" style="width:100%; height: 500px; border: 1px solid gray;"></div>
     }
 
 
-    if (Model.Asset.ThumbnailImageService.HasText())
+    if (Model.Thumbnails.HasItems())
     {
         <h2>Thumbnails</h2>
         @foreach (var thumb in Model.Thumbnails)
@@ -191,7 +191,7 @@
 
 @section scripts
 {
-    @if (Model.Asset.ImageService.HasText())
+    @if (Model.Asset.MediaType.IsImageMimeType())
     {
         <script>
             const viewer1 = OpenSeadragon({
