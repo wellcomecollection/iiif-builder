@@ -618,21 +618,16 @@
                     @foreach (IPhysicalFile pf in metsManifestation.Sequence)
                     {
                         var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
-                        var problems = Model.GetProblems(pf.StorageIdentifier);
+                        var problems = Model.GetProblemMessage(pf.StorageIdentifier);
                         bool ignored = false; // The physical file itself is never ignored.
                         <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
                             <td>
                                 <small>@pf.Order</small>
-                                @if (problems.HasItems())
+                                @if (problems.HasText())
                                 {
-                                    <a class="sync-problem" href="#" data-placement="auto" title="
-@foreach (var problem in problems)
-{
-@problem
-<text>  
-</text>    
-}    
-"><span class="glyphicon glyphicon-exclamation-sign"></span> </a>
+                                    <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                        <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                    </a>
                                 }
                             </td>
 
@@ -726,23 +721,15 @@
                         {
                             dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
                             ignored = Model.IsIgnored(adjunct.StorageIdentifier);
-                            problems = Model.GetProblems(adjunct.StorageIdentifier);
+                            problems = Model.GetProblemMessage(adjunct.StorageIdentifier);
                             <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
                                 <td class="adjunct"><span>&#10551;</span>
-                                    
-                                    
-@if (problems.HasItems())
-{
-    <a class="sync-problem" href="#" data-placement="auto" title="
-@foreach (var problem in problems)
-{
-@problem
-<text>
-</text>      
-}    
-"><span class="glyphicon glyphicon-exclamation-sign"></span> </a>
-                                                                    }
-                                    
+                                    @if (problems.HasText())
+                                    {
+                                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                        </a>
+                                    }
                                     
                                     @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
