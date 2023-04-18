@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Utils;
 using Utils.Logging;
@@ -722,8 +723,9 @@ namespace DlcsWebClient.Dlcs
         {
             try
             {
-                httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
-                image.Metadata = await httpClient.GetStringAsync(image.Metadata);
+                using var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(2));
+                image.Metadata = await httpClient.GetStringAsync(image.Metadata, cts.Token);
             }
             catch (Exception wcEx)
             {
