@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;

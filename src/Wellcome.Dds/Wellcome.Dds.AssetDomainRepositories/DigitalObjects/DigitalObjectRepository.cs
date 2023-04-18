@@ -1117,6 +1117,127 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             return derivs.ToArray();
         }
+        
+        
+        public DeliveredFile[] GetDeliveredFiles(IPhysicalFile physicalFile)
+        {
+            return GetDeliveredFiles(physicalFile.GetDefaultFile());
+        }
+    
+        public DeliveredFile[] GetDeliveredFiles(IStoredFile? storedFile)
+        {
+            if (storedFile == null)
+            {
+                return Array.Empty<DeliveredFile>();
+            }
+
+            var deliveredFiles = new List<DeliveredFile>();
+            DeliveredFile? file = null;
+
+            if (dlcs.SupportsDeliveryChannels)
+            {
+                var behaviour = storedFile.ProcessingBehaviour;
+                if (behaviour.DeliveryChannels.Contains("file"))
+                {
+                    file = new DeliveredFile
+                    {
+                        DeliveryChannel = "file",
+                        PublicUrl = uriPatterns.DlcsFile(dlcs.ResourceEntryPoint, storedFile.StorageIdentifier),
+                        MediaType = storedFile.MimeType
+                    };
+                    file.DlcsUrl = file.PublicUrl.Replace(
+                        $"{dlcs.ResourceEntryPoint}file/",
+                        $"{dlcs.InternalResourceEntryPoint}file/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                    deliveredFiles.Add(file);
+                }
+
+                switch (storedFile.Family)
+                {
+                    case AssetFamily.Image:
+                        if (behaviour.DeliveryChannels.Contains("iiif-img"))
+                        {
+                            var imgService = new DeliveredFile
+                            {
+                                DeliveryChannel = "iiif-img",
+                                PublicUrl = uriPatterns.DlcsImageService(dlcs.ResourceEntryPoint,
+                                    storedFile.StorageIdentifier),
+                                MediaType = "iiif/image",
+                                Width = storedFile.AssetMetadata!.GetImageWidth(),
+                                Height = storedFile.AssetMetadata.GetImageHeight()
+                            };
+                            imgService.DlcsUrl = imgService.PublicUrl.Replace(
+                                $"{dlcs.ResourceEntryPoint}image/",
+                                $"{dlcs.InternalResourceEntryPoint}iiif-img/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                            deliveredFiles.Add(imgService);
+                            
+                            // TODO - thumbs as separate channel
+                        }
+
+                        if (file != null)
+                        {
+                            file.Width = storedFile.AssetMetadata!.GetImageWidth();
+                            file.Height = storedFile.AssetMetadata.GetImageHeight();
+                        }
+                        break;
+                    
+                    case AssetFamily.TimeBased:
+                        if (storedFile.MimeType.IsAudioMimeType())
+                        {
+                            if (file != null)
+                            {
+                                file.Duration = storedFile.AssetMetadata!.GetDuration();
+                            }
+                            if (behaviour.DeliveryChannels.Contains("iiif-av"))
+                            {
+                                var mp3 = new DeliveredFile
+                                {
+                                    DeliveryChannel = "iiif-av",
+                                    PublicUrl = uriPatterns.DlcsAudio(dlcs.ResourceEntryPoint,
+                                        storedFile.StorageIdentifier, "mp3"),
+                                    MediaType = "audio/mp3",
+                                    Duration = storedFile.AssetMetadata!.GetDuration()
+                                };
+                                mp3.DlcsUrl = mp3.PublicUrl.Replace(
+                                    $"{dlcs.ResourceEntryPoint}av/",
+                                    $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                                deliveredFiles.Add(mp3);
+                            }
+                        }
+                        else if (storedFile.MimeType.IsVideoMimeType())
+                        {
+                            if (file != null)
+                            {
+                                file.Duration = storedFile.AssetMetadata!.GetDuration();
+                                file.Width = storedFile.AssetMetadata.GetImageWidth();
+                                file.Height = storedFile.AssetMetadata.GetImageHeight();
+                            }
+                            if (behaviour.DeliveryChannels.Contains("iiif-av"))
+                            {
+                                var mp4 = new DeliveredFile
+                                {
+                                    DeliveryChannel = "iiif-av",
+                                    PublicUrl = uriPatterns.DlcsVideo(dlcs.ResourceEntryPoint,
+                                        storedFile.StorageIdentifier, "mp4"),
+                                    MediaType = "video/mp4",
+                                    Duration = storedFile.AssetMetadata!.GetDuration(),
+                                    Width = storedFile.AssetMetadata.GetImageWidth(),
+                                    Height = storedFile.AssetMetadata.GetImageHeight()
+                                };
+                                mp4.DlcsUrl = mp4.PublicUrl.Replace(
+                                    $"{dlcs.ResourceEntryPoint}av/",
+                                    $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                                deliveredFiles.Add(mp4);
+                            }
+                            
+                        }
+                        break;
+                }
+                
+            }
+
+            return deliveredFiles.ToArray();
+        }
+
 
 
         public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)

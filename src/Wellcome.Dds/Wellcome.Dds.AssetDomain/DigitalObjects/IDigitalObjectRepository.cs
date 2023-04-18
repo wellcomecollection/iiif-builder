@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain.DigitalObjects
@@ -35,6 +36,13 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         IngestAction LogAction(string manifestationId, int? jobId, string userName, string action, string? description = null);
         IEnumerable<IngestAction> GetRecentActions(int count, string? user = null);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
+        
+        
         AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation);
+
+
+        DeliveredFile[] GetDeliveredFiles(IPhysicalFile physicalFile);
+        DeliveredFile[] GetDeliveredFiles(IStoredFile? storedFile);
+
     }
 }

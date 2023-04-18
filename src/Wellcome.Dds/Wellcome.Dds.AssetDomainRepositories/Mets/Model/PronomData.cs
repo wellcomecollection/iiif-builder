@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Utils;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;

@@ -54,12 +54,6 @@ namespace Wellcome.Dds.Repositories.Presentation
             return JsonConvert.SerializeObject(sizes.Select(s => new []{s.Width,s.Height}.ToList()));
         }
 
-        public static IProcessingBehaviour GetDefaultProcessingBehaviour(this IPhysicalFile asset)
-        {
-            var defaultStoredFile = asset.Files!.SingleOrDefault(f => f.StorageIdentifier == asset.StorageIdentifier);
-            return defaultStoredFile!.ProcessingBehaviour;
-        }
-
         public static List<Size> GetAvailableSizes(this IPhysicalFile asset)
         {
             var sizes = new List<Size>();

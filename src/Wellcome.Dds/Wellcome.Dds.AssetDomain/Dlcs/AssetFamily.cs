@@ -31,31 +31,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
             }
             return AssetFamily.File;
         }
-        
-        public static bool IsVideoMimeType(this string? mimeType)
-        {
-            return mimeType != null && mimeType.StartsWith("video/");
-        }
 
-        public static bool IsAudioMimeType(this string? mimeType)
-        {
-            return mimeType != null && mimeType.StartsWith("audio/");
-        }
-
-        public static bool IsTimeBasedMimeType(this string? mimeType)
-        {
-            return mimeType.IsVideoMimeType() || mimeType.IsAudioMimeType();
-        }
-        
-        public static bool IsImageMimeType(this string? mimeType)
-        {
-            return mimeType != null && mimeType.StartsWith("image/");
-        }
-        
-        public static bool IsTextMimeType(this string? mimeType)
-        {
-            return mimeType != null && mimeType.StartsWith("text/");
-        }
     }
     
 }
