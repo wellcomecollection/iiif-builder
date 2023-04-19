@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,7 @@ using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using ICollection = Wellcome.Dds.AssetDomain.Mets.ICollection;
 
 namespace Wellcome.Dds.Dashboard.Models
 {
@@ -453,12 +455,13 @@ namespace Wellcome.Dds.Dashboard.Models
         }
 
 
-        public AVDerivative[] AVDerivatives { get; set; }
+        public Dictionary<string, DeliveredFile[]> DeliveredFilesMap { get; set; }
         public Work Work { get; set; }
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
         public string CatalogueApiFull { get; set; }
         public string ManifestUrl { get; set; }
+        public object GetDeliveredFiles { get; set; }
 
         /// <summary>
         /// return the additional (adjunct) files that need to be displayed in the dashboard
@@ -482,6 +485,7 @@ namespace Wellcome.Dds.Dashboard.Models
             }    
             return String.Empty;
         }
+
     }
 
 

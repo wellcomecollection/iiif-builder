@@ -900,69 +900,71 @@ namespace Wellcome.Dds.Repositories.Presentation
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
             var deliveredFiles = digitalObjectRepository.GetDeliveredFiles(physicalFile);
-            var file = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == "file");
-            if (physicalFile.MimeType.IsVideoMimeType() && videoSize != null)
+
+            if (deliveredFiles.HasItems())
             {
-                // First do the <= 720p video which is going to always exist   
-                var confineToBox = new Size(1280, 720);
-                // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
-                var computedSize = Size.Confine(confineToBox, videoSize);
-                var video = new Video
+                // This is the new way, using the information from DeliveryChannels.
+                // we want to list the <= 720p video first, regardless of whether it's the file delivery channel
+                // but we don't want to know about the value 720! so we'll just list them by size
+                foreach (var avFile in deliveredFiles.OrderBy(f => f.Height))
                 {
-                    Duration = duration,
-                    Width = computedSize.Width,
-                    Height = computedSize.Height,
-                    Label = Lang.Map($"Access copy video: {computedSize.Width} x {computedSize.Height}")
-                };
-                if (file != null && videoSize.Height <= 720)
-                {
-                    video.Id = file.DlcsUrl;
-                    video.Format = physicalFile.MimeType; // at the moment this also will be "video/mp4"
-                }
-                else 
-                {
-                    video.Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4");
-                    video.Format = "video/mp4";
-                }
-                choice.Items.Add(video);
-                
-                // is there another hi-res file video to offer? We won't have used this file channel already.
-                if (file != null && videoSize.Height > 720)
-                {
-                    var hiResFileVideo = new Video
+                    if (avFile.MediaType.IsVideoMimeType())
                     {
-                        Id = file.DlcsUrl,
-                        Format = physicalFile.MimeType, // at the moment this also will be "video/mp4"
-                        Duration = duration,
-                        Width = videoSize.Width,
-                        Height = videoSize.Height,
-                        Label = Lang.Map($"Higher resolution video: {videoSize.Width} x {videoSize.Height}")
-                    };
-                    choice.Items.Add(hiResFileVideo);
+                        choice.Items.Add(new Video
+                        {
+                            Id = avFile.PublicUrl,
+                            Format = avFile.MediaType,
+                            Duration = avFile.Duration,
+                            Width = avFile.Width,
+                            Height = avFile.Height,
+                            Label = Lang.Map($"Video file, size: {avFile.Width} x {avFile.Height}")
+                        });
+                    } 
+                    else if (avFile.MediaType.IsAudioMimeType())
+                    {
+                        choice.Items.Add(new Audio
+                        {
+                            Id = avFile.PublicUrl,
+                            Format = avFile.MediaType,
+                            Duration = avFile.Duration,
+                            Label = Lang.Map($"Audio file, {avFile.Duration} s")
+                        });
+                    }
                 }
-                
-                // We have removed the WebM transcode from this output, and need to remove it from the 
-                // DLCS ElasticTranscoder settings.
             }
-            else if (physicalFile.MimeType.IsAudioMimeType())
+            else
             {
-                var audio = new Audio
+               
+                
+                // This is the old method, which we can delete as soon as we know we're good with DeliveryChannels
+                if (physicalFile.MimeType.IsVideoMimeType() && videoSize != null)
                 {
-                    Label = Lang.Map("MP3"),
-                    Duration = duration
-                };
-                if (file != null)
-                {
-                    audio.Id = file.DlcsUrl;
-                    audio.Format = physicalFile.MimeType;
+                    var confineToBox = new Size(1280, 720);
+                    var computedSize = Size.Confine(confineToBox, videoSize);
+                    choice.Items.Add(new Video
+                    {
+                        Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4"),
+                        Format = "video/mp4",
+                        Duration = duration,
+                        Width = computedSize.Width,
+                        Height = computedSize.Height,
+                        Label = Lang.Map($"Video file, size: {computedSize.Width} x {computedSize.Height}")
+                    });
+                    // We have removed the WebM transcode from this output, and need to remove it from the 
+                    // DLCS ElasticTranscoder settings.
                 }
-                else
+                else if (physicalFile.MimeType.IsAudioMimeType())
                 {
-                    audio.Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3");
-                    audio.Format = "audio/mp3";
+                    choice.Items.Add(new Audio
+                    {
+                        Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3"),
+                        Format = "audio/mp3",
+                        Duration = duration,
+                        Label = Lang.Map($"Audio file, {duration} s")
+                    });
                 }
-                choice.Items.Add(audio);
             }
+
             return choice;
         }
 

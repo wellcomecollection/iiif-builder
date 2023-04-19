@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -968,10 +969,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             IQueryable<DlcsIngestJob>? jobQuery = null;
             switch (ddsId.IdentifierType)
             {
-                case IdentifierType.BNumber:
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == identifier);
-                    break;
                 case IdentifierType.Volume:
                     //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
@@ -985,6 +982,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 case IdentifierType.Issue:
                     jobQuery = ddsInstrumentationContext.DlcsIngestJobs
                         .Where(j => j.IssuePart == identifier);
+                    break;
+                default:
+                    // case IdentifierType.BNumber and Archival identifiers
+                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
+                        .Where(j => j.Identifier == identifier);
                     break;
             }
 
@@ -1103,21 +1105,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         }
 
         public Task<Dictionary<string, long>> GetDlcsQueueLevel() => dlcs.GetDlcsQueueLevel();
-
-        public AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation)
-        {
-            var derivs = new List<AVDerivative>();
-            if (digitisedManifestation.MetsManifestation!.Type is "Video" or "Audio")
-            {
-                foreach (var asset in digitisedManifestation.DlcsImages!)
-                {
-                    derivs.AddRange(GetAVDerivatives(asset));
-                }
-            }
-
-            return derivs.ToArray();
-        }
-        
         
         public DeliveredFile[] GetDeliveredFiles(IPhysicalFile physicalFile)
         {
@@ -1130,6 +1117,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 return Array.Empty<DeliveredFile>();
             }
+
+            var metadata = storedFile.AssetMetadata ?? storedFile.PhysicalFile!.AssetMetadata;
 
             var deliveredFiles = new List<DeliveredFile>();
             DeliveredFile? file = null;
@@ -1162,8 +1151,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                                 PublicUrl = uriPatterns.DlcsImageService(dlcs.ResourceEntryPoint,
                                     storedFile.StorageIdentifier),
                                 MediaType = "iiif/image",
-                                Width = storedFile.AssetMetadata!.GetImageWidth(),
-                                Height = storedFile.AssetMetadata.GetImageHeight()
+                                Width = metadata?.GetImageWidth(),
+                                Height = metadata?.GetImageHeight()
                             };
                             imgService.DlcsUrl = imgService.PublicUrl.Replace(
                                 $"{dlcs.ResourceEntryPoint}image/",
@@ -1175,8 +1164,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
                         if (file != null)
                         {
-                            file.Width = storedFile.AssetMetadata!.GetImageWidth();
-                            file.Height = storedFile.AssetMetadata.GetImageHeight();
+                            file.Width = metadata?.GetImageWidth();
+                            file.Height = metadata?.GetImageHeight();
                         }
                         break;
                     
@@ -1185,7 +1174,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         {
                             if (file != null)
                             {
-                                file.Duration = storedFile.AssetMetadata!.GetDuration();
+                                file.Duration = metadata?.GetDuration();
                             }
                             if (behaviour.DeliveryChannels.Contains("iiif-av"))
                             {
@@ -1195,7 +1184,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                                     PublicUrl = uriPatterns.DlcsAudio(dlcs.ResourceEntryPoint,
                                         storedFile.StorageIdentifier, "mp3"),
                                     MediaType = "audio/mp3",
-                                    Duration = storedFile.AssetMetadata!.GetDuration()
+                                    Duration = metadata?.GetDuration()
                                 };
                                 mp3.DlcsUrl = mp3.PublicUrl.Replace(
                                     $"{dlcs.ResourceEntryPoint}av/",
@@ -1207,21 +1196,29 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         {
                             if (file != null)
                             {
-                                file.Duration = storedFile.AssetMetadata!.GetDuration();
-                                file.Width = storedFile.AssetMetadata.GetImageWidth();
-                                file.Height = storedFile.AssetMetadata.GetImageHeight();
+                                file.Duration = metadata?.GetDuration();
+                                file.Width = metadata?.GetImageWidth();
+                                file.Height = metadata?.GetImageHeight();
                             }
                             if (behaviour.DeliveryChannels.Contains("iiif-av"))
                             {
+                                // our iiif-av channel mp4 will always be confined to a box.
+                                // Only the ProcessingBehaviour should know how big that box is (it's the transcode policy).
+                                var confineToBox = storedFile.ProcessingBehaviour.GetVideoSize("iiif-av");
+
+                                // we still need to accomodate this hangover from early Goobi flows with no dimensions
+                                var videoSize = storedFile.PhysicalFile!.GetWhSize() ?? new Size(999, 999);
+                                var computedSize = Size.Confine(confineToBox!, videoSize);
+                                
                                 var mp4 = new DeliveredFile
                                 {
                                     DeliveryChannel = "iiif-av",
                                     PublicUrl = uriPatterns.DlcsVideo(dlcs.ResourceEntryPoint,
                                         storedFile.StorageIdentifier, "mp4"),
                                     MediaType = "video/mp4",
-                                    Duration = storedFile.AssetMetadata!.GetDuration(),
-                                    Width = storedFile.AssetMetadata.GetImageWidth(),
-                                    Height = storedFile.AssetMetadata.GetImageHeight()
+                                    Duration = metadata?.GetDuration(),
+                                    Width = computedSize.Width,
+                                    Height = computedSize.Height
                                 };
                                 mp4.DlcsUrl = mp4.PublicUrl.Replace(
                                     $"{dlcs.ResourceEntryPoint}av/",
@@ -1236,36 +1233,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             return deliveredFiles.ToArray();
-        }
-
-
-
-        public List<AVDerivative> GetAVDerivatives(Image dlcsAsset)
-        {
-            // This knows that we have webm, mp4 and mp3... it shouldn't know this, it should learn it.
-            var derivatives = new List<AVDerivative>();
-            if (dlcsAsset.MediaType!.StartsWith("video"))
-            {
-                derivatives.Add(MakeDerivative(uriPatterns.DlcsVideo, dlcsAsset, "mp4"));
-                derivatives.Add(MakeDerivative(uriPatterns.DlcsVideo, dlcsAsset, "webm"));
-            }
-
-            if (dlcsAsset.MediaType.Contains("audio"))
-            {
-                derivatives.Add(MakeDerivative(uriPatterns.DlcsAudio, dlcsAsset, "mp3"));
-            }
-
-            return derivatives;
-        }
-
-        private AVDerivative MakeDerivative(Func<string, string?, string, string> pattern, Image dlcsAsset,
-            string fileExt)
-        {
-            var publicUrl = pattern(dlcs.ResourceEntryPoint, dlcsAsset.StorageIdentifier, fileExt);
-            var internalUrl = publicUrl.Replace(
-                $"{dlcs.ResourceEntryPoint}av/",
-                $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
-            return new AVDerivative(publicUrl, internalUrl, fileExt);
         }
     }
 }

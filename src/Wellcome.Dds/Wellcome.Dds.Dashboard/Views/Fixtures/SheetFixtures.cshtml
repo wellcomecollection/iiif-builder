@@ -33,7 +33,8 @@
         }
         else if(dict["Level"] == "Item")
         {
-            var identifier = new DdsIdentifier(dict["PublicRef"]);
+            var altForm = dict["PublicRef"].ReplaceFirst("/", "");
+            var identifier = new DdsIdentifier(altForm);
             <tr>
                 <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
                 <td>@dict["Extent"]</td>

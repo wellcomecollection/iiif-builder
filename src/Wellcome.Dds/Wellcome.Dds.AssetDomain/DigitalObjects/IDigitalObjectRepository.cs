@@ -38,9 +38,6 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
         
         
-        AVDerivative[] GetAVDerivatives(IDigitalManifestation digitisedManifestation);
-
-
         DeliveredFile[] GetDeliveredFiles(IPhysicalFile physicalFile);
         DeliveredFile[] GetDeliveredFiles(IStoredFile? storedFile);
 

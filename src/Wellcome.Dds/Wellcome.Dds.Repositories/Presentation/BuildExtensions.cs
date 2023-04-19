@@ -221,21 +221,5 @@ namespace Wellcome.Dds.Repositories.Presentation
                     return false;
             }
         }
-
-
-        public static Size? GetWhSize(this IPhysicalFile file)
-        {
-            var dimensions = file.AssetMetadata?.GetMediaDimensions();
-            if (dimensions == null) return null;
-            
-            var w = dimensions.Width.GetValueOrDefault();
-            var h = dimensions.Height.GetValueOrDefault();
-            if (w > 0 && h > 0)
-            {
-                return new Size(w, h);
-            }
-
-            return null;
-        }
     }
 }

@@ -271,19 +271,6 @@
                         <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"})</li>
                     </ul>
                 </li>
-                @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
-                {
-                    <li class="list-group-item">
-                        Derivatives:
-                        <ul class="list-unstyled">
-                            @foreach (var derivative in Model.AVDerivatives)
-                            {
-                                <li>- <a target="_blank" href="@derivative.PublicUrl">@derivative.Label</a> | 
-                                    <a target="_blank" href="@derivative.DlcsUrl">(dlcs)</a></li>
-                            }
-                        </ul>
-                    </li>
-                }
                 <li class="list-group-item">
                     Permitted operations:
                     <ul class="list-unstyled">
@@ -639,7 +626,12 @@
                             else
                             {
                                 <td>@StringUtils.FormatFileSize(pf.AssetMetadata.GetFileSize())</td>
-                                <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
+                                <td><small>@pf.AssetMetadata.GetFormatName()</small><br/>
+                                @foreach (var deliveredFile in Model.DeliveredFilesMap[pf.StorageIdentifier])
+                                {
+                                    <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                }
+                                    </td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
                                     var mediaDims = pf.AssetMetadata.GetMediaDimensions();
@@ -741,7 +733,15 @@
                                 else
                                 {
                                     <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
-                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small>
+                                        @if (!ignored)
+                                        {
+                                            <br/>
+                                            @foreach (var deliveredFile in Model.DeliveredFilesMap[adjunct.StorageIdentifier])
+                                            {
+                                                <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                            }
+                                        }</td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
                                         <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
@@ -936,10 +936,22 @@
             {
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
-                <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
+                <li class="list-group-item list-group-item-@Model.GetCssClassForImageRow(dlcsImage, false)" id="@Model.GetTableId(file.StorageIdentifier)">
                     <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge" style="@Model.GetAccessConditionStyle(file.AccessCondition)">@file.AccessCondition</span>
-                    <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
+                    
+                    @{
+                        var problems = Model.GetProblemMessage(file.StorageIdentifier);
+                    }
+                    @if (problems.HasText())
+                    {
+                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                        </a>
+                    }
+                    
+                    <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
+                       target="_blank"  
                        title="@file.OriginalName"><strong>
                         @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
                         @file.OriginalName.GetFileName()
@@ -964,7 +976,9 @@
                         <br/>
                         @if (dlcsImage != null)
                         {
-                            <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@file.StorageIdentifier</a>
+                            <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" target="_blank">
+                                <strong>S3:</strong> @file.StorageIdentifier
+                            </a>
                             @if (dlcsImage.Error.HasText())
                             {
                                 <br/>
@@ -976,6 +990,11 @@
                         {
                             <span class="text-danger">@file.StorageIdentifier</span>
                              <span class="text-muted small"> - NOT ON DLCS</span>
+                        }
+                        <br/>
+                        @foreach (var deliveredFile in Model.DeliveredFilesMap[file.StorageIdentifier])
+                        {
+                            <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
                         }
                     </div>
                 </li>

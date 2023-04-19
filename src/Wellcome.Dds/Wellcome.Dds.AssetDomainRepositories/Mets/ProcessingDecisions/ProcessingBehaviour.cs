@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using IIIF;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -10,6 +11,8 @@ public class ProcessingBehaviour : IProcessingBehaviour
 {
     public HashSet<string> DeliveryChannels { get; }
     public string? ImageOptimisationPolicy { get; }
+
+    private Dictionary<string, Size>? videoSizesByChannel;
 
     public ProcessingBehaviour(StoredFile storedFile, ProcessingBehaviourOptions options)
     {
@@ -91,6 +94,14 @@ public class ProcessingBehaviour : IProcessingBehaviour
 
             if (DeliveryChannels.Contains("iiif-av"))
             {
+                // This assumes only one video is produced, but keeps the knowledge that
+                // the default AV IOP creates 720p videos confined to this ProcessingBehaviour implementation.
+                
+                videoSizesByChannel = new Dictionary<string, Size>(1)
+                {
+                    ["iiif-av"] = new Size(1280, 720)
+                };
+
                 // We need to set the ImageOptimsationPolicy
                 // At the moment this always returns videoDefault but the logic is here to do other things.
                 // But what policy are we going to pick? The following allows that to be based on resolution:
@@ -130,5 +141,10 @@ public class ProcessingBehaviour : IProcessingBehaviour
             ImageOptimisationPolicy = "none";
             DeliveryChannels.Add("file");
         }
+    }
+
+    public Size? GetVideoSize(string deliveryChannel)
+    {
+        return videoSizesByChannel?[deliveryChannel];
     }
 }
