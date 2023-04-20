@@ -950,28 +950,29 @@
                         </a>
                     }
                     
-                    
-                    
-                    
-                                    @if (dlcsImage != null)
-                                            {
-                                                <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
-                                                   target="_blank"  
-                                                   title="@file.OriginalName"><strong>
-                                                    @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                                                    @file.OriginalName.GetFileName()
-                                                </strong></a>
-                                                                                                                         
-                                            }
-                                            else
-                                            {
-                                                <strong>
-                                                    @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                                                    @file.OriginalName.GetFileName()
-                                                </strong>
-                                            }
-                    
-                    
+                    @if (dlcsImage != null)
+                    {
+                        <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
+                           target="_blank"  
+                           title="@file.OriginalName"><strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong></a>
+                                   
+                        @if (dlcsImage.Error.HasText())
+                        {
+                            <br/>
+                            <span class="text-danger">@dlcsImage.Error</span>
+                        }
+                    }
+                    else
+                    {
+                        <strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong>
+                        <span class="text-muted small"> - NOT ON DLCS</span>
+                    }
                     
                     <br/>
                     <div class="small" style="margin-left: 18px;">
@@ -991,23 +992,9 @@
                         |
                         @file.AssetMetadata.GetMediaDimensions().ToString()
                         <br/>
-                        @if (dlcsImage != null)
-                        {
-                            <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" target="_blank">
-                                <strong>S3:</strong> @file.StorageIdentifier
-                            </a>
-                            @if (dlcsImage.Error.HasText())
-                            {
-                                <br/>
-                                <span class="text-danger">@dlcsImage.Error</span>
-                            }
-                                                                                                     
-                        }
-                        else
-                        {
-                            <span class="text-danger">@file.StorageIdentifier</span>
-                             <span class="text-muted small"> - NOT ON DLCS</span>
-                        }
+                        <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" target="_blank">
+                            <strong>S3:</strong> @file.StorageIdentifier
+                        </a>  
                         <br/>
                         @foreach (var deliveredFile in Model.DeliveredFilesMap[file.StorageIdentifier])
                         {
@@ -1029,7 +1016,5 @@
                 }
             }
         </ul>
-        
     }
-
 }
