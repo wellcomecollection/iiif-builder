@@ -131,7 +131,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsOptions = dlcsOptions,
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
-                        ManifestUrl = uriPatterns.Manifest(identifier),
+                        ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)
                     {
