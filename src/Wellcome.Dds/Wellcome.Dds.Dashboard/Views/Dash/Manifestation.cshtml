@@ -950,12 +950,29 @@
                         </a>
                     }
                     
-                    <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
-                       target="_blank"  
-                       title="@file.OriginalName"><strong>
-                        @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                        @file.OriginalName.GetFileName()
-                    </strong></a>
+                    
+                    
+                    
+                                    @if (dlcsImage != null)
+                                            {
+                                                <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
+                                                   target="_blank"  
+                                                   title="@file.OriginalName"><strong>
+                                                    @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                                                    @file.OriginalName.GetFileName()
+                                                </strong></a>
+                                                                                                                         
+                                            }
+                                            else
+                                            {
+                                                <strong>
+                                                    @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                                                    @file.OriginalName.GetFileName()
+                                                </strong>
+                                            }
+                    
+                    
+                    
                     <br/>
                     <div class="small" style="margin-left: 18px;">
                         @file.MimeType 
