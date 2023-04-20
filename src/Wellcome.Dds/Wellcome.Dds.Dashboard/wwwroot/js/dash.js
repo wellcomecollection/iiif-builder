@@ -44,7 +44,6 @@ $(document).ready(function () {
     authDo = $('#authDo');
     authDo.bind('click', doClickthroughViaWindow);
     bindPreview();
-    //bindProblems();
     
     $("img.iiifpreview").unveil(300);
     
@@ -149,12 +148,6 @@ function bindPreview() {
     $('.iiifpreview').click(function () {
         selectForModal($(this));
         $('#imgModal').modal();
-    });
-}
-
-function bindProblems() {
-    $('.sync-problem').tooltip({
-        html: true
     });
 }
 
