@@ -30,7 +30,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-img" || s == "thumbs");
+        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-img");
     }
     
     
@@ -162,7 +162,8 @@ public class ProcessingBehaviourTests
 
         var processing = pf.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-av" || s == "file");
+        var expected = new HashSet<string> { "iiif-av", "file" };
+        processing.DeliveryChannels.Should().BeEquivalentTo(expected);
     }
     
 

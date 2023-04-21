@@ -14,7 +14,6 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
@@ -591,7 +590,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="existingDlcsImage"></param>
         /// <param name="reasons"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         private Image? GetIngestDiffImage(Image newDlcsImage, Image existingDlcsImage, out List<string> reasons)
         {
             reasons = new List<string>();
@@ -650,6 +648,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     reingestImage ??= newDlcsImage;
                 }
                 */
+                
+                // See https://github.com/dlcs/protagonist/issues/489 for the above.
                 
                 if (!AreEqual(existingDlcsImage.DeliveryChannels, newDlcsImage.DeliveryChannels))
                 {
