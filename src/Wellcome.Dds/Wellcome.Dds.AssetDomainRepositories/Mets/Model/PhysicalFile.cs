@@ -14,7 +14,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
     public class PhysicalFile : IPhysicalFile
     {
         // Only set AssetFamily to Image for born digital mimetypes image/{type} where {type} is one of:
-        private static readonly string[] BornDigitalImageTypes = { "jpeg", "tiff" };
+        //private static readonly string[] BornDigitalImageTypes = { "jpeg", "tiff" };
 
         public PhysicalFile(IWorkStore workStore, string id)
         {
@@ -52,7 +52,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); 
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
-            physicalFile.Family = physicalFile.MimeType.GetAssetFamily(BornDigitalImageTypes);
                 
             // for BD there is only one StoredFile per PhysicalFile
             var file = new StoredFile
@@ -64,9 +63,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 RelativePath = physicalFile.RelativePath,
                 StorageIdentifier = physicalFile.StorageIdentifier,
                 MimeType = physicalFile.MimeType,
-                Family = physicalFile.Family,
                 Use = fileElement.Parent?.Attribute("USE")?.Value
             };
+
+            file.Family = file.ProcessingBehaviour.AssetFamily;
+            physicalFile.Family = file.Family;
             physicalFile.Files.Add(file);
             
             return physicalFile;
@@ -138,7 +139,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
                 file.StorageIdentifier = GetSafeStorageIdentifierForDigitised(file.RelativePath, workStore);
                 file.MimeType = (string?) fileElement.Attribute("MIMETYPE");
-                file.Family = file.MimeType.GetAssetFamily();
 
                 switch (file.Use)
                 {
@@ -147,6 +147,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         break;
                     
                     case "POSTER":
+                        // atm this is not going to the DLCS. But in future it could, in which case we'd need
+                        // to assign it some AssetMetadata here.
                         physicalFile.RelativePosterPath = file.RelativePath;
                         break;
                     
@@ -170,6 +172,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         // TODO: MimeType determination, revisit.
                         physicalFile.MimeType = file.MimeType;
                         physicalFile.RelativePath = file.RelativePath;
+                        file.Family = file.ProcessingBehaviour.AssetFamily;
                         physicalFile.Family = file.Family;
                         break;
                 }

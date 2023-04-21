@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using IIIF;
+using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -12,10 +15,16 @@ public class ProcessingBehaviour : IProcessingBehaviour
     public HashSet<string> DeliveryChannels { get; }
     public string? ImageOptimisationPolicy { get; }
 
+    public AssetFamily AssetFamily { get; }
+
     private Dictionary<string, Size>? videoSizesByChannel;
 
     public ProcessingBehaviour(StoredFile storedFile, ProcessingBehaviourOptions options)
     {
+        if (storedFile.MimeType.IsNullOrWhiteSpace())
+        {
+            throw new InvalidOperationException("A storedFile must have a mime type to deduce processingBehaviour");
+        }
         DeliveryChannels = new HashSet<string>();
         string? videoDefault = options.UseNamedAVDefaults ? "video-max" : null;
         string? audioDefault = options.UseNamedAVDefaults ? "audio-max" : null;
@@ -26,29 +35,41 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Images:
         if (storedFile.MimeType.IsImageMimeType())
         {
-            DeliveryChannels.Add("iiif-img");
-            if (options.AddThumbsAsSeparateChannel)
+            var specificFormat = storedFile.MimeType.SplitByDelimiter('/')!.Last().ToLowerInvariant();
+            if (options.ImageServiceFormats.Contains(specificFormat))
             {
-                DeliveryChannels.Add("thumbs");
-            }
-            if (options.MakeAllSourceImagesAvailable)
-            {
-                DeliveryChannels.Add("file");
-            }
-
-            if (storedFile.MimeType == "image/jp2")
-            {
-                ImageOptimisationPolicy = "use-original";
-                if (options.MakeJP2Available || options.MakeAllSourceImagesAvailable)
-                {   
+                AssetFamily = AssetFamily.Image;
+                DeliveryChannels.Add("iiif-img");
+                if (options.AddThumbsAsSeparateChannel)
+                {
+                    DeliveryChannels.Add("thumbs");
+                }
+                if (options.MakeAllSourceImagesAvailable)
+                {
                     DeliveryChannels.Add("file");
                 }
+
+                if (storedFile.MimeType == "image/jp2")
+                {
+                    ImageOptimisationPolicy = "use-original";
+                    if (options.MakeJP2Available || options.MakeAllSourceImagesAvailable)
+                    {   
+                        DeliveryChannels.Add("file");
+                    }
+                }
+            }
+            else
+            {
+                AssetFamily = AssetFamily.Image;
+                // This image is not going to get an image service or thumbs.
+                DeliveryChannels.Add("file");
             }
         }
 
         // Audio:
         else if (storedFile.MimeType.IsAudioMimeType())
         {
+            AssetFamily = AssetFamily.TimeBased;
             if (storedFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
             {
                 ImageOptimisationPolicy = "none";
@@ -64,6 +85,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Video:
         else if (storedFile.MimeType.IsVideoMimeType())
         {
+            AssetFamily = AssetFamily.TimeBased;
             var height = storedFile.AssetMetadata?.GetMediaDimensions().Height;
 
             if (storedFile.MimeType == "video/mp4" &&
@@ -138,6 +160,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Files:
         else
         {
+            AssetFamily = AssetFamily.File;
             ImageOptimisationPolicy = "none";
             DeliveryChannels.Add("file");
         }

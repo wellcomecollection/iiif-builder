@@ -347,9 +347,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             await Task.WhenAll(getDlcsImages, getPdf);
 
-            return new DigitalManifestation
+            return new DigitalManifestation(metsManifestation)
             {
-                MetsManifestation = metsManifestation,
                 Identifier = metsManifestation.Identifier,
                 DlcsImages = getDlcsImages.Result,
                 PdfControlFile = getPdf.Result

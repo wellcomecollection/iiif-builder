@@ -211,7 +211,7 @@ namespace Wellcome.Dds.Repositories
                         ddsManifestation.FirstFileExtension =
                             asset.AssetMetadata!.GetFileName()!.GetFileExtension().ToLowerInvariant();
                         ddsManifestation.DipStatus = null;
-                        switch (ddsManifestation.AssetType.GetAssetFamily())
+                        switch (metsManifestation.Sequence.First().GetDefaultProcessingBehaviour().AssetFamily)
                         {
                             case AssetFamily.Image:
                                 ddsManifestation.FirstFileThumbnailDimensions = asset.GetAvailableSizeAsString();
