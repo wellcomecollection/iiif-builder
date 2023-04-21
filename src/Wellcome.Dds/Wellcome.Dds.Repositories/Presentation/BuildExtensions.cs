@@ -7,7 +7,9 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Image = IIIF.Presentation.V3.Content.Image;
 using Size = IIIF.Size;
@@ -218,22 +220,6 @@ namespace Wellcome.Dds.Repositories.Presentation
                 default:
                     return false;
             }
-        }
-
-
-        public static Size? GetWhSize(this IPhysicalFile file)
-        {
-            var dimensions = file.AssetMetadata?.GetMediaDimensions();
-            if (dimensions == null) return null;
-            
-            var w = dimensions.Width.GetValueOrDefault();
-            var h = dimensions.Height.GetValueOrDefault();
-            if (w > 0 && h > 0)
-            {
-                return new Size(w, h);
-            }
-
-            return null;
         }
     }
 }

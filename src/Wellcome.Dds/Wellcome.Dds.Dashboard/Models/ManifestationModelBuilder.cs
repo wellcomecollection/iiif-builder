@@ -142,7 +142,13 @@ namespace Wellcome.Dds.Dashboard.Models
                         model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
                     }
 
-                    model.AVDerivatives = digitalObjectRepository.GetAVDerivatives(dgManifestation);
+                    model.DeliveredFilesMap = new Dictionary<string, DeliveredFile[]>();
+                    foreach (var file in dgManifestation.MetsManifestation!.SynchronisableFiles!)
+                    {
+                        model.DeliveredFilesMap[file.StorageIdentifier!] =
+                            digitalObjectRepository.GetDeliveredFiles(file);
+                    }
+                    
                     model.MakeManifestationNavData();
                     jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                     var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation, dlcsCallContext);

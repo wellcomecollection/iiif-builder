@@ -271,19 +271,6 @@
                         <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"})</li>
                     </ul>
                 </li>
-                @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
-                {
-                    <li class="list-group-item">
-                        Derivatives:
-                        <ul class="list-unstyled">
-                            @foreach (var derivative in Model.AVDerivatives)
-                            {
-                                <li>- <a target="_blank" href="@derivative.PublicUrl">@derivative.Label</a> | 
-                                    <a target="_blank" href="@derivative.DlcsUrl">(dlcs)</a></li>
-                            }
-                        </ul>
-                    </li>
-                }
                 <li class="list-group-item">
                     Permitted operations:
                     <ul class="list-unstyled">
@@ -618,9 +605,18 @@
                     @foreach (IPhysicalFile pf in metsManifestation.Sequence)
                     {
                         var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
+                        var problems = Model.GetProblemMessage(pf.StorageIdentifier);
                         bool ignored = false; // The physical file itself is never ignored.
                         <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
-                            <td><small>@pf.Order</small></td>
+                            <td>
+                                <small>@pf.Order</small>
+                                @if (problems.HasText())
+                                {
+                                    <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                        <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                    </a>
+                                }
+                            </td>
 
                             @if (Model.ManifestationFamily == AssetFamily.Image)
                             {
@@ -630,7 +626,12 @@
                             else
                             {
                                 <td>@StringUtils.FormatFileSize(pf.AssetMetadata.GetFileSize())</td>
-                                <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
+                                <td><small>@pf.AssetMetadata.GetFormatName()</small><br/>
+                                @foreach (var deliveredFile in Model.DeliveredFilesMap[pf.StorageIdentifier])
+                                {
+                                    <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                }
+                                    </td>
                                 if (Model.ManifestationFamily == AssetFamily.TimeBased)
                                 {
                                     var mediaDims = pf.AssetMetadata.GetMediaDimensions();
@@ -670,7 +671,7 @@
                             @if (dlcsImage != null)
                             {
                                 <td>
-                                    <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@pf.StorageIdentifier</a>
+                                    <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@pf.StorageIdentifier</a>
                                     @if (dlcsImage.Error.HasText())
                                     {
                                         <br/><span class="text-danger small">@dlcsImage.Error</span>
@@ -712,8 +713,17 @@
                         {
                             dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
                             ignored = Model.IsIgnored(adjunct.StorageIdentifier);
+                            problems = Model.GetProblemMessage(adjunct.StorageIdentifier);
                             <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
-                                <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
+                                <td class="adjunct"><span>&#10551;</span>
+                                    @if (problems.HasText())
+                                    {
+                                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                        </a>
+                                    }
+                                    
+                                    @adjunct.Use</td>
                                 @if (adjunct.Family == AssetFamily.Image)
                                 {
                                     <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
@@ -723,7 +733,15 @@
                                 else
                                 {
                                     <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
-                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
+                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small>
+                                        @if (!ignored)
+                                        {
+                                            <br/>
+                                            @foreach (var deliveredFile in Model.DeliveredFilesMap[adjunct.StorageIdentifier])
+                                            {
+                                                <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                            }
+                                        }</td>
                                     if (adjunct.Family == AssetFamily.TimeBased)
                                     {
                                         <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
@@ -745,7 +763,7 @@
                                     if (dlcsImage != null)
                                     {
                                         <td>
-                                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@adjunct.StorageIdentifier</a>
+                                            <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@adjunct.StorageIdentifier</a>
                                         </td>
                                     }
                                     else
@@ -794,7 +812,7 @@
                             @*<td>@orphan.Width x @orphan.Height</td>*@
                             <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
                             <td>@orphan.Error</td>
-                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)" target="_blank">@orphan.StorageIdentifier</a></td>
+                            <td width="30%"><a href="@Url.Action("Index", "Asset", new { space = orphan.Space, id = orphan.ModelId })" target="_blank">@orphan.StorageIdentifier</a></td>
                             <td>@orphan.Ingesting</td>
                         </tr>
                     }
@@ -918,14 +936,44 @@
             {
                 var file = fileMap[fileId];
                 var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
-                <li class="list-group-item" id="@Model.GetTableId(file.StorageIdentifier)">
+                <li class="list-group-item list-group-item-@Model.GetCssClassForImageRow(dlcsImage, false)" id="@Model.GetTableId(file.StorageIdentifier)">
                     <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
                     <span class="badge" style="@Model.GetAccessConditionStyle(file.AccessCondition)">@file.AccessCondition</span>
-                    <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" 
-                       title="@file.OriginalName"><strong>
-                        @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
-                        @file.OriginalName.GetFileName()
-                    </strong></a>
+                    
+                    @{
+                        var problems = Model.GetProblemMessage(file.StorageIdentifier);
+                    }
+                    @if (problems.HasText())
+                    {
+                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                        </a>
+                    }
+                    
+                    @if (dlcsImage != null)
+                    {
+                        <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
+                           target="_blank"  
+                           title="@file.OriginalName"><strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong></a>
+                                   
+                        @if (dlcsImage.Error.HasText())
+                        {
+                            <br/>
+                            <span class="text-danger">@dlcsImage.Error</span>
+                        }
+                    }
+                    else
+                    {
+                        <strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong>
+                        <span class="text-muted small"> - NOT ON DLCS</span>
+                    }
+                    
                     <br/>
                     <div class="small" style="margin-left: 18px;">
                         @file.MimeType 
@@ -944,20 +992,13 @@
                         |
                         @file.AssetMetadata.GetMediaDimensions().ToString()
                         <br/>
-                        @if (dlcsImage != null)
+                        <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" target="_blank">
+                            <strong>S3:</strong> @file.StorageIdentifier
+                        </a>  
+                        <br/>
+                        @foreach (var deliveredFile in Model.DeliveredFilesMap[file.StorageIdentifier])
                         {
-                            <a href="@Model.GetPortalPageForImage(dlcsImage)" target="_blank">@file.StorageIdentifier</a>
-                            @if (dlcsImage.Error.HasText())
-                            {
-                                <br/>
-                                <span class="text-danger">@dlcsImage.Error</span>
-                            }
-                                                                                                     
-                        }
-                        else
-                        {
-                            <span class="text-danger">@file.StorageIdentifier</span>
-                             <span class="text-muted small"> - NOT ON DLCS</span>
+                            <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
                         }
                     </div>
                 </li>
@@ -975,7 +1016,5 @@
                 }
             }
         </ul>
-        
     }
-
 }

@@ -14,15 +14,11 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 10, PropertyName = "space")]
         public int? Space { get; set; }
 
-        [JsonProperty(Order = 11, PropertyName = "infoJson")]
-        [Obsolete("Use metadata instead; the infoJson is produced from templates at runtime")]
-        public string? InfoJson { get; set; }
+        [JsonProperty(Order = 11, PropertyName = "imageService")]
+        public string? ImageService { get; set; }
 
-        [JsonProperty(Order = 12, PropertyName = "degradedInfoJson")]
-        public string? DegradedInfoJson { get; set; }
-
-        [JsonProperty(Order = 13, PropertyName = "thumbnailInfoJson")]
-        public string? ThumbnailInfoJson { get; set; }
+        [JsonProperty(Order = 13, PropertyName = "thumbnailImageService")]
+        public string? ThumbnailImageService { get; set; }
 
         [JsonProperty(Order = 13, PropertyName = "thumbnail400")]
         public string? Thumbnail400 { get; set; }
@@ -120,8 +116,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 81, PropertyName = "thumbnailPolicy")]
         public string? ThumbnailPolicy { get; set; }
 
-        [JsonProperty(Order = 82, PropertyName = "deliveryChannel")]
-        public string? DeliveryChannel { get; set; }
+        [JsonProperty(Order = 82, PropertyName = "deliveryChannels")]
+        public string[]? DeliveryChannels { get; set; }
     }
 
     public class Thumbnail

@@ -10,7 +10,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
@@ -79,7 +81,11 @@ namespace DlcsWebClient.Dlcs
                 switch (operation.HttpMethod.Method)
                 {
                     case "POST":
-                        requestMessage.Content = GetJsonContent(operation.RequestJson!);
+                        if (operation.RequestJson.HasText())
+                        {
+                            // a POST to /reingest has no content
+                            requestMessage.Content = GetJsonContent(operation.RequestJson);
+                        }
                         break;
                     case "PATCH":
                         requestMessage.Content = GetJsonContent(operation.RequestJson!);
@@ -193,6 +199,35 @@ namespace DlcsWebClient.Dlcs
             return last;
         }
         
+        
+        public async Task<Image?> GetImage(int space, string id, DlcsCallContext dlcsCallContext)
+        {
+            var imageQueryUri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{space}/images/{id}";
+            var operation = await DoOperation<string, Image>(HttpMethod.Get, new Uri(imageQueryUri), null, dlcsCallContext);
+            var image = operation.ResponseObject;
+
+            if (image != null)
+            {
+                // check if we need this...
+                image.StorageIdentifier = GetLocalStorageIdentifier(image.Id!);
+                // same as: if(options.SupportsDeliveryChannels) - we can retire Family later
+                if (image.MediaType.IsTimeBasedMimeType() || image.Family == 'T')
+                {
+                    await LoadMetadata(image);
+                }
+            }
+
+            return image;
+        }
+
+        public async Task<Image?> ReingestImage(int space, string id, DlcsCallContext dlcsCallContext)
+        {
+            var imageReingestUri = $"{options.ApiEntryPoint}customers/{options.CustomerId}/spaces/{space}/images/{id}/reingest";
+            var operation = await DoOperation<string, Image>(HttpMethod.Post, new Uri(imageReingestUri), null, dlcsCallContext);
+            var image = operation.ResponseObject;
+            return image;
+        }
+
         public Task<Operation<ImageQuery, HydraImageCollection>> GetImages(
             ImageQuery query, int defaultSpace, DlcsCallContext dlcsCallContext)
         {
@@ -688,8 +723,9 @@ namespace DlcsWebClient.Dlcs
         {
             try
             {
-                httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
-                image.Metadata = await httpClient.GetStringAsync(image.Metadata);
+                using var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(2));
+                image.Metadata = await httpClient.GetStringAsync(image.Metadata, cts.Token);
             }
             catch (Exception wcEx)
             {
@@ -706,7 +742,6 @@ namespace DlcsWebClient.Dlcs
         public async Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
             var url = $"{options.ApiEntryPoint}queue";
-            // httpClient.Timeout = TimeSpan.FromMilliseconds(4000);
             var response = await httpClient.GetStringAsync(url);
 
             var result = JObject.Parse(response);
@@ -720,7 +755,6 @@ namespace DlcsWebClient.Dlcs
 
         public string ResourceEntryPoint => options.ResourceEntryPoint!;
         public string InternalResourceEntryPoint => options.InternalResourceEntryPoint!;
-
         public bool SupportsDeliveryChannels => options.SupportsDeliveryChannels;
     }
 

@@ -72,11 +72,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                 throw new InvalidOperationException("Resource Entry Point not specified in DDS Options");
             }
             build = new IIIFBuilderParts(
+                digitalObjectRepository,
                 uriPatterns,
                 dlcsOptions.Value.ResourceEntryPoint,
                 ddsOptions.Value.ReferenceV0SearchService,
-                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(','),
-                dlcsOptions.Value.SupportsDeliveryChannels);
+                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(',')
+                );
             presentation2Converter = new PresentationConverter(uriPatterns, logger);
         }
 

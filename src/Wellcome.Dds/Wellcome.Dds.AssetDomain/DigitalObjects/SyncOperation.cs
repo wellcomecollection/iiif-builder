@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
@@ -47,6 +48,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         public Dictionary<string, Image?>? ImagesThatShouldBeOnDlcs { get; set; }
         public List<Image>? DlcsImagesToIngest { get; set; }
         public List<Image>? DlcsImagesToPatch { get; set; }
+        public Dictionary<string, List<string>>? Mismatches { get; set; }
         public List<Image>? DlcsImagesCurrentlyIngesting { get; set; }
         public List<Image>? Orphans { get; set; }
         /// <summary>
@@ -65,7 +67,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// <summary>
         /// Files with no access condition in METS
         /// </summary>
-        public List<IStoredFile> MissingAccessConditions { get; set; }
+        public List<IStoredFile>? MissingAccessConditions { get; set; }
 
         public SyncOperation(DlcsCallContext dlcsCallContext)
         {
@@ -79,6 +81,12 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 
         public string[] GetSummary()
         {
+            string syncReasons = "(no sync messages)";
+            if (Mismatches != null && Mismatches.Count > 0)
+            {
+                var first = Mismatches.First().Value;
+                syncReasons = string.Join(", ", first);
+            }
             var summary = new List<string>
             {
                 $"SyncOperationIdentifier: {SyncOperationIdentifier}",
@@ -90,7 +98,8 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
                 $"Ignored storage identifiers: {StorageIdentifiersToIgnore!.Count}",
                 $"Orphans: {Orphans!.Count}",
                 $"HasInvalidAccessCondition: {HasInvalidAccessCondition}",
-                $"Message: {Message}"
+                $"Message: {Message}",
+                $"SyncReason: {syncReasons}"
             };
             return summary.ToArray();
         }

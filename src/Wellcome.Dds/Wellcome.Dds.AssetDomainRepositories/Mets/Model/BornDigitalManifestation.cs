@@ -43,7 +43,7 @@ public class BornDigitalManifestation : IManifestation
     
     // Going to assume that this isn't relevant any more - or will need a whole new set of operations.
     // This was originally for UV - allow download etc, allow crop,...
-    public string[] PermittedOperations => Array.Empty<string>();
+    public string[] PermittedOperations => new[] { "wholeImageHighResAsJpg" };
 
     // This is not very useful for born digital items, where a sequence can be mixed media
     public string? FirstInternetType => Sequence!.First().MimeType;

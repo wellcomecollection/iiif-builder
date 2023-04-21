@@ -72,6 +72,5 @@ namespace Wellcome.Dds.AssetDomain.Mets
         string? RelativeTranscriptPath { get; set; }
         string? RelativeMasterPath { get; set; }
         
-        IProcessingBehaviour ProcessingBehaviour { get; }
     }
 }

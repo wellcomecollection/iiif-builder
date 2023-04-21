@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Amazon.Runtime.Internal;
 using IIIF;
 using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
@@ -14,6 +13,8 @@ using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Utils;
+using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
@@ -39,8 +40,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string dlcsEntryPoint;
         private readonly bool referenceV0SearchService;
         private readonly string[] extraAccessConditions;
-        private readonly bool useDeliveryChannels;
         private readonly ManifestStructureHelper manifestStructureHelper;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
 
         // Existing Auth1 (actually 0.9.3) services
         private readonly IService clickthroughServiceV1;
@@ -70,17 +71,17 @@ namespace Wellcome.Dds.Repositories.Presentation
         private static readonly Size PlaceholderThumbnailSize = new Size(101, 151);
         
         public IIIFBuilderParts(
+            IDigitalObjectRepository digitalObjectRepository,
             UriPatterns uriPatterns,
             string dlcsEntryPoint,
             bool referenceV0SearchService, 
-            string[] extraAccessConditions,
-            bool useDeliveryChannels)
+            string[] extraAccessConditions)
         {
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
             this.extraAccessConditions = extraAccessConditions;
-            this.useDeliveryChannels = useDeliveryChannels;
+            this.digitalObjectRepository = digitalObjectRepository;
             manifestStructureHelper = new ManifestStructureHelper();
             authServiceProvider = new IIIFAuthServiceProvider(dlcsEntryPoint, uriPatterns);
             clickthroughServiceV1 = authServiceProvider.GetAcceptTermsAuthServicesV1();
@@ -404,13 +405,15 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
 
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
-                        
-                        if (useDeliveryChannels && physicalFile.ProcessingBehaviour.DeliveryChannels.Contains("file"))
+
+                        var deliveredFiles = digitalObjectRepository.GetDeliveredFiles(physicalFile);
+                        var asFile = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == "file");
+                        if (asFile != null)
                         {
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
                             var rendering = new Image
                             {
-                                Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
+                                Id = asFile.DlcsUrl,
                                 Format = physicalFile.MimeType,
                                 Label = Lang.Map(label ?? "(unknown format)")
                             };
@@ -482,7 +485,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             duration = 999.99;
                         }
                         canvas.Duration = duration;
-                        var avChoice = GetAVChoice(metsManifestation, physicalFile, videoSize, duration);
+                        var avChoice = GetAVChoice(physicalFile, videoSize, duration);
                         if (avChoice.Items?.Count > 0)
                         {
                             canvas.Items = new List<AnnotationPage>
@@ -887,7 +890,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return (mainImage, thumbImage);
         }
 
-        private PaintingChoice GetAVChoice(IManifestation metsManifestation, IPhysicalFile physicalFile, Size? videoSize, double duration)
+        private PaintingChoice GetAVChoice(IPhysicalFile physicalFile, Size? videoSize, double duration)
         {
             // TODO - this needs work later. For now, we're deducing the properties of the output
             // based on inside knowledge of the Elastic Transcoder settings.
@@ -896,116 +899,74 @@ namespace Wellcome.Dds.Repositories.Presentation
             // The other issue here is that the DLCS probably won't have got round to processing this,
             // most times we get here. You'd have to come back and run the workflow again to pick it up.
             var choice = new PaintingChoice { Items = new List<IPaintable>() };
-            var deliveryChannels = useDeliveryChannels ? 
-                physicalFile.ProcessingBehaviour.DeliveryChannels : new HashSet<string> { "iiif-av" };
-            if (IsVideoFile(metsManifestation, physicalFile) && videoSize != null)
-            {
-                // First do the <= 720p video which is going to     
-                var confineToBox = new Size(1280, 720);
-                // TODO - this needs to match Elastic Transcoder settings, which may be more complex than this
-                var computedSize = Size.Confine(confineToBox, videoSize);
-                var video = new Video
-                {
-                    Duration = duration,
-                    Width = computedSize.Width,
-                    Height = computedSize.Height,
-                    Label = Lang.Map($"Access copy video: {computedSize.Width} x {computedSize.Height}")
-                };
-                if (deliveryChannels.Contains("file") && videoSize.Height <= 720)
-                {
-                    video.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
-                    video.Format = physicalFile.MimeType; // at the moment this also will be "video/mp4"
-                }
-                else 
-                {
-                    video.Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4");
-                    video.Format = "video/mp4";
-                }
-                choice.Items.Add(video);
-                
-                // is there another hi-res file video to offer? We won't have used this file channel already.
-                if (deliveryChannels.Contains("file") && videoSize.Height > 720)
-                {
-                    var hiResFileVideo = new Video
-                    {
-                        Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
-                        Format = physicalFile.MimeType, // at the moment this also will be "video/mp4"
-                        Duration = duration,
-                        Width = videoSize.Width,
-                        Height = videoSize.Height,
-                        Label = Lang.Map($"Higher resolution video: {videoSize.Width} x {videoSize.Height}")
-                    };
-                    choice.Items.Add(hiResFileVideo);
-                }
-                
-                // We have removed the WebM transcode from this output, and need to remove it from the 
-                // DLCS ElasticTranscoder settings.
-            }
-            else if (IsAudioFile(metsManifestation, physicalFile))
-            {
-                var audio = new Audio
-                {
-                    Label = Lang.Map("MP3"),
-                    Duration = duration
-                };
-                if (deliveryChannels.Contains("iiif-av"))
-                {
-                    audio.Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3");
-                    audio.Format = "audio/mp3";
-                }
-                else
-                {
-                    audio.Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier);
-                    audio.Format = physicalFile.MimeType;
-                }
+            var deliveredFiles = digitalObjectRepository.GetDeliveredFiles(physicalFile);
 
-                choice.Items.Add(audio);
+            if (deliveredFiles.HasItems())
+            {
+                // This is the new way, using the information from DeliveryChannels.
+                // we want to list the <= 720p video first, regardless of whether it's the file delivery channel
+                // but we don't want to know about the value 720! so we'll just list them by size
+                foreach (var avFile in deliveredFiles.OrderBy(f => f.Height))
+                {
+                    if (avFile.MediaType.IsVideoMimeType())
+                    {
+                        choice.Items.Add(new Video
+                        {
+                            Id = avFile.PublicUrl,
+                            Format = avFile.MediaType,
+                            Duration = avFile.Duration,
+                            Width = avFile.Width,
+                            Height = avFile.Height,
+                            Label = Lang.Map($"Video file, size: {avFile.Width} x {avFile.Height}")
+                        });
+                    } 
+                    else if (avFile.MediaType.IsAudioMimeType())
+                    {
+                        choice.Items.Add(new Audio
+                        {
+                            Id = avFile.PublicUrl,
+                            Format = avFile.MediaType,
+                            Duration = avFile.Duration,
+                            Label = Lang.Map($"Audio file, {avFile.Duration} s")
+                        });
+                    }
+                }
             }
             else
             {
-                // ?
+               
+                
+                // This is the old method, which we can delete as soon as we know we're good with DeliveryChannels
+                if (physicalFile.MimeType.IsVideoMimeType() && videoSize != null)
+                {
+                    var confineToBox = new Size(1280, 720);
+                    var computedSize = Size.Confine(confineToBox, videoSize);
+                    choice.Items.Add(new Video
+                    {
+                        Id = uriPatterns.DlcsVideo(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp4"),
+                        Format = "video/mp4",
+                        Duration = duration,
+                        Width = computedSize.Width,
+                        Height = computedSize.Height,
+                        Label = Lang.Map($"Video file, size: {computedSize.Width} x {computedSize.Height}")
+                    });
+                    // We have removed the WebM transcode from this output, and need to remove it from the 
+                    // DLCS ElasticTranscoder settings.
+                }
+                else if (physicalFile.MimeType.IsAudioMimeType())
+                {
+                    choice.Items.Add(new Audio
+                    {
+                        Id = uriPatterns.DlcsAudio(dlcsEntryPoint, physicalFile.StorageIdentifier, "mp3"),
+                        Format = "audio/mp3",
+                        Duration = duration,
+                        Label = Lang.Map($"Audio file, {duration} s")
+                    });
+                }
             }
+
             return choice;
         }
-
-        private static bool IsAudioFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
-        {
-            // must be called after IsVideoFile!
-            // TODO - use info we already have, this is messy
-            // Use new MediaDimensions earlier than this.
-            if (physicalFile.Type == "Audio" || metsManifestation.Type == "Audio")
-            {
-                return true;
-            }
-
-            if (physicalFile.Type == "WAV" && metsManifestation.Type == "Archive")
-            {
-                return true;
-            }
-
-            if (physicalFile.AssetMetadata!.GetDuration() > 0)
-            {
-                return true;
-            }
-            
-            return false;
-        }
-
-        private static bool IsVideoFile(IManifestation metsManifestation, IPhysicalFile physicalFile)
-        {
-            if (physicalFile.Type == "Video" || metsManifestation.Type == "Video")
-            {
-                return true;
-            }
-
-            if (physicalFile.GetWhSize() != null)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
 
         private void AddAuthServices(
             ResourceBase media, 

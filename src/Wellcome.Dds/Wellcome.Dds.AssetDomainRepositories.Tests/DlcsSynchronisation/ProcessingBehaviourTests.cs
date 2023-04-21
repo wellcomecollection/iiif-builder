@@ -10,6 +10,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.DlcsSynchronisation;
 
 public class ProcessingBehaviourTests
 {
+    private StoredFile MakeStoredFile()
+    {
+        var pf = MakePhysicalFile();
+        pf.Files = new List<IStoredFile> { new StoredFile{PhysicalFile = pf } };
+        return pf.Files[0] as StoredFile;
+    }
+    
     private PhysicalFile MakePhysicalFile()
     {
         return new PhysicalFile(A.Fake<ArchiveStorageServiceWorkStore>(), "dummy");
@@ -18,19 +25,19 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Image_Has_IIIF_and_thumbs_Delivery_Channel()
     {
-        var pf = MakePhysicalFile();
-        pf.MimeType = "image/jpg";
+        var storedFile = MakeStoredFile();
+        storedFile.MimeType = "image/jpg";
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-img" || s == "thumbs");
+        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-img");
     }
     
     
     [Fact]
     public void MP3_Has_File_Delivery_Channel()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "audio/x-mpeg-3";
 
         var processing = pf.ProcessingBehaviour;
@@ -42,7 +49,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void MP3_Has_None_IOP()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "audio/x-mpeg-3";
 
         var processing = pf.ProcessingBehaviour;
@@ -54,7 +61,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Wav_Has_IIIF_AV_Delivery_Channel()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "audio/wav";
 
         var processing = pf.ProcessingBehaviour;
@@ -65,7 +72,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void Wav_Has_Null_IOP()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "audio/wav";
 
         var processing = pf.ProcessingBehaviour;
@@ -76,7 +83,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void mpeg_Has_IIIF_AV_Delivery_Channel()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "video/mpeg-2";
 
         var processing = pf.ProcessingBehaviour;
@@ -87,7 +94,7 @@ public class ProcessingBehaviourTests
     [Fact]
     public void mpeg_Has_Null_IOP()
     {
-        var pf = MakePhysicalFile();
+        var pf = MakeStoredFile();
         pf.MimeType = "video/mpeg-2";
 
         var processing = pf.ProcessingBehaviour;
@@ -101,11 +108,11 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" }
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf }
         };
         pf.MimeType = "video/mp4";
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-av");
     }    
@@ -116,11 +123,11 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" }  // Mp4 on its own
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf }  // Mp4 on its own
         };
         pf.MimeType = "video/mp4";
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.ImageOptimisationPolicy.Should().BeNull();
     }
@@ -131,13 +138,13 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" },       // the access copy
-            new StoredFile { MimeType = "application/mxf" }  // the master
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf },       // the access copy
+            new StoredFile { MimeType = "application/mxf", PhysicalFile = pf }  // the master
         };
         pf.MimeType = "video/mp4";
-        SetHeight(pf, 720);
+        SetHeight(pf.Files[0], 720);
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.DeliveryChannels.Should().OnlyContain(s => s == "file");
     }
@@ -147,23 +154,24 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" },       // the access copy
-            new StoredFile { MimeType = "application/mxf" }  // the master
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf},       // the access copy
+            new StoredFile { MimeType = "application/mxf", PhysicalFile = pf }  // the master
         };
         pf.MimeType = "video/mp4";
-        SetHeight(pf, 1440);
+        SetHeight(pf.Files[0], 1440);
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == "iiif-av" || s == "file");
+        var expected = new HashSet<string> { "iiif-av", "file" };
+        processing.DeliveryChannels.Should().BeEquivalentTo(expected);
     }
     
 
-    private static void SetHeight(PhysicalFile pf, int height)
+    private static void SetHeight(IStoredFile sf, int height)
     {
         var assetMetadata = A.Fake<IAssetMetadata>();
         A.CallTo(() => assetMetadata.GetMediaDimensions()).Returns(new MediaDimensions { Height = height });
-        pf.AssetMetadata = assetMetadata;
+        sf.AssetMetadata = assetMetadata;
     }
 
     [Fact]
@@ -172,13 +180,13 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" },       // the access copy
-            new StoredFile { MimeType = "application/mxf" }  // the master
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf },       // the access copy
+            new StoredFile { MimeType = "application/mxf", PhysicalFile = pf }  // the master
         };
         pf.MimeType = "video/mp4";
-        SetHeight(pf, 720);
+        SetHeight(pf.Files[0], 720);
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.ImageOptimisationPolicy.Should().Be("none");
     }
@@ -189,13 +197,13 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" },       // the access copy
-            new StoredFile { MimeType = "application/mxf" }  // the master
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf },       // the access copy
+            new StoredFile { MimeType = "application/mxf", PhysicalFile = pf }  // the master
         };
         pf.MimeType = "video/mp4";
-        SetHeight(pf, 1440);
+        SetHeight(pf.Files[0], 1440);
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.ImageOptimisationPolicy.Should().BeNull();
     }
@@ -208,12 +216,12 @@ public class ProcessingBehaviourTests
         var pf = MakePhysicalFile();
         pf.Files = new List<IStoredFile>
         {
-            new StoredFile { MimeType = "video/mp4" }
+            new StoredFile { MimeType = "video/mp4", PhysicalFile = pf }
         };
         pf.MimeType = "video/mp4";
-        SetHeight(pf, 1440);
+        SetHeight(pf.Files[0], 1440);
 
-        var processing = pf.ProcessingBehaviour;
+        var processing = pf.Files[0].ProcessingBehaviour;
 
         processing.ImageOptimisationPolicy.Should().BeNull();
         // processing.ImageOptimisationPolicy.Should().Be("QHD");
