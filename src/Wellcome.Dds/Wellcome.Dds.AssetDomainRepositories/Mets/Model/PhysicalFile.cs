@@ -66,8 +66,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 Use = fileElement.Parent?.Attribute("USE")?.Value
             };
 
-            file.Family = file.ProcessingBehaviour.AssetFamily;
-            physicalFile.Family = file.Family;
+            physicalFile.Family = file.ProcessingBehaviour.AssetFamily;
             physicalFile.Files.Add(file);
             
             return physicalFile;
@@ -172,8 +171,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         // TODO: MimeType determination, revisit.
                         physicalFile.MimeType = file.MimeType;
                         physicalFile.RelativePath = file.RelativePath;
-                        file.Family = file.ProcessingBehaviour.AssetFamily;
-                        physicalFile.Family = file.Family;
+                        physicalFile.Family = file.ProcessingBehaviour.AssetFamily;
                         break;
                 }
             }

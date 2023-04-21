@@ -17,6 +17,7 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.AuthServices;
@@ -407,7 +408,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
 
                         var deliveredFiles = digitalObjectRepository.GetDeliveredFiles(physicalFile);
-                        var asFile = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == "file");
+                        var asFile = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == Channels.File);
                         if (asFile != null)
                         {
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;

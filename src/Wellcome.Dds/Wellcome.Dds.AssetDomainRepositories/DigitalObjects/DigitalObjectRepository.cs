@@ -14,6 +14,7 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 
@@ -808,7 +809,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 Number1 = sequenceIndex,
                 Number2 = asset.PhysicalFile!.Index,
                 MediaType = asset.MimeType,
-                Family = (char)asset.Family
+                Family = (char)asset.ProcessingBehaviour.AssetFamily
             };
             if (asset.PhysicalFile.RelativeAltoPath.HasText())
             {
@@ -840,7 +841,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
-            if (asset.Family == AssetFamily.Image)
+            if (asset.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
             {
                 imageRegistration.MaxUnauthorised = GetMaxUnauthorised(maxUnauthorised, roles);
             }
@@ -1139,10 +1140,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     deliveredFiles.Add(file);
                 }
 
-                switch (storedFile.Family)
+                switch (storedFile.ProcessingBehaviour.AssetFamily)
                 {
                     case AssetFamily.Image:
-                        if (behaviour.DeliveryChannels.Contains("iiif-img"))
+                        if (behaviour.DeliveryChannels.Contains(Channels.IIIFImage))
                         {
                             var imgService = new DeliveredFile
                             {
@@ -1175,11 +1176,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                             {
                                 file.Duration = metadata?.GetDuration();
                             }
-                            if (behaviour.DeliveryChannels.Contains("iiif-av"))
+                            if (behaviour.DeliveryChannels.Contains(Channels.IIIFAv))
                             {
                                 var mp3 = new DeliveredFile
                                 {
-                                    DeliveryChannel = "iiif-av",
+                                    DeliveryChannel = Channels.IIIFAv,
                                     PublicUrl = uriPatterns.DlcsAudio(dlcs.ResourceEntryPoint,
                                         storedFile.StorageIdentifier, "mp3"),
                                     MediaType = "audio/mp3",
@@ -1199,11 +1200,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                                 file.Width = metadata?.GetImageWidth();
                                 file.Height = metadata?.GetImageHeight();
                             }
-                            if (behaviour.DeliveryChannels.Contains("iiif-av"))
+                            if (behaviour.DeliveryChannels.Contains(Channels.IIIFAv))
                             {
                                 // our iiif-av channel mp4 will always be confined to a box.
                                 // Only the ProcessingBehaviour should know how big that box is (it's the transcode policy).
-                                var confineToBox = storedFile.ProcessingBehaviour.GetVideoSize("iiif-av");
+                                var confineToBox = storedFile.ProcessingBehaviour.GetVideoSize(Channels.IIIFAv);
 
                                 // we still need to accomodate this hangover from early Goobi flows with no dimensions
                                 var videoSize = storedFile.PhysicalFile!.GetWhSize() ?? new Size(999, 999);
@@ -1211,7 +1212,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                                 
                                 var mp4 = new DeliveredFile
                                 {
-                                    DeliveryChannel = "iiif-av",
+                                    DeliveryChannel = Channels.IIIFAv,
                                     PublicUrl = uriPatterns.DlcsVideo(dlcs.ResourceEntryPoint,
                                         storedFile.StorageIdentifier, "mp4"),
                                     MediaType = "video/mp4",

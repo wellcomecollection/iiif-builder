@@ -36,33 +36,30 @@ public class ProcessingBehaviour : IProcessingBehaviour
         if (storedFile.MimeType.IsImageMimeType())
         {
             var specificFormat = storedFile.MimeType.SplitByDelimiter('/')!.Last().ToLowerInvariant();
-            if (options.ImageServiceFormats.Contains(specificFormat))
+            string[] deliveryChannels = options.ImageDeliveryChannels.ContainsKey(specificFormat) 
+                ? options.ImageDeliveryChannels[specificFormat] 
+                : options.DefaultImageDeliveryChannels;
+
+            foreach (var deliveryChannel in deliveryChannels)
+            {
+                DeliveryChannels.Add(deliveryChannel);
+            }
+            
+            if (DeliveryChannels.Contains(Channels.IIIFImage))
             {
                 AssetFamily = AssetFamily.Image;
-                DeliveryChannels.Add("iiif-img");
                 if (options.AddThumbsAsSeparateChannel)
                 {
-                    DeliveryChannels.Add("thumbs");
+                    DeliveryChannels.Add(Channels.Thumbs);
                 }
-                if (options.MakeAllSourceImagesAvailable)
-                {
-                    DeliveryChannels.Add("file");
-                }
-
                 if (storedFile.MimeType == "image/jp2")
                 {
                     ImageOptimisationPolicy = "use-original";
-                    if (options.MakeJP2Available || options.MakeAllSourceImagesAvailable)
-                    {   
-                        DeliveryChannels.Add("file");
-                    }
                 }
             }
             else
             {
-                AssetFamily = AssetFamily.Image;
-                // This image is not going to get an image service or thumbs.
-                DeliveryChannels.Add("file");
+                AssetFamily = AssetFamily.File;
             }
         }
 
@@ -73,11 +70,11 @@ public class ProcessingBehaviour : IProcessingBehaviour
             if (storedFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
             {
                 ImageOptimisationPolicy = "none";
-                DeliveryChannels.Add("file");
+                DeliveryChannels.Add(Channels.File);
             }
             else
             {
-                DeliveryChannels.Add("iiif-av");
+                DeliveryChannels.Add(Channels.IIIFAv);
                 ImageOptimisationPolicy = audioDefault;
             }
         }
@@ -96,7 +93,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
                 if (height <= options.MaxUntranscodedAccessMp4 || options.MakeAllAccessMP4sAvailable)
                 {
                     ImageOptimisationPolicy = "none"; // this IOP is a dummy value, really
-                    DeliveryChannels.Add("file");
+                    DeliveryChannels.Add(Channels.File);
                 }
 
                 if (options.MaxUntranscodedAccessMp4 > 0 && height > options.MaxUntranscodedAccessMp4)
@@ -105,23 +102,23 @@ public class ProcessingBehaviour : IProcessingBehaviour
                     // e.g., if it is a 4K video. So for some mp4s we'd not return "none" here.
                     // We also might decide to send the MXF instead or as well - in which case we need to 
                     // ignore physicalFile.MimeType and look at the actual IStoredFile.
-                    DeliveryChannels.Add("iiif-av");
+                    DeliveryChannels.Add(Channels.IIIFAv);
                 }
             }
             else
             {
                 // it's not an MXF access MP4, or it's some other non-MP4 video, so we're always going to transcode it:
-                DeliveryChannels.Add("iiif-av");
+                DeliveryChannels.Add(Channels.IIIFAv);
             }
 
-            if (DeliveryChannels.Contains("iiif-av"))
+            if (DeliveryChannels.Contains(Channels.IIIFAv))
             {
                 // This assumes only one video is produced, but keeps the knowledge that
                 // the default AV IOP creates 720p videos confined to this ProcessingBehaviour implementation.
                 
                 videoSizesByChannel = new Dictionary<string, Size>(1)
                 {
-                    ["iiif-av"] = new Size(1280, 720)
+                    [Channels.IIIFAv] = new (1280, 720)
                 };
 
                 // We need to set the ImageOptimsationPolicy
@@ -162,7 +159,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
         {
             AssetFamily = AssetFamily.File;
             ImageOptimisationPolicy = "none";
-            DeliveryChannels.Add("file");
+            DeliveryChannels.Add(Channels.File);
         }
     }
 
