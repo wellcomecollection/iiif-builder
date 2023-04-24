@@ -9,7 +9,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
     public class DigitalManifestation : BaseDigitalObject, IDigitalManifestation
     {
-        public IManifestation? MetsManifestation { get; set; }
+        public DigitalManifestation(IManifestation metsManifestation)
+        {
+            MetsManifestation = metsManifestation;
+        }
+        
+        public IManifestation MetsManifestation { get; }
         
         /// <summary>
         /// The images already on the DLCS for this manifestation

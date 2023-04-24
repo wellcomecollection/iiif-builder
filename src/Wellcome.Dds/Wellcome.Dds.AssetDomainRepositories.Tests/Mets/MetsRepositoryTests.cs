@@ -93,7 +93,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // Transcript with metadata
             physFile.Files.Should().Contain(f => f.Use == "TRANSCRIPT");
             var transcript = physFile.Files.Single(f => f.Use == "TRANSCRIPT");
-            transcript.Family.Should().Be(AssetFamily.File);
+            transcript.ProcessingBehaviour.AssetFamily.Should().Be(AssetFamily.File);
             transcript.RelativePath.Should().Be(physFile.RelativeTranscriptPath);
             transcript.AssetMetadata.GetNumberOfPages().Should().Be(86);
 

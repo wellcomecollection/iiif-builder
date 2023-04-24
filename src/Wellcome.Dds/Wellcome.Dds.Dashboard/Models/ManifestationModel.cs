@@ -128,7 +128,8 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public AssetFamily ManifestationFamily => DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
+        public AssetFamily ManifestationFamily => DigitisedManifestation.MetsManifestation.Sequence!
+            .First().GetDefaultProcessingBehaviour().AssetFamily;
 
         private string typeSummary;
         public string GetTypeSummary()

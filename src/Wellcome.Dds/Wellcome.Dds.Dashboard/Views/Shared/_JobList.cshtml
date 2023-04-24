@@ -31,7 +31,7 @@
                     <td><a class="row-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> </a></td>
                     <td>@Html.ActionLink(job.Id.ToString(), "Index", "Job", new { id = job.Id }, new { })</td>
                 }
-                <td>@Html.ActionLink(manifestation, "Manifestation", "Dash", new { id = manifestation }, new { })</td>
+                <td>@Html.ActionLink(manifestation, "Manifestation", "Dash", new { id = ((DdsIdentifier)manifestation).PathElementSafe }, new { })</td>
                 <td>@job.Created</td>
                 <td>@job.StartProcessed</td>
                 <td>@job.EndProcessed</td>

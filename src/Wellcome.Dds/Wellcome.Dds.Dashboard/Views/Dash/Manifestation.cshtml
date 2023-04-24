@@ -724,7 +724,7 @@
                                     }
                                     
                                     @adjunct.Use</td>
-                                @if (adjunct.Family == AssetFamily.Image)
+                                @if (adjunct.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
                                 {
                                     <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
                                     <td><small>@adjunct.AssetMetadata?.GetFormatName()</small></td>
@@ -742,7 +742,7 @@
                                                 <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
                                             }
                                         }</td>
-                                    if (adjunct.Family == AssetFamily.TimeBased)
+                                    if (adjunct.ProcessingBehaviour.AssetFamily == AssetFamily.TimeBased)
                                     {
                                         <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
                                     }

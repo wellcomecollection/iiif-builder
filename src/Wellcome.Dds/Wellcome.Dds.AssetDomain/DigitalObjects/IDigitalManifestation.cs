@@ -7,7 +7,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IDigitalManifestation : IDigitalObject
     {
-        IManifestation? MetsManifestation { get; set; }
+        IManifestation MetsManifestation { get; }
 
         /// <summary>
         /// The images held by the DLCS that match the metadata for this manifestation

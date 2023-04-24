@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using IIIF;
+using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -12,10 +15,16 @@ public class ProcessingBehaviour : IProcessingBehaviour
     public HashSet<string> DeliveryChannels { get; }
     public string? ImageOptimisationPolicy { get; }
 
+    public AssetFamily AssetFamily { get; }
+
     private Dictionary<string, Size>? videoSizesByChannel;
 
     public ProcessingBehaviour(StoredFile storedFile, ProcessingBehaviourOptions options)
     {
+        if (storedFile.MimeType.IsNullOrWhiteSpace())
+        {
+            throw new InvalidOperationException("A storedFile must have a mime type to deduce processingBehaviour");
+        }
         DeliveryChannels = new HashSet<string>();
         string? videoDefault = options.UseNamedAVDefaults ? "video-max" : null;
         string? audioDefault = options.UseNamedAVDefaults ? "audio-max" : null;
@@ -26,37 +35,46 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Images:
         if (storedFile.MimeType.IsImageMimeType())
         {
-            DeliveryChannels.Add("iiif-img");
-            if (options.AddThumbsAsSeparateChannel)
-            {
-                DeliveryChannels.Add("thumbs");
-            }
-            if (options.MakeAllSourceImagesAvailable)
-            {
-                DeliveryChannels.Add("file");
-            }
+            var specificFormat = storedFile.MimeType.SplitByDelimiter('/')!.Last().ToLowerInvariant();
+            string[] deliveryChannels = options.ImageDeliveryChannels.ContainsKey(specificFormat) 
+                ? options.ImageDeliveryChannels[specificFormat] 
+                : options.DefaultImageDeliveryChannels;
 
-            if (storedFile.MimeType == "image/jp2")
+            foreach (var deliveryChannel in deliveryChannels)
             {
-                ImageOptimisationPolicy = "use-original";
-                if (options.MakeJP2Available || options.MakeAllSourceImagesAvailable)
-                {   
-                    DeliveryChannels.Add("file");
+                DeliveryChannels.Add(deliveryChannel);
+            }
+            
+            if (DeliveryChannels.Contains(Channels.IIIFImage))
+            {
+                AssetFamily = AssetFamily.Image;
+                if (options.AddThumbsAsSeparateChannel)
+                {
+                    DeliveryChannels.Add(Channels.Thumbs);
                 }
+                if (storedFile.MimeType == "image/jp2")
+                {
+                    ImageOptimisationPolicy = "use-original";
+                }
+            }
+            else
+            {
+                AssetFamily = AssetFamily.File;
             }
         }
 
         // Audio:
         else if (storedFile.MimeType.IsAudioMimeType())
         {
+            AssetFamily = AssetFamily.TimeBased;
             if (storedFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
             {
                 ImageOptimisationPolicy = "none";
-                DeliveryChannels.Add("file");
+                DeliveryChannels.Add(Channels.File);
             }
             else
             {
-                DeliveryChannels.Add("iiif-av");
+                DeliveryChannels.Add(Channels.IIIFAv);
                 ImageOptimisationPolicy = audioDefault;
             }
         }
@@ -64,6 +82,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Video:
         else if (storedFile.MimeType.IsVideoMimeType())
         {
+            AssetFamily = AssetFamily.TimeBased;
             var height = storedFile.AssetMetadata?.GetMediaDimensions().Height;
 
             if (storedFile.MimeType == "video/mp4" &&
@@ -74,7 +93,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
                 if (height <= options.MaxUntranscodedAccessMp4 || options.MakeAllAccessMP4sAvailable)
                 {
                     ImageOptimisationPolicy = "none"; // this IOP is a dummy value, really
-                    DeliveryChannels.Add("file");
+                    DeliveryChannels.Add(Channels.File);
                 }
 
                 if (options.MaxUntranscodedAccessMp4 > 0 && height > options.MaxUntranscodedAccessMp4)
@@ -83,23 +102,23 @@ public class ProcessingBehaviour : IProcessingBehaviour
                     // e.g., if it is a 4K video. So for some mp4s we'd not return "none" here.
                     // We also might decide to send the MXF instead or as well - in which case we need to 
                     // ignore physicalFile.MimeType and look at the actual IStoredFile.
-                    DeliveryChannels.Add("iiif-av");
+                    DeliveryChannels.Add(Channels.IIIFAv);
                 }
             }
             else
             {
                 // it's not an MXF access MP4, or it's some other non-MP4 video, so we're always going to transcode it:
-                DeliveryChannels.Add("iiif-av");
+                DeliveryChannels.Add(Channels.IIIFAv);
             }
 
-            if (DeliveryChannels.Contains("iiif-av"))
+            if (DeliveryChannels.Contains(Channels.IIIFAv))
             {
                 // This assumes only one video is produced, but keeps the knowledge that
                 // the default AV IOP creates 720p videos confined to this ProcessingBehaviour implementation.
                 
                 videoSizesByChannel = new Dictionary<string, Size>(1)
                 {
-                    ["iiif-av"] = new Size(1280, 720)
+                    [Channels.IIIFAv] = new (1280, 720)
                 };
 
                 // We need to set the ImageOptimsationPolicy
@@ -138,8 +157,9 @@ public class ProcessingBehaviour : IProcessingBehaviour
         // Files:
         else
         {
+            AssetFamily = AssetFamily.File;
             ImageOptimisationPolicy = "none";
-            DeliveryChannels.Add("file");
+            DeliveryChannels.Add(Channels.File);
         }
     }
 
