@@ -8,8 +8,8 @@
         public string? CustomerName { get; set; }
         public int CustomerDefaultSpace { get; set; }
         public string? ApiEntryPoint { get; set; }
+        public string? GlobalDlcsUrl { get; set; } = "https://api.dlcs.io/";
         public string? ResourceEntryPoint { get; set; }
-        
         public string? InternalResourceEntryPoint { get; set; } = "https://dlcs.io/";
         public int BatchSize { get; set; } = 100;
         public string? SkeletonNamedQueryTemplate { get; set; }

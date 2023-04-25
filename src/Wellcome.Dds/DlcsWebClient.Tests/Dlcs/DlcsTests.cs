@@ -277,16 +277,17 @@ namespace DlcsWebClient.Tests.Dlcs
             var roleUriOa = sut.GetRoleUri(AccessCondition.OpenWithAdvisory);
     
             // Assert
-            var expected = "https://api.dlcs.test/customers/99/roles/clickthrough";
+            // NOTE THAT THIS IS NOT api.dlcs.test - roles are Global URIs
+            var expected = "https://api.dlcs.io/customers/99/roles/clickthrough";
             roleUriRr.Should().Be(expected);
             roleUriOa.Should().Be(expected);
         }
         
         [Theory]
-        [InlineData(AccessCondition.Open, "https://api.dlcs.test/customers/99/roles/open")]
-        [InlineData(AccessCondition.ClinicalImages, "https://api.dlcs.test/customers/99/roles/clinicalImages")]
-        [InlineData(AccessCondition.RestrictedFiles, "https://api.dlcs.test/customers/99/roles/restrictedFiles")]
-        [InlineData(AccessCondition.Closed, "https://api.dlcs.test/customers/99/roles/closed")]
+        [InlineData(AccessCondition.Open, "https://api.dlcs.io/customers/99/roles/open")]
+        [InlineData(AccessCondition.ClinicalImages, "https://api.dlcs.io/customers/99/roles/clinicalImages")]
+        [InlineData(AccessCondition.RestrictedFiles, "https://api.dlcs.io/customers/99/roles/restrictedFiles")]
+        [InlineData(AccessCondition.Closed, "https://api.dlcs.io/customers/99/roles/closed")]
         public void GetRoleUri_ReturnsExpected_ForNonRequiresRegistration(string accessCondition, string expected)
         {
             // Act
