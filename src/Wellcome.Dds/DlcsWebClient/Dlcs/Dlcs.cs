@@ -334,7 +334,7 @@ namespace DlcsWebClient.Dlcs
             {
                 firstCharLowered = "clickthrough";
             }
-            return $"{options.ApiEntryPoint}customers/{options.CustomerId}/roles/{ToCamelCase(firstCharLowered)}";
+            return $"{options.GlobalDlcsUrl}customers/{options.CustomerId}/roles/{ToCamelCase(firstCharLowered)}";
         }
 
         // TODO - leave this here? Move to utils and introduce dependency?
