@@ -269,11 +269,10 @@ function getServices(info) {
     var services;
     console.log("Looking for auth services");
     if (info.hasOwnProperty('service')) {
-        if (info.service.hasOwnProperty('@context')) {
-            services = [info.service];
-        } else {
-            // array of service
+        if(Array.isArray(info.service)){
             services = info.service;
+        } else {
+            services = [info.service];
         }
         var prefix = 'http://iiif.io/api/auth/0/';
         var clickThrough = 'http://iiif.io/api/auth/0/login/clickthrough';
