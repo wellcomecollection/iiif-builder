@@ -265,15 +265,15 @@ namespace Wellcome.Dds.Dashboard.Models
             // TODO - these paths should not be repeated here
             var identifier = model.DdsIdentifier;
             var textFileInfo = new S3StoredFileInfo(ddsOptions.TextContainer, $"raw/{identifier}", amazonS3);
-            var annosFileInfo = new S3StoredFileInfo(ddsOptions.AnnotationContainer,
-                $"v3/{identifier}/all/line", amazonS3);
+            var imagesFileInfo = new S3StoredFileInfo(ddsOptions.AnnotationContainer,
+                $"v3/{identifier}/images", amazonS3);
             var manifestFileInfo = new S3StoredFileInfo(ddsOptions.PresentationContainer, $"v3/{identifier}", amazonS3);
 
-            await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), annosFileInfo.EnsureObjectMetadata(),
+            await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), imagesFileInfo.EnsureObjectMetadata(),
                 manifestFileInfo.EnsureObjectMetadata());
 
             model.TextWriteTime = textFileInfo.GetLastWriteTime().Result;
-            model.AnnotationWriteTime = annosFileInfo.GetLastWriteTime().Result;
+            model.AnnotationWriteTime = imagesFileInfo.GetLastWriteTime().Result;
             model.ManifestWriteTime = manifestFileInfo.GetLastWriteTime().Result;
         }
     }
