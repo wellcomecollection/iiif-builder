@@ -32,6 +32,9 @@ RUN dotnet publish "Wellcome.Dds.Dashboard.csproj" -c Release -o /app/publish
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-bullseye-slim
 
+ENV TZ Europe/London
+ENV LANG en_GB.UTF8
+
 LABEL maintainer="Donald Gray <donald.gray@digirati.com>,Tom Crane <tom.crane@digirati.com>"
 LABEL org.opencontainers.image.source=https://github.com/wellcomecollection/iiif-builder
 
