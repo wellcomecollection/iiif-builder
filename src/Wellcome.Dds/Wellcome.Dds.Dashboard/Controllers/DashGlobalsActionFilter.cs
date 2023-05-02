@@ -26,7 +26,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             viewBag.StopClass = runProcesses ? "" : "btn-danger";
             var heartbeat = await statusProvider.GetHeartbeat();
             viewBag.Heartbeat = heartbeat;
-            var warningState = heartbeat == null || heartbeat.Value.AddMinutes(3) < DateTime.Now;
+            var warningState = heartbeat == null || heartbeat.Value.AddMinutes(3) < DateTime.UtcNow;
             viewBag.HeartbeatWarning = warningState;
             viewBag.HeartbeatClass = warningState ? "btn-danger" : "";
             var getQueueLevel = digitalObjectRepository.GetDlcsQueueLevel();
