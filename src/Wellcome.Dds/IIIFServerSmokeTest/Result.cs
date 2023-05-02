@@ -18,7 +18,7 @@ public class Result
     {
         Success = false;
         messages.Add(message);
-        Console.BackgroundColor = ConsoleColor.Red;
+        Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine(message);
         Console.ResetColor();
     }
