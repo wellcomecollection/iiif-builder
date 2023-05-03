@@ -107,6 +107,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             
             
             var filePointers = physFileElement.Elements(XNames.MetsFptr);
+            StoredFile? familySource = null;
             foreach (var pointer in filePointers)
             {
                 var file = new StoredFile
@@ -168,11 +169,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                         // TODO: MimeType determination, revisit.
                         physicalFile.MimeType = file.MimeType;
                         physicalFile.RelativePath = file.RelativePath;
-                        physicalFile.Family = file.ProcessingBehaviour.AssetFamily;
+                        familySource = file;
                         break;
                 }
             }
 
+            if (familySource == null)
+            {
+                throw new InvalidOperationException("No default storedFile found");
+            }
+            // You cannot ask for ProcessingBehaviour until the physical file has collected all its IStoredFile members
+            physicalFile.Family = familySource.ProcessingBehaviour.AssetFamily;
             return physicalFile;
         }
 
