@@ -51,9 +51,15 @@ else
 }
 
 var smokeTester = new SmokeTester(
-    "https://iiif.wellcomecollection.org",
+    "https://iiif.wellcomecollection.org", // This needs to be a command line arg
     "https://api.wellcomecollection.org",
     "https://api.wellcomecollection.org/catalogue/v2/works");
+
+int fixtureCount = 0;
+int failureCount = 0;
+
+// helps with adding new ones;
+fixtures.Reverse();
 
 foreach (var fixture in fixtures)
 {
@@ -61,4 +67,14 @@ foreach (var fixture in fixtures)
     var outcome = result.Success ? "success" : "FAILURE";
     Console.WriteLine($"========== {outcome}");
     Console.WriteLine();
+    fixtureCount++;
+    if (!result.Success)
+    {
+        failureCount++;
+    }
 }
+
+Console.WriteLine();
+Console.WriteLine($"{failureCount} failure(s) from {fixtureCount} fixtures.");
+Console.WriteLine();
+

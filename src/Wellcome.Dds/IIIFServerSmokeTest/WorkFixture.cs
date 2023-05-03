@@ -23,6 +23,9 @@ public class WorkFixture
     
     public bool? HasAlto { get; set; }
     
-    
-    
+    public bool? HasTranscriptAsDocument { get; set; }
+
+    public bool Skip { get; set; } = false;
+
+
 }

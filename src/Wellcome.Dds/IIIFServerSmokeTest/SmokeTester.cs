@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Net;
+using System.Xml.Linq;
 using IIIF.Presentation.V3;
 using IIIF.Serialisation;
 using Microsoft.Extensions.Options;
@@ -25,12 +28,20 @@ public class SmokeTester
     public async Task<Result> Test(WorkFixture fixture)
     {
         var result = new Result();
+        if (fixture.Skip)
+        {
+            result.Add($"SKIPPING fixture {fixture.Identifier}: {fixture.Label}");
+            return result;
+        }
         result.Add($"Testing fixture {fixture.Identifier}: {fixture.Label}");
         var client = new HttpClient();
         var initialIIIF = uriPatterns.Manifest(fixture.Identifier);
-        var jsonString = await client.GetStringAsync(initialIIIF);
         try
         {
+            var sw = Stopwatch.StartNew();
+            var jsonString = await client.GetStringAsync(initialIIIF);
+            sw.Stop();
+            result.Add($"Loaded {jsonString.Length} chars in {sw.ElapsedMilliseconds} ms from {initialIIIF}");
             var iiifObject = JObject.Parse(jsonString);
             var type = iiifObject["type"]!.Value<string>();
             if (fixture.IdentifierIsCollection.HasValue)
@@ -71,7 +82,7 @@ public class SmokeTester
                     }
                     else
                     {
-                        result.AddFailure($"Collection DOES NOT have the expected {fixture.ManifestCount.Value} items.");
+                        result.AddFailure($"Collection DOES NOT have the expected {fixture.ManifestCount.Value} items - it has {manifests.Count}");
                     }
                 }
                 else
@@ -125,39 +136,184 @@ public class SmokeTester
         IList<JToken> services = manifest["services"]!.Children().ToList();
         CheckTimestamp(fixture, result, services);
 
-        IList<JToken> service = manifest["service"]!.Children().ToList();
-        await TestSearchService(client, fixture, result, service);
-        
+        await TestSearchService(client, fixture, result, manifest);
+
+        await TestManifestLevelAnnotations(client, fixture, manifest, result);
+
         // we don't want to test ALL the canvases. If there are more than three, test the first, middle and last canvases.
         IList<JToken> canvases = manifest["items"]!.Children().ToList();
-        TestCanvas(canvases[0], client, fixture, result);
+        await TestCanvas(canvases[0], client, fixture, result);
         switch (canvases.Count)
         {
             case 1:
                 break; // already done
             case 2:
-                TestCanvas(canvases[1], client, fixture, result);
+                await TestCanvas(canvases[1], client, fixture, result);
                 break;
             case 3:
-                TestCanvas(canvases[1], client, fixture, result);
-                TestCanvas(canvases[2], client, fixture, result);
+                await TestCanvas(canvases[1], client, fixture, result);
+                await TestCanvas(canvases[2], client, fixture, result);
                 break;
             default:
-                TestCanvas(canvases[canvases.Count / 2], client, fixture, result);
-                TestCanvas(canvases[^1], client, fixture, result);
+                await TestCanvas(canvases[canvases.Count / 2], client, fixture, result);
+                await TestCanvas(canvases[^1], client, fixture, result);
                 break;
         }
     }
 
-    private void TestCanvas(JToken canvas, HttpClient client, WorkFixture fixture, Result result)
+    private static async Task TestManifestLevelAnnotations(HttpClient client, WorkFixture fixture, JObject manifest,
+        Result result)
     {
-        var canvasId = canvas["id"]!.Value<string>();
-        result.Add($"Testing canvas {canvasId}");
+        JObject? manifestImageAnnotations = null;
+        if (manifest.ContainsKey("annotations"))
+        {
+            try
+            {
+                var imagesAndFigures = manifest["annotations"]!.Children().ToList()
+                    .Single(ap => ap["id"]!.Value<string>()!.EndsWith("/images"));
+                var imagesAndFiguresJson = await client.GetStringAsync(imagesAndFigures["id"]!.Value<string>());
+                manifestImageAnnotations = JObject.Parse(imagesAndFiguresJson);
+            }
+            catch (Exception aex)
+            {
+                result.AddFailure("Unable to load manifest annotations: " + aex.Message);
+            }
+        }
+
+        if (fixture.HasAlto.HasValue)
+        {
+            if (fixture.HasAlto.Value && manifestImageAnnotations != null)
+            {
+                result.Add($"Expected Manifest-level images and figure annotations found");
+            }
+            else if (fixture.HasAlto.Value && manifestImageAnnotations == null)
+            {
+                result.AddFailure("Did not find expected Manifest-level images and figure annotations");
+            }
+            else if (!fixture.HasAlto.Value && manifestImageAnnotations == null)
+            {
+                result.Add($"Not expected to have Manifest-level images and figure annotations, and none found");
+            }
+            else if (!fixture.HasAlto.Value && manifestImageAnnotations != null)
+            {
+                result.AddFailure("Did not expect Manifest-level images and figure annotations but found some!");
+            }
+        }
+
+        if (manifestImageAnnotations != null)
+        {
+            if (manifestImageAnnotations.ContainsKey("items") && manifestImageAnnotations.ContainsKey("type"))
+            {
+                result.Add("Manifest has image annotations.");
+            }
+        }
     }
 
-    private static async Task TestSearchService(HttpClient client, WorkFixture fixture, Result result, IList<JToken> service)
+    private async Task TestCanvas(JToken canvas, HttpClient client, WorkFixture fixture, Result result)
     {
-        var searchService = service.SingleOrDefault(s => s["@type"]!.Value<string>() == "SearchService1");
+        var canvasObj = (JObject)canvas;
+        var canvasId = canvas["id"]!.Value<string>();
+        result.Add($"Testing canvas {canvasId}");
+        
+        // TODO - look for expected images, or AV, etc
+
+        XElement? altoXml = null;
+        JObject? pageAnnotations = null;
+
+        if (canvasObj.ContainsKey("seeAlso"))
+        {
+            try
+            {
+                var altoUrl = canvasObj["seeAlso"]!.Children().Single()["id"]!.Value<string>()!;
+                altoXml = XElement.Load(altoUrl);
+                result.Add("Loaded alto XML from " + altoUrl);
+            }
+            catch (Exception xex)
+            {
+                result.AddFailure("Could not load ALTO XML: " + xex.Message);
+            }
+        }
+        if (canvasObj.ContainsKey("annotations"))
+        {
+            // this is either an external annopage of text, or a PDF transcript of AV.
+            var annoPage = (JObject)canvasObj["annotations"]!.Children().Single();
+            if (annoPage.ContainsKey("items"))
+            {
+                try
+                {
+                    var docUrl = annoPage["items"]!.Children().ToList()[0]["body"]!["id"]!.Value<string>();
+                    var resp = await client.GetAsync(docUrl);
+                    if (resp.StatusCode == HttpStatusCode.OK)
+                    {
+                        if (fixture.HasTranscriptAsDocument.HasValue && fixture.HasTranscriptAsDocument.Value)
+                        {
+                            result.Add("Found and loaded expected transcript at " + docUrl);
+                        }
+                        else
+                        {
+                            result.Add("Found and loaded transcript at " + docUrl);
+                        }
+                    }
+                    else if (resp.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        // TODO - need to tie this to testing auth.
+                        result.Add($"Access to {docUrl} unauthorised");
+                    }
+                    else
+                    {
+                        result.AddFailure("Could not load transcript at " + docUrl);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.AddFailure("Unable to load linked transcript");
+                }
+            }
+            else
+            {
+                try
+                {
+                    var pageAnnosId = annoPage["id"]!.Value<string>();
+                    var pageAnnotationsJson = await client.GetStringAsync(pageAnnosId);
+                    pageAnnotations = JObject.Parse(pageAnnotationsJson);
+                    result.Add("Loaded page annotations from " + pageAnnosId);
+                }
+                catch (Exception aex)
+                {
+                    result.AddFailure("Could not load Page annotations: " + aex.Message);
+                }
+            }
+        }
+        // for now check the text endpoints
+        if (fixture.HasAlto.HasValue)
+        {
+            if (fixture.HasAlto.Value && altoXml != null && pageAnnotations != null)
+            {
+                result.Add($"Expected ALTO XML and Page Annotations found");
+            }
+            else if (fixture.HasAlto.Value && (altoXml == null || pageAnnotations == null))
+            {
+                result.AddFailure("Did not find expected ALTO XML and Page Annotations");
+            }
+            else if (!fixture.HasAlto.Value && altoXml == null && pageAnnotations == null)
+            {
+                result.Add($"Not expected to have ALTO XML and Page Annotations and none found");
+            }
+            else if (!fixture.HasAlto.Value && (altoXml != null || pageAnnotations != null))
+            {
+                result.AddFailure("Did not expect ALTO XML and Page Annotations but found some");
+            }
+        }
+    }
+
+    private static async Task TestSearchService(HttpClient client, WorkFixture fixture, Result result, JObject manifest)
+    {
+        JToken? searchService = null;
+        if (manifest.ContainsKey("service"))
+        {
+            IList<JToken> service = manifest["service"]!.Children().ToList();
+            searchService = service.SingleOrDefault(s => s["@type"]!.Value<string>() == "SearchService1");
+        }
         if (fixture.HasAlto.HasValue)
         {
             if (fixture.HasAlto.Value && searchService != null)
@@ -221,21 +377,20 @@ public class SmokeTester
     {
         const string timestampProfile = "https://github.com/wellcomecollection/iiif-builder/build-timestamp";
         var timestampService = services.Single(s => s["profile"]!.Value<string>() == timestampProfile);
-        var timestamp = timestampService["label"]!["none"]![0]!.Value<string>();
-        var timestampDt = DateTime.Parse(timestamp);
+        var timestampDt = timestampService["label"]!["none"]![0]!.Value<DateTime>();
         if (timestampDt > fixture.ManifestShouldBeAfter)
         {
-            result.Add("Manifest generated after cutoff: " + timestamp);
+            result.Add("Manifest generated after cutoff: " + timestampDt);
         }
         else
         {
-            result.AddFailure("Manifest is OLDER than cutoff: " + timestamp);
+            result.AddFailure("Manifest is OLDER than cutoff: " + timestampDt);
         }
     }
 
 
     /// <summary>
-    /// This isn't working yet
+    /// This isn't working yet - needs improvements to iiif-net deserialization.
     /// </summary>
     /// <param name="fixture"></param>
     /// <returns></returns>
