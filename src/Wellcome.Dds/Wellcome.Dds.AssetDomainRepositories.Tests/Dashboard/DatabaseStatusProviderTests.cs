@@ -79,7 +79,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             // Arrange
             const int minAge = 34;
-            var expected = DateTime.Now.AddMinutes(-minAge); 
+            var expected = DateTime.UtcNow.AddMinutes(-minAge); 
             
             // Act
             var sut = GetSut(minimumJobAge: minAge);

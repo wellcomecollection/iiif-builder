@@ -181,7 +181,7 @@
                         var latest = Model.BatchesForImages.OrderByDescending(b => b.Submitted).First();
                         <p><em><small>Most recent batch: @latest.Submitted</small></em></p>
                         <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
-                        if (latest.Submitted < DateTime.Now.AddMinutes(-10))
+                        if (latest.Submitted < DateTime.UtcNow.AddMinutes(-10))
                         {
                             <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
                         }

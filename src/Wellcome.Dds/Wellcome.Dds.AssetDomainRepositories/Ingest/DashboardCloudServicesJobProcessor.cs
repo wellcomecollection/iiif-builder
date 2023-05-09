@@ -98,7 +98,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 var lastHeartbeat = await statusProvider.GetHeartbeat() ?? DateTime.MinValue;
                 foreach (DlcsIngestJob job in jobsToProcess)
                 {
-                    var now = DateTime.Now; // use local variable rather than keep on reading file...
+                    var now = DateTime.UtcNow; // use local variable rather than keep on reading file...
                     if ((now - lastHeartbeat).Seconds > 30)
                     {
                         await statusProvider.WriteHeartbeat();

@@ -153,7 +153,7 @@ namespace WorkflowProcessor
                         }
                     }
                 }
-                job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
+                job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
                 logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
             }
             catch (Exception ex)

@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using Xunit;
 
@@ -172,6 +173,29 @@ namespace Utils.Tests
         public void PathElements_Are_Not_Equivalent(string path1, string path2, int walkback = 1)
         {
             StringUtils.EndWithSamePathElements(path1, path2, walkback).Should().BeFalse();
+        }
+
+        [Fact]
+        public void GetFriendlyAge_Supports_UtcDateTime()
+        {
+            var dtUtcNow = DateTime.UtcNow;
+
+            var friendly = StringUtils.GetFriendlyAge(dtUtcNow);
+            var local = dtUtcNow.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+            friendly.Should().StartWith(local);
+        }
+        
+        
+        [Fact]
+        public void GetFriendlyAge_Supports_NonUtcDateTime()
+        {
+            var dtNow = DateTime.Now;
+
+            var friendly = StringUtils.GetFriendlyAge(dtNow);
+            var local = dtNow.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+            friendly.Should().StartWith(local);
         }
     }
 }
