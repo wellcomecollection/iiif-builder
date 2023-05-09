@@ -98,7 +98,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 var lastHeartbeat = await statusProvider.GetHeartbeat() ?? DateTime.MinValue;
                 foreach (DlcsIngestJob job in jobsToProcess)
                 {
-                    var now = DateTime.Now; // use local variable rather than keep on reading file...
+                    var now = DateTime.UtcNow; // use local variable rather than keep on reading file...
                     if ((now - lastHeartbeat).Seconds > 30)
                     {
                         await statusProvider.WriteHeartbeat();
@@ -160,7 +160,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             {
                 job = jobs[0];
                 logger.LogInformation("ProcessJob: one found for {jobId}", jobId);
-                job.StartProcessed = DateTime.Now;
+                job.StartProcessed = DateTime.UtcNow;
                 await ddsInstrumentationContext.SaveChangesAsync();
             }
             else if (jobs.Count == 0)
@@ -173,7 +173,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 logger.LogWarning("ProcessJob was passed a job and found MORE THAN ONE: {jobId}", jobId);
                 logger.LogWarning("Will process most recent");
                 job = jobs.OrderByDescending(j => j.Created).First();
-                job.StartProcessed = DateTime.Now;
+                job.StartProcessed = DateTime.UtcNow;
                 await ddsInstrumentationContext.SaveChangesAsync();
             }
 
@@ -245,7 +245,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     jobId, deferReason);
                 const string deferred = "deferred_format";
                 job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
-                job.EndProcessed = DateTime.Now;
+                job.EndProcessed = DateTime.UtcNow;
                 job.Data = deferred;
                 await ddsInstrumentationContext.SaveChangesAsync();
                 return ImageIngestResult.Empty;
@@ -336,7 +336,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             
             job = ddsInstrumentationContext.DlcsIngestJobs.Single(j => j.Id == job.Id);
-            job.EndProcessed = DateTime.Now;
+            job.EndProcessed = DateTime.UtcNow;
             job.Succeeded = syncOperation.Succeeded;
 
             if (!syncOperation.Succeeded)
@@ -384,7 +384,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 logger.LogError("WriteErrorJobData for {0}, job no longer in queue", jobId);
                 return;
             }
-            job.EndProcessed = DateTime.Now;
+            job.EndProcessed = DateTime.UtcNow;
             job.ImageCount = -1;
             job.Succeeded = false;
             if (dataMessage.HasText())

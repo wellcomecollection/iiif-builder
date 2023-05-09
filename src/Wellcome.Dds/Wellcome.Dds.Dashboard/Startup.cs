@@ -54,9 +54,6 @@ namespace Wellcome.Dds.Dashboard
         
         public void ConfigureServices(IServiceCollection services)
         {
-            // Use pre-v6 handling of datetimes for npgsql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());

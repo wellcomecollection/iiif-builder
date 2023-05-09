@@ -63,7 +63,7 @@ public class WorkflowCallRepository : IWorkflowCallRepository
 
     public async Task<WorkflowCallStats> GetStatsModel()
     {
-        var end = DateTime.Now.AddMinutes(-10);
+        var end = DateTime.UtcNow.AddMinutes(-10);
         var start = end.AddHours(-RecentSampleHours);
         var result = new WorkflowCallStats { RecentSampleHours = RecentSampleHours };
             
@@ -114,7 +114,7 @@ public class WorkflowCallRepository : IWorkflowCallRepository
             var hoursLeft = jobsLeft / jobsPerHour;
             try
             {
-                result.EstimatedCompletion = DateTime.Now.AddHours(hoursLeft);
+                result.EstimatedCompletion = DateTime.UtcNow.AddHours(hoursLeft);
             }
             catch
             {

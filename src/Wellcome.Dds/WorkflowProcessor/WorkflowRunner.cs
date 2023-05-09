@@ -74,7 +74,7 @@ namespace WorkflowProcessor
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
             var ddsIdentifier = new DdsIdentifier(job.Identifier);
-            job.Taken = DateTime.Now;
+            job.Taken = DateTime.UtcNow;
             var jobOptions = runnerOptions;
             if (job.WorkflowOptions != null)
             {
@@ -153,7 +153,7 @@ namespace WorkflowProcessor
                         }
                     }
                 }
-                job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
+                job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
                 logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
             }
             catch (Exception ex)

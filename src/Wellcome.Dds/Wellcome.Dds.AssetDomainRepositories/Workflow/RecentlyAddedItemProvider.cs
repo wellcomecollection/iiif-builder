@@ -16,14 +16,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
 
         public List<DatedIdentifier> GetDatedIdentifiers(DateTime @from, DateTime? to)
         {
-            if (!to.HasValue) to = DateTime.Now;
+            if (!to.HasValue) to = DateTime.UtcNow;
             int max = 1000;
             return GetRecentJobsAsDatedIdentifiers(from, to.Value, max);
         }
 
         public List<DatedIdentifier> GetDatedIdentifiers(int count)
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             return GetRecentJobsAsDatedIdentifiers(now.AddYears(-1), now, count);
         }
 

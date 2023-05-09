@@ -298,8 +298,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             ViewBag.Message = "Your application description page.";
             ViewBag.RunProcesses = await statusProvider.ShouldRunProcesses();
-            DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.Now;
-            ViewBag.JobDelay = (DateTime.Now - cutoff).Minutes;
+            DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.UtcNow;
+            ViewBag.JobDelay = (DateTime.UtcNow - cutoff).Minutes;
             return View("StopStatus");
         }
 

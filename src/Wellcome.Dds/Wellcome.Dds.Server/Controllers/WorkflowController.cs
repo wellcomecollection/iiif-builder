@@ -53,7 +53,7 @@ namespace Wellcome.Dds.Server.Controllers
                     Identifier = ddsId.PackageIdentifier,
                     Origin = "workflow-controller",
                     Space = ddsId.StorageSpace,
-                    TimeSent = DateTime.Now
+                    TimeSent = DateTime.UtcNow
                 };
                 var workflowJob = await workflowCallRepository.CreateWorkflowJob(message);
                 Response.AppendStandardNoCacheHeaders();

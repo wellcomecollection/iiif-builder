@@ -130,7 +130,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     Identifier = ddsId,
                     Origin = "dashboard",
                     Space = ddsId.StorageSpace,
-                    TimeSent = DateTime.Now
+                    TimeSent = DateTime.UtcNow
                 };
             
                 logger.LogDebug("Simulating workflow SQS call from dashboard for {Identifier}", ddsId);
