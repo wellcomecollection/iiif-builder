@@ -45,7 +45,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 if (ddsOptions.MinimumJobAgeMinutes > 0)
                 {
-                    return DateTime.Now.AddMinutes(-ddsOptions.MinimumJobAgeMinutes);
+                    return DateTime.UtcNow.AddMinutes(-ddsOptions.MinimumJobAgeMinutes);
                 }
 
                 return null;
@@ -57,7 +57,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             try
             {
                 var currentControlFlow = await GetLatestControlFlow(cancellationToken);
-                currentControlFlow.StoppedOn = DateTime.Now;
+                currentControlFlow.StoppedOn = DateTime.UtcNow;
                 await ddsInstrumentationContext.SaveChangesAsync(cancellationToken);
                 return true;
             }
@@ -74,7 +74,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 var controlFlow = new ControlFlow
                 {
-                    CreatedOn = DateTime.Now
+                    CreatedOn = DateTime.UtcNow
                 };
                 await ddsInstrumentationContext.ControlFlows.AddAsync(controlFlow, cancellationToken);
                 await ddsInstrumentationContext.SaveChangesAsync(cancellationToken);
@@ -92,7 +92,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             try
             {
                 var currentControlFlow = await GetLatestControlFlow(cancellationToken);
-                currentControlFlow.Heartbeat = DateTime.Now;
+                currentControlFlow.Heartbeat = DateTime.UtcNow;
                 await ddsInstrumentationContext.SaveChangesAsync(cancellationToken);
                 return currentControlFlow.Heartbeat;
             }

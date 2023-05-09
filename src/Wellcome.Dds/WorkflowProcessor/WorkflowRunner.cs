@@ -74,7 +74,7 @@ namespace WorkflowProcessor
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
             var ddsIdentifier = new DdsIdentifier(job.Identifier);
-            job.Taken = DateTime.Now;
+            job.Taken = DateTime.UtcNow;
             var jobOptions = runnerOptions;
             if (job.WorkflowOptions != null)
             {

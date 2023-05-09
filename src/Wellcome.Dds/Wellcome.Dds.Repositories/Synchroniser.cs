@@ -243,7 +243,7 @@ namespace Wellcome.Dds.Repositories
                 var fsr = (IFileBasedResource) metsManifestation;
                 ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
                 ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
-                ddsManifestation.Processed = DateTime.Now;
+                ddsManifestation.Processed = DateTime.UtcNow;
 
                 // extra fields that only the new dash knows about
                 ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
@@ -333,7 +333,7 @@ namespace Wellcome.Dds.Repositories
                 PackageIdentifier = identifier.PackageIdentifier,
                 PackageShortBNumber = identifier.PackageIdentifier.ToShortBNumber(),
                 Index = -1,
-                Processed = DateTime.Now,
+                Processed = DateTime.UtcNow,
                 DipStatus = dipStatus
             };
             await ddsContext.Manifestations.AddAsync(fm);

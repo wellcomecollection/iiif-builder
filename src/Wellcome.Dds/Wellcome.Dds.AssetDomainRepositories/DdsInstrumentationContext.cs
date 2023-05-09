@@ -61,12 +61,12 @@ namespace Wellcome.Dds.AssetDomainRepositories
                 await WorkflowJobs.AddAsync(job);
             }
 
-            job.Created = DateTime.Now;
+            job.Created = DateTime.UtcNow;
             job.WorkflowOptions = workflowOptions >= 0 ? workflowOptions : null;
             if (take)
             {
                 job.Waiting = false;
-                job.Taken = DateTime.Now;
+                job.Taken = DateTime.UtcNow;
             }
             else
             {

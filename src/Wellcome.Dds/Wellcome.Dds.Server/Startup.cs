@@ -55,7 +55,7 @@ namespace Wellcome.Dds.Server
         public void ConfigureServices(IServiceCollection services)
         {
             // Use pre-v6 handling of datetimes for npgsql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
             
             // Temporarily here to demonstrate IIIFPrecursor - should not be required in production DDS.Server
             services.AddDbContext<DdsInstrumentationContext>(options => options

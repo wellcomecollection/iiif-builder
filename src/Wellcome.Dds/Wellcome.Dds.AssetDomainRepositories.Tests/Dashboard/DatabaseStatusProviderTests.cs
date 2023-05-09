@@ -101,7 +101,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Assert
             result.Should().BeTrue();
             var controlFlow = await ddsInstrumentationContext.ControlFlows.OrderByDescending(cf => cf.Id).FirstAsync();
-            controlFlow.CreatedOn.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
+            controlFlow.CreatedOn.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
             
             var afterCount = await ddsInstrumentationContext.ControlFlows.CountAsync();
             afterCount.Should().Be(beforeCount + 1);
@@ -114,11 +114,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var sut = GetSut();
             var controlFlow = new ControlFlow
             {
-                CreatedOn = DateTime.Now,
+                CreatedOn = DateTime.UtcNow,
                 StoppedOn = null
             };
             await ddsInstrumentationContext.ControlFlows.AddAsync(new ControlFlow
-                {CreatedOn = DateTime.Now.AddDays(1)});
+                {CreatedOn = DateTime.UtcNow.AddDays(1)});
             await ddsInstrumentationContext.ControlFlows.AddAsync(controlFlow);
             await ddsInstrumentationContext.SaveChangesAsync();
             
@@ -140,12 +140,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             {
                 new()
                 {
-                    CreatedOn = DateTime.Now,
-                    Heartbeat = DateTime.Now
+                    CreatedOn = DateTime.UtcNow,
+                    Heartbeat = DateTime.UtcNow
                 },
                 new()
                 {
-                    CreatedOn = DateTime.Now,
+                    CreatedOn = DateTime.UtcNow,
                     Heartbeat = null
                 }
             };
@@ -168,13 +168,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             {
                 new()
                 {
-                    CreatedOn = DateTime.Now,
+                    CreatedOn = DateTime.UtcNow,
                     Heartbeat = null
                 },
                 new()
                 {
-                    CreatedOn = DateTime.Now,
-                    Heartbeat = DateTime.Now
+                    CreatedOn = DateTime.UtcNow,
+                    Heartbeat = DateTime.UtcNow
                 }
             };
             await ddsInstrumentationContext.ControlFlows.AddRangeAsync(controlFlows);
@@ -194,11 +194,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var sut = GetSut();
             var controlFlow = new ControlFlow
             {
-                CreatedOn = DateTime.Now,
-                Heartbeat = DateTime.Now.AddDays(-16)
+                CreatedOn = DateTime.UtcNow,
+                Heartbeat = DateTime.UtcNow.AddDays(-16)
             };
             await ddsInstrumentationContext.ControlFlows.AddAsync(new ControlFlow
-                {CreatedOn = DateTime.Now.AddDays(1)});
+                {CreatedOn = DateTime.UtcNow.AddDays(1)});
             await ddsInstrumentationContext.ControlFlows.AddAsync(controlFlow);
             await ddsInstrumentationContext.SaveChangesAsync();
             
@@ -207,7 +207,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             
             // Assert
             var updated = await ddsInstrumentationContext.ControlFlows.FindAsync(controlFlow.Id);
-            updated.Heartbeat.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
+            updated.Heartbeat.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
             updated.Heartbeat.Should().Be(result);
         }
     }

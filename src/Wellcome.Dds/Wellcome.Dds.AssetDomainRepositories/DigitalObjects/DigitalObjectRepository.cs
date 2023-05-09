@@ -501,7 +501,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 DlcsBatch batchForDlcs = new DlcsBatch
                 {
                     BatchSize = imagesToSend.Length,
-                    RequestSent = DateTime.Now
+                    RequestSent = DateTime.UtcNow
                 };
 
                 var imageRegistrationsAsHydraCollection = new HydraImageCollection
@@ -524,7 +524,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     throw new InvalidOperationException($"Batch Dlcs operation {typeOfBatchOperation} not recognised");
                 }
 
-                batchForDlcs.Finished = DateTime.Now;
+                batchForDlcs.Finished = DateTime.UtcNow;
 
 
                 if (debug)
@@ -1084,7 +1084,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 Description = description,
                 JobId = jobId,
                 ManifestationId = manifestationId,
-                Performed = DateTime.Now,
+                Performed = DateTime.UtcNow,
                 Username = userName
             };
             ddsInstrumentationContext.IngestActions.Add(ia);

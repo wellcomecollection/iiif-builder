@@ -100,7 +100,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             if (immediateStart)
             {
-                job.StartProcessed = DateTime.Now;
+                job.StartProcessed = DateTime.UtcNow;
             }
             return job;
         }

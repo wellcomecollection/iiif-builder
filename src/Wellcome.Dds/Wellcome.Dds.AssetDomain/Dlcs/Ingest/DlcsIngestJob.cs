@@ -14,7 +14,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
     {
         public DlcsIngestJob(string identifier)
         {
-            Created = DateTime.Now;
+            Created = DateTime.UtcNow;
             Identifier = identifier;
         }
         
