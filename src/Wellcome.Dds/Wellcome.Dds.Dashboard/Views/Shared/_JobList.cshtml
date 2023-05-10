@@ -34,7 +34,7 @@
                 <td>@Html.ActionLink(manifestation, "Manifestation", "Dash", new { id = ((DdsIdentifier)manifestation).PathElementSafe }, new { })</td>
                 <td>@StringUtils.GetLocalDate(job.Created)</td>
                 <td>@StringUtils.GetLocalDate(job.StartProcessed)</td>
-                <td>StringUtils.GetLocalDate(@job.EndProcessed)</td>
+                <td>@StringUtils.GetLocalDate(job.EndProcessed)</td>
                 <td>@job.AssetType</td>
                 <td>@job.ImageCount</td>
             </tr>
