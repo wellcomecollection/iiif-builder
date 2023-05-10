@@ -17,7 +17,7 @@ namespace Utils
         {
             if (path.EndsWith("/"))
             {
-                path = path.Substring(0, path.Length - 1);
+                path = path[..^1];
             }
             int spos = path.LastIndexOf("/", StringComparison.Ordinal) + 1;
             var simpleName = path.Substring(spos);
