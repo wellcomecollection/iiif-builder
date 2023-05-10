@@ -61,7 +61,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             var fullPath = FileUri(relativePath);
             var fi = new FileInfo(fullPath);
             return new ArchiveStorageStoredFileInfo(
-                fi.LastWriteTime,
+                fi.LastWriteTime.ToUniversalTime(),
                 fullPath,
                 relativePath);
         }
