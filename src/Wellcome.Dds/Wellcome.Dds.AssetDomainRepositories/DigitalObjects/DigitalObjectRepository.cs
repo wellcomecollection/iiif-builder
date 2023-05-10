@@ -268,22 +268,31 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         // ...and it can't be batch-patched, we need to reingest it
                         syncOperation.DlcsImagesToIngest.Add(ingestDiffImage);
                         syncOperation.Mismatches[storedFile.StorageIdentifier!] = ingestMismatchReasons;
-                    }
-
-                    var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage, out var patchMismatchReasons);
-                    if (patchDiffImage != null && ingestDiffImage == null)
-                    {
-                        // ...and it's a metadata change that can go in a batch patch
-                        syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
-                        if (syncOperation.Mismatches.ContainsKey(storedFile.StorageIdentifier!))
+                        
+                        // we would still like to know about any patch-fixable mismatches this asset might have,
+                        // for the new information display in the dashboard. 
+                        // Make a new candidate image for patch diff; we only want this to get patchMismatchReasons here, 
+                        // we won't use newDlcsImageForPatchTest for anything else.
+                        var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                            syncOperation.LegacySequenceIndex, maxUnauthorised);
+                        var patchDiffImage = GetPatchImage(newDlcsImageForPatchTest, existingDlcsImage, out var patchMismatchReasons);
+                        if (patchDiffImage != null)
                         {
                             syncOperation.Mismatches[storedFile.StorageIdentifier!].AddRange(patchMismatchReasons);
                         }
-                        else
+                    }
+                    else
+                    {
+                        // no reingest, but does it need a patch?
+                        var patchDiffImage = GetPatchImage(newDlcsImage, existingDlcsImage, out var patchMismatchReasons);
+                        if (patchDiffImage != null)
                         {
+                            // ...and it's a metadata change that can go in a batch patch
+                            syncOperation.DlcsImagesToPatch.Add(patchDiffImage);
                             syncOperation.Mismatches[storedFile.StorageIdentifier!] = patchMismatchReasons;
                         }
                     }
+
 
                     if (existingDlcsImage.Ingesting == true)
                     {
