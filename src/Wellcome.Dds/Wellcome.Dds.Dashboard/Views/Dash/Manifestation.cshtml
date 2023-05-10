@@ -367,7 +367,7 @@
             {
                 <li class="list-group-item">
                     <span class="badge">@job.ImageCount</span>
-                    @Html.ActionLink("" + job.Created, "Index", "Job", new {id = job.Id}, new {})
+                    @Html.ActionLink("" + StringUtils.GetLocalDate(job.Created), "Index", "Job", new {id = job.Id}, new {})
                     @{
                         if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
                         {
@@ -808,7 +808,7 @@
                     @foreach (var orphan in Model.SyncOperation.Orphans)
                     {
                         <tr>
-                            <td>@orphan.Created</td>
+                            <td>@StringUtils.GetLocalDate(orphan.Created)</td>
                             @*<td>@orphan.Width x @orphan.Height</td>*@
                             <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
                             <td>@orphan.Error</td>
