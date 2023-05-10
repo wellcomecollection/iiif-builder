@@ -34,8 +34,8 @@
             }
             <td>@batch.Id</td>
             <td>@batch.BatchSize</td>
-            <td>@batch.RequestSent</td>
-            <td>@batch.Finished</td>
+            <td>@StringUtils.GetLocalDate(batch.RequestSent)</td>
+            <td>@StringUtils.GetLocalDate(batch.Finished)</td>
             <td>@batch.ErrorCode</td>
     <td width="35%"><small>@batch.ErrorText</small></td>
             @if (isDetail)

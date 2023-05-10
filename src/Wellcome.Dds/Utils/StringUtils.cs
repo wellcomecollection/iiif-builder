@@ -325,6 +325,22 @@ namespace Utils
             return "(no date)";
         }
 
+        public static string GetLocalDate(DateTime dt)
+        {
+            DateTime localTime = dt.ToLocalTime();
+            return localTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        public static string GetLocalDate(DateTime? dt)
+        {
+            if (!dt.HasValue)
+            {
+                return "";
+            }
+
+            return GetLocalDate(dt.Value);
+        }
+        
         public static string GetFriendlyAge(DateTime dt)
         {
             DateTime localTime = dt.ToLocalTime();
