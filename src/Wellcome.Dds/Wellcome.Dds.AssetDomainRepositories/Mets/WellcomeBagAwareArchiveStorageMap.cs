@@ -54,7 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 Identifier = identifier,
                 BucketName = bucketName,
-                StorageManifestCreated = storageManifest.Value<DateTime>("createdDate")
+                StorageManifestCreated = storageManifest.Value<DateTime>("createdDate").ToUniversalTime()
             };
             var pathSep = new[] {'/'};
 
