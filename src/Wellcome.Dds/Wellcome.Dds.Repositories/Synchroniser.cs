@@ -102,7 +102,6 @@ namespace Wellcome.Dds.Repositories
                 {
                     ddsContext.Manifestations.Remove(error);
                 }
-                logger.LogInformation("About to save changes after removing error manifestations");
                 await ddsContext.SaveChangesAsync();
 
                 // WHAT TO DO... leave shortB as -1?
@@ -155,7 +154,6 @@ namespace Wellcome.Dds.Repositories
                     
                     // The instance of entity type 'Manifestation' cannot be tracked because another
                     // instance with the same key value for {'Id'} is already being tracked. 
-                    LogDates("About to Add new manifestation", ddsManifestation);
                     await ddsContext.Manifestations.AddAsync(ddsManifestation);
                 }
 
@@ -241,17 +239,12 @@ namespace Wellcome.Dds.Repositories
                 if (packageFileResource != null)
                 {
                     ddsManifestation.PackageFile = packageFileResource.SourceFile!.Uri;
-                    logger.LogInformation("Setting PackageFileModified to {lastWriteTime}", packageFileResource.SourceFile!.LastWriteTime);
-                    logger.LogInformation("This date is a {kind}", packageFileResource.SourceFile.LastWriteTime.Kind);
+                    // need to ensure this is UTC - it's been through protobuf
                     ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime.ToUniversalTime();
-                    logger.LogInformation("ddsManifestation.PackageFileModified is now a {kind}", ddsManifestation.PackageFileModified.Value.Kind);
                 }
                 var fsr = (IFileBasedResource) metsManifestation;
                 ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
-                logger.LogInformation("Setting ManifestationFileModified to {lastWriteTime}", fsr.SourceFile!.LastWriteTime);
-                logger.LogInformation("This date is a {kind}", fsr.SourceFile.LastWriteTime.Kind);
                 ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime.ToUniversalTime();
-                logger.LogInformation("ddsManifestation.ManifestationFileModified is now a {kind}", ddsManifestation.ManifestationFileModified.Value.Kind);
                 ddsManifestation.Processed = DateTime.UtcNow;
 
                 // extra fields that only the new dash knows about
@@ -269,7 +262,6 @@ namespace Wellcome.Dds.Repositories
                 
                 // save the ddsManifestation, which will commit the AddAsync if it was new
                 // this will also commit any deletes of duplicates we have made.
-                LogDates("About to SaveChanges on edited Manifestation", ddsManifestation);
                 await ddsContext.SaveChangesAsync();
                 
             } // end of foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier)
@@ -347,7 +339,6 @@ namespace Wellcome.Dds.Repositories
                 DipStatus = dipStatus
             };
             await ddsContext.Manifestations.AddAsync(fm);
-            LogDates("CreateErrorManifestation", fm);
             await ddsContext.SaveChangesAsync();
         }
         
@@ -363,19 +354,6 @@ namespace Wellcome.Dds.Repositories
         {
             var fieldsForIdentifier = ddsContext.Metadata.Where(m => m.ManifestationId == identifier);
             ddsContext.Metadata.RemoveRange(fieldsForIdentifier);
-        }
-
-        private void LogDates(string context, Manifestation manifestation)
-        {
-            logger.LogInformation("#~#~# Manifestation Dates for {context}", context);
-            logger.LogInformation("Processed: {processed}", manifestation.Processed);
-            logger.LogInformation("Processed Kind: {kind}", manifestation.Processed.Kind);
-            
-            logger.LogInformation("PackageFileModified: {packageFileModified}", manifestation.PackageFileModified);
-            logger.LogInformation("PackageFileModified Kind: {kind}", manifestation.PackageFileModified?.Kind);
-            
-            logger.LogInformation("ManifestationFileModified: {manifestationFileModified}", manifestation.ManifestationFileModified);
-            logger.LogInformation("ManifestationFileModified Kind: {kind}", manifestation.ManifestationFileModified?.Kind);
         }
     }
 }
