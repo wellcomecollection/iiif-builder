@@ -243,13 +243,15 @@ namespace Wellcome.Dds.Repositories
                     ddsManifestation.PackageFile = packageFileResource.SourceFile!.Uri;
                     logger.LogInformation("Setting PackageFileModified to {lastWriteTime}", packageFileResource.SourceFile!.LastWriteTime);
                     logger.LogInformation("This date is a {kind}", packageFileResource.SourceFile.LastWriteTime.Kind);
-                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
+                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime.ToUniversalTime();
+                    logger.LogInformation("ddsManifestation.PackageFileModified is now a {kind}", ddsManifestation.PackageFileModified.Value.Kind);
                 }
                 var fsr = (IFileBasedResource) metsManifestation;
                 ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
                 logger.LogInformation("Setting ManifestationFileModified to {lastWriteTime}", fsr.SourceFile!.LastWriteTime);
                 logger.LogInformation("This date is a {kind}", fsr.SourceFile.LastWriteTime.Kind);
-                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
+                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime.ToUniversalTime();
+                logger.LogInformation("ddsManifestation.ManifestationFileModified is now a {kind}", ddsManifestation.ManifestationFileModified.Value.Kind);
                 ddsManifestation.Processed = DateTime.UtcNow;
 
                 // extra fields that only the new dash knows about
