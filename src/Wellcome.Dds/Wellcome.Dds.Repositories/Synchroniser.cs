@@ -138,6 +138,7 @@ namespace Wellcome.Dds.Repositories
                 // (some Change code removed here) - we're not going to implement this for now
                 if (ddsManifestation == null)
                 {
+                    logger.LogInformation("No existing record for {identifier}", metsManifestation.Identifier);
                     ddsManifestation = new Manifestation
                     {
                         Id = metsManifestation.Identifier,
@@ -238,11 +239,12 @@ namespace Wellcome.Dds.Repositories
                 if (packageFileResource != null)
                 {
                     ddsManifestation.PackageFile = packageFileResource.SourceFile!.Uri;
-                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
+                    // need to ensure this is UTC - it's been through protobuf
+                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime.ToUniversalTime();
                 }
                 var fsr = (IFileBasedResource) metsManifestation;
                 ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
-                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
+                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime.ToUniversalTime();
                 ddsManifestation.Processed = DateTime.UtcNow;
 
                 // extra fields that only the new dash knows about
