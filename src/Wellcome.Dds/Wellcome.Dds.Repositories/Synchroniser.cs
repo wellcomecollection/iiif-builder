@@ -372,8 +372,8 @@ namespace Wellcome.Dds.Repositories
             logger.LogInformation("PackageFileModified: {packageFileModified}", manifestation.PackageFileModified);
             logger.LogInformation("PackageFileModified Kind: {kind}", manifestation.PackageFileModified?.Kind);
             
-            logger.LogInformation("PackageFileModified: {packageFileModified}", manifestation.ManifestationFileModified);
-            logger.LogInformation("PackageFileModified Kind: {kind}", manifestation.ManifestationFileModified?.Kind);
+            logger.LogInformation("ManifestationFileModified: {manifestationFileModified}", manifestation.ManifestationFileModified);
+            logger.LogInformation("ManifestationFileModified Kind: {kind}", manifestation.ManifestationFileModified?.Kind);
         }
     }
 }
