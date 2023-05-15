@@ -179,7 +179,7 @@
                     }
                     @{
                         var latest = Model.BatchesForImages.OrderByDescending(b => b.Submitted).First();
-                        <p><em><small>Most recent batch: @latest.Submitted</small></em></p>
+                        <p><em><small>Most recent batch: @StringUtils.GetLocalDate(latest.Submitted)</small></em></p>
                         <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
                         if (latest.Submitted < DateTime.UtcNow.AddMinutes(-10))
                         {
@@ -903,7 +903,7 @@
         if (batch.Completed != batch.Count)
         {
             <div class="progress">
-                <a href="@Model.GetPortalPageForBatch(batch)" title="Batch @PathStringUtils.GetSimpleNameFromPath(batch.Id): @batch.Submitted" target="_blank">
+                <a href="@Model.GetPortalPageForBatch(batch)" title="Batch @PathStringUtils.GetSimpleNameFromPath(batch.Id): @StringUtils.GetLocalDate(batch.Submitted)" target="_blank">
                     <div class="progress-bar progress-bar-success" role="progressbar"
                          aria-valuenow="@batch.Completed" aria-valuemin="0" aria-valuemax="@batch.Count"
                          style="width: @percentComplete">
