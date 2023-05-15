@@ -37,7 +37,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return currentControlFlow.StoppedOn == null;
         }
 
-        public DateTime? EarliestJobToTake => StringUtils.GetNullableDateTime(ddsOptions.EarliestJobDateTime);
+        public DateTime? EarliestJobToTake => StringUtils
+            .GetNullableDateTime(ddsOptions.EarliestJobDateTime)?
+            .ToUniversalTime();
 
         public DateTime? LatestJobToTake
         {
