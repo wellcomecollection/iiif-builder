@@ -96,7 +96,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             await dbFixture.DdsInstrumentationContext.WorkflowJobs.AddAsync(new WorkflowJob
             {
                 Identifier = bnumber,
-                Created = DateTime.Now.AddYears(-1),
+                Created = DateTime.UtcNow.AddYears(-1),
                 Waiting = false
             });
             await dbFixture.DdsInstrumentationContext.SaveChangesAsync();
@@ -128,7 +128,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                     .Including(job => job.WorkflowOptions)
                     .Including(job => job.Expedite)
                     .Including(job => job.FlushCache));
-            fromDatabase.Created.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(5));
+            fromDatabase.Created.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         }
     }
 }

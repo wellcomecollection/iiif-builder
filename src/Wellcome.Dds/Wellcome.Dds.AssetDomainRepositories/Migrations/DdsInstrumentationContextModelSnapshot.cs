@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wellcome.Dds.AssetDomainRepositories;
 
+#nullable disable
+
 namespace Wellcome.Dds.AssetDomainRepositories.Migrations
 {
     [DbContext(typeof(DdsInstrumentationContext))]
@@ -15,17 +17,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 63)
-                .HasAnnotation("ProductVersion", "5.0.5")
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                .HasAnnotation("ProductVersion", "6.0.6")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsBatch", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BatchSize")
                         .HasColumnType("integer")
@@ -49,7 +53,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("error_text");
 
                     b.Property<DateTime?>("Finished")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("finished");
 
                     b.Property<string>("RequestBody")
@@ -57,7 +61,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("request_body");
 
                     b.Property<DateTime?>("RequestSent")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("request_sent");
 
                     b.Property<string>("ResponseBody")
@@ -70,7 +74,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.HasIndex("DlcsIngestJobId")
                         .HasDatabaseName("ix_dlcs_batches_dlcs_ingest_job_id");
 
-                    b.ToTable("dlcs_batches");
+                    b.ToTable("dlcs_batches", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsIngestJob", b =>
@@ -78,15 +82,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssetType")
                         .HasColumnType("text")
                         .HasColumnName("asset_type");
 
                     b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created");
 
                     b.Property<string>("Data")
@@ -94,10 +99,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("data");
 
                     b.Property<DateTime?>("EndProcessed")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("end_processed");
 
                     b.Property<string>("Identifier")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("identifier");
 
@@ -122,7 +128,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("sequence_index");
 
                     b.Property<DateTime?>("StartProcessed")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("start_processed");
 
                     b.Property<bool>("Succeeded")
@@ -142,7 +148,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.HasIndex("Identifier")
                         .HasDatabaseName("ix_dlcs_ingest_jobs_identifier");
 
-                    b.ToTable("dlcs_ingest_jobs");
+                    b.ToTable("dlcs_ingest_jobs", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Dlcs.Ingest.IngestAction", b =>
@@ -150,8 +156,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Action")
                         .HasColumnType("text")
@@ -170,7 +177,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("manifestation_id");
 
                     b.Property<DateTime>("Performed")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("performed");
 
                     b.Property<string>("Username")
@@ -180,7 +187,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.HasKey("Id")
                         .HasName("pk_ingest_actions");
 
-                    b.ToTable("ingest_actions");
+                    b.ToTable("ingest_actions", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Workflow.WorkflowJob", b =>
@@ -198,7 +205,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("annos_built");
 
                     b.Property<DateTime?>("Created")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created");
 
                     b.Property<int>("DlcsJobCount")
@@ -238,7 +245,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                         .HasColumnName("package_build_time");
 
                     b.Property<DateTime?>("Taken")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("taken");
 
                     b.Property<long>("TextAndAnnoBuildTime")
@@ -286,7 +293,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.HasIndex("Expedite")
                         .HasDatabaseName("ix_workflow_jobs_expedite");
 
-                    b.ToTable("workflow_jobs");
+                    b.ToTable("workflow_jobs", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomainRepositories.Control.ControlFlow", b =>
@@ -294,25 +301,26 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_on");
 
                     b.Property<DateTime?>("Heartbeat")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("heartbeat");
 
                     b.Property<DateTime?>("StoppedOn")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("stopped_on");
 
                     b.HasKey("Id")
                         .HasName("pk_control_flows");
 
-                    b.ToTable("control_flows");
+                    b.ToTable("control_flows", (string)null);
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsBatch", b =>
@@ -320,9 +328,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Migrations
                     b.HasOne("Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsIngestJob", null)
                         .WithMany("DlcsBatches")
                         .HasForeignKey("DlcsIngestJobId")
-                        .HasConstraintName("fk_dlcs_batches_dlcs_ingest_jobs_dlcs_ingest_job_id")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_dlcs_batches_dlcs_ingest_jobs_dlcs_ingest_job_id");
                 });
 
             modelBuilder.Entity("Wellcome.Dds.AssetDomain.Dlcs.Ingest.DlcsIngestJob", b =>

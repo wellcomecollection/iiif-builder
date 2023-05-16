@@ -31,7 +31,7 @@ namespace WorkflowProcessor.Tests
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
             // TODO need to fix this once runnable workflowrunner
             sut = new WorkflowRunner(ingestJobRegistry, runnerOptionsInst, new NullLogger<WorkflowRunner>(),
-                null, null, null, ddsOptionsInst, null, null, null, A.Fake<IWorkflowJobPostProcessor>(), null);
+                null, null, null, ddsOptionsInst, null, null, null, A.Fake<ICacheInvalidationPathPublisher>(), null);
         }
         
         [Fact]
@@ -54,7 +54,7 @@ namespace WorkflowProcessor.Tests
             var job = new WorkflowJob{ Identifier = "b9998887"};
             var jobs = new []
             {
-                new DlcsIngestJob {Id = 4}, new DlcsIngestJob {Id = 1},
+                new DlcsIngestJob("4") {Id = 4}, new DlcsIngestJob("1") {Id = 1},
             };
             A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
             
@@ -76,7 +76,7 @@ namespace WorkflowProcessor.Tests
             await sut.ProcessJob(job);
             
             // Assert
-            job.Taken.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(2));
+            job.Taken.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
             job.TotalTime.Should().BeGreaterThan(0);
         }
         

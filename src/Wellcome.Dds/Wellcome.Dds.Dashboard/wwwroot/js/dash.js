@@ -46,6 +46,16 @@ $(document).ready(function () {
     bindPreview();
     
     $("img.iiifpreview").unveil(300);
+    
+    var loc = window.location;
+    var origin = loc.protocol + "//" + loc.hostname + (loc.port ? ':' + loc.port: '');
+    $(".needsOrigin a").each(function(){
+        if(this.search){
+            this.href += "&origin=" + origin;
+        } else {
+            this.href += "?origin=" + origin;
+        }
+    });
 });
 
 // So that the toolbar doesn't hide links to named anchors.
@@ -259,11 +269,10 @@ function getServices(info) {
     var services;
     console.log("Looking for auth services");
     if (info.hasOwnProperty('service')) {
-        if (info.service.hasOwnProperty('@context')) {
-            services = [info.service];
-        } else {
-            // array of service
+        if(Array.isArray(info.service)){
             services = info.service;
+        } else {
+            services = [info.service];
         }
         var prefix = 'http://iiif.io/api/auth/0/';
         var clickThrough = 'http://iiif.io/api/auth/0/login/clickthrough';

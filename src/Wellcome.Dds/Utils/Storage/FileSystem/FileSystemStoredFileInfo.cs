@@ -18,7 +18,7 @@ namespace Utils.Storage.FileSystem
 
         public Task<DateTime?> GetLastWriteTime() => Task.FromResult<DateTime?>(fileInfo.LastWriteTime);
         
-        public string Container => fileInfo.DirectoryName;
+        public string? Container => fileInfo.DirectoryName;
 
         public string Path => fileInfo.Name;
     }

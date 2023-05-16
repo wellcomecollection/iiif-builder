@@ -10,8 +10,8 @@
         public int W { get; set; }
         public int H { get; set; }
         public int Hit { get; set; }
-        public string Before { get; set; }
-        public string Word { get; set; }
-        public string After { get; set; }
+        public string? Before { get; set; }
+        public string? Word { get; set; }
+        public string? After { get; set; }
     }
 }

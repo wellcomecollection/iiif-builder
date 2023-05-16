@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ShellProgressBar;
@@ -116,8 +117,8 @@ namespace CatalogueClient.ToolSupport
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
-                IgnoreNullValues = true,
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
             return options;
         }
@@ -132,6 +133,8 @@ namespace CatalogueClient.ToolSupport
                 {
                     info.UsedLines++;
                     var work = catalogue.FromDumpLine(line, options);
+                    if(work == null) continue;
+                    
                     var sierraSystemBNumbers = work.GetSierraSystemBNumbers();
                     var digitalLocationBNumbers = work.GetDigitisedBNumbers();
                     foreach (var digitalLocationBNumber in digitalLocationBNumbers)

@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Microsoft.Extensions.Logging;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.Repositories;
 
@@ -17,18 +19,21 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IIngestJobRegistry jobRegistry;
         private readonly IIngestJobProcessor jobProcessor;
         private readonly Synchroniser synchroniser;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
+        private readonly ILogger<JobController> logger;
 
         public JobController(
             IIngestJobRegistry jobRegistry,
             IIngestJobProcessor jobProcessor,
             Synchroniser synchroniser,
-            IDashboardRepository dashboardRepository)
+            IDigitalObjectRepository digitalObjectRepository,
+            ILogger<JobController> logger)
         {
             this.jobRegistry = jobRegistry;
             this.jobProcessor = jobProcessor;
             this.synchroniser = synchroniser;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
+            this.logger = logger;
         }
         
         // Different actions that all trigger jobs
@@ -49,7 +54,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ActionResult> CleanOldJobs(string id)
         {
-            int removed = await dashboardRepository.RemoveOldJobs(id);
+            int removed = await digitalObjectRepository.RemoveOldJobs(id);
             TempData["remove-old-jobs"] = removed;
             return RedirectToAction("Manifestation", "Dash", new { id });
         }
@@ -70,16 +75,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
         {
-            var jobs = jobRegistry.RegisterImagesForImmediateStart(id);
+            logger.LogDebug("Creating and immediately processing a job for {identifier}", id);
+            var ddsId = new DdsIdentifier(id);
+            
+            var jobs = jobRegistry.RegisterImagesForImmediateStart(ddsId);
             await foreach (var job in jobs)
             {
-                dashboardRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
+                digitalObjectRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
                 await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
             }
 
             try
             {
-                await synchroniser.RefreshDdsManifestations(id);
+                await synchroniser.RefreshDdsManifestations(ddsId);
             }
             catch (ArgumentException ae)
             {

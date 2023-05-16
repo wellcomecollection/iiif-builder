@@ -1,0 +1,16 @@
+version: '3'
+
+volumes:
+  postgres_data: {}
+
+services:
+  iiif_builder_db:
+    build:
+      context: ./db
+      dockerfile: db.Dockerfile
+    ports:
+      - "5442:5432"
+    volumes:
+       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=master_password

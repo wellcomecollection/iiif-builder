@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Utils;
 
 namespace Wellcome.Dds.Common
 {
@@ -29,17 +30,10 @@ namespace Wellcome.Dds.Common
         // John Skeet's type 4 singleton pattern
         private static readonly LicensesAndOptions InternalInstance = new LicensesAndOptions();
         static LicensesAndOptions() { }
-        private LicensesAndOptions()
-        {
-            Init();
-        }
-        public static LicensesAndOptions Instance
-        {
-            get { return InternalInstance; }
-        }
+        public static LicensesAndOptions Instance => InternalInstance;
 
-        public string[] DownloadOptions { get; private set; }
-        public string[] OperationNames { get; private set; }
+        public string[]? DownloadOptions { get; private set; }
+        public string[]? OperationNames { get; private set; }
         public Dictionary<string, Dictionary<string, int[]>> LicenseOptions { get; private set; }
 
         /// <summary>
@@ -48,8 +42,12 @@ namespace Wellcome.Dds.Common
         /// </summary>
         /// <param name="op"></param>
         /// <returns></returns>
-        public string GetDownloadOptionForControllerOperation(string op)
+        public string? GetDownloadOptionForControllerOperation(string op)
         {
+            if (OperationNames == null || DownloadOptions == null)
+            {
+                return null;
+            }
             int idx = Array.IndexOf(OperationNames, op);
             if (idx >= 0 && idx < DownloadOptions.Length)
             {
@@ -58,7 +56,7 @@ namespace Wellcome.Dds.Common
             return null;
         }
 
-        public PlayerOptions GetFlagsFromCode(int playerOptionsCode, string assetType)
+        public PlayerOptions GetFlagsFromCode(int playerOptionsCode, string? assetType)
         {
             var flags = (PlayerOptions)playerOptionsCode;
             // return flags;
@@ -76,27 +74,34 @@ namespace Wellcome.Dds.Common
 
         }
 
-        public bool IsAllowedDownloadOption(string dzLicenseCode, string sectionType, string assetType, string downloadOption)
+        public bool IsAllowedDownloadOption(string dzLicenseCode, string sectionType, string? assetType, string downloadOption)
         {
             return GetPermittedOperations(dzLicenseCode, sectionType, assetType).Contains(downloadOption);
         }
 
 
-        public bool IsAllowedOperation(int playerOptionsCode, string assetType, string controllerOption)
+        public bool IsAllowedOperation(int playerOptionsCode, string? assetType, string controllerOption)
         {
             var flags = GetFlagsFromCode(playerOptionsCode, assetType);
             var option = GetDownloadOptionForControllerOperation(controllerOption);
+            if (option == null)
+            {
+                return false;
+            }
             var asFlag = (PlayerOptions)Enum.Parse(typeof(PlayerOptions), option, true);
-            return (flags.HasFlag(asFlag));
+            return flags.HasFlag(asFlag);
         }
 
-        public bool IsAllowedOperation(string dzLicenseCode, string sectionType, string assetType, string op)
+        public bool IsAllowedOperation(string dzLicenseCode, string sectionType, string? assetType, string op)
         {
-            var opt = GetDownloadOptionForControllerOperation(op);
-            return IsAllowedDownloadOption(dzLicenseCode, sectionType, assetType, opt);
+            var option = GetDownloadOptionForControllerOperation(op);if (option == null)
+            {
+                return false;
+            }
+            return IsAllowedDownloadOption(dzLicenseCode, sectionType, assetType, option);
         }
 
-        public string[] GetPermittedOperations(int playerOptions, string assetType)
+        public string[] GetPermittedOperations(int playerOptions, string? assetType)
         {
             var optionsType = typeof(PlayerOptions);
             var flags = GetFlagsFromCode(playerOptions, assetType);
@@ -115,14 +120,14 @@ namespace Wellcome.Dds.Common
         /// <param name="sectionType">e.g., "Monograph", "Artwork"</param>
         /// <param name="assetType">e.g., "seadragon/dzi", "application/pdf"</param>
         /// <returns></returns>
-        public string[] GetPermittedOperations(string dzLicenseCode, string sectionType, string assetType)
+        public string[] GetPermittedOperations(string dzLicenseCode, string sectionType, string? assetType)
         {
             var permittedOps = new List<string>();
-            Dictionary<string, int[]> optsForType;
-            if (LicenseOptions.TryGetValue(sectionType.ToLowerInvariant(), out optsForType))
+            if (LicenseOptions.TryGetValue(
+                    sectionType.ToLowerInvariant(), out Dictionary<string, int[]>? optsForType))
             {
                 var licenseCode = dzLicenseCode.ToLowerInvariant();
-                int[] opts;
+                int[]? opts;
                 if (optsForType.TryGetValue(licenseCode, out opts))
                 {
                     /* ########################################### */
@@ -130,7 +135,7 @@ namespace Wellcome.Dds.Common
                     if (
                         (licenseCode == "r" || licenseCode == "s") &&
                         sectionType.ToLowerInvariant() == "monograph" &&
-                        assetType.ToLowerInvariant() == "application/pdf")
+                        assetType.HasText() && assetType.ToLowerInvariant() == "application/pdf")
                     {
                         opts = new[] { 4 };
                     }
@@ -138,7 +143,7 @@ namespace Wellcome.Dds.Common
 
                     for (int idx = 0; idx < opts.Length; idx++)
                     {
-                        if (idx < DownloadOptions.Length)
+                        if (DownloadOptions != null && idx < DownloadOptions.Length)
                         {
                             permittedOps.Add(DownloadOptions[opts[idx]]);
                         }
@@ -149,7 +154,7 @@ namespace Wellcome.Dds.Common
         }
 
 
-        private void Init()
+        private LicensesAndOptions()
         {
             // this first table contains the codes for the various types of downloads and their display text.
             DownloadOptions = new[] {                                  // entry in options below

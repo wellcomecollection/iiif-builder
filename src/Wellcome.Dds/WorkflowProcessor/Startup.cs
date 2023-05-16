@@ -1,5 +1,6 @@
 ﻿using System;
 using Amazon.SimpleNotificationService;
+using Amazon.SQS;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
@@ -13,12 +14,12 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
@@ -45,9 +46,6 @@ namespace WorkflowProcessor
         
         public void ConfigureServices(IServiceCollection services)
         {
-            // Use pre-v6 handling of datetimes for npgsql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
@@ -63,9 +61,13 @@ namespace WorkflowProcessor
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
+
+            var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var platformAwsOptions = Configuration.GetAWSOptions("Platform-AWS");
+            services.AddDefaultAWSOptions(ddsAwsOptions);   
+            services.AddAWSService<IAmazonSimpleNotificationService>(platformAwsOptions);
+            services.AddAWSService<IAmazonSQS>(ddsAwsOptions); // the right one?
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));   
-            services.AddAWSService<IAmazonSimpleNotificationService>(Configuration.GetAWSOptions("Platform-AWS"));
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -88,7 +90,7 @@ namespace WorkflowProcessor
             services
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<IWorkflowCallRepository, WorkflowCallRepository>()
                 .AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
@@ -101,7 +103,7 @@ namespace WorkflowProcessor
                 .AddScoped<AltoDerivedAssetBuilder>()
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddSingleton<IWorkflowJobPostProcessor, WorkflowJobPostProcessor>()
+                .AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>()
                 .AddScoped<IStatusProvider, DatabaseStatusProvider>()
                 .AddHostedService<WorkflowProcessorService>();
             

@@ -7,29 +7,27 @@ using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using ICollection = Wellcome.Dds.AssetDomain.Mets.ICollection;
 
 namespace Wellcome.Dds.Dashboard.Models
 {
     public class ManifestationModel
     {
-        const string PortalPageTemplate = "https://portal.dlcs.io/Image.aspx?space={0}&image={1}";
-        const string PortalBatchTemplate = "https://portal.dlcs.io/Batch.aspx?batch={0}";
         const string GlyphTemplate = "<span class=\"glyphicon glyphicon-{0}\"></span>";
 
         private static readonly char[] SlashSeparator = new[] { '/' };
         public DdsIdentifier DdsIdentifier { get; set; }
-        public IDigitisedManifestation DigitisedManifestation { get; set; }
-        public IDigitisedCollection Parent { get; set; }
-        public IDigitisedCollection GrandParent { get; set; }
+        public IDigitalManifestation DigitisedManifestation { get; set; }
+        public ICollection Parent { get; set; }
+        public ICollection GrandParent { get; set; }
         public IUrlHelper Url { get; set; }
         public DlcsOptions DlcsOptions { get; set; }
 
@@ -108,7 +106,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         accessConditionCounts[sf.PhysicalFile.AccessCondition] = 0;
                         accessConditionLinks[sf.PhysicalFile.AccessCondition] = GetTableId(sf.StorageIdentifier);
                     }
-                    accessConditionCounts[sf.PhysicalFile.AccessCondition] = accessConditionCounts[sf.PhysicalFile.AccessCondition] + 1;
+                    accessConditionCounts[sf.PhysicalFile.AccessCondition] += 1;
                 }
                 syncSummary.Categories = countsdict.Select(kvp => new SyncCategory
                 {
@@ -130,24 +128,60 @@ namespace Wellcome.Dds.Dashboard.Models
             }
         }
 
-        public AssetFamily ManifestationFamily
-        {
-            get
-            {
-                return DigitisedManifestation.MetsManifestation.FirstInternetType.GetAssetFamily();
-            }
-        }
+        public AssetFamily ManifestationFamily => DigitisedManifestation.MetsManifestation.Sequence!
+            .First().GetDefaultProcessingBehaviour().AssetFamily;
 
+        private string typeSummary;
+        public string GetTypeSummary()
+        {
+            if (typeSummary != null)
+            {
+                return typeSummary;
+            }
+
+            var mimeCounts = new Dictionary<string, int>();
+            foreach (var mimeType in DigitisedManifestation.MetsManifestation.Sequence
+                         .Select(pf => pf.MimeType))
+            {
+                if (mimeCounts.ContainsKey(mimeType))
+                {
+                    mimeCounts[mimeType] += 1;
+                }
+                else
+                {
+                    mimeCounts[mimeType] = 1;
+                }
+            }
+            switch (mimeCounts.Count)
+            {
+                case 0:
+                    typeSummary = "No MimeTypes"; // this should never happen
+                    break;
+                case 1:
+                    typeSummary = mimeCounts.First().Key;
+                    break;
+                case 2:
+                    typeSummary = $"{mimeCounts.First().Key} ({mimeCounts.First().Value}) and {mimeCounts.Last().Key} ({mimeCounts.Last().Value})";
+                    break;
+                case > 2:
+                    var (mimeType, count) = mimeCounts.MaxBy(kvp => kvp.Value);
+                    typeSummary = $"{mimeType} ({count}) and {mimeCounts.Count - 1} other types";
+                    break;
+            }
+
+            return typeSummary;
+
+        }
 
 
         public string GetPortalPageForImage(Image image)
         {
             int? space = image.Space ?? DefaultSpace;
-            return string.Format(PortalPageTemplate, space, image.StorageIdentifier);
+            return string.Format(DlcsOptions.PortalPageTemplate, space, image.StorageIdentifier);
         }
         public string GetPortalPageForBatch(Batch batch)
         {
-            return string.Format(PortalBatchTemplate, batch.Id.Split(SlashSeparator).Last());
+            return string.Format(DlcsOptions.PortalBatchTemplate, batch.Id.Split(SlashSeparator).Last());
         }
 
         public void MakeManifestationNavData()
@@ -155,40 +189,30 @@ namespace Wellcome.Dds.Dashboard.Models
             if (Parent != null) // && GrandParent == null)
             {
                 IsStandardMultipleManifestation = true;
-                Siblings = Parent.MetsCollection.Manifestations.ToList();
+                Siblings = Parent.Manifestations.ToList();
                 PreviousLink = "#";
                 NextLink = "#";
                 for (int i = 0; i < Siblings.Count; i++)
                 {
-                    if (Siblings[i].Id == DdsIdentifier)
+                    if (Siblings[i].Identifier == DdsIdentifier)
                     {
                         Index = i + 1;
                         if (i > 0)
                         {
-                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Id });
+                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Identifier.PathElementSafe });
                         }
                         if (i < Siblings.Count - 1)
                         {
-                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Id });
+                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Identifier.PathElementSafe });
                         }
                     }
                 }
             }
         }
 
-        public string FormatSize(string rawSize)
-        {
-            long asLong;
-            if (long.TryParse(rawSize, out asLong))
-            {
-                return StringUtils.FormatFileSize(asLong);
-            }
-            return rawSize;
-        }
-
         public string GetDropDownClass(IManifestation manifestation)
         {
-            if (manifestation.Id == DigitisedManifestation.Identifier)
+            if (manifestation.Identifier == DigitisedManifestation.Identifier)
             {
                 return "disabled";
             }
@@ -215,6 +239,29 @@ namespace Wellcome.Dds.Dashboard.Models
                     return string.Format(GlyphTemplate, "file");
             }
         }
+
+        public string GetAssetGlyph(AssetFamily assetFamily, string mimeType)
+        {
+            switch (assetFamily)
+            {
+                case AssetFamily.File:
+                    return string.Format(GlyphTemplate, "file");
+                case AssetFamily.Image:
+                    return string.Format(GlyphTemplate, "picture");
+                case AssetFamily.TimeBased:
+                    if (mimeType.IsAudioMimeType())
+                    {
+                        return string.Format(GlyphTemplate, "volume-up");
+                    }
+                    if (mimeType.IsVideoMimeType())
+                    {
+                        return string.Format(GlyphTemplate, "film"); 
+                    }
+                    break;
+            }
+            return string.Format(GlyphTemplate, "question-sign");
+        }
+        
         private string GetAccessConditionIcon(string accessCondition)
         {
             switch (accessCondition.ToLowerInvariant())
@@ -237,10 +284,20 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public Image GetDlcsImage(string storageIdentifier)
         {
-            if (SyncOperation.ImagesAlreadyOnDlcs.ContainsKey(storageIdentifier))
+            if (SyncOperation.ImagesCurrentlyOnDlcs.ContainsKey(storageIdentifier))
             {
-                return SyncOperation.ImagesAlreadyOnDlcs[storageIdentifier];
+                return SyncOperation.ImagesCurrentlyOnDlcs[storageIdentifier];
             }
+            return null;
+        }
+
+        public string GetProblemMessage(string storageIdentifier)
+        {
+            if (SyncOperation.Mismatches.ContainsKey(storageIdentifier))
+            {
+                return string.Join("\r\n", SyncOperation.Mismatches[storageIdentifier]);
+            }
+
             return null;
         }
 
@@ -399,12 +456,13 @@ namespace Wellcome.Dds.Dashboard.Models
         }
 
 
-        public AVDerivative[] AVDerivatives { get; set; }
+        public Dictionary<string, DeliveredFile[]> DeliveredFilesMap { get; set; }
         public Work Work { get; set; }
         public string WorkPage { get; set; }
         public string CatalogueApi { get; set; }
-        public string EncoreRecordUrl { get; set; }
+        public string CatalogueApiFull { get; set; }
         public string ManifestUrl { get; set; }
+        public object GetDeliveredFiles { get; set; }
 
         /// <summary>
         /// return the additional (adjunct) files that need to be displayed in the dashboard
@@ -416,8 +474,19 @@ namespace Wellcome.Dds.Dashboard.Models
             return files.Where(f => 
                 f.Use != "OBJECTS" &&  // Old workflow
                 f.Use != "ACCESS" &&   // New workflow
-                f.Use != "ALTO");
+                f.Use != "ALTO" &&
+                f.Use != "original");  // Born digital  
         }
+
+        public string GetAccessConditionStyle(string accessCondition)
+        {
+            if (accessCondition == "Unknown" || accessCondition == "Missing")
+            {
+                return "color:#b94a48; background-color:white; border:1px solid";
+            }    
+            return String.Empty;
+        }
+
     }
 
 

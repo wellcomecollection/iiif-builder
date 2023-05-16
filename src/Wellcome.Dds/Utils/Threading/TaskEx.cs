@@ -14,7 +14,7 @@ namespace Utils.Threading
         /// <param name="throwOnTimeout">If true, throw <exception cref="TimeoutException">TimeoutException</exception>
         /// if timeout exceeded. If false return default{T}</param>
         /// <returns>Result of awaited task, or default{T}</returns>
-        public static async Task<T> TimeoutAfter<T>(this Task<T> task, int millisecondsTimeout,
+        public static async Task<T?> TimeoutAfter<T>(this Task<T> task, int millisecondsTimeout,
             bool throwOnTimeout = false)
         {
             using (var cts = new CancellationTokenSource())

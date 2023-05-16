@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,7 +9,14 @@ namespace Utils
 {
     public static class StringUtils
     {
-        public static bool IsNullOrWhiteSpace(this string s)
+        private static readonly string[] FileSizeSuffixes;
+        static StringUtils()
+        {
+            //Longs run out around EB
+            FileSizeSuffixes = new[] { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        }
+        
+        public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? s)
         {
             return string.IsNullOrWhiteSpace(s);
         }
@@ -19,9 +27,9 @@ namespace Utils
         /// <remarks>
         /// This may seem trivial but it helps code readability.
         /// </remarks>
-        /// <param name="s"></param>
+        /// <param name="str"></param>
         /// <returns></returns>
-        public static bool HasText(this string s) => !string.IsNullOrWhiteSpace(s);
+        public static bool HasText([NotNullWhen(true)] this string? str) => !string.IsNullOrWhiteSpace(str);
 
         /// <summary> 
         /// Removes separator from the start of str if it's there, otherwise leave it alone.
@@ -33,7 +41,7 @@ namespace Utils
         /// <param name="str"></param>
         /// <param name="start"></param>
         /// <returns></returns>
-        public static string RemoveStart(this string str, string start)
+        public static string? RemoveStart(this string? str, string start)
         {
             if (str == null) return null;
             if (str == string.Empty) return string.Empty;
@@ -46,17 +54,14 @@ namespace Utils
             return str;
         }
 
-        public static DateTime? GetNullableDateTime(string s)
+        public static DateTime? GetNullableDateTime(string? s)
         {
-            DateTime date;
-            if (DateTime.TryParse(s, out date))
+            if (DateTime.TryParse(s, out var date))
             {
                 return date;
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
 
@@ -81,7 +86,7 @@ namespace Utils
 
         /// <summary>
         /// remove leading and trailing characters that are not alphanumeric
-        /// TODO - imporve this, not very efficient
+        /// TODO - improve this, not very efficient
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
@@ -140,7 +145,7 @@ namespace Utils
         /// <param name="s"></param>
         /// <param name="exceptions"></param>
         /// <returns></returns>
-        public static string ToAlphanumericOrWhitespace(this string s, char[] exceptions = null)
+        public static string ToAlphanumericOrWhitespace(this string s, char[]? exceptions = null)
         {
             var sb = new StringBuilder();
             foreach (char c in s)
@@ -190,12 +195,12 @@ namespace Utils
         /// <param name="source"></param>
         /// <param name="delimiter"></param>
         /// <returns></returns>
-        public static string[] SplitByDelimiterIntoArray(this string source, char delimiter)
+        public static string[] SplitByDelimiterIntoArray(this string? source, char delimiter)
         {
             var strings = SplitByDelimiter(source, delimiter);
             if (strings == null)
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
             return strings.ToArray();
         }
@@ -207,15 +212,13 @@ namespace Utils
         /// <param name="source"></param>
         /// <param name="delimiter"></param>
         /// <returns></returns>
-        public static IEnumerable<string> SplitByDelimiter(this string source, char delimiter)
+        public static IEnumerable<string>? SplitByDelimiter(this string? source, char delimiter)
         {
-            if (!String.IsNullOrEmpty(source))
-            {
-                // this trims whitespace by default - implement another one if required
-                var strings = source.Split(new[] { delimiter });
-                return strings.Where(s => s.HasText()).Select(s => s.Trim());
-            }
-            return null;
+            if (string.IsNullOrEmpty(source)) return null;
+            
+            // this trims whitespace by default - implement another one if required
+            var strings = source.Split(new[] { delimiter });
+            return strings.Where(s => s.HasText()).Select(s => s.Trim());
         }
 
 
@@ -263,18 +266,33 @@ namespace Utils
         /// 
         /// </summary>
         /// <param name="sizeInBytes"></param>
+        /// <param name="withSpace">include a space between number and unit</param>
         /// <returns></returns>
-        public static string FormatFileSize(long sizeInBytes)
+        public static string FormatFileSize(long sizeInBytes, bool withSpace = false)
         {
-            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            var spacer = withSpace ? " " : "";
             if (sizeInBytes == 0)
-                return "0" + suf[0];
+                return "0" + spacer + FileSizeSuffixes[0];
             long bytes = Math.Abs(sizeInBytes);
             int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
             double num = Math.Round(bytes / Math.Pow(1024, place), 1);
-            return (Math.Sign(sizeInBytes) * num) + suf[place];
+            return (Math.Sign(sizeInBytes) * num) + spacer +  FileSizeSuffixes[place];
         }
 
+        /// <summary> 
+        /// Create a nice display format for file size given a raw string value
+        /// </summary>
+        /// <param name="rawSize"></param>
+        /// <param name="withSpace"></param>
+        /// <returns></returns>
+        public static string? FormatFileSize(string? rawSize, bool withSpace = false)
+        {
+            if (long.TryParse(rawSize, out var asLong))
+            {
+                return FormatFileSize(asLong, withSpace);
+            }
+            return rawSize;
+        }
 
         /// <summary>
         /// like String.Replace, but only replaces the first instance of search in str
@@ -307,29 +325,45 @@ namespace Utils
             return "(no date)";
         }
 
+        public static string GetLocalDate(DateTime dt)
+        {
+            DateTime localTime = dt.ToLocalTime();
+            return localTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        public static string GetLocalDate(DateTime? dt)
+        {
+            if (!dt.HasValue)
+            {
+                return "";
+            }
+
+            return GetLocalDate(dt.Value);
+        }
+        
         public static string GetFriendlyAge(DateTime dt)
         {
-            DateTime dttz = dt.ToLocalTime();
-            var s = dttz.ToString("yyyy-MM-dd HH:mm:ss") + " (";
+            DateTime localTime = dt.ToLocalTime();
+            var s = localTime.ToString("yyyy-MM-dd HH:mm:ss") + " (";
             var dtNow = DateTime.Now;
-            if (dttz.Date == dtNow.Date)
+            if (localTime.Date == dtNow.Date)
             {
                 s += "today";
             }
-            else if (dttz.Date == dtNow.AddDays(-1).Date)
+            else if (localTime.Date == dtNow.AddDays(-1).Date)
             {
                 s += "yesterday";
             }
             else
             {
-                var td = (dtNow.Date - dttz).TotalDays;
+                var td = (dtNow.Date - localTime).TotalDays;
                 var d = Math.Ceiling(td);
                 s += d + " days ago";
             }
             return s + ")";
         }
         
-        public static string GetFileName(this string s)
+        public static string? GetFileName(this string s)
         {
             var parts = s.Split(new [] {'/', '\\'});
             return parts.LastOrDefault();
@@ -337,7 +371,11 @@ namespace Utils
         
         public static string GetFileExtension(this string s)
         {
-            var fn = GetFileName(s);
+            string? fn = GetFileName(s);
+            if (fn.IsNullOrWhiteSpace())
+            {
+                return String.Empty;
+            }
             var idx = fn.LastIndexOf('.');
             if (idx != -1 && fn.Length > idx)
             {
@@ -417,7 +455,7 @@ namespace Utils
         /// </summary>
         /// <param name="strings"></param>
         /// <returns></returns>
-        public static bool AllHaveText(params string[] strings)
+        public static bool AllHaveText(params string?[] strings)
         {
             return strings.AllHaveText();
         }
@@ -427,9 +465,9 @@ namespace Utils
         /// </summary>
         /// <param name="strings"></param>
         /// <returns></returns>
-        public static bool AllHaveText(this IEnumerable<string> strings)
+        public static bool AllHaveText(this IEnumerable<string?> strings)
         {
-            foreach (string s in strings)
+            foreach (string? s in strings)
             {
                 if (!HasText(s)) return false;
             }
@@ -441,16 +479,9 @@ namespace Utils
         /// </summary>
         /// <param name="tests"></param>
         /// <returns></returns>
-        public static bool AnyHaveText(params string[] tests)
+        public static bool AnyHaveText(params string?[] tests)
         {
-            foreach (string s in tests)
-            {
-                if (s.HasText())
-                {
-                    return true;
-                }
-            }
-            return false;
+            return tests.Any(s => s.HasText());
         }
 
         /// <summary>
@@ -504,10 +535,25 @@ namespace Utils
             // https://stackoverflow.com/a/14033595
             return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value));
         }
+        
         public static string ReplaceFromDictionary(this string s, Dictionary<string, string> dict, string template)
         {
             // https://stackoverflow.com/a/14033595
-            return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
+            // return dict.Aggregate(s, (current, kvp) => current.Replace(kvp.Key, string.Format(template, kvp.Key, kvp.Value)));
+
+            var byLength = dict.OrderByDescending(kvp => kvp.Key.Length).ToArray();
+            for (var index = 0; index < byLength.Length; index++)
+            {
+                var pair = byLength[index];
+                s = s.Replace(pair.Key, $"%%${index}$%%");
+            }
+
+            for (var index = 0; index < byLength.Length; index++)
+            {
+                var pair = byLength[index];
+                s = s.Replace($"%%${index}$%%", string.Format(template, pair.Key, pair.Value));
+            }
+            return s;
         }
 
         /// <summary>
@@ -517,9 +563,9 @@ namespace Utils
         /// <param name="arguments"></param>
         /// <param name="permittedOperations"></param>
         /// <returns></returns>
-        public static (string operation, string parameter) GetOperationAndParameter(string[] arguments, string[] permittedOperations)
+        public static (string? operation, string? parameter) GetOperationAndParameter(string[] arguments, string[] permittedOperations)
         {
-            string operation = null, parameter = null;
+            string? operation = null, parameter = null;
             for (int i = 0; i < arguments.Length; i++)
             {
                 var op = arguments[i];
@@ -536,6 +582,64 @@ namespace Utils
             return (operation, parameter);
         }
 
+        public static int? ToNullableInt(this string? s)
+        {
+            if (int.TryParse(s, out var i)) return i;
+            return null;
+        }
         
+        public static double? ToNullableDouble(this string? s)
+        {
+            if (double.TryParse(s, out var i)) return i;
+            return null;
+        }
+        
+        
+        private static readonly Regex Roman = new Regex(
+            "^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$",
+            RegexOptions.IgnoreCase);
+
+        public static bool IsRomanNumeral(string s)
+        {
+            return Roman.IsMatch(s);
+        }
+
+        public static string ToCommaDelimitedList(this IEnumerable<string>? strings)
+        {
+            if (strings == null)
+            {
+                return String.Empty;
+            }
+
+            return String.Join(',', strings);
+        }
+        
+        /// <summary>
+        /// To be used carefully when comparing raw strings and RESt resources
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <param name="countBack">How many path elements at the end to consider when matching</param>
+        /// <returns></returns>
+        public static bool EndWithSamePathElements(string? s1, string? s2, int countBack = 1)
+        {
+            if (s1 == s2) return true;
+            if (s1.IsNullOrEmpty() && s2.IsNullOrEmpty()) return true;
+            var parts1 = s1.SplitByDelimiterIntoArray('/');
+            var parts2 = s2.SplitByDelimiterIntoArray('/');
+            if (parts1.Length < countBack || parts2.Length < countBack)
+            {
+                return false;
+            }
+            for (int i = 1; i <= countBack; i++)
+            {
+                if (parts1[^i] != parts2[^i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

@@ -14,6 +14,7 @@ namespace Wellcome.Dds.AssetDomain
         Task<XmlSource> LoadXmlForPath(string relativePath);
         Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache);
         Task<XmlSource> LoadXmlForIdentifier(string identifier);
+        Task<XmlSource> LoadRootDocumentXml();
         IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath);
         Task<Stream> GetStreamForPathAsync(string relativePath);
 
@@ -39,5 +40,6 @@ namespace Wellcome.Dds.AssetDomain
         /// </summary>
         /// <returns>A relative file name of the METS file to start with</returns>
         string GetRootDocument();
+
     }
 }

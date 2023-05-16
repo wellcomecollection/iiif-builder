@@ -1,20 +1,15 @@
-﻿using Wellcome.Dds.AssetDomain.Dlcs.Model;
+﻿using System;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
     public class ImageIngestResult
     {
-        public Batch[] CloudBatchRegistrationResponse { get; set; }
+        public Batch[]? CloudBatchRegistrationResponse { get; set; }
 
-        public static ImageIngestResult Empty
-        {
-            get
+        public static ImageIngestResult Empty => new()
             {
-                return new ImageIngestResult
-                {
-                    CloudBatchRegistrationResponse = new Batch[0]
-                };
-            }
-        }
+                CloudBatchRegistrationResponse = Array.Empty<Batch>()
+            };
     }
 }

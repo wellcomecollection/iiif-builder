@@ -40,7 +40,7 @@ namespace WorkflowProcessor
         private readonly ICatalogue catalogue;
         private readonly BucketWriter bucketWriter;
         private readonly AltoDerivedAssetBuilder altoBuilder;
-        private readonly IWorkflowJobPostProcessor postProcessor;
+        private readonly ICacheInvalidationPathPublisher cacheInvalidationPathPublisher;
         private readonly IMemoryCache memoryCache;
 
         public WorkflowRunner(
@@ -54,7 +54,7 @@ namespace WorkflowProcessor
             ICatalogue catalogue,
             BucketWriter bucketWriter,
             AltoDerivedAssetBuilder altoBuilder,
-            IWorkflowJobPostProcessor postProcessor,
+            ICacheInvalidationPathPublisher cacheInvalidationPathPublisher,
             IMemoryCache memoryCache)
         {
             this.ingestJobRegistry = ingestJobRegistry;
@@ -67,13 +67,14 @@ namespace WorkflowProcessor
             this.catalogue = catalogue;
             this.bucketWriter = bucketWriter;
             this.altoBuilder = altoBuilder;
-            this.postProcessor = postProcessor;
+            this.cacheInvalidationPathPublisher = cacheInvalidationPathPublisher;
             this.memoryCache = memoryCache;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
-            job.Taken = DateTime.Now;
+            var ddsIdentifier = new DdsIdentifier(job.Identifier);
+            job.Taken = DateTime.UtcNow;
             var jobOptions = runnerOptions;
             if (job.WorkflowOptions != null)
             {
@@ -92,7 +93,7 @@ namespace WorkflowProcessor
             {
                 if (jobOptions.RegisterImages)
                 {
-                    var batchResponse = await ingestJobRegistry.RegisterImages(job.Identifier);
+                    var batchResponse = await ingestJobRegistry.RegisterImages(ddsIdentifier);
                     if (batchResponse.Length > 0)
                     {
                         job.FirstDlcsJobId = batchResponse[0].Id;
@@ -102,10 +103,10 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RefreshFlatManifestations)
                 {
-                    work = await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
-                        await dds.RefreshManifestations(job.Identifier, work);
+                        await dds.RefreshManifestations(ddsIdentifier, work);
                     }
                     else
                     {
@@ -115,7 +116,7 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildIIIF)
                 {
-                    work ??= await catalogue.GetWorkByOtherIdentifier(job.Identifier);
+                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
                         await RebuildIIIF(job, work);
@@ -128,7 +129,11 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
+                    // This criterion could change but for now it's the simplest test; we only have ALTO for b numbers.
+                    if (ddsIdentifier.HasBNumber)
+                    {
+                        await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
+                    }
                 }
 
                 if (logMissingWork)
@@ -136,9 +141,20 @@ namespace WorkflowProcessor
                     await SetJobErrorMessage(job);
                 }
 
-                await postProcessor.PostProcess(job, jobOptions);
-                job.TotalTime = (long) (DateTime.Now - job.Taken.Value).TotalMilliseconds;
-                logger.LogInformation("Processed {JobId} in {TotalTime}ms", job.Identifier, job.TotalTime);
+                if (job.FlushCache)
+                {
+                    var errors = await cacheInvalidationPathPublisher.PublishInvalidation(job.Identifier, jobOptions.RebuildTextCaches);
+                    if (errors.Length > 0)
+                    {
+                        logger.LogWarning("Error flushing caches:");
+                        foreach (var error in errors)
+                        {
+                            logger.LogWarning(error);
+                        }
+                    }
+                }
+                job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
+                logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
             }
             catch (Exception ex)
             {
@@ -151,7 +167,7 @@ namespace WorkflowProcessor
                 {
                     logger.LogInformation("Compacting memory cache with {MemoryCount} items after processing {JobId}",
                         cache.Count,
-                        job.Identifier);
+                        ddsIdentifier);
                     cache.Compact(100);
                 }
             }
@@ -166,8 +182,8 @@ namespace WorkflowProcessor
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
-                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Id);
-                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Id);
+                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Identifier);
+                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Identifier);
                 }
                 else
                 {
@@ -199,8 +215,16 @@ namespace WorkflowProcessor
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
             var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
-            var iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
-
+            MultipleBuildResult iiif2BuildResults;
+            if (iiif3BuildResults.MayBeConvertedToV2)
+            {
+                iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
+            }
+            else
+            {
+                iiif2BuildResults = new MultipleBuildResult(job.Identifier); // empty.
+            }
+            
             // Now we save them all to S3.
             await WriteResultToS3(iiif3BuildResults);
             await WriteResultToS3(iiif2BuildResults);
@@ -238,11 +262,11 @@ namespace WorkflowProcessor
                     state.Volumes.Add(volume);
                     var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
                     // populate volume fields
-                    volume.Volume = metsVolume.ModsData.Number;
-                    logger.LogInformation("Will parse date for VOLUME " + metsVolume.ModsData.OriginDateDisplay);
-                    volume.DisplayDate = metsVolume.ModsData.OriginDateDisplay;
+                    volume.Volume = metsVolume.SectionMetadata.Number;
+                    logger.LogInformation("Will parse date for VOLUME " + metsVolume.SectionMetadata.DisplayDate);
+                    volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
                     volume.NavDate = state.GetNavDate(volume.DisplayDate);
-                    volume.Label = metsVolume.ModsData.Title;
+                    volume.Label = metsVolume.SectionMetadata.Title;
                     logger.LogInformation(" ");
                     logger.LogInformation("-----VOLUME-----");
                     logger.LogInformation(volume.ToString());
@@ -251,10 +275,10 @@ namespace WorkflowProcessor
                 var issue = new ChemistAndDruggistIssue(mic.IssueIdentifier);
                 volume.Issues.Add(issue);
                 var metsIssue = mic.Manifestation; // is this partial?
-                var mods = metsIssue.ModsData;
+                var mods = metsIssue.SectionMetadata;
                 // populate issue fields
                 issue.Title = mods.Title; // like "2293"
-                issue.DisplayDate = mods.OriginDateDisplay;
+                issue.DisplayDate = mods.DisplayDate;
                 logger.LogInformation("Will parse date for ISSUE " + issue.DisplayDate);
                 issue.NavDate = state.GetNavDate(issue.DisplayDate);
                 issue.Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(issue.NavDate.Month);

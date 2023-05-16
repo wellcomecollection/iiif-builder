@@ -74,5 +74,34 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData("1847424", 'x')]
         public void GetExpectedBNumberCheckDigit_Correct(string number, char checkDigit) 
             => WellcomeLibraryIdentifiers.GetExpectedBNumberCheckDigit(number).Should().Be(checkDigit);
+
+        
+        [Theory]
+        [InlineData("hqxrz7dq")]
+        [InlineData("drvfa8hy")]
+        [InlineData("fdgm6279")]
+        [InlineData("xf54ua4z")]
+        [InlineData("trzsg9gu")]
+        [InlineData("teq32cjd")]
+        [InlineData("shfw74xb")]
+        [InlineData("qmu9be6d")]
+        [InlineData("cuw9y9vp")]
+        [InlineData("acrxt93t")]
+        [InlineData("b1234567")] // 
+        public void WorkIdentifiers_Recognised(string s)
+        {
+            WellcomeLibraryIdentifiers.MayBeWorkIdentifier(s).Should().BeTrue();
+        }
+        
+        
+        [Theory]
+        [InlineData("acr0t93t")]
+        [InlineData("uw9y9vp")]
+        [InlineData("acrxt93ta")]
+        [InlineData("b12345672")]
+        public void Non_WorkIdentifiers_Recognised(string s)
+        {
+            WellcomeLibraryIdentifiers.MayBeWorkIdentifier(s).Should().BeFalse();
+        }
     }
 }

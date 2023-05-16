@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
@@ -8,36 +7,29 @@ using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
+    /// <summary>
+    /// MODS data is used in Goobi-origin METS files.
+    /// It contains access conditions and rights information, as well as
+    /// additional information specific to digitised resources.
+    /// </summary>
     [Serializable]
-    public class ModsData : IModsData
+    public class ModsData : ISectionMetadata
     {
-        public string Title { get; set; }
-        public string SubTitle { get; set; }
-        public string Classification { get; set; }
-        public string Language { get; set; }
-        public string OriginDateDisplay { get; set; }
-        public string OriginPlace { get; set; }
-        public string OriginPublisher { get; set; }
-        public string PhysicalDescription { get; set; }
-        public string DisplayForm { get; set; }
-        public string RecordIdentifier { get; set; }
-        public IModsName[] Names { get; set; }
-
-        public string Identifier { get; set; }
-        public string AccessCondition { get; set; }
-        public string DzLicenseCode { get; set; }
+        public string? Title { get; set; }
+        public string? SubTitle { get; set; }
+        public string? DisplayDate { get; set; }
+        public string? OriginPublisher { get; set; }
+        public string? RecordIdentifier { get; set; }
+        public string? AccessCondition { get; set; }
+        public string? DzLicenseCode { get; set; }
         public int PlayerOptions { get; set; }
-        public string Usage { get; set; }
-        public string Leader6 { get; set; }
-        public string WellcomeIdentifier { get; set; }
-
-        public string RepositoryName { get; set; }
-
+        public string? Usage { get; set; }
+        public string? Leader6 { get; set; }
         public int VolumeNumber { get; set; }
         public int CopyNumber { get; set; }
         
         // Used by Chemist and Druggist (Periodical) for volume and issue numbers
-        public string Number { get; set; }
+        public string? Number { get; set; }
         public int PartOrder { get; set; }
 
         public ModsData(XElement dmdSec)
@@ -53,34 +45,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 
             // <mods:note type="noteType">value</mods:note>
             Leader6 = ExtractSingleModsNoteField(modsDoc, "leader6");
-            WellcomeIdentifier = ExtractFirstModsNoteField(modsDoc, "wellcomeidentifier");
-            var repoVals = GetDistinctValuesForModsNoteField(modsDoc, "repository name").ToList();
-            if (repoVals.Any())
-            {
-                RepositoryName = string.Join("; ", repoVals);
-            }
-
-            Title = HtmlUtils.TextOnly(modsDoc.GetDesendantElementValue(XNames.ModsTitle));
-            SubTitle = HtmlUtils.TextOnly(modsDoc.GetDesendantElementValue(XNames.ModsSubTitle));
-            OriginPublisher = modsDoc.GetDesendantElementValue(XNames.ModsOriginPublisher);
+            Title = HtmlUtils.TextOnly(modsDoc.GetDescendantElementValue(XNames.ModsTitle));
+            SubTitle = HtmlUtils.TextOnly(modsDoc.GetDescendantElementValue(XNames.ModsSubTitle));
+            OriginPublisher = modsDoc.GetDescendantElementValue(XNames.ModsOriginPublisher);
             if (!OriginPublisher.HasText())
             {
-                OriginPublisher = modsDoc.GetDesendantElementValue(XNames.ModsPublisher);
+                OriginPublisher = modsDoc.GetDescendantElementValue(XNames.ModsPublisher);
             }
-            OriginPlace = modsDoc.GetDesendantElementValue(XNames.ModsPlaceTerm);
-            OriginDateDisplay = GetCleanDisplayDate(modsDoc);
-            Classification = modsDoc.GetDesendantElementValue(XNames.ModsClassification);
-            Language = modsDoc.GetDesendantElementValue(XNames.ModsLanguageTerm);
-            RecordIdentifier = modsDoc.GetDesendantElementValue(XNames.ModsRecordIdentifier);
-            Identifier = modsDoc.GetDesendantElementValue(XNames.ModsIdentifier);
-            PhysicalDescription = modsDoc.GetDesendantElementValue(XNames.ModsPhysicalDescription);
-            DisplayForm = modsDoc.GetDesendantElementValue(XNames.ModsDisplayForm);
-            Names = new IModsName[] { }; // TODO - not in xml at the moment
-
+            DisplayDate = GetCleanDisplayDate(modsDoc);
+            RecordIdentifier = modsDoc.GetDescendantElementValue(XNames.ModsRecordIdentifier);
             var accessConditions = modsDoc.Root.Elements(XNames.ModsAccessCondition).ToList();
 
             var statusAccessConditionElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "status").ToList();
+                .Where(x => (string?) x.Attribute("type") == "status").ToList();
             if (statusAccessConditionElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'status'");
@@ -96,11 +73,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
             if (!AccessCondition.HasText())
             {
-                AccessCondition = Common.AccessCondition.Open;
+                AccessCondition = Common.AccessCondition.Missing;
             }
 
             var dzAccessConditionElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "dz").ToList();
+                .Where(x => (string?) x.Attribute("type") == "dz").ToList();
             if (dzAccessConditionElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'dz' (more than one license code)");
@@ -111,7 +88,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             var playerOptionsElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "player").ToList();
+                .Where(x => (string?) x.Attribute("type") == "player").ToList();
             if (playerOptionsElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'player'");
@@ -122,7 +99,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             }
 
             var usageElements = accessConditions
-                .Where(x => (string)x.Attribute("type") == "usage").ToList();
+                .Where(x => (string?) x.Attribute("type") == "usage").ToList();
             if (usageElements.Count > 1)
             {
                 throw new NotSupportedException("METS file contains more than one accessCondition of type 'usage'");
@@ -152,69 +129,36 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     }
                 }
             }
-            Number = modsDoc.GetDesendantElementValue(XNames.ModsNumber);
+            Number = modsDoc.GetDescendantElementValue(XNames.ModsNumber);
         }
 
-        private string ExtractSingleModsNoteField(XDocument modsDoc, string noteType)
+        private string? ExtractSingleModsNoteField(XDocument modsDoc, string noteType)
         {
-            var noteEl = modsDoc.Root
+            var noteEl = modsDoc.Root!
                 .Descendants(XNames.ModsNote)
-                .SingleOrDefault(x => (string)x.Attribute("type") == noteType);
-            if (noteEl != null)
-            {
-                return noteEl.Value;
-            }
-            return null;
+                .SingleOrDefault(x => (string?) x.Attribute("type") == noteType);
+            return noteEl?.Value;
         }
 
-        private string ExtractFirstModsNoteField(XDocument modsDoc, string noteType)
+        private static string? GetCleanDisplayDate(XDocument modsDoc)
         {
-            var noteEl = modsDoc.Root
-                .Descendants(XNames.ModsNote)
-                .FirstOrDefault(x => (string)x.Attribute("type") == noteType);
-            if (noteEl != null)
-            {
-                return noteEl.Value;
-            }
-            return null;
-        }
-
-        private IEnumerable<string> GetDistinctValuesForModsNoteField(XDocument modsDoc, string noteType)
-        {
-            HashSet<string> found = new HashSet<string>();
-            foreach (var val in modsDoc.Root
-                .Descendants(XNames.ModsNote)
-                .Where(x => (string)x.Attribute("type") == noteType)
-                .Select(noteEl => noteEl.Value))
-            {
-                if (val.HasText() && !found.Contains(val))
-                {
-                    yield return val;
-                    found.Add(val);
-                }
-            }
-        }
-
-        private string GetCleanDisplayDate(XDocument modsDoc)
-        {
-            string disp = null;
+            string? displayDate = null;
             int cutoffYear = DateTime.Now.AddYears(10).Year;
             try
             {
-                foreach (var elementValue in modsDoc.GetDesendantElementValues(XNames.ModsDateIssued))
+                foreach (var elementValue in modsDoc.GetDescendantElementValues(XNames.ModsDateIssued))
                 {
                     if (elementValue.HasText())
                     {
                         if (elementValue.Length == 4)
                         {
-                            int y;
-                            if (Int32.TryParse(elementValue, out y))
+                            if (Int32.TryParse(elementValue, out var y))
                             {
                                 if (y > cutoffYear)
                                     continue;
                             }
                         }
-                        disp = elementValue;
+                        displayDate = elementValue;
                         break;
                     }
                 }
@@ -223,12 +167,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 // log
             }
-            return disp;
+            return displayDate;
         }
 
         private void SetCopyAndVolumeNumbers(XDocument modsDoc, ModsData modsData)
         {
-            var volumeNumber = modsDoc.GetDesendantElementValue(XNames.WtVolumeNumber);
+            var volumeNumber = modsDoc.GetDescendantElementValue(XNames.WtVolumeNumber);
             if (volumeNumber.HasText())
             {
                 modsData.VolumeNumber = Convert.ToInt32(volumeNumber);
@@ -237,7 +181,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 modsData.VolumeNumber = -1;
             }
-            var copyNumber = modsDoc.GetDesendantElementValue(XNames.WtCopyNumber);
+            var copyNumber = modsDoc.GetDescendantElementValue(XNames.WtCopyNumber);
             if (copyNumber.HasText())
             {
                 modsData.CopyNumber = Convert.ToInt32(copyNumber);
@@ -249,12 +193,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 modsData.CopyNumber = -1;
                 // modsData.CopyNumber = 1;
             }
-        }
-
-        public IModsData GetDeepCopyForAccessControl()
-        {
-            // ModsName[] Names is a reference type but we don't mind our clone having the same pointer.
-            return MemberwiseClone() as ModsData;
         }
 
         public string GetDisplayTitle()

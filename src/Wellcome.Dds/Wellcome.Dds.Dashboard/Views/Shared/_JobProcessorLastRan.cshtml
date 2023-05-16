@@ -4,7 +4,7 @@
 }
 else
 {
-    <p>The DLCS Job Processor last ran @(((TimeSpan) (DateTime.Now - (DateTime?)ViewBag.Heartbeat)).ToHumanReadableString()) ago.</p>
+    <p>The DLCS Job Processor last ran @(((TimeSpan) (DateTime.UtcNow - (DateTime?)ViewBag.Heartbeat)).ToHumanReadableString()) ago.</p>
 }
 @if (ViewBag.HeartbeatWarning)
 {

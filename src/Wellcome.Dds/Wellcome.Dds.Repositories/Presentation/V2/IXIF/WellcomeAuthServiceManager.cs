@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using IIIF;
+using Utils;
 
 namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
 {
@@ -10,7 +11,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
     public class WellcomeAuthServiceManager
     {
         private Dictionary<string, WellcomeAccessControlHintService> wellcomeAuthServices = new();
-        private Dictionary<string, V2ServiceReference>? requested = new();
+        private readonly Dictionary<string, V2ServiceReference> requested = new();
         
         /// <summary>
         /// Returns true if services have been added, else false
@@ -22,8 +23,12 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         /// </summary>
         public void Add(WellcomeAccessControlHintService accessControlHintService)
         {
-            HasItems = true;
-            wellcomeAuthServices.Add(accessControlHintService.AuthService!.First().Id, accessControlHintService);
+            string? id = accessControlHintService.AuthService!.First().Id;
+            if (id.HasText())
+            {
+                HasItems = true;
+                wellcomeAuthServices.Add(id, accessControlHintService);
+            }
         }
         
         /// <summary>

@@ -23,7 +23,9 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
         {
             var options = Options.Create(new DdsOptions
             {
-                LinkedDataDomain = "http://test.example/"
+                LinkedDataDomain = "http://test.example/",
+                WellcomeCollectionApi = "(unused in this test)",
+                ApiWorkTemplate = "(unused in this test)"
             });
             sut = new PresentationConverter(new UriPatterns(options), NullLogger.Instance);
         }

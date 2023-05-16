@@ -9,6 +9,8 @@ namespace Wellcome.Dds.WordsAndPictures
     [ProtoContract]
     public class Word
     {
+        #nullable disable
+        
         public Word()
         {
         }

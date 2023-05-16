@@ -1,0 +1,33 @@
+﻿@model List<WorkflowJob>
+
+@{
+    ViewBag.Title = "Recent Workflow Calls";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    @if (TempData["reset-errors"] != null)
+    {
+        <p></p>
+        <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@TempData["reset-errors"]</strong>
+        </div>
+    }
+    <h3 style="margin: 25px 0 20px 0">Recent workflow calls</h3>
+</div>
+
+<p>
+@if (ViewBag.IsErrorList)
+{
+    @:(showing errors only) @Html.ActionLink("Show all", "Recent", "WorkflowCall")
+}
+else
+{
+    @Html.ActionLink("Show errors only", "Errors", "WorkflowCall")
+}
+ | @Html.ActionLink("Workflow statistics", "Stats", "WorkflowCall")
+</p>
+<partial name="_WorkflowJobList" model="Model" />

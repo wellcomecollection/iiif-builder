@@ -13,11 +13,15 @@ namespace Utils
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public static string GetSimpleNameFromPath(string path)
+        public static string? GetSimpleNameFromPath(string? path)
         {
+            if (path.IsNullOrWhiteSpace())
+            {
+                return String.Empty;
+            }
             if (path.EndsWith("/"))
             {
-                path = path.Substring(0, path.Length - 1);
+                path = path[..^1];
             }
             int spos = path.LastIndexOf("/", StringComparison.Ordinal) + 1;
             var simpleName = path.Substring(spos);

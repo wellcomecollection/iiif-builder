@@ -1,13 +1,10 @@
 #nullable enable
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Utils;
 using Utils.Storage;
 using Wellcome.Dds.Common;
 
@@ -16,14 +13,14 @@ namespace Wellcome.Dds.Server.Controllers
     public class Helpers
     {
         private readonly IStorage storage;
-        private readonly DdsOptions ddsOptions;
+        private readonly LinkRewriter linkRewriter;
 
         public Helpers(
             IStorage storage,
-            IOptions<DdsOptions> options)
+            LinkRewriter linkRewriter)
         {
             this.storage = storage;
-            ddsOptions = options.Value;
+            this.linkRewriter = linkRewriter;
         }
 
         /// <summary>
@@ -50,33 +47,25 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 return controller.NotFound($"No IIIF resource found for {path}");
             }
-            if (string.IsNullOrWhiteSpace(ddsOptions.RewriteDomainLinksTo))
+
+            if (!linkRewriter.RequiresRewriting())
             {
                 // This is the efficient way to return the response
                 return controller.File(stream, contentType);
             }
-
+            
             // This is an inefficient method but allows us to manipulate the response.
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            string raw = await reader.ReadToEndAsync();
-            
-            // This is OK but we want to leave the DLCS links intact!
-            // string rewritten = raw.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
-            // https://iiif-test\.wellcomecollection\.org/(?<!image|thumbs|pdf|av|auth)/(.*)
-            var pattern = GetRegexPattern(ddsOptions.LinkedDataDomain);
-            var placeholder = "__PLACEHOLDER__";
-            var pass1 = Regex.Replace(raw, pattern, $"\"{placeholder}/$1/$2\"");
-            var pass2 = pass1.Replace(ddsOptions.LinkedDataDomain, ddsOptions.RewriteDomainLinksTo);
-            var rewritten = pass2.Replace(placeholder, ddsOptions.LinkedDataDomain);
+            var rewritten = await linkRewriter.RewriteLinks(reader);
             return controller.Content(rewritten, contentType);
         }
 
-        private string GetRegexPattern(string domainPart)
+        public async Task<bool> ExistsInStorage(string container, string path)
         {
-            var pattern = "\\\"" + domainPart.Replace(".", "\\.");
-            pattern += "/(image|thumbs|pdf|av|auth)/([^\"]*)\\\"";
-            return pattern;
+            var file = storage.GetCachedFileInfo(container, path);
+            return await file.DoesExist();
         }
+
 
         public async Task<JObject?> LoadAsJson(string container, string path)
         {

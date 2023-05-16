@@ -8,7 +8,6 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.Common;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.Repositories.WordsAndPictures
@@ -33,28 +32,27 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             this.logger = logger;
         }
 
-        public Task<AnnotationPageList> GetPages(
+        public Task<AnnotationPageList?> GetPages(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObject(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
-        public Task<AnnotationPageList> ForcePagesRebuild(
+        public Task<AnnotationPageList?> ForcePagesRebuild(
             string identifier,
             IEnumerable<IPhysicalFile> physicalFiles)
         {
             return cache.GetCachedObjectFromLocal(identifier, () => GetPagesInternal(identifier, physicalFiles));
         }
 
-        private async Task<AnnotationPageList> GetPagesInternal(
+        private async Task<AnnotationPageList?> GetPagesInternal(
             string identifier, IEnumerable<IPhysicalFile> physicalFiles)
         {
             logger.LogInformation($"Building Annotation Pages for {identifier}");
             var altoProvider = new SimpleAltoProvider(logger);
             var pages = new AnnotationPageList();
-            var ddsId = new DdsIdentifier(identifier);
-            var workStore = await workStorageFactory.GetWorkStore(ddsId.PackageIdentifier);
+            var workStore = await workStorageFactory.GetWorkStore(identifier);
             foreach (var physicalFile in physicalFiles)
             {
                 if (physicalFile.RelativeAltoPath.HasText())
@@ -72,7 +70,7 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
                     }
 
                     var page = altoProvider.GetAnnotationPage(altoRoot,
-                            physicalFile.AssetMetadata.GetImageWidth(),
+                            physicalFile.AssetMetadata!.GetImageWidth(),
                             physicalFile.AssetMetadata.GetImageHeight(),
                             identifier,
                             physicalFile.StorageIdentifier,

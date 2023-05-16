@@ -4,7 +4,7 @@ namespace CatalogueClient.ToolSupport
 {
     public class DumpLoopInfo
     {
-        public string Filter;
+        public string? Filter;
         public int Skip = 1;
         public int Offset = 0;
         public int TotalCount;

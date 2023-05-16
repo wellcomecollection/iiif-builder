@@ -4,8 +4,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Utils;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 {
@@ -13,13 +16,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
     {
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
+        private readonly ILogger<CloudServicesIngestRegistry> logger;
 
         public CloudServicesIngestRegistry(
             IMetsRepository metsRepository,
-            DdsInstrumentationContext ddsInstrumentationContext)
+            DdsInstrumentationContext ddsInstrumentationContext,
+            ILogger<CloudServicesIngestRegistry> logger)
         {
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.logger = logger;
         }
 
         public async Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number)
@@ -31,7 +37,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 .ToArrayAsync(); 
         }
 
-        public Task<DlcsIngestJob> GetJob(int id)
+        public Task<DlcsIngestJob?> GetJob(int id)
         {
             return ddsInstrumentationContext.DlcsIngestJobs
                 .Include(j => j.DlcsBatches)
@@ -77,13 +83,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             // for comparison         
         }
 
-        private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string volumeIdentifier,
-            string issueIdentifier, bool useInitialOrigin, bool immediateStart)
+        private DlcsIngestJob NewJob(string identifier, string label, int sequenceIndex, string? volumeIdentifier,
+            string? issueIdentifier, bool useInitialOrigin, bool immediateStart)
         {
-            var job = new DlcsIngestJob
+            var job = new DlcsIngestJob(identifier)
             {
-                Created = DateTime.Now,
-                Identifier = identifier,
                 Label = label,
                 SequenceIndex = sequenceIndex,
                 VolumePart = volumeIdentifier,
@@ -96,14 +100,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             if (immediateStart)
             {
-                job.StartProcessed = DateTime.Now;
+                job.StartProcessed = DateTime.UtcNow;
             }
             return job;
         }
 
         // TODO: Making this async needs a code review (compare CloudServicesIngestRegistry and its interface with dds-ecosystem)
         // The following few mthods all need reviewing
-        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(string identifier)
+        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentifier identifier)
         {
             await foreach (var job in RegisterImagesInternal(identifier, false, true))
             {
@@ -111,7 +115,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public async Task<DlcsIngestJob[]> RegisterImages(string identifier, bool useInitialOrigin = false)
+        public async Task<DlcsIngestJob[]> RegisterImages(DdsIdentifier identifier, bool useInitialOrigin = false)
         {
             // Can this not return an array? Why does it need to?
             var jobs = new List<DlcsIngestJob>();
@@ -122,16 +126,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return jobs.ToArray();
         }
 
-        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(string identifier, bool useInitialOrigin, bool immediateStart)
+        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(DdsIdentifier identifier, bool useInitialOrigin, bool immediateStart)
         {
-            // TODO - The unstarted old jobs are cleaned out in AddNewJob(..)
-            // But wouldn't it be better to clean them all out here? Before creating the set of new
-            // jobs for this b number (will be a set of jobs if multi volume)?
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
+                if (manifestationInContext.PackageIdentifier.IsNullOrWhiteSpace())
+                {
+                    throw new InvalidOperationException("Can't create a job without a package identifier");
+                }
                 var job = NewJob(
-                    manifestationInContext.BNumber,
-                    manifestationInContext.Manifestation?.Label ?? manifestationInContext.BNumber,
+                    manifestationInContext.PackageIdentifier,
+                    manifestationInContext.Manifestation?.Label ?? manifestationInContext.PackageIdentifier,
                     manifestationInContext.SequenceIndex,
                     manifestationInContext.VolumeIdentifier,
                     manifestationInContext.IssueIdentifier,
@@ -158,6 +163,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
+            logger.LogDebug("Adding a new DlcsIngestJob for {identifier}", job.Identifier);
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
             try
             {

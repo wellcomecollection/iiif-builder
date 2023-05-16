@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Community.Microsoft.Extensions.Caching.PostgreSql;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
@@ -17,10 +18,10 @@ using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Auth.Web;
@@ -53,9 +54,6 @@ namespace Wellcome.Dds.Server
         
         public void ConfigureServices(IServiceCollection services)
         {
-            // Use pre-v6 handling of datetimes for npgsql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            
             // Temporarily here to demonstrate IIIFPrecursor - should not be required in production DDS.Server
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
@@ -134,7 +132,8 @@ namespace Wellcome.Dds.Server
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
-            
+
+            services.AddSingleton<LinkRewriter>();
             services.AddSingleton<UriPatterns>();
             services.AddSingleton<Helpers>();
 
@@ -151,7 +150,7 @@ namespace Wellcome.Dds.Server
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IIIIFBuilder, IIIFBuilder>()
                 .AddScoped<IMetsRepository, MetsRepository>()
-                .AddScoped<IDashboardRepository, DashboardRepository>()
+                .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
                 .AddScoped<AltoSearchTextProvider>()
@@ -164,8 +163,8 @@ namespace Wellcome.Dds.Server
 
             services.AddControllers().AddJsonOptions(
                 options => {
-                    options.JsonSerializerOptions.IgnoreNullValues = true;
                     options.JsonSerializerOptions.WriteIndented = true;
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
                 });
 
             services.AddFeatureManagement();

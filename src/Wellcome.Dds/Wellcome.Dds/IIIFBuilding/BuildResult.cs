@@ -2,7 +2,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using IIIF;
+using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Version = IIIF.Presentation.Version;
 
 namespace Wellcome.Dds.IIIFBuilding
@@ -14,6 +16,8 @@ namespace Wellcome.Dds.IIIFBuilding
             Id = id;
             IIIFVersion = version;
         }
+        
+        public bool MayBeConvertedToV2 => TimeBasedCount <= 0 && FileCount <= 0;
 
         public string Id { get; set; }
         
@@ -24,7 +28,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// </summary>
         public BuildOutcome Outcome { get; set; }
         
-        public string Message { get; set; }
+        public string? Message { get; set; }
         
         /// <summary>
         /// The IIIF Presentation Version this BuildResult represents.
@@ -34,7 +38,12 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <summary>
         /// Generated IIIF result
         /// </summary>
-        public JsonLdBase IIIFResource { get; set; }
+        public JsonLdBase? IIIFResource { get; set; }
+
+        // Track what kinds of assets we are building Manifests for
+        public int ImageCount { get; set; } = 0;
+        public int TimeBasedCount { get; set; } = 0;
+        public int FileCount { get; set; } = 0;
 
         /// <summary>
         /// Get storage key where this build result would be stored.
@@ -52,13 +61,26 @@ namespace Wellcome.Dds.IIIFBuilding
 
     public class MultipleBuildResult : IEnumerable<BuildResult>
     {
+        public MultipleBuildResult(string identifier)
+        {
+            Identifier = identifier;
+        }
+        
         /// <summary>
-        /// The b number
+        /// The package identifier
         /// </summary>
         public string Identifier { get; set; }
         
         private readonly Dictionary<string, BuildResult> resultDict = new();
         private readonly List<string> buildOrder = new();
+
+        public bool MayBeConvertedToV2
+        {
+            get
+            {
+                return this.All(buildResult => buildResult.MayBeConvertedToV2);
+            }
+        }
 
         public void Add(BuildResult buildResult)
         {
@@ -77,7 +99,7 @@ namespace Wellcome.Dds.IIIFBuilding
         public BuildResult? this[string id] => resultDict.TryGetValue(id, out var result) ? result : null;
 
         public BuildOutcome Outcome { get; set; }
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         public IEnumerator<BuildResult> GetEnumerator()
         {

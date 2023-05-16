@@ -6,6 +6,8 @@ namespace Utils.Caching
 
     public class BinaryObjectCacheOptions
     {
+        #nullable disable
+        
         public bool AvoidCaching { get; set; }
         public bool AvoidSaving { get; set; }
         public bool WriteFailThrowsException { get; set; }

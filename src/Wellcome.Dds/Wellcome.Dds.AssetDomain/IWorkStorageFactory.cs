@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain
 {
@@ -10,6 +11,6 @@ namespace Wellcome.Dds.AssetDomain
         /// <summary>
         /// Get <see cref="IWorkStore"/> for specified bNumber. 
         /// </summary>
-        Task<IWorkStore> GetWorkStore(string identifier);
+        Task<IWorkStore> GetWorkStore(DdsIdentifier ddsId);
     }
 }

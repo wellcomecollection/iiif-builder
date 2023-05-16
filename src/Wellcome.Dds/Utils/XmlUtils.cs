@@ -12,24 +12,24 @@ namespace Utils
         {
             return xel
                 .Elements(elementName)
-                .Single(x => (string)x.Attribute(attributeName) == attributeValue);
+                .Single(x => (string?)x.Attribute(attributeName) == attributeValue);
         }
 
         public static XElement GetSingleDescendantWithAttribute(this XElement xel, XName elementName, string attributeName, string attributeValue)
         {
             return xel
                 .Descendants(elementName)
-                .Single(x => (string)x.Attribute(attributeName) == attributeValue);
+                .Single(x => (string?)x.Attribute(attributeName) == attributeValue);
         }
 
         public static IEnumerable<XElement> GetAllDescendantsWithAttribute(this XElement xel, XName elementName, string attributeName, string attributeValue)
         {
             return xel
                 .Descendants(elementName)
-                .Where(x => (string)x.Attribute(attributeName) == attributeValue);
+                .Where(x => (string?)x.Attribute(attributeName) == attributeValue);
         }
 
-        public static string GetDesendantElementValue(this XDocument xel, XName elementName)
+        public static string? GetDescendantElementValue(this XDocument xel, XName elementName)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace Utils
             }
             return null;
         }
-        public static string GetDesendantElementValue(this XElement xel, XName elementName)
+        public static string? GetDescendantElementValue(this XElement xel, XName elementName)
         {
             try
             {
@@ -62,7 +62,7 @@ namespace Utils
             return null;
         }
 
-        public static IEnumerable<string> GetDesendantElementValues(this XDocument xel, XName elementName)
+        public static IEnumerable<string> GetDescendantElementValues(this XDocument xel, XName elementName)
         {
             var els = xel.Descendants(elementName);
             return els.Select(el => el.Value.Trim());
@@ -82,7 +82,7 @@ namespace Utils
             return attr.Value;
         }
 
-        public static string GetAttributeValue(this XElement xel, XName attributeName, string valueIfMissing)
+        public static string? GetAttributeValue(this XElement xel, XName attributeName, string? valueIfMissing)
         {
             if (xel == null)
             {

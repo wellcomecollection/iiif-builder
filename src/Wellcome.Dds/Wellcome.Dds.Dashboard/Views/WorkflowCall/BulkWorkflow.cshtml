@@ -1,0 +1,26 @@
+@model BulkWorkflowModel
+
+@{
+    ViewBag.Title = "Bulk workflow tool - results";
+}
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Bulk workflow tool - results</h3>
+    
+    <p>@Html.ActionLink("Go back to start", "Bulk", "WorkflowCall")</p>
+    
+    @if (Model.Error.HasText())
+    {
+        <div class="alert alert-danger" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@Model.Error</strong>
+        </div>
+    }
+    
+    <p>The following jobs were successfully created:</p>
+        
+    <partial name="_WorkflowJobList" model="Model.WorkflowJobs" />
+ 
+</div>
+
+<hr/>

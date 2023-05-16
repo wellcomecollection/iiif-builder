@@ -4,6 +4,6 @@ namespace Wellcome.Dds.AssetDomain.Mets
 {
     public interface IIgnoreAssetFilter
     {
-        List<string> GetStorageIdentifiersToIgnore(string manifestationType, List<IPhysicalFile> sequence);
+        List<string?> GetStorageIdentifiersToIgnore(string manifestationType, List<IPhysicalFile> sequence);
     }
 }

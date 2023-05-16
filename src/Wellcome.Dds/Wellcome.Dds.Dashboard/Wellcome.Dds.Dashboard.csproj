@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="6.0.3" />
     <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.1.167" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.101.14" />
+    <PackageReference Include="AWSSDK.SQS" Version="3.7.100.81" />
     <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="6.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.6">
@@ -100,7 +102,7 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="Pages\Dash\GoobiCallList.cshtml">
+    <Content Update="Pages\Dash\WorkflowCallList.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
@@ -108,7 +110,7 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="Pages\Dash\GoobiCall.cshtml">
+    <Content Update="Pages\Dash\WorkflowCall.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
@@ -129,15 +131,15 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="Views\GoobiCall\GoobiCall.cshtml">
+    <Content Update="Views\WorkflowCall\WorkflowCall.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="Views\GoobiCall\GoobiCallList.cshtml">
+    <Content Update="Views\WorkflowCall\WorkflowCallList.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Update="Views\GoobiCall\Stats.cshtml">
+    <Content Update="Views\WorkflowCall\Stats.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
@@ -210,6 +212,10 @@
     <None Include="wwwroot\js\respond.min.js" />
     <None Include="wwwroot\js\typeahead.jquery.js" />
     <None Include="wwwroot\js\_references.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Pages" />
   </ItemGroup>
 
  </Project>

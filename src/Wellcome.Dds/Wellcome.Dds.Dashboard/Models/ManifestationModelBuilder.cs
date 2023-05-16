@@ -12,8 +12,10 @@ using Utils;
 using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Logging;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Dashboard.Controllers;
@@ -26,12 +28,13 @@ namespace Wellcome.Dds.Dashboard.Models
         private readonly IAmazonS3 amazonS3;
         private readonly ILogger<ManifestationModelBuilder> logger;
         private readonly ICatalogue catalogue;
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly ISimpleCache cache;
         private readonly UriPatterns uriPatterns;
         private readonly DdsOptions ddsOptions;
         private readonly DlcsOptions dlcsOptions;
         private readonly SmallJobLogger jobLogger;
+        private readonly IMetsRepository metsRepository;
 
         private const string CacheKeyPrefix = "manifestModelBuilder_";
         private const int CacheSeconds = 5;
@@ -42,38 +45,40 @@ namespace Wellcome.Dds.Dashboard.Models
             IAmazonS3 amazonS3,
             ILogger<ManifestationModelBuilder> logger,
             ICatalogue catalogue,
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             ISimpleCache cache,
-            UriPatterns uriPatterns
+            UriPatterns uriPatterns,
+            IMetsRepository metsRepository
         )
         {
             this.ddsOptions = ddsOptions.Value;
             this.amazonS3 = amazonS3;
             this.logger = logger;
             this.catalogue = catalogue;
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.cache = cache;
             this.uriPatterns = uriPatterns;
             this.dlcsOptions = dlcsOptions.Value;
+            this.metsRepository = metsRepository;
             jobLogger = new SmallJobLogger(string.Empty, null);
         }
 
         public async Task<OverallResult> Build(DdsIdentifier identifier, IUrlHelper url)
         {
-            IDigitisedResource dgResource;
-            Work work;
             try
             {
                 jobLogger.Start();
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
-                var ddsTask = dashboardRepository.GetDigitisedResource(identifier, true);
+                var dlcsCallContext = new DlcsCallContext("ManifestationModelBuilder::Build", identifier);
+                logger.LogDebug("Starting DlcsCallContext {callContext}", dlcsCallContext);
+                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, dlcsCallContext, identifier.HasBNumber);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
-                dgResource = ddsTask.Result;
-                work = workTask.Result;
+                var dgResource = ddsTask.Result;
+                var work = workTask.Result;
 
-                if (dgResource is IDigitisedManifestation dgManifestation)
+                if (dgResource is IDigitalManifestation dgManifestation)
                 {
                     // ***************************************************
                     // THIS IS ONLY HERE TO SUPPORT THE PDF LINK
@@ -83,16 +88,17 @@ namespace Wellcome.Dds.Dashboard.Models
                     jobLogger.Log("Finished dashboardRepository.FindSequenceIndex(id)");
                     // represents the set of differences between the METS view of the world and the DLCS view
                     jobLogger.Log("Start dashboardRepository.GetDlcsSyncOperation(id)");
-                    var syncOperation = await dashboardRepository.GetDlcsSyncOperation(dgManifestation, true);
+                    var syncOperation = await digitalObjectRepository.GetDlcsSyncOperation(dgManifestation, true, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetDlcsSyncOperation(id)");
 
-                    IDigitisedCollection parent;
-                    IDigitisedCollection grandparent;
+                    ICollection parent;
+                    ICollection grandparent;
                     // We need to show the manifestation with information about its parents, it it has any.
                     // this allows navigation through multiple manifs
                     switch (identifier.IdentifierType)
                     {
                         case IdentifierType.BNumber:
+                        case IdentifierType.NonBNumber:
                             parent = null;
                             grandparent = null;
                             break;
@@ -111,11 +117,11 @@ namespace Wellcome.Dds.Dashboard.Models
                     }
 
                     var skeletonPreview = string.Format(
-                        dlcsOptions.SkeletonNamedQueryTemplate, dlcsOptions.CustomerDefaultSpace, identifier);
+                        dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
 
                     var model = new ManifestationModel
                     {
-                        DefaultSpace = dashboardRepository.DefaultSpace,
+                        DefaultSpace = digitalObjectRepository.DefaultSpace,
                         Url = url,
                         DdsIdentifier = identifier,
                         DigitisedManifestation = dgManifestation,
@@ -125,7 +131,6 @@ namespace Wellcome.Dds.Dashboard.Models
                         DlcsOptions = dlcsOptions,
                         DlcsSkeletonManifest = skeletonPreview,
                         Work = work,
-                        EncoreRecordUrl = uriPatterns.PersistentCatalogueRecord(identifier.PackageIdentifier),
                         ManifestUrl = uriPatterns.Manifest(identifier)
                     };
                     if (work != null)
@@ -133,13 +138,20 @@ namespace Wellcome.Dds.Dashboard.Models
                         // It's OK, in the dashboard, for a Manifestation to not have a corresponding work.
                         // We can't make IIIF for it, though.
                         model.CatalogueApi = uriPatterns.CatalogueApi(work.Id);
+                        model.CatalogueApiFull = catalogue.GetCatalogueApiUrl(work.Id);
                         model.WorkPage = uriPatterns.PersistentPlayerUri(work.Id);
                     }
 
-                    model.AVDerivatives = dashboardRepository.GetAVDerivatives(dgManifestation);
+                    model.DeliveredFilesMap = new Dictionary<string, DeliveredFile[]>();
+                    foreach (var file in dgManifestation.MetsManifestation!.SynchronisableFiles!)
+                    {
+                        model.DeliveredFilesMap[file.StorageIdentifier!] =
+                            digitalObjectRepository.GetDeliveredFiles(file);
+                    }
+                    
                     model.MakeManifestationNavData();
                     jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
-                    var jobActivity = await dashboardRepository.GetRationalisedJobActivity(syncOperation);
+                    var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                     model.IngestJobs = jobActivity.UpdatedJobs;
                     model.BatchesForImages = jobActivity.BatchesForCurrentImages;
@@ -186,18 +198,18 @@ namespace Wellcome.Dds.Dashboard.Models
                     };
                 }
 
-                if (dgResource is IDigitisedCollection dgCollection)
+                if (dgResource is IDigitalCollection dgCollection)
                 {
                     // This is the manifestation controller, not the volume or issue controller.
                     // So redirect to the first manifestation that we can find for this collection.
                     // Put this and any intermediary collections in the short term cache,
                     // so that we don't need to build them from scratch after the redirect.
                     string redirectId;
-                    PutCollectionInShortTermCache(dgCollection);
+                    // PutCollectionInShortTermCache(dgCollection);
                     if (dgCollection.MetsCollection.Manifestations.HasItems())
                     {
                         // a normal multiple manifestation, or possibly a periodical volume?
-                        redirectId = dgCollection.MetsCollection.Manifestations.First().Id;
+                        redirectId = dgCollection.MetsCollection.Manifestations.First().Identifier;
                         return new OverallResult
                         {
                             RedirectToManifest = true,
@@ -229,29 +241,23 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public List<Tuple<long, long, string>> GetLoggingEvents() => jobLogger.GetEvents();
         
-        private void PutCollectionInShortTermCache(IDigitisedCollection collection)
-        {
-            // (in order to PUT this in the cache, we need to retrieve it...
-            var key = CacheKeyPrefix + collection.Identifier;
-            cache.Remove(key);
-            
-            // TODO - should this be .Insert() as we've removed cache? 
-            cache.GetCached(CacheSeconds, key, () => collection); 
-        }
+        // private void PutCollectionInShortTermCache(IDigitalCollection collection)
+        // {
+        //     // (in order to PUT this in the cache, we need to retrieve it...
+        //     var key = $"{CacheKeyPrefix}digital_{collection.Identifier}";
+        //     cache.Remove(key);
+        //     
+        //     // TODO - should this be .Insert() as we've removed cache? 
+        //     cache.GetCached(CacheSeconds, key, () => collection); 
+        // }
         
-        private async Task<IDigitisedCollection> GetCachedCollectionAsync(string identifier)
+        private async Task<ICollection> GetCachedCollectionAsync(string identifier)
         {
-            // The cache is caching a Task<IDigitisedResource> (from the callback)
-            // this works... but we need to revisit
-            // TODO: 1) SimpleCache handling of tasks
-            // TODO: 2) This should be a request-scoped cache anyway
-            
-            // NOTE - why is this caching in controller? Shouldn't that be in the repo?
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await dashboardRepository.GetDigitisedResource(identifier, true));
-            return (IDigitisedCollection)coll;
+                async () => await metsRepository.GetAsync(identifier));
+            return (ICollection)coll;
         }
 
         private async Task PopulateLastWriteTimes(ManifestationModel model)
@@ -259,15 +265,15 @@ namespace Wellcome.Dds.Dashboard.Models
             // TODO - these paths should not be repeated here
             var identifier = model.DdsIdentifier;
             var textFileInfo = new S3StoredFileInfo(ddsOptions.TextContainer, $"raw/{identifier}", amazonS3);
-            var annosFileInfo = new S3StoredFileInfo(ddsOptions.AnnotationContainer,
-                $"v3/{identifier}/all/line", amazonS3);
+            var imagesFileInfo = new S3StoredFileInfo(ddsOptions.AnnotationContainer,
+                $"v3/{identifier}/images", amazonS3);
             var manifestFileInfo = new S3StoredFileInfo(ddsOptions.PresentationContainer, $"v3/{identifier}", amazonS3);
 
-            await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), annosFileInfo.EnsureObjectMetadata(),
+            await Task.WhenAll(textFileInfo.EnsureObjectMetadata(), imagesFileInfo.EnsureObjectMetadata(),
                 manifestFileInfo.EnsureObjectMetadata());
 
             model.TextWriteTime = textFileInfo.GetLastWriteTime().Result;
-            model.AnnotationWriteTime = annosFileInfo.GetLastWriteTime().Result;
+            model.AnnotationWriteTime = imagesFileInfo.GetLastWriteTime().Result;
             model.ManifestWriteTime = manifestFileInfo.GetLastWriteTime().Result;
         }
     }

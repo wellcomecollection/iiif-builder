@@ -1,0 +1,50 @@
+@model List<Dictionary<string, string>>
+
+@{
+    ViewBag.Title = "Test Identifiers";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Born Digital From Sheet</h3>
+</div>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Identifier</th>
+        <th>Extent</th>
+        <th>Ingest complete</th>
+        <th></th>
+        <th></th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var dict in Model)
+    {
+        if (dict["Level"] == "Collection")
+        {
+            <tr>
+                <td colspan="7" class="active">Collection: @dict["PublicRef"]</td>
+            </tr>
+        }
+        else if(dict["Level"] == "Item")
+        {
+            var altForm = dict["PublicRef"].ReplaceFirst("/", "");
+            var identifier = new DdsIdentifier(altForm);
+            <tr>
+                <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+                <td>@dict["Extent"]</td>
+                <td>@if(dict.ContainsKey("Ingest completed?")){@dict["Ingest completed?"]}</td>
+                <td>@Html.ActionLink("METS", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+                <td>@Html.ActionLink("Storage", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+                <td>@Html.ActionLink("Workflow", "WorkflowCall", "WorkflowCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            </tr>
+            
+        }
+    }
+    </tbody>
+</table>

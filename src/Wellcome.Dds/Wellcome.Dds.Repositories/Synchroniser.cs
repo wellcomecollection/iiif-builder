@@ -44,11 +44,15 @@ namespace Wellcome.Dds.Repositories
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns)
         {
+            this.dlcsOptions = dlcsOptions.Value;
+            if (this.dlcsOptions.ResourceEntryPoint.IsNullOrWhiteSpace())
+            {
+                throw new InvalidOperationException("DLCS Resource Entry Point not specified in options");
+            }
             this.metsRepository = metsRepository;
             this.logger = logger;
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
-            this.dlcsOptions = dlcsOptions.Value;
             this.uriPatterns = uriPatterns;
         }
         
@@ -74,35 +78,34 @@ namespace Wellcome.Dds.Repositories
         /// </param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task RefreshDdsManifestations(string identifier, Work? work = null)
+        public async Task RefreshDdsManifestations(DdsIdentifier identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
-            var isBNumber = identifier.IsBNumber();
-            var shortB = -1;
-            var workBNumber = new DdsIdentifier(identifier).PackageIdentifier;
+            // var shortB = -1;
             var manifestationIdsProcessed = new List<string>();
             var containsRestrictedFiles = false;
             IMetsResource? packageMetsResource = null;
             IFileBasedResource? packageFileResource = null;
-            work ??= await catalogue.GetWorkByOtherIdentifier(workBNumber);
+            work ??= await catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
             if (work == null)
             {
-                throw new ArgumentException($"Work in Synchroniser cannot be null - {workBNumber}", nameof(work));
+                throw new ArgumentException($"Work in Synchroniser cannot be null - {identifier.PackageIdentifier}", nameof(work));
             }
-            if (isBNumber)
+            if (identifier.IsPackageLevelIdentifier)
             {
                 // operations we can only do when the identifier being processed is a b number
                 
                 // remove any error manifestations, we can recreate them
                 var errors = ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == identifier && fm.Index < 0);
+                    .Where(fm => fm.PackageIdentifier == identifier.ToString() && fm.Index < 0);
                 foreach (var error in errors)
                 {
                     ddsContext.Manifestations.Remove(error);
                 }
                 await ddsContext.SaveChangesAsync();
-                
-                shortB = identifier.ToShortBNumber();
+
+                // WHAT TO DO... leave shortB as -1?
+                // shortB = identifier.HasBNumber ? identifier.BNumber.ToShortBNumber() : 0; 
                 logger.LogInformation("Getting METS resource for synchroniser: {identifier}", identifier);
                 packageMetsResource = await metsRepository.GetAsync(identifier);
                 packageFileResource = packageMetsResource;
@@ -114,33 +117,33 @@ namespace Wellcome.Dds.Repositories
             // all possible manifestations currently defined in METS for this b number.
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
-                var metsManifestation = mic.Manifestation;
-                var ddsId = new DdsIdentifier(metsManifestation.Id);
+                IManifestation metsManifestation = mic.Manifestation;
                 if (metsManifestation.Partial)
                 {
-                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Id);
-                    metsManifestation = (IManifestation) await metsRepository.GetAsync(metsManifestation.Id);
+                    logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Identifier);
+                    metsManifestation = (IManifestation) (await metsRepository.GetAsync(metsManifestation.Identifier!))!;
                 }
-                if (isBNumber)
+                if (identifier.IsPackageLevelIdentifier)
                 {
-                    if (metsManifestation.ModsData.AccessCondition == "Restricted files")
+                    if (metsManifestation.SectionMetadata!.AccessCondition == "Restricted files")
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIdsProcessed.Add(ddsId);
+                    manifestationIdsProcessed.Add(metsManifestation.Identifier!);
                 }
 
-                var ddsManifestation = await ddsContext.Manifestations.FindAsync(ddsId.ToString());
-                var assets = metsManifestation.Sequence;
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier!.ToString());
+                var assets = metsManifestation.Sequence ?? throw new InvalidOperationException("Manifestation has no Sequence");
                 
                 // (some Change code removed here) - we're not going to implement this for now
                 if (ddsManifestation == null)
                 {
+                    logger.LogInformation("No existing record for {identifier}", metsManifestation.Identifier);
                     ddsManifestation = new Manifestation
                     {
-                        Id = ddsId,
-                        PackageIdentifier = ddsId.PackageIdentifier,
-                        PackageShortBNumber = ddsId.PackageIdentifier.ToShortBNumber(),
+                        Id = metsManifestation.Identifier,
+                        PackageIdentifier = metsManifestation.Identifier.PackageIdentifier,
+                        PackageShortBNumber = metsManifestation.Identifier.PackageIdentifier.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
@@ -157,7 +160,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.Label =
                     metsManifestation.Label.HasText() ? metsManifestation.Label : "(no label in METS)";
                 ddsManifestation.WorkId = work.Id;
-                ddsManifestation.WorkType = work.WorkType.Id;
+                ddsManifestation.WorkType = work.WorkType!.Id;
                 ddsManifestation.ReferenceNumber = work.ReferenceNumber;
                 ddsManifestation.CalmRef = work.GetIdentifierByType("calm-ref-no");
                 ddsManifestation.CalmAltRef = work.GetIdentifierByType("calm-altref-no");
@@ -194,7 +197,7 @@ namespace Wellcome.Dds.Repositories
                 ddsManifestation.SupportsSearch = assets.Any(pf => pf.RelativeAltoPath.HasText());
                 ddsManifestation.IsAllOpen = assets.TrueForAll(pf => pf.AccessCondition == AccessCondition.Open);
                 ddsManifestation.PermittedOperations = string.Join(",", metsManifestation.PermittedOperations);
-                ddsManifestation.RootSectionAccessCondition = metsManifestation.ModsData.AccessCondition;
+                ddsManifestation.RootSectionAccessCondition = metsManifestation.SectionMetadata!.AccessCondition;
                 if (assets.HasItems())
                 {
                     ddsManifestation.FileCount = assets.Count;
@@ -207,9 +210,9 @@ namespace Wellcome.Dds.Repositories
                         //     ddsManifestation.AssetType = "seadragon/dzi";
                         ddsManifestation.FirstFileStorageIdentifier = asset.StorageIdentifier;
                         ddsManifestation.FirstFileExtension =
-                            asset.AssetMetadata.GetFileName().GetFileExtension().ToLowerInvariant();
+                            asset.AssetMetadata!.GetFileName()!.GetFileExtension().ToLowerInvariant();
                         ddsManifestation.DipStatus = null;
-                        switch (ddsManifestation.AssetType.GetAssetFamily())
+                        switch (metsManifestation.Sequence.First().GetDefaultProcessingBehaviour().AssetFamily)
                         {
                             case AssetFamily.Image:
                                 ddsManifestation.FirstFileThumbnailDimensions = asset.GetAvailableSizeAsString();
@@ -217,7 +220,7 @@ namespace Wellcome.Dds.Repositories
                                 if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
-                                    IPhysicalFile catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
+                                    IPhysicalFile? catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
                                         ddsManifestation.CatalogueThumbnailDimensions = catThumbAsset.GetAvailableSizeAsString();
@@ -227,7 +230,7 @@ namespace Wellcome.Dds.Repositories
                                 break;
                             case AssetFamily.TimeBased:
                                 ddsManifestation.FirstFileThumbnailDimensions =
-                                    asset.AssetMetadata.GetLengthInSeconds();
+                                    asset.AssetMetadata.GetDisplayDuration();
                                 ddsManifestation.FirstFileDuration = asset.AssetMetadata.GetDuration();
                                 break;
                         }
@@ -235,21 +238,22 @@ namespace Wellcome.Dds.Repositories
                 }
                 if (packageFileResource != null)
                 {
-                    ddsManifestation.PackageFile = packageFileResource.SourceFile.Uri;
-                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime;
+                    ddsManifestation.PackageFile = packageFileResource.SourceFile!.Uri;
+                    // need to ensure this is UTC - it's been through protobuf
+                    ddsManifestation.PackageFileModified = packageFileResource.SourceFile.LastWriteTime.ToUniversalTime();
                 }
                 var fsr = (IFileBasedResource) metsManifestation;
-                ddsManifestation.ManifestationFile = fsr.SourceFile.Uri;
-                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime;
-                ddsManifestation.Processed = DateTime.Now;
+                ddsManifestation.ManifestationFile = fsr.SourceFile!.Uri;
+                ddsManifestation.ManifestationFileModified = fsr.SourceFile.LastWriteTime.ToUniversalTime();
+                ddsManifestation.Processed = DateTime.UtcNow;
 
                 // extra fields that only the new dash knows about
                 ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
-                ddsManifestation.ManifestationIdentifier = ddsId;
-                ddsManifestation.VolumeIdentifier = ddsId.IdentifierType == IdentifierType.Volume
-                    ? ddsId.VolumePart
+                ddsManifestation.ManifestationIdentifier = metsManifestation.Identifier;
+                ddsManifestation.VolumeIdentifier = metsManifestation.Identifier.IdentifierType == IdentifierType.Volume
+                    ? metsManifestation.Identifier.VolumePart
                     : null;
-                if (isBNumber)
+                if (identifier.IsPackageLevelIdentifier)
                 {
                     // we can only set these when processing a b number, not an individual manifestation
                     ddsManifestation.Index = mic.SequenceIndex;
@@ -263,14 +267,14 @@ namespace Wellcome.Dds.Repositories
             } // end of foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier)
             
             // At this point there are no uncommitted DB changes
-            if (isBNumber)
+            if (identifier.IsPackageLevelIdentifier)
             {
                 string? betterTitle = null;
                 if (manifestationIdsProcessed.Count == 0)
                 {
                     const string message = "No manifestations for {0}, creating error manifestation";
                     const string dipStatus = "no-manifs";
-                    await CreateErrorManifestation(shortB, message, identifier, dipStatus);
+                    await CreateErrorManifestation(identifier, message, dipStatus);
                 }
                 else
                 {
@@ -282,7 +286,7 @@ namespace Wellcome.Dds.Repositories
                 
                 // See what's already present in the manifestations table for this b number
                 foreach (var ddsManifestation in ddsContext.Manifestations.Where(
-                    fm => fm.PackageIdentifier == identifier))
+                    fm => fm.PackageIdentifier == identifier.ToString()))
                 {
                     if (!manifestationIdsProcessed.Contains(ddsManifestation.Id))
                     {
@@ -305,10 +309,10 @@ namespace Wellcome.Dds.Repositories
         private IPhysicalFile? GetPhysicalFileFromThumbnailPath(Work work, List<IPhysicalFile> assets)
         {
             if (work.Thumbnail == null) return null;
-            var match = wcorgThumbRegex.Match(work.Thumbnail.Url);
+            var match = wcorgThumbRegex.Match(work.Thumbnail.Url!);
             if (!match.Success)
             {
-                match = dlcsThumbRegex.Match(work.Thumbnail.Url);
+                match = dlcsThumbRegex.Match(work.Thumbnail.Url!);
                 if (!match.Success) return null;
             }
             var storageIdentifier = match.Groups[1].Value;
@@ -317,22 +321,21 @@ namespace Wellcome.Dds.Repositories
 
         private string GetDlcsThumbnailServiceForAsset(IPhysicalFile asset)
         {
-            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint, asset.StorageIdentifier);
+            return uriPatterns.DlcsThumb(dlcsOptions.ResourceEntryPoint!, asset.StorageIdentifier);
         }
         
   
-        private async Task CreateErrorManifestation(int shortB, string message, 
-            string bNumber, string dipStatus)
+        private async Task CreateErrorManifestation(DdsIdentifier identifier, string message, string dipStatus)
         {
-            DeleteMetadata(bNumber);
-            logger.LogWarning(message, bNumber);
+            DeleteMetadata(identifier);
+            logger.LogWarning(message, identifier);
             var fm = new Manifestation
             {
-                Id = bNumber,
-                PackageIdentifier = bNumber,
-                PackageShortBNumber = shortB,
+                Id = identifier,
+                PackageIdentifier = identifier.PackageIdentifier,
+                PackageShortBNumber = identifier.PackageIdentifier.ToShortBNumber(),
                 Index = -1,
-                Processed = DateTime.Now,
+                Processed = DateTime.UtcNow,
                 DipStatus = dipStatus
             };
             await ddsContext.Manifestations.AddAsync(fm);

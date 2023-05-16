@@ -4,15 +4,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Utils;
 using Utils.Logging;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Common;
@@ -23,7 +25,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 {
     public class DashController : Controller
     {
-        private readonly IDashboardRepository dashboardRepository;
+        private readonly IDigitalObjectRepository digitalObjectRepository;
         private readonly IIngestJobRegistry jobRegistry;
         private readonly IStatusProvider statusProvider;
         private readonly IDatedIdentifierProvider recentlyDigitisedIdentifierProvider;
@@ -33,9 +35,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly ILogger<DashController> logger;
         private readonly UriPatterns uriPatterns;
         private readonly ManifestationModelBuilder modelBuilder;
-
+        private readonly IWorkflowCallRepository workflowCallRepository;
+        
         public DashController(
-            IDashboardRepository dashboardRepository,
+            IDigitalObjectRepository digitalObjectRepository,
             IIngestJobRegistry jobRegistry,
             IStatusProvider statusProvider,
             IDatedIdentifierProvider recentlyDigitisedIdentifierProvider,
@@ -44,12 +47,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             StorageServiceClient storageServiceClient,
             ILogger<DashController> logger,
             UriPatterns uriPatterns,
-            ManifestationModelBuilder modelBuilder
+            ManifestationModelBuilder modelBuilder,
+            IWorkflowCallRepository workflowCallRepository
         )
         {
             // TODO - we need a review of all these dependencies!
             // too many things going on in this controller
-            this.dashboardRepository = dashboardRepository;
+            this.digitalObjectRepository = digitalObjectRepository;
             this.jobRegistry = jobRegistry;
             this.statusProvider = statusProvider;
             this.recentlyDigitisedIdentifierProvider = recentlyDigitisedIdentifierProvider;
@@ -59,6 +63,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.logger = logger;
             this.uriPatterns = uriPatterns;
             this.modelBuilder = modelBuilder;
+            this.workflowCallRepository = workflowCallRepository;
         }
 
         public ActionResult Index()
@@ -73,7 +78,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             Page<ErrorByMetadata> errorsByMetadataPage;
             try
             {
-                errorsByMetadataPage = await dashboardRepository.GetErrorsByMetadata(page);
+                errorsByMetadataPage = await digitalObjectRepository.GetErrorsByMetadata(
+                    page, new DlcsCallContext("DashController::Status", "[no-id]"));
             }
             catch (Exception ex)
             {
@@ -82,7 +88,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     {Items = new ErrorByMetadata[] { }, PageNumber = 0, TotalItems = 0, TotalPages = 1};
             }
 
-            var recentActions = dashboardRepository.GetRecentActions(200);
+            var recentActions = digitalObjectRepository.GetRecentActions(200);
             var model = new HomeModel
             {
                 ProblemJobs = new JobsModel {Jobs = problemJobs.ToArray()},
@@ -122,7 +128,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             DdsIdentifier ddsId = null;
-
+            logger.LogDebug("Generating Manifestation Page for {identifier}", id);
             try
             {
                 ddsId = new DdsIdentifier(id);
@@ -153,24 +159,33 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
-                    ViewBag.TryInstead = ddsId.PackageIdentifier;
+                    ViewBag.TryInstead = ddsId.PackageIdentifierPathElementSafe;
                 }
             }
-
+            
+            // At this point we need to return the error page. See if there's a workflow job for this identifier:
+            if (ddsId != null)
+            {
+                ViewBag.WorkflowJob = await workflowCallRepository.GetWorkflowJob(ddsId.PackageIdentifier);
+            }
+            
             return View("ManifestationError");
         }
 
         public async Task<ActionResult> Collection(string id)
         {
             var json = AskedForJson();
-            IDigitisedCollection collection = null;
+            IDigitalCollection collection = null;
             DdsIdentifier ddsId = null;
             bool showError = false;
             try
             {
+                var dlcsCallContext = new DlcsCallContext("DashController::Collection", id);
+                logger.LogDebug("Starting DlcsCallContext: {callContext}", dlcsCallContext);
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                collection = (await dashboardRepository.GetDigitisedResource(id)) as IDigitisedCollection;
+                collection = await digitalObjectRepository.GetDigitalObject(
+                    id, dlcsCallContext) as IDigitalCollection;
             }
             catch (Exception metsEx)
             {
@@ -198,7 +213,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Collection", collection);
         }
 
-        private SimpleCollectionModel MakeSimpleCollectionModel(IDigitisedCollection collection)
+        private SimpleCollectionModel MakeSimpleCollectionModel(IDigitalCollection collection)
         {
             var simpleCollection = new SimpleCollectionModel();
             if (collection.Collections.HasItems())
@@ -275,7 +290,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult RecentActions()
         {
-            var recentActions = dashboardRepository.GetRecentActions(200);
+            var recentActions = digitalObjectRepository.GetRecentActions(200);
             return View(recentActions);
         }
 
@@ -283,39 +298,50 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             ViewBag.Message = "Your application description page.";
             ViewBag.RunProcesses = await statusProvider.ShouldRunProcesses();
-            DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.Now;
-            ViewBag.JobDelay = (DateTime.Now - cutoff).Minutes;
+            DateTime cutoff = statusProvider.LatestJobToTake ?? DateTime.UtcNow;
+            ViewBag.JobDelay = (DateTime.UtcNow - cutoff).Minutes;
             return View("StopStatus");
         }
 
         public ActionResult UV(string id, int version)
         {
-            var manifest = uriPatterns.Manifest(id);
+            var ddsId = new DdsIdentifier(id);
+            var manifest = uriPatterns.Manifest(ddsId);
             if (version == 2)
             {
-                return View("UV", manifest.Replace("/presentation/", "/presentation/v2/"));
+                manifest = manifest.Replace("/presentation/", "/presentation/v2/");
             }
             return Redirect("https://universalviewer.io/examples/#?manifest=" + manifest);
         }
         
-        public IActionResult Mirador(string id, int version)
+        public ActionResult UVPreview(string id, int version, string origin)
         {
-            var manifest = uriPatterns.Manifest(id);
-            string oldId = id;
-            if (!id.IsBNumber())
+            var action = version == 2 ? "IIIF2Raw" : "IIIFRaw";
+            var previewUri = $"{origin}{Url.Action(action, "Peek", new { id })}";
+            return Redirect("https://universalviewer.io/examples/#?manifest=" + previewUri);
+        }
+        
+        public IActionResult Mirador(string id)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var manifests = new List<string>{ uriPatterns.Manifest(ddsId) };
+            if (ddsId.StorageSpace == "digitised")
             {
-                var ddsId = new DdsIdentifier(id);
-                var manifestation = dds.GetManifestation(id);
-                oldId = $"{ddsId.PackageIdentifier}-{manifestation.Index}";
+                // This isn't actually the criteria for IIIF v2 but it will suffice here
+                manifests.Add(manifests[0].Replace("/presentation/", "/presentation/v2/"));
             }
-
-            var libraryManifest = $"https://wellcomelibrary.org/iiif/{oldId}/manifest";
-            var model = new[] {manifest, libraryManifest};
-            if (version == 2)
+            return View("Mirador", manifests);
+        }
+        
+        public IActionResult MiradorPreview(string id, string origin)
+        {
+            var ddsId = new DdsIdentifier(id);
+            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { id })}" };
+            if (ddsId.StorageSpace == "digitised")
             {
-                model[0] = model[0].Replace("/presentation/", "/presentation/v2/");
-            } 
-            return View("Mirador", model);
+                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { id })}");
+            }
+            return View("Mirador", manifests);
         }
 
         public IActionResult Validator(string id)
@@ -352,36 +378,36 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeletePdf(string id)
         {
-            var success = await dashboardRepository.DeletePdf(id);
+            var success = await digitalObjectRepository.DeletePdf(id);
             var message = success ? "success" : "failed";
             TempData["delete-pdf"] = success;
-            dashboardRepository.LogAction(id, null, User.Identity.Name, $"Delete PDF: {message}");
+            digitalObjectRepository.LogAction(id, null, User.Identity.Name, $"Delete PDF: {message}");
             return RedirectToAction("Manifestation", new { id });
         }
 
         public async Task<ActionResult> DoStop(object id)
         {
-            dashboardRepository.LogAction(null, null, User.Identity.Name, "STOP services");
+            digitalObjectRepository.LogAction(null, null, User.Identity.Name, "STOP services");
             TempData["stop-result"] = await statusProvider.Stop();
             return RedirectToAction("StopStatus");
         }
 
         public async Task<ActionResult> DoStart(object id)
         {
-            dashboardRepository.LogAction(null, null, User.Identity.Name, "START services");
+            digitalObjectRepository.LogAction(null, null, User.Identity.Name, "START services");
             TempData["start-result"] = await statusProvider.Start();
             return RedirectToAction("StopStatus");
         }
 
         public Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
-            return dashboardRepository.GetDlcsQueueLevel();
+            return digitalObjectRepository.GetDlcsQueueLevel();
         }
 
         public async Task<ActionResult> DeleteOrphans(string id)
         {
-            dashboardRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
-            int removed = await dashboardRepository.DeleteOrphans(id);
+            digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
+            int removed = await digitalObjectRepository.DeleteOrphans(id, new DlcsCallContext("DashController::DeleteOrphans", id));
             TempData["orphans-deleted"] = removed;
             return RedirectToAction("Manifestation", new { id });
         }

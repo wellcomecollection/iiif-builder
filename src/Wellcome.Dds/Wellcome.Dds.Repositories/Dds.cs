@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Utils;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
@@ -10,20 +9,13 @@ namespace Wellcome.Dds.Repositories
 {
     public class Dds : IDds
     {
-        private DdsOptions ddsOptions;
-        private DdsContext ddsContext;
-        private ILogger<Dds> logger;
-        private Synchroniser synchroniser;
+        private readonly DdsContext ddsContext;
+        private readonly Synchroniser synchroniser;
 
-        public Dds(
-            IOptions<DdsOptions> options, 
-            DdsContext ddsContext, 
-            ILogger<Dds> logger,
+        public Dds(DdsContext ddsContext,
             Synchroniser synchroniser)
         {
-            this.ddsOptions = options.Value;
             this.ddsContext = ddsContext;
-            this.logger = logger;
             this.synchroniser = synchroniser;
         }
 
@@ -42,36 +34,41 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetTotalsByAssetType();
         }
 
-        public async Task RefreshManifestations(string id, Work work = null)
+        public async Task RefreshManifestations(DdsIdentifier ddsId, Work? work = null)
         {
-            await synchroniser.RefreshDdsManifestations(id, work);
+            await synchroniser.RefreshDdsManifestations(ddsId, work);
         }
 
         public ManifestationMetadata GetManifestationMetadata(string identifier)
         {
             var resultDdsId = new DdsIdentifier(identifier);
             var result = new ManifestationMetadata
-            {
-                Identifier = resultDdsId,
-                Manifestations = ddsContext.Manifestations
+            (
+                identifier: resultDdsId,
+                manifestations: ddsContext.Manifestations
                     .Where(fm => fm.PackageIdentifier == resultDdsId.PackageIdentifier && fm.Index >= 0)
                     .OrderBy(fm => fm.Index)
                     .ToList(),
-                Metadata = ddsContext.Metadata
+                metadata: ddsContext.Metadata
                     .Where(m => m.ManifestationId == resultDdsId.PackageIdentifier)
                     .ToList()
-            };
+            );
             return result;
         }
 
-        public List<Manifestation> GetManifestationsForChildren(string workReferenceNumber)
+        public List<Manifestation> GetManifestationsForChildren(string? workReferenceNumber)
         {
-            return ddsContext.Manifestations
-                .Where(m => m.CalmAltRefParent == workReferenceNumber)
-                .ToList();
+            if (workReferenceNumber.HasText())
+            {
+                return ddsContext.Manifestations
+                    .Where(m => m.CalmAltRefParent == workReferenceNumber)
+                    .ToList();
+            }
+
+            return new List<Manifestation>(0);
         }
 
-        public Manifestation GetManifestation(string id)
+        public Manifestation? GetManifestation(string id)
         {
             return ddsContext.Manifestations.Find(id);
         }

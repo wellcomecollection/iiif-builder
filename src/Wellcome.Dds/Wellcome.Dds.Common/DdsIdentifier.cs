@@ -1,11 +1,14 @@
-﻿namespace Wellcome.Dds.Common
+﻿using System;
+using Utils;
+
+namespace Wellcome.Dds.Common
 {
     public class DdsIdentifier
     {
         private const char Underscore = '_';
         private const char Slash = '/';
-        private const string BornDigital = "born-digital";
-        private const string Digitised = "digitised";
+        public const string BornDigital = "born-digital";
+        public const string Digitised = "digitised";
         private static readonly char[] Separators = { Underscore, Slash };
         private readonly string[] parts;
         private readonly string value;
@@ -27,6 +30,12 @@
         public string PackageIdentifierPathElementSafe { get; }
         
         /// <summary>
+        /// Sometimes a caller doesn't know whether the identfier is a package identifier or a sub part,
+        /// but wants a path-safe form anyway.
+        /// </summary>
+        public string PathElementSafe { get; }
+        
+        /// <summary>
         /// What prefix in the storage service API is required to locate this object's files
         /// Currently either "digitised" or "born-digital"
         /// </summary>
@@ -40,14 +49,14 @@
         /// <summary>
         /// If the identifier starts with a b number, the value of that b number.
         /// </summary>
-        public string BNumber { get; }
+        public string? BNumber { get; }
 
         /// <summary>
         /// If the identifier is or is part of a volume within a multiple manifestation, the value of the volume identifier.
         ///
         /// e.g., if the identifier is b19974760_10_10, the volume identifier is b19974760_10
         /// </summary>
-        public string VolumePart
+        public string? VolumePart
         {
             get
             {
@@ -65,7 +74,7 @@
         /// e.g., if the identifier is b19974760_10_10, the issue identifier is also b19974760_10_10
         /// If the identifier is b19974760_10 the issue identifier is null.
         /// </summary>
-        public string IssuePart
+        public string? IssuePart
         {
             get
             {
@@ -97,7 +106,7 @@
         /// If not provided, it will be determined from the format of the string.
         /// 
         /// </param>
-        public DdsIdentifier(string value, string storageSpace = null)
+        public DdsIdentifier(string value, string? storageSpace = null)
         {
             if (!string.IsNullOrWhiteSpace(storageSpace))
             {
@@ -132,6 +141,7 @@
                 IdentifierType = IdentifierType.Issue;
             }
 
+            PathElementSafe = value;
             if (IdentifierType == IdentifierType.NonBNumber)
             {
                 // The supplied value was not a b number, or something that started with a b number.
@@ -148,7 +158,49 @@
                 // https://digirati.slack.com/archives/CBT40CMKQ/p1649768933875669
                 PackageIdentifier = this.value.Replace(Underscore, Slash);
                 PackageIdentifierPathElementSafe = PackageIdentifier.Replace(Slash, Underscore);
+                
+                // used for ToString()... callers will need to ask for the path element safe version explicitly
+                this.value = PackageIdentifier;
+                PathElementSafe = PackageIdentifierPathElementSafe;
             }
+            
+            
+            if (PackageIdentifier.HasText() && PackageIdentifierPathElementSafe.HasText() && StorageSpace.HasText())
+            {
+                return;
+            }
+
+            throw new FormatException("Could not parse identifier");
+        }
+
+        public static bool operator ==(DdsIdentifier? d1, DdsIdentifier? d2)
+        {
+            if (d1 is null)
+            {
+                return d2 is null;
+            }
+
+            if (ReferenceEquals(d1, d2))
+            {
+                return true;
+            }
+
+            return d2 != null && d1.value == d2.value;
+        }
+
+        public static bool operator !=(DdsIdentifier? d1, DdsIdentifier? d2)
+        {
+            return !(d1 == d2);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is DdsIdentifier identifier && this == identifier;
+        }
+
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
         }
 
         public static implicit operator string(DdsIdentifier di) => di.ToString();
@@ -156,6 +208,9 @@
         public static implicit operator DdsIdentifier(string di) => new(di);
 
         public override string ToString() => value;
+
+        public bool IsPackageLevelIdentifier =>
+            IdentifierType is IdentifierType.BNumber or IdentifierType.NonBNumber;
     }
 
     public enum IdentifierType

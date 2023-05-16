@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.WordsAndPictures;
@@ -21,13 +20,13 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
 
         public Task<Text?> GetSearchText(string identifier)
         {
-            return searchTextCache.GetCachedObject(identifier, null, t => false);
+            return searchTextCache.GetCachedObject(identifier, null, _ => false);
         }
 
-        public Task<Text> ForceSearchTextRebuild(string identifier)
+        public Task<Text?> ForceSearchTextRebuild(string identifier)
         {
-            Func<Task<Text>> getFromSource = () => altoSearchTextProvider.GetSearchText(identifier);
-            return searchTextCache.GetCachedObjectFromLocal(identifier, getFromSource);
+            Task<Text?> GetFromSource() => altoSearchTextProvider.GetSearchText(identifier);
+            return searchTextCache.GetCachedObjectFromLocal(identifier, GetFromSource);
         }
 
         public ISimpleStoredFileInfo GetFileInfo(string identifier)

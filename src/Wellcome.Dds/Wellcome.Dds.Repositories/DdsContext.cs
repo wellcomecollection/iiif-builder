@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,19 +11,20 @@ namespace Wellcome.Dds.Repositories
 {
     public class DdsContext : DbContext
     {
-        public DdsContext(DbContextOptions<DdsContext> options) : base(options)
-        { }
+        private readonly string[] permittedAggregations;
 
-        public DbSet<Manifestation> Manifestations { get; set; }
-        public DbSet<Metadata> Metadata { get; set; }
+        public DdsContext(DbContextOptions<DdsContext> options) : base(options)
+        {
+            permittedAggregations = new[] { "Genre", "Subject", "Contributor", "Digitalcollection" };
+        }
+
+        public DbSet<Manifestation> Manifestations => Set<Manifestation>();
+        public DbSet<Metadata> Metadata => Set<Metadata>();
 
         public List<Manifestation> GetByAssetType(string type)
         {
-            if (type == "(empty)")
-            {
-                type = null;
-            }
-            return Manifestations.Where(m => m.AssetType == type)
+            var assetType = type == "(empty)" ? null : type;
+            return Manifestations.Where(m => m.AssetType == assetType)
                 .Take(2000).ToList();
         }
 
@@ -32,19 +32,19 @@ namespace Wellcome.Dds.Repositories
         {
             return Database
                 .MapRawSql<AssetTotal>(AssetTotal.Sql, dr => new AssetTotal (dr))
-                .Where(at => at.AssetType != null)
+                .Where(at => at.AssetType.HasText())
                 .ToDictionary(at => at.AssetType, at => at.AssetCount);
         }
 
         public List<Manifestation> AutoComplete(string query)
         {
-            string pattern = null;
+            string? pattern;
             if (Regex.IsMatch(query, "\\Ab\\d+\\z"))
             {
                 pattern = $"%{query}%";
                 return Manifestations.Where(m => 
                     m.Index == 0 &&
-                    EF.Functions.ILike(m.PackageIdentifier, pattern))
+                    EF.Functions.ILike(m.PackageIdentifier!, pattern))
                     .ToList();
             }
             if (query == "imfeelinglucky")
@@ -56,15 +56,46 @@ namespace Wellcome.Dds.Repositories
             pattern = $"%{query.ToAlphanumericOrWhitespace()}%";
             return Manifestations.Where(m => 
                 m.Index == 0 &&
-                EF.Functions.ILike(m.PackageLabel, pattern))
+                EF.Functions.ILike(m.PackageLabel!, pattern))
                 .ToList();
         }
 
         public IEnumerable<AggregationMetadata> GetAggregation(string aggregator)
         {
-            var query = String.Format(AggregationMetadata.Sql, aggregator.ToAlphanumeric());
-            return Database
-                .MapRawSql<AggregationMetadata>(query, dr => new AggregationMetadata(dr));
+            var aggregatorValue = aggregator.ToAlphanumeric();
+            if (permittedAggregations.Contains(aggregatorValue))
+            {
+                var query = String.Format(AggregationMetadata.Sql, aggregatorValue);
+                return Database
+                    .MapRawSql<AggregationMetadata>(query, dr => new AggregationMetadata(dr));
+            }
+
+            return new List<AggregationMetadata>();
+        }
+
+        public char[] GetChunkInitials(string aggregator)
+        {
+            var aggregatorValue = aggregator.ToAlphanumeric();
+            if (permittedAggregations.Contains(aggregatorValue))
+            {
+                var query = String.Format(AggregationMetadata.InitialsSql, aggregatorValue);
+                return Database.MapRawSql(query, dr => ((string)dr[0])[0]).ToArray();
+            }
+
+            return Array.Empty<char>();
+        }
+        
+        public IEnumerable<AggregationMetadata> GetChunkedAggregation(string aggregator, char chunk)
+        {
+            var aggregatorValue = aggregator.ToAlphanumeric();
+            if (permittedAggregations.Contains(aggregatorValue))
+            {
+                var query = String.Format(AggregationMetadata.ChunkSql, aggregatorValue, chunk);
+                return Database
+                    .MapRawSql<AggregationMetadata>(query, dr => new AggregationMetadata(dr));
+            }
+
+            return new List<AggregationMetadata>();
         }
 
         public IEnumerable<ValueAggregationResult> GetAggregation(string aggregator, string value)
@@ -94,19 +125,28 @@ namespace Wellcome.Dds.Repositories
 
 
 
-        public Manifestation? GetManifestationByIndex(string identfier, int index)
+        public Manifestation? GetManifestationByIndex(string identifier, int index)
         {
             return Manifestations.SingleOrDefault(
-                m => m.PackageIdentifier == identfier && m.Index == index);
+                m => m.PackageIdentifier == identifier && m.Index == index);
+        }
+
+        public Manifestation? GetManifestationByAnyIdentifier(string identifier)
+        {
+            return Manifestations.FirstOrDefault(mf => 
+                mf.ManifestationIdentifier == identifier ||
+                mf.WorkId == identifier ||
+                mf.CalmRef == identifier ||
+                mf.CalmAltRef == identifier);
         }
         
     }
 
     public record ValueAggregationResult
     {
-        public Manifestation Manifestation;
-        public string CollectionStringValue;
-        public string CollectionLabel;
+        public Manifestation? Manifestation;
+        public string? CollectionStringValue;
+        public string? CollectionLabel;
     }
     
     class AssetTotal
@@ -133,14 +173,21 @@ namespace Wellcome.Dds.Repositories
             }
         }
 
-        public string AssetType { get; set; }
-        public long AssetCount { get; set; }
+        public string AssetType { get; }
+        public long AssetCount { get; }
     }
 
     public class AggregationMetadata
     {
+        // Don't use this, too many!
         public const string Sql =
             "select distinct identifier, string_value from metadata where label='{0}' order by string_value";
+
+        public const string InitialsSql =
+            "select distinct substring(string_value, 1, 1) as initial from metadata where label='{0}' order by initial";
+        
+        public const string ChunkSql =
+            "select distinct identifier, string_value from metadata where label='{0}' and string_value like '{1}%' order by string_value";
 
         public readonly string Identifier;
         public readonly string Label;
@@ -161,7 +208,7 @@ namespace Wellcome.Dds.Repositories
 
         public readonly string ReferenceNumber;
         public readonly string Title;
-        public readonly string WorkId;
+        public readonly string? WorkId;
 
         public ArchiveCollectionTop(DbDataReader dr)
         {

@@ -1,5 +1,6 @@
 ﻿@using Wellcome.Dds.Dashboard.HtmlHelpers
 @using Newtonsoft.Json
+@using Microsoft.AspNetCore.Components.Rendering
 @model Wellcome.Dds.Dashboard.Models.ManifestationModel
 
 @{
@@ -11,6 +12,8 @@
 <a id="top"></a>
 
 <div class="row" style="padding-top: 15px">
+    
+    @* BEGIN Alerts and messages from TempData *@
     @if (TempData["RefreshAllResult"] != null)
     {
         var refreshResult = JsonConvert.DeserializeObject<DeleteResult>(TempData["RefreshAllResult"].ToString());
@@ -47,18 +50,37 @@
             </div>
         }
     }
+    
+    @if (TempData["ClearCachesResult"] != null)
+    {
+        var clearCacheResult = JsonConvert.DeserializeObject<DeleteResult>(TempData["ClearCachesResult"].ToString());
+        if (clearCacheResult.Success)
+        {
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Success!</strong> Caches for this item have been queued for clearing.
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>Failed to clear caches.</strong> @clearCacheResult.Message
+            </div>
+        }
+    }
     @if (TempData["remove-old-jobs"] != null)
     {
         <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>@((int) TempData["remove-old-jobs"]) old job(s) removed!</strong>
+            <strong>@((int)TempData["remove-old-jobs"]) old job(s) removed!</strong>
         </div>
     }
     @if (TempData["orphans-deleted"] != null)
     {
         <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <strong>@((int) TempData["orphans-deleted"]) Orphans deleted!</strong>
+            <strong>@((int)TempData["orphans-deleted"]) Orphans deleted!</strong>
         </div>
     }
 
@@ -81,7 +103,7 @@
 
     @if (TempData.TryGetValue("delete-pdf", out var pdfDelete))
     {
-        if ((bool) pdfDelete)
+        if ((bool)pdfDelete)
         {
             <div class="alert alert-success alert-dismissible" role="alert">
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">x</span></button>
@@ -96,10 +118,22 @@
             </div>
         }
     }
-
+    @* END Alerts and messages from TempData *@
+    
+    @* BEGIN Manifestation Identifier and Label *@
     <div class="col-md-9">
-        <h3 style="margin-top: 13px;">@Model.DigitisedManifestation.Identifier - @metsManifestation.Label</h3>
+        <h3 style="margin-top: 13px;">@Model.DigitisedManifestation.Identifier
+            @if (metsManifestation.Label.HasText() && metsManifestation.Label != Model.DigitisedManifestation.Identifier)
+            {
+                <span>-</span>
+                @metsManifestation.Label // Only Digitised objects will have a useful label
+            }
+        </h3>
     </div>
+    @* END Manifestation Identifier and Label *@
+
+    @* BEGIN Multiple Manifestation Navigator *@
+    @* (only appears if more than one volume (manifestation) *@
     <div class="col-md-3">
         @if (Model.IsStandardMultipleManifestation)
         {
@@ -114,7 +148,7 @@
                         @foreach (var manif in Model.Siblings)
                         {
                             <li class="@Model.GetDropDownClass(manif)">
-                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new {id = manif.Id})
+                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Identifier.PathElementSafe })
                             </li>
                         }
                     </ul>
@@ -123,13 +157,17 @@
             </div>
         }
     </div>
+    @* END Multiple Manifestation Navigator *@
 </div>
 
-
+@* BEGIN Main Wrapper for side nav and asset list *@
 <div class="row" style="margin-top: 1em;">
+
+    @* BEGIN Side Nav *@
     <div class="col-md-3">
         @if (Model.IsRunning)
         {
+            @* BEGIN progress bars for currently running batches *@
             <div class="panel panel-info">
                 <div class="panel-heading">
                     <h3 class="panel-title">Running...</h3>
@@ -141,18 +179,21 @@
                     }
                     @{
                         var latest = Model.BatchesForImages.OrderByDescending(b => b.Submitted).First();
-                        <p><em><small>Most recent batch: @latest.Submitted</small></em></p>
+                        <p><em><small>Most recent batch: @StringUtils.GetLocalDate(latest.Submitted)</small></em></p>
                         <p><a href="#" onclick="location.reload(); return false;" class="btn btn-primary"><span class="glyphicon glyphicon-refresh"></span> Refresh</a></p>
-                        if (latest.Submitted < DateTime.Now.AddMinutes(-10))
+                        if (latest.Submitted < DateTime.UtcNow.AddMinutes(-10))
                         {
-                            <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
+                            <p><a href="@Url.Action("Resubmit", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Resubmit*</a></p>
                         }
                     }
                 </div>
             </div>
+            @* END progress bars for currently running batches *@
         }
-        else if (Model.SyncOperation.RequiresSync)
+        else if (Model.SyncOperation.RequiresSync || Model.SyncOperation.HasInvalidAccessCondition)
         {
+            @* BEGIN Information about synchronisation status *@
+            @* (only shown if not all assets in manifestation are synced with DLCS) *@
             <div class="panel panel-@Model.SyncSummary.CssClass">
                 <div class="panel-heading">
                     <h3 class="panel-title">Requires Sync</h3>
@@ -160,69 +201,76 @@
                 <div class="panel-body">
                     <table class="table table-condensed">
                         <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>#</th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th>Description</th>
+                            <th>#</th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
-                            @foreach (var syncCategory in Model.SyncSummary.Categories)
-                            {
-                                <tr>
-                                    <td><a href="#@syncCategory.TableRowId">@syncCategory.Label</a></td>
-                                    <td>@syncCategory.Count</td>
-                                    <td>@Html.Raw(syncCategory.StatusIcon)</td>
-                                </tr>
-                            }
+                        @foreach (var syncCategory in Model.SyncSummary.Categories)
+                        {
+                            <tr>
+                                <td><a href="#@syncCategory.TableRowId">@syncCategory.Label</a></td>
+                                <td>@syncCategory.Count</td>
+                                <td>@Html.Raw(syncCategory.StatusIcon)</td>
+                            </tr>
+                        }
                         </tbody>
                     </table>
-                    <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    @if (Model.SyncOperation.HasInvalidAccessCondition)
+                    {
+                        <p class="text-danger">
+                            This item CANNOT be synced because it has at least one invalid access condition.
+                        </p>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" 
+                           class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                    }
                 </div>
             </div>
+            @* END Information about synchronisation status *@
         }
 
-        @*<h3><span class="glyphicon glyphicon-info-sign"></span> Details</h3>*@<div class="panel panel-primary">
+        @* BEGIN Side Nav Link Panel *@
+        @* Links to related resources - manifests, catalogue api, web pages *@
+        <div class="panel panel-primary">
             <div class="panel-heading">
-                @metsManifestation.Type (@metsManifestation.FirstInternetType)
+                @metsManifestation.Type (@Model.GetTypeSummary())
             </div>
             <ul class="list-group">
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Model.WorkPage">Work page</a></li>
-                        <li>@Html.ActionLink("View v2 in Library UV", "UV", "Dash", new {id = @Model.DdsIdentifier, version=2}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v2 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier, version=2}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v3 in current UV", "UV", "Dash", new {id = @Model.DdsIdentifier, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("View v3 in Mirador", "Mirador", "Dash", new {id = @Model.DdsIdentifier, version=3}, new {target="_blank"}) </li>
-                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = @Model.DdsIdentifier}, new {target="_blank"}) </li>
+                        <li><a href="@Model.ManifestUrl">Live IIIF Manifest</a></li>
+                        <li>@Html.ActionLink("Live IIIF 3 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
+                        <li>@Html.ActionLink("Live IIIF 2/3 in Mirador", "Mirador", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
+                        @if (Model.DdsIdentifier.StorageSpace != DdsIdentifier.BornDigital)
+                        {
+                            <li>@Html.ActionLink("Live IIIF 2 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
+                        }
+                        <li>@Html.ActionLink("IIIF Validator", "Validator", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Model.CatalogueApi">Catalogue API</a></li>
-                        <li><a href="@Model.EncoreRecordUrl">Encore record</a></li>
+                        <li><a href="@Model.WorkPage">Work page</a></li>
+                        <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
                         <li><a href="@Model.DlcsSkeletonManifest">DLCS Preview Manifest</a></li>
                         <li><a href="http://universalviewer.io/uv.html?manifest=@Model.DlcsSkeletonManifest">DLCS Preview Manifest in UV</a></li>
-                        <li><a href="@Url.Action("IIIF", "Peek", new {id = Model.DdsIdentifier})">IIIF Manifest (preview)</a></li>
-                        <li><a href="@Model.ManifestUrl">IIIF Manifest (live)</a></li>
+                        <li>
+                            <a href="@Url.Action("IIIF", "Peek", new { id = Model.DdsIdentifier.PathElementSafe })">DDS Preview IIIF Manifest</a>
+                             | <a href="@Url.Action("IIIFRaw", "Peek", new { id = Model.DdsIdentifier.PathElementSafe })">Raw</a>
+                        </li>
+                        <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 3 in UV", "UVPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"})</li>
+                        <li class="needsOrigin">@Html.ActionLink("DDS Preview IIIF 2/3 in Mirador", "MiradorPreview", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"})</li>
                     </ul>
                 </li>
-                @if (metsManifestation.Type == "Video" || metsManifestation.Type == "Audio")
-                {
-                    <li class="list-group-item">
-                        Derivatives:
-                        <ul class="list-unstyled">
-                            @foreach (var derivative in Model.AVDerivatives)
-                            {
-                                <li>- <a href="@derivative.Id">@derivative.Label</a></li>
-                            }
-                        </ul>
-                    </li>
-                }
                 <li class="list-group-item">
                     Permitted operations:
                     <ul class="list-unstyled">
@@ -234,37 +282,43 @@
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
-                        <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.PackageIdentifier })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
+                        <li><a href="@Url.Action("StorageManifest", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-file"></span> Storage Manifest</a></li>
+                        <li><a href="@Url.Action("StorageMap", "Dash", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe })"><span class="glyphicon glyphicon-tags"></span> Storage Map (versions)</a></li>
                         @{
                             var sourceFile = ((IFileBasedResource)metsManifestation).SourceFile;
                         }
-                        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
+                        <li><a href="@Url.Action("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe, parts = sourceFile.RelativePath})"><span class="glyphicon glyphicon-file"></span> METS file</a></li>
                     </ul>
                 </li>
-                <li class="list-group-item">
-                    <ul class="list-unstyled">
-                        <li>
-                            Mods:
-                            <span title="accessCondition" class="label label-primary">@metsManifestation.ModsData.AccessCondition</span>
-                            <span title="leader6" class="label label-primary">@metsManifestation.ModsData.Leader6</span>
-                        </li>
-                    </ul>
-                </li>
+                @if (metsManifestation.SectionMetadata != null)
+                {
+                    <li class="list-group-item">
+                        <ul class="list-unstyled">
+                            <li>
+                                Mods:
+                                <span title="accessCondition" class="label label-primary">@metsManifestation.SectionMetadata.AccessCondition</span>
+                                <span title="leader6" class="label label-primary">@metsManifestation.SectionMetadata.Leader6</span>
+                            </li>
+                        </ul>
+                    </li>
+                }
                 @if (metsManifestation.Sequence.HasItems())
                 {
                     if (metsManifestation.Sequence[0].GetStoredFileInfo().Uri.Contains("archive-storage"))
                     {
                         <li class="list-group-item">
                             <span class="glyphicon glyphicon-flash"></span>
-                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Peek", new { id = Model.DdsIdentifier.PackageIdentifier }, new { })</text>
+                            <text>@Html.ActionLink("Wellcome archive storage", "StorageManifest", "Peek", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe }, new { })</text>
                         </li>
                     }
                 }
             </ul>
         </div>
+        @* END Side Nav Link Panel *@
 
 
+        @* BEGIN Mixed Access Conditions Notice *@
+        @* (quite rare so worth surfacing in the dashboard, when a single manifestation assets with different access conditions *@
         @if (Model.SyncSummary.AccessConditions.Length > 1)
         {
             <div class="panel panel-info">
@@ -294,68 +348,76 @@
                 </div>
             </div>
         }
+        @* END Mixed Access Conditions Notice *@
 
-
-
-    <h3>Jobs</h3>
-    <ul class="list-group">
-        <li class="list-group-item">
-            <a href="@Url.Action("GoobiCall", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-info-sign"></span> Goobi Call Info</a>
-        </li>    
-        <li class="list-group-item">
-            <a href="@Url.Action("Create", "GoobiCall", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate Goobi Call</a>
-        </li>
-        @foreach (var job in Model.IngestJobs)
-        {
+        
+        @* BEGIN Processing Jobs Summary and action links *@
+        <h3>Jobs</h3>
+        <ul class="list-group">
             <li class="list-group-item">
-                <span class="badge">@job.ImageCount</span>
-                @Html.ActionLink("" + job.Created, "Index", "Job", new {id = job.Id}, new {})
-                @{
-                    if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
-                    {
-                        foreach (var batch in Model.DbJobIdsToActiveBatches[job.Id])
+                <a href="@Url.Action("WorkflowCall", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-info-sign"></span> Workflow call info</a>
+            </li>    
+            <li class="list-group-item">
+                <a href="@Url.Action("Create", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Simulate workflow message</a>
+            </li>   
+            <li class="list-group-item">
+                <a href="@Url.Action("PutWorkflowMessageOnQueue", "WorkflowCall", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Push to workflow queue (SQS)</a>
+            </li>
+            @foreach (var job in Model.IngestJobs)
+            {
+                <li class="list-group-item">
+                    <span class="badge">@job.ImageCount</span>
+                    @Html.ActionLink("" + StringUtils.GetLocalDate(job.Created), "Index", "Job", new {id = job.Id}, new {})
+                    @{
+                        if (Model.DbJobIdsToActiveBatches != null && Model.DbJobIdsToActiveBatches.ContainsKey(job.Id))
                         {
-                            RenderBatchProgress(batch);
+                            foreach (var batch in Model.DbJobIdsToActiveBatches[job.Id])
+                            {
+                                RenderBatchProgress(batch);
+                            }
                         }
                     }
-                }
-            </li>
-        }
-        @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
-        {
-            <li class="list-group-item">
-                <a href="@Url.Action("CleanOldJobs", "Job", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
-            </li>
-        }
-        @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
-        {
-            <li class="list-group-item">
-                <a href="@Url.Action("ForceReingest", "Job", new {id = Model.DdsIdentifier})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
-            </li>
-        }
-    </ul>
+                </li>
+            }
+            @if (!Model.SyncOperation.RequiresSync && Model.IngestJobs.Count > 1 && !Model.IsRunning)
+            {
+                <li class="list-group-item">
+                    <a href="@Url.Action("CleanOldJobs", "Job", new {id = Model.DdsIdentifier.PathElementSafe})"><span class="glyphicon glyphicon-trash"></span> Clean up old jobs</a>
+                </li>
+            }
+            @if (!Model.IsRunning && !Model.SyncOperation.RequiresSync)
+            {
+                <li class="list-group-item">
+                    <a href="@Url.Action("ForceReingest", "Job", new {id = Model.DdsIdentifier.PathElementSafe})"><span class="glyphicon glyphicon-transfer"></span> Force Reingest</a>
+                </li>
+            }
+        </ul>
+        @* END Processing Jobs Summary and action links *@
 
 
-
+        @* BEGIN Additional actions for all the manifestations in a multiple manifestation *@
         @if (Model.IsStandardMultipleManifestation)
         {
             <h3>Multiples</h3>
             <ul class="list-group">
                 <li class="list-group-item">
-                    <a href="@Url.Action("SyncAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("SyncAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-duplicate"></span> Sync all @Model.Siblings.Count manifestations</a>
                 </li>
                 <li class="list-group-item">
-                    <a href="@Url.Action("ForceReingestAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifier})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
+                    <a href="@Url.Action("ForceReingestAllManifestations", "Job", new {id = Model.DdsIdentifier.PackageIdentifierPathElementSafe})"><span class="glyphicon glyphicon-duplicate"></span> Reingest all @Model.Siblings.Count manifestations</a>
                 </li>
             </ul>
         }
+        @* END Additional actions for all the manifestations in a multiple manifestation *@
 
+
+        @* BEGIN Actions to rebuild IIIF and Text derivatives *@
         <h3>Tasks</h3>
         <div class="panel panel-default">
 
             <ul class="list-group">
                 <li class="list-group-item">
-                    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = Model.DdsIdentifier}, FormMethod.Post))
+                    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = Model.DdsIdentifier.PathElementSafe}, FormMethod.Post))
                     {
                         <button type="submit" class="btn btn-link" title="Refresh Manifestations and IIIF">
                             <span class="glyphicon glyphicon-refresh"></span> Rebuild IIIF
@@ -370,10 +432,13 @@
                         <small><em>No manifest on S3 yet</em></small>
                     }
                 </li>
-                @if (metsManifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText()))
+                @{
+                    var metsManifestationHasText = metsManifestation.Sequence.Any(pf => pf.RelativeAltoPath.HasText());
+                }
+                @if (metsManifestationHasText)
                 {
                     <li class="list-group-item">
-                        @using (Html.BeginForm("RefreshAll", "WorkflowJob", new {id = Model.DdsIdentifier}, FormMethod.Post))
+                        @using (Html.BeginForm("RefreshAll", "WorkflowJob", new {id = Model.DdsIdentifier.PathElementSafe}, FormMethod.Post))
                         {
                             <button type="submit" class="btn btn-link" title="Refresh All Resources">
                                 <span class="glyphicon glyphicon-refresh"></span> Rebuild All
@@ -398,8 +463,22 @@
                         }
                     </li>
                 }
+                <li class="list-group-item">
+                    @using (Html.BeginForm("ClearCaches", "WorkflowJob", new {id = Model.DdsIdentifier.PathElementSafe}, FormMethod.Post))
+                    {
+                        <input type="hidden" name="hasText" value="@metsManifestationHasText.ToString()" />
+                        <button type="submit" class="btn btn-link" title="Clear Caches">
+                            <span class="glyphicon glyphicon-refresh"></span> Clear Caches
+                        </button>
+                    }
+                    <small><em>Invalidate Cloudfront and other caches without rebuilding IIIF</em></small>
+                </li>
             </ul>
         </div>
+        @* END Actions to rebuild IIIF and Text derivatives *@
+        
+    
+        @* BEGIN PDF Information Box *@
         @if (metsManifestation.FirstInternetType == "image/jp2")
         {
             <h3>PDF</h3>
@@ -453,39 +532,41 @@
                             }
                         </li>
                         <li class="list-group-item">
-                            <a href="@Url.Action("DeletePdf", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-warning"><span class="glyphicon glyphicon-file"></span> Delete PDF</a>
+                            <a href="@Url.Action("DeletePdf", "Dash", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-warning"><span class="glyphicon glyphicon-file"></span> Delete PDF</a>
                         </li>
                     </ul>
                 </div>
             }
         }
-
-    @*
-    TODO - we can still show ingest history, which is useful
-    <h3>Migration</h3>
-        <ul class="list-group">
-            <li class="list-group-item">
-                <a href="@Url.Action("Migration", "Dash", new {id = Model.DdsIdentifier.BNumber})"><span class="glyphicon glyphicon-road"></span> Migration report</a>
-            </li>
-        </ul>*@
-
+        @* END PDF Information Box *@
 
     </div>
+    @* END Side Nav *@
 
+    
+    @* BEGIN Main Asset Table *@
     <div class="col-md-9">
         <h4 style="margin-top: 0;">
             @Html.Raw(Model.GetAssetGlyph())
-            @metsManifestation.Sequence.Count
-            assets of type
-            @metsManifestation.FirstInternetType
+            @metsManifestation.Sequence.Count assets of type @Model.GetTypeSummary()
         </h4>
 
-
-        <table class="table table-hover table-condensed asset-table">
-            <thead>
-                <tr>
+        @* Tree here or table *@
+        @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
+        {
+            var fileMap = Model.DigitisedManifestation.MetsManifestation.Sequence
+                .ToDictionary(pf => pf.Id, pf => pf);
+            RenderTree(Model.DigitisedManifestation.MetsManifestation.RootStructRange, fileMap);
+        }
+        else
+        {
+            <table class="table table-hover table-condensed asset-table">
+                <thead>
+                    <tr>
+                    @* The table headings differ between different METS and Asset sources *@
                     @if (Model.ManifestationFamily == AssetFamily.Image)
                     {
+                        @* Digitised Images *@
                         <th>Order</th>
                         <th>Label</th>
                         <th>Dimensions</th>
@@ -496,17 +577,19 @@
                     }
                     else if (Model.ManifestationFamily == AssetFamily.TimeBased)
                     {
+                        @* Digitised AV *@
                         <th>Order</th>
                         <th>Size</th>
                         <th>Format</th>
-                        <th>Length</th>
+                        <th>Dimensions</th>
                         <th>Access</th>
                         <th>DLCS</th>
-                        @*<th>Transcode</th>*@
+                            @*<th>Transcode</th>*@
                         <th></th>
                     }
                     else
                     {
+                        @* Files, but via Goobi not Archivematica *@
                         <th>Order</th>
                         <th>Size</th>
                         <th>Format</th>
@@ -516,112 +599,55 @@
                         <th></th>
                     }
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
 
-                @foreach (IPhysicalFile pf in metsManifestation.Sequence)
-                {
-                    var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
-                    bool ignored = false; // The physical file itself is never ignored.
-                    <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
-                        <td>@pf.Order</td>
-                        @if (Model.ManifestationFamily == AssetFamily.Image)
-                        {
-                            <td>@pf.OrderLabel</td>
-                            <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
-                        }
-                        else
-                        {
-                            <td>@Model.FormatSize(@pf.AssetMetadata.GetFileSize())</td>
-                            <td><small>@pf.AssetMetadata.GetFormatName()</small></td>
-                            if (Model.ManifestationFamily == AssetFamily.TimeBased)
-                            {
-                                <td>@pf.AssetMetadata.GetLengthInSeconds()</td>
-                            }
-                            else
-                            {
-                                <td>@pf.AssetMetadata.GetNumberOfPages()</td>
-                            }
-                        }
-                        @if (ignored)
-                        {
-                            <td>ignored</td>
-                        }
-                        else
-                        {
-                            <td>@pf.AccessCondition</td>
-                        }
-                        @if (Model.ManifestationFamily == AssetFamily.Image)
-                        {
+                    @foreach (IPhysicalFile pf in metsManifestation.Sequence)
+                    {
+                        var dlcsImage = Model.GetDlcsImage(pf.StorageIdentifier);
+                        var problems = Model.GetProblemMessage(pf.StorageIdentifier);
+                        bool ignored = false; // The physical file itself is never ignored.
+                        <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(pf.StorageIdentifier)">
                             <td>
-                                @if (@pf.RelativeAltoPath.HasText())
-                                {                                    
-                                    <a href="@Url.ActionWithPath("XmlView", "Peek", new {id = Model.DdsIdentifier.PackageIdentifier},  pf.RelativeAltoPath)"
-                                       title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                <small>@pf.Order</small>
+                                @if (problems.HasText())
+                                {
+                                    <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                        <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                    </a>
                                 }
                             </td>
-                        }
-                        @{
-                            if (dlcsImage != null)
-                            {
-                                <td>
-                                    <a href="@Model.GetPortalPageForImage(dlcsImage)">@pf.StorageIdentifier</a>
-                                    @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
-                                    {
-                                        <div class="tbmetadata">
-                                            <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
-                                            <pre style="display: none">@dlcsImage.Metadata
-                                    </pre>
-                                        </div>
-                                    }
-                                </td>
-                            }
-                            else
-                            {
-                                <td>@pf.StorageIdentifier</td>
-                            }
-                        }
-                        @*@if (family == AssetFamily.TimeBased)
-                            {
-                                <td>(transcode metadata)</td>
-                            }*@
-                        <td>
+
                             @if (Model.ManifestationFamily == AssetFamily.Image)
                             {
-                                var thumb24 = Model.GetThumbnail(dlcsImage, 24);
-                                var thumb100 = Model.GetThumbnail(dlcsImage, 100);
-                                var fullIIIF = Model.GetIIIFImageService(dlcsImage, "image");
-                                @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
-                                <iiif-thumb class="iiifpreview"
-                                small-thumb="thumb24" large-thumb="thumb100"
-                                full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
-                            }
-                            <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
-                        </td>
-                    </tr>
-                    @foreach (var adjunct in Model.GetAdjunctsForDashboardDisplay(pf.Files))
-                    {
-                        dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
-                        ignored = Model.IsIgnored(adjunct.StorageIdentifier);
-                        <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
-                            <td class="adjunct"><span>&#10551;</span> @adjunct.Use</td>
-                            @if (adjunct.Family == AssetFamily.Image)
-                            {
-                                <td><small>@adjunct.AssetMetadata.GetImageWidth() x @adjunct.AssetMetadata.GetImageHeight()</small></td>
-                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
-                                <td></td>                                                         
+                                <td>@pf.OrderLabel</td>
+                                <td>@pf.AssetMetadata.GetImageWidth() x @pf.AssetMetadata.GetImageHeight()</td>
                             }
                             else
                             {
-                                <td>@Model.FormatSize(adjunct.AssetMetadata.GetFileSize())</td>
-                                <td><small>@adjunct.AssetMetadata.GetFormatName()</small></td>
-                                if (adjunct.Family == AssetFamily.TimeBased)
+                                <td>@StringUtils.FormatFileSize(pf.AssetMetadata.GetFileSize())</td>
+                                <td><small>@pf.AssetMetadata.GetFormatName()</small><br/>
+                                @foreach (var deliveredFile in Model.DeliveredFilesMap[pf.StorageIdentifier])
                                 {
-                                    <td>@adjunct.AssetMetadata.GetLengthInSeconds()</td>
+                                    <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                }
+                                    </td>
+                                if (Model.ManifestationFamily == AssetFamily.TimeBased)
+                                {
+                                    var mediaDims = pf.AssetMetadata.GetMediaDimensions();
+                                    <td>
+                                        @pf.AssetMetadata.GetDisplayDuration()
+                                        @if (mediaDims.Height > 0)
+                                        {
+                                            <br/>@mediaDims.Width
+                                            <text> x </text>
+                                            @mediaDims.Height
+                                        }
+                                    </td>
                                 }
                                 else
                                 {
-                                    <td>@adjunct.AssetMetadata.GetNumberOfPages()</td>
+                                    <td>@pf.AssetMetadata.GetNumberOfPages()</td>
                                 }
                             }
                             @if (ignored)
@@ -632,27 +658,131 @@
                             {
                                 <td>@pf.AccessCondition</td>
                             }
-                            @{
-                                if (dlcsImage != null)
-                                {
-                                    <td>
-                                        <a href="@Model.GetPortalPageForImage(dlcsImage)">@adjunct.StorageIdentifier</a>
-                                    </td>
-                                }
-                                else
-                                {
-                                    <td>@adjunct.StorageIdentifier</td>
-                                }
+                            @if (Model.ManifestationFamily == AssetFamily.Image)
+                            {
+                                <td>
+                                    @if (pf.RelativeAltoPath.HasText())
+                                    {
+                                        <a href="@Url.ActionWithPath("XmlView", "Peek", new { id = Model.DdsIdentifier.PackageIdentifierPathElementSafe }, pf.RelativeAltoPath)"
+                                           title="@pf.RelativeAltoPath"><span class="label label-primary">ALTO</span></a>
+                                    }
+                                </td>
                             }
+                            @if (dlcsImage != null)
+                            {
+                                <td>
+                                    <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@pf.StorageIdentifier</a>
+                                    @if (dlcsImage.Error.HasText())
+                                    {
+                                        <br/><span class="text-danger small">@dlcsImage.Error</span>
+                                    }
+                                    @if (dlcsImage.Metadata.HasText() && Model.ManifestationFamily == AssetFamily.TimeBased)
+                                    {
+                                        <div class="tbmetadata">
+                                            <a class="metadata-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> Show job metadata</a>
+                                            <pre style="display: none">@dlcsImage.Metadata
+                                </pre>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                            else
+                            {
+                                <td>@pf.StorageIdentifier</td>
+                            }
+                            
+                            
+                            
                             <td>
+                                @if (Model.ManifestationFamily == AssetFamily.Image)
+                                {
+                                    var thumb24 = Model.GetThumbnail(dlcsImage, 24);
+                                    var thumb100 = Model.GetThumbnail(dlcsImage, 100);
+                                    var fullIIIF = Model.GetIIIFImageService(dlcsImage, "image");
+                                    @Html.Raw(Model.GetStatusIconForImageRow(dlcsImage, ignored))
+                                    <iiif-thumb class="iiifpreview"
+                                                small-thumb="thumb24" large-thumb="thumb100"
+                                                full-iiif-service="@fullIIIF" title="@pf.GetStoredFileInfo().Uri"/>
+                                }
                                 <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
                             </td>
                         </tr>
+                        
+                        
+                        @foreach (var adjunct in Model.GetAdjunctsForDashboardDisplay(pf.Files))
+                        {
+                            dlcsImage = Model.GetDlcsImage(adjunct.StorageIdentifier);
+                            ignored = Model.IsIgnored(adjunct.StorageIdentifier);
+                            problems = Model.GetProblemMessage(adjunct.StorageIdentifier);
+                            <tr class="@Model.GetCssClassForImageRow(dlcsImage, ignored)" id="@Model.GetTableId(adjunct.StorageIdentifier)">
+                                <td class="adjunct"><span>&#10551;</span>
+                                    @if (problems.HasText())
+                                    {
+                                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                                        </a>
+                                    }
+                                    
+                                    @adjunct.Use</td>
+                                @if (adjunct.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
+                                {
+                                    <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                    <td><small>@adjunct.AssetMetadata?.GetFormatName()</small></td>
+                                    <td><small>@adjunct.AssetMetadata?.GetImageWidth() x @adjunct.AssetMetadata?.GetImageHeight()</small></td>                                                         
+                                }
+                                else
+                                {
+                                    <td>@StringUtils.FormatFileSize(adjunct.AssetMetadata.GetFileSize())</td>
+                                    <td><small>@adjunct.AssetMetadata.GetFormatName()</small>
+                                        @if (!ignored)
+                                        {
+                                            <br/>
+                                            @foreach (var deliveredFile in Model.DeliveredFilesMap[adjunct.StorageIdentifier])
+                                            {
+                                                <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                                            }
+                                        }</td>
+                                    if (adjunct.ProcessingBehaviour.AssetFamily == AssetFamily.TimeBased)
+                                    {
+                                        <td>@adjunct.AssetMetadata.GetDisplayDuration()</td>
+                                    }
+                                    else
+                                    {
+                                        <td>@adjunct.AssetMetadata.GetNumberOfPages()</td>
+                                    }
+                                }
+                                @if (ignored)
+                                {
+                                    <td>ignored</td>
+                                }
+                                else
+                                {
+                                    <td>@pf.AccessCondition</td>
+                                }
+                                @{
+                                    if (dlcsImage != null)
+                                    {
+                                        <td>
+                                            <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" target="_blank">@adjunct.StorageIdentifier</a>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>@adjunct.StorageIdentifier</td>
+                                    }
+                                }
+                                <td>
+                                    <a target="_blank" href="@Model.GetAwsConsoleUri(pf.GetStoredFileInfo().Uri)" title="Find in S3"> S3</a>
+                                </td>
+                            </tr>
+                        }
                     }
-                }
-            </tbody>
-        </table>
-
+                </tbody>
+            </table>
+        }
+ 
+        @* BEGIN Summary of orphans *@
+        @* (DLCS assets that match metadata but not listed in METS *@
         @if (Model.SyncOperation.Orphans.Any())
         {
             <h4 id="orphans">@Model.SyncOperation.Orphans.Count Orphans</h4>
@@ -660,9 +790,9 @@
             <p>
                 This does not mean that they should be deleted, because they might belong to a different manifestation
                 (e.g., the METS structure has been rearranged across manifestations and not yet synchronised for all manifestations).
-                However, they might also represent images that have been replaced in Preservica but not deleted from the DLCS.
+                However, they might also represent images that have been renamed in storage but not deleted from the DLCS.
             </p>
-            <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
+            <p><a href="@Url.Action("DeleteOrphans", "Dash", new {id = Model.DdsIdentifier.PathElementSafe})" class="btn btn-info"><span class="glyphicon glyphicon-trash"></span> Delete Orphans</a></p>
             <table class="table table-hover table-condensed">
                 <thead>
                     <tr>
@@ -678,19 +808,25 @@
                     @foreach (var orphan in Model.SyncOperation.Orphans)
                     {
                         <tr>
-                            <td>@orphan.Created</td>
+                            <td>@StringUtils.GetLocalDate(orphan.Created)</td>
                             @*<td>@orphan.Width x @orphan.Height</td>*@
                             <td>@Model.GetAbridgedRoles(orphan.Roles)</td>
                             <td>@orphan.Error</td>
-                            <td width="30%"><a href="@Model.GetPortalPageForImage(orphan)">@orphan.StorageIdentifier</a></td>
+                            <td width="30%"><a href="@Url.Action("Index", "Asset", new { space = orphan.Space, id = orphan.ModelId })" target="_blank">@orphan.StorageIdentifier</a></td>
                             <td>@orphan.Ingesting</td>
                         </tr>
                     }
                 </tbody>
             </table>
         }
+        @* END Summary of orphans *@
+    
     </div>
+    @* END Main Asset Table *@
+
 </div>
+@* END Main Wrapper for side nav and asset list *@
+
 
 <div class="row">
     <div class="col-sm-12">
@@ -699,6 +835,7 @@
 </div>
 
 
+@* BEGIN Timing telemetry *@
 <hr />
 <h3>SyncOperation</h3>
 <ul>
@@ -725,8 +862,9 @@
         </tr>
     }
 </table>
+@* END Timing telemetry *@
 
-<!-- Modal popup for previewing -->
+@* Modal popup for previewing *@
 <div class="modal fade" id="imgModal" tabindex="-1" role="dialog" aria-labelledby="mdlLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -751,8 +889,12 @@
         </div>
     </div>
 </div>
+@* Modal popup for previewing *@
+
+
 
 @{
+    // Helper to render a batch progress bar
     void RenderBatchProgress(Batch batch)
     {
         var percentComplete = Model.GetBatchPercent(batch);
@@ -761,7 +903,7 @@
         if (batch.Completed != batch.Count)
         {
             <div class="progress">
-                <a href="@Model.GetPortalPageForBatch(batch)" title="@batch.Submitted">
+                <a href="@Model.GetPortalPageForBatch(batch)" title="Batch @PathStringUtils.GetSimpleNameFromPath(batch.Id): @StringUtils.GetLocalDate(batch.Submitted)" target="_blank">
                     <div class="progress-bar progress-bar-success" role="progressbar"
                          aria-valuenow="@batch.Completed" aria-valuemin="0" aria-valuemax="@batch.Count"
                          style="width: @percentComplete">
@@ -779,8 +921,100 @@
             </div>
         }
     }
-}
-
-@functions{
-
+    
+    
+    void RenderTree(IStructRange structRange, Dictionary<string, IPhysicalFile> fileMap)
+    {
+        
+        <ul class="list-group">
+            <li class="list-group-item active">
+                <span class="glyphicon glyphicon-folder-open"></span>&nbsp;
+                <strong>@structRange.Label</strong>
+            </li>
+            
+            @foreach (var fileId in structRange.PhysicalFileIds)
+            {
+                var file = fileMap[fileId];
+                var dlcsImage = Model.GetDlcsImage(file.StorageIdentifier);
+                <li class="list-group-item list-group-item-@Model.GetCssClassForImageRow(dlcsImage, false)" id="@Model.GetTableId(file.StorageIdentifier)">
+                    <span class="badge">@StringUtils.FormatFileSize(file.AssetMetadata.GetFileSize(), true)</span>
+                    <span class="badge" style="@Model.GetAccessConditionStyle(file.AccessCondition)">@file.AccessCondition</span>
+                    
+                    @{
+                        var problems = Model.GetProblemMessage(file.StorageIdentifier);
+                    }
+                    @if (problems.HasText())
+                    {
+                        <a class="sync-problem" href="#" data-placement="auto" title="@problems">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                        </a>
+                    }
+                    
+                    @if (dlcsImage != null)
+                    {
+                        <a href="@Url.Action("Index", "Asset", new { space = dlcsImage.Space, id = dlcsImage.ModelId })" 
+                           target="_blank"  
+                           title="@file.OriginalName"><strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong></a>
+                                   
+                        @if (dlcsImage.Error.HasText())
+                        {
+                            <br/>
+                            <span class="text-danger">@dlcsImage.Error</span>
+                        }
+                    }
+                    else
+                    {
+                        <strong>
+                            @Html.Raw(Model.GetAssetGlyph(file.Family, file.MimeType))
+                            @file.OriginalName.GetFileName()
+                        </strong>
+                        <span class="text-muted small"> - NOT ON DLCS</span>
+                    }
+                    
+                    <br/>
+                    <div class="small" style="margin-left: 18px;">
+                        @file.MimeType 
+                        @if (file.AssetMetadata.GetPronomKey().HasText())
+                        {
+                            <text>(@file.AssetMetadata.GetFormatName())</text>
+                            var pronomKey = file.AssetMetadata.GetPronomKey();
+                            var tnaPage = "https://www.nationalarchives.gov.uk/PRONOM/" + pronomKey;
+                            
+                            <a href="@tnaPage" target="_blank">@pronomKey</a>
+                        }
+                        else
+                        {
+                            <span class="text-danger">(@file.AssetMetadata.GetFormatName())</span>
+                        }
+                        |
+                        @file.AssetMetadata.GetMediaDimensions().ToString()
+                        <br/>
+                        <a href="@Model.GetAwsConsoleUri(file.GetStoredFileInfo().Uri)" target="_blank">
+                            <strong>S3:</strong> @file.StorageIdentifier
+                        </a>  
+                        <br/>
+                        @foreach (var deliveredFile in Model.DeliveredFilesMap[file.StorageIdentifier])
+                        {
+                            <a href="@deliveredFile.PublicUrl" title="@deliveredFile.GetSummary()"><span class="label label-primary">@deliveredFile.DeliveryChannel</span></a>
+                        }
+                    </div>
+                </li>
+            }
+            
+            @if (structRange.Children.HasItems())
+            {
+                @foreach (var childRange in structRange.Children)
+                {
+                    <li class="list-group-item">
+                        @{
+                            RenderTree(childRange, fileMap);
+                        }
+                    </li>
+                }
+            }
+        </ul>
+    }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using IIIF;
+using IIIF.Auth.V2;
 using IIIF.ImageApi.V2;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
@@ -22,25 +23,24 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     /// <summary>
     /// A collection of helper functions to help keep <see cref="PresentationConverter"/> more lightweight.
     /// </summary>
-    public class ConverterHelpers
+    public static class ConverterHelpers
     {
-        // Remove this as soon as we can!
-        const bool DuplicateAuthServices = true;
-        
         public static T GetIIIFPresentationBase<T>(Presi3.StructureBase resourceBase, Func<string, bool>? labelFilter = null)
             where T : IIIFPresentationBase, new()
         {
             // NOTE - using assignment statements rather than object initialiser to get line numbers for any errors
-            var presentationBase = new T();
-            presentationBase.Id = resourceBase.Id;
-            presentationBase.Description = MetaDataValue.Create(resourceBase.Summary, true);
-            presentationBase.Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter);
-            presentationBase.License = resourceBase.Rights;
-            presentationBase.Metadata = ConvertMetadata(resourceBase.Metadata);
-            presentationBase.NavDate = resourceBase.NavDate;
-            presentationBase.Related = resourceBase.Homepage?.Select(ConvertResource).ToList();
-            presentationBase.SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList();
-            presentationBase.Within = ToPresentationV2Id(resourceBase.PartOf?.FirstOrDefault()?.Id);
+            var presentationBase = new T
+            {
+                Id = resourceBase.Id,
+                Description = MetaDataValue.Create(resourceBase.Summary, true),
+                Label = MetaDataValue.Create(resourceBase.Label, true, labelFilter),
+                License = resourceBase.Rights,
+                Metadata = ConvertMetadata(resourceBase.Metadata),
+                NavDate = resourceBase.NavDate,
+                Related = resourceBase.Homepage?.Select(ConvertResource).ToList(),
+                SeeAlso = resourceBase.SeeAlso?.Select(ConvertResource).ToList(),
+                Within = ToPresentationV2Id(resourceBase.PartOf?.FirstOrDefault()?.Id)
+            };
 
             if (resourceBase.Service.HasItems())
             {
@@ -54,12 +54,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         // which uses a precursor v0 Search API
                         var v0Context = SearchService.Search1Context.Replace("/search/1/", "/search/0/");
                         searchService.EnsureContext(v0Context);
+                        searchService.Id = searchService.Id?.Replace("/search/v1/", "/search/v0/");
+                        searchService.Profile = searchService.Profile?.Replace("/search/1/", "/search/0/");
                         if (searchService.Service != null)
+                        {
                             searchService.Service.Type = null;
-                        searchService.Id = searchService.Id.Replace("/search/v1/", "/search/v0/");
-                        searchService.Profile = searchService.Profile.Replace("/search/1/", "/search/0/");
-                        searchService.Service.Id = searchService.Service.Id.Replace("/autocomplete/1/", "/autocomplete/0/");
-                        searchService.Service.Profile = searchService.Service.Profile.Replace("/search/1/", "/search/0/");
+                            searchService.Service.Id = searchService.Service.Id?.Replace("/autocomplete/1/", "/autocomplete/0/");
+                            searchService.Service.Profile = searchService.Service.Profile?.Replace("/search/1/", "/search/0/");
+                        }
                     }
                 })!).ToList();
             }
@@ -138,16 +140,17 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             else
             {
                 var externalResource = (ExternalResource)paintable;
-                var copiedServices = externalResource.Service?
-                    .Select(i => ObjectCopier.DeepCopy(i))
-                    .ToList();
-                var avResource = new ExternalResourceForMedia
-                {
-                    Id = externalResource.Id,
-                    Format = externalResource.Format,
-                    Service = copiedServices,
-                };
-                PopulateAuthServices(authServiceManager, avResource.Service, true, DuplicateAuthServices);
+                    var copiedServices = externalResource.Service?
+                        .Select(i => ObjectCopier.DeepCopy(i))
+                        .OfType<IService>() // adding this makes this an IEnumerable<IService> rather than <IService?>      
+                        .ToList();
+                    var avResource = new ExternalResourceForMedia
+                    {
+                        Id = externalResource.Id,
+                        Format = externalResource.Format,
+                        Service = copiedServices,
+                    };
+                PopulateAuthServices(authServiceManager, avResource.Service, true);
                 annoListForMedia.Rendering.Add(avResource);
                 annoListForMedia.Service = avResource.Service;
 
@@ -199,30 +202,41 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         imageService2.EnsureContext(ImageService2.Image2Context);
                         imageService2.Type = null;
                         imageService2.Protocol = ImageService2.Image2Protocol;
+                        // Remove the Auth2 services
+                        imageService2.Service?.RemoveAll(ss => ss is AuthProbeService2);
+                        imageService2.Service?.RemoveAll(ss => ss is AuthAccessService2);
                         imageService = imageService2;
                     }
                 }))
                 .ToList();
 
-            var addedAuthServices = PopulateAuthServices(authServiceManager, imageService.Service, false, DuplicateAuthServices);
-            // in wl.org manifests, if the image resource's image service has auth services,
-            // then so does the image itself.
-            if (addedAuthServices != null)
+            if (imageService != null)
             {
-                services?.AddRange(addedAuthServices);
+                var addedAuthServices = PopulateAuthServices(authServiceManager, imageService.Service, false);
+                // in wl.org manifests, if the image resource's image service has auth services,
+                // then so does the image itself.
+                if (addedAuthServices != null)
+                {
+                    services?.AddRange(addedAuthServices);
+                }
             }
 
-            var imageAnnotation = new ImageAnnotation();
-            imageAnnotation.Id = paintingAnnotation.Id;
-            imageAnnotation.On = canvas.Id ?? string.Empty;
-            imageAnnotation.Resource = new ImageResource
+            var imageAnnotation = new ImageAnnotation
             {
-                Id = image.Id,
-                Height = image.Height,
-                Width = image.Width,
-                Format = image.Format,
-                Service = services
+                Id = paintingAnnotation.Id,
+                On = canvas.Id ?? string.Empty,
+                Resource = new ImageResource
+                {
+                    Id = image.Id,
+                    Height = image.Height,
+                    Width = image.Width,
+                    Format = image.Format
+                }
             };
+            if (services.HasItems())
+            {
+                imageAnnotation.Resource.Service = services.OfType<IService>().ToList();
+            }
             return imageAnnotation;
         }
 
@@ -230,7 +244,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             => p3Manifest.Items.HasItems() && p3Manifest.Items!.All(item => item.Items.IsNullOrEmpty());
         
         private static List<IService>? PopulateAuthServices(WellcomeAuthServiceManager authServiceManager,
-            List<IService>? candidateServices, bool forceFullService, bool duplicateAuthServices)
+            List<IService>? candidateServices, bool forceFullService)
         {
             // If we don't have auth services then bail out..
             if (!authServiceManager.HasItems) return null;
@@ -246,15 +260,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             // Re-add appropriate services. This will be full AuthService if first time it appears,
             // or serviceReference if it is not the first time
             List<IService> addedAuthServices = new();
-            foreach (var authRef in authServiceReferences!)
+            foreach (var authRef in authServiceReferences)
             {
                 var service = authServiceManager.Get(authRef.Id!, forceFullService);
                 if (service is WellcomeAccessControlHintService was)
                 {
                     // if we have a wellcomeAuthService add the "AuthService" only
-                    candidateServices?.AddRange(was.AuthService);
-                    addedAuthServices.AddRange(was.AuthService);
-                    if (duplicateAuthServices)
+                    if (was.AuthService != null)
                     {
                         candidateServices?.AddRange(was.AuthService);
                         addedAuthServices.AddRange(was.AuthService);
@@ -265,11 +277,6 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     // else just re-add the reference
                     candidateServices?.Add(service);
                     addedAuthServices.Add(service);
-                    if (duplicateAuthServices)
-                    {
-                        candidateServices?.Add(service);
-                        addedAuthServices.Add(service);
-                    }
                 }
             }
 
@@ -284,7 +291,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             presentationBase.Metadata ??= new List<IIIF.Presentation.V2.Metadata>();
 
-            var attributionAndUsageValue = attributionAndUsage!.Value.SelectMany(rs => rs.Value).ToList();
+            var attributionAndUsageValue = attributionAndUsage.Value.SelectMany(rs => rs.Value).ToList();
             if (!attributionAndUsageValue.HasItems()) return;
 
             // Conditions of use is last section of requiredStatement
@@ -345,7 +352,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         {
             if (thumbnails.IsNullOrEmpty()) return null;
 
-            return thumbnails!.Select(t => new Thumbnail
+            return thumbnails.Select(t => new Thumbnail
             {
                 Service = t.Service?.OfType<ImageService2>()
                     .Select(i => ObjectCopier.DeepCopy(i, service2 =>
@@ -362,20 +369,21 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
 
         private static Resource ConvertResource(ExternalResource externalResource)
         {
-            var resource = new Resource();
-            resource.Id = externalResource.Id;
-            resource.Label = MetaDataValue.Create(externalResource.Label, true);
-            resource.Format = externalResource.Format;
-            resource.Profile = externalResource.Profile;
-            resource.Service = ObjectCopier.DeepCopy(externalResource.Service);
-            return resource;
+            return new Resource
+            {
+                Id = externalResource.Id,
+                Label = MetaDataValue.Create(externalResource.Label, true),
+                Format = externalResource.Format,
+                Profile = externalResource.Profile,
+                Service = ObjectCopier.DeepCopy(externalResource.Service)
+            };
         }
 
         private static List<IIIF.Presentation.V2.Metadata>? ConvertMetadata(List<LabelValuePair>? presi3Metadata)
         {
             if (presi3Metadata.IsNullOrEmpty()) return null;
 
-            return presi3Metadata!
+            return presi3Metadata
                 .Where(pair => !IsAttributionAndUsage(pair))
                 .Select(p => new IIIF.Presentation.V2.Metadata
                 {

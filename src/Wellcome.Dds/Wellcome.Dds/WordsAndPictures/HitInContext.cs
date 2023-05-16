@@ -6,8 +6,8 @@ namespace Wellcome.Dds.WordsAndPictures
 {
     public class HitInContext
     {
-        public string Before { get; set; }
-        public string Hit { get; set; }
-        public string After { get; set; }
+        public string? Before { get; set; }
+        public string? Hit { get; set; }
+        public string? After { get; set; }
     }
 }

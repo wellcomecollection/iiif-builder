@@ -9,7 +9,10 @@
 
 @if (ViewBag.TryInstead != null)
 {
-    <p>Maybe try @Html.ActionLink((string)ViewBag.TryInstead, "Manifestation", "Dash", new { id = ViewBag.TryInstead }, new { })</p>
+    @if (ViewBag.TryInstead != ViewBag.DdsId.PackageIdentifierPathElementSafe)
+    {
+        <p>Maybe try @Html.ActionLink((string)ViewBag.TryInstead, "Manifestation", "Dash", new { id = ViewBag.TryInstead }, new { })</p>
+    }
 
     @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = ViewBag.TryInstead}, FormMethod.Post))
     {
@@ -19,6 +22,21 @@
     }
     
     <h3>Other tools</h3>
-    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.BNumber), "StorageManifest", "Peek", new {id = ViewBag.DdsId.BNumber})</p>
-    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.BNumber, parts = ViewBag.DdsId.BNumber + ".xml"})">METS file @(ViewBag.DdsId.BNumber).xml</a></p>
+    <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.PackageIdentifierPathElementSafe), "StorageManifest", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})</p>
+    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})">METS file for @(ViewBag.DdsId.PackageIdentifier)</a></p>
+}
+
+@{
+    var workflowJob = ViewBag.WorkflowJob as WorkflowJob;
+}
+@if (workflowJob != null)
+{
+    <h3>Workflow Job</h3>
+    <p>There is a @Html.ActionLink($"workflow job for {ViewBag.DdsId.PackageIdentifier}", "WorkflowCall", "WorkflowCall", new { id = ViewBag.DdsId.PackageIdentifierPathElementSafe }).</p>
+  
+    <form action="@Url.Action("Delete", "WorkflowCall", new { id = ViewBag.DdsId.PackageIdentifierPathElementSafe })" method="POST">
+        <div class="form-group">
+            <button type="submit" class="btn btn-default">Delete this workflow job</button>
+        </div>
+    </form>
 }

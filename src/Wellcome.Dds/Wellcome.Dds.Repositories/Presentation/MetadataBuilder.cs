@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using IIIF.Presentation.V3.Strings;
-using Utils;
 using Wellcome.Dds.Catalogue;
 
 namespace Wellcome.Dds.Repositories.Presentation
@@ -22,13 +21,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             md.AddNonlang("Reference", work.ReferenceNumber);
             md.AddNonlang("Publication/creation", work.Production?.FirstOrDefault()?.Label);
             md.AddEnglish("Physical description", work.PhysicalDescription);
-            md.AddNonlang("Contributors", work.Contributors.Select(c => c.Agent.Label));
+            md.AddNonlang("Contributors", work.Contributors?.Select(c => c.Agent?.Label));
             md.AddEnglish("Copyright note", work.GetNotes("copyright-note"));
             md.AddEnglish("Notes", work.GetNotes("general-note"));
             md.AddEnglish("Creator/production credits", work.GetNotes("credits"));
-            md.AddEnglish("Type/technique", work.Genres.Select(g => g.Label));
+            md.AddEnglish("Type/technique", work.Genres?.Select(g => g.Label));
             md.AddEnglish("Language", work.Language?.Label);
-            md.AddEnglish("Subjects", work.Subjects.Select(s => s.Label));
+            md.AddEnglish("Subjects", work.Subjects?.Select(s => s.Label));
             md.AddNonlang("Lettering", work.Lettering);
             md.AddEnglish("Publications note", work.GetNotes("publication-note"));
             md.AddEnglish("Reference", work.GetNotes("reference"));

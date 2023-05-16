@@ -22,12 +22,12 @@ namespace Wellcome.Dds.WordsAndPictures
         /// <summary>
         /// The unique word numbers within the document that make this result; use this to tell if two words are adjacent in the text
         /// </summary>
-        public List<int> Wds;
+        public List<int>? Wds;
 
         /// <summary>
         /// The positions of each word in the rectangle withint the normalised text
         /// </summary>
-        public List<int> PosNorms;
+        public List<int>? PosNorms;
 
         /// <summary>
         /// The unique line number within the document that this rect is on
@@ -54,10 +54,7 @@ namespace Wellcome.Dds.WordsAndPictures
         /// <summary>
         /// The position of the word in the normalised text
         /// </summary>
-        public int PosNorm
-        {
-            get { return PosNorms.First(); }
-        }
+        public int PosNorm => PosNorms?.First() ?? 0;
 
         /// <summary>
         /// The position of the word in the raw text
@@ -67,8 +64,8 @@ namespace Wellcome.Dds.WordsAndPictures
         /// <summary>
         /// Context - words on either side of this word
         /// </summary>
-        public string Before;
-        public string After;
+        public string? Before;
+        public string? After;
 
         public int LenNorm
         {

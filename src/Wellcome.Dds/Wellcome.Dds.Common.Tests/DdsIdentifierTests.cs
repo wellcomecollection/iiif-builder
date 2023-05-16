@@ -183,12 +183,9 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        [InlineData(NotBNumberButHasParts)]
         [InlineData(MsForm)]
-        [InlineData(ArchiveFormNoSlashes)]
         [InlineData(ArchiveFormWithSlashes)]
-        [InlineData(MixedSlashesAndUnderscores)]
-        public void ToString_ReturnsOriginalValue(string value)
+        public void ToString_ReturnsOriginalValue_ForSafeForms(string value)
         {
             // Arrange
             var identifier = new DdsIdentifier(value);
@@ -197,17 +194,28 @@ namespace Wellcome.Dds.Common.Tests
             identifier.ToString().Should().Be(value);
         }
         
+        
+        [Theory]
+        [InlineData(NotBNumberButHasParts, "2b99977766/0002/0005")]
+        [InlineData(ArchiveFormNoSlashes, "PPCRI/D/4/5A")]
+        [InlineData(MixedSlashesAndUnderscores, "PPCRI/2/b12312345//a")] // yes really
+        public void ToString_ReturnsCanonicalValue_ForUnSafeForms(string value, string expected)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.ToString().Should().Be(expected);
+        }
+        
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        [InlineData(NotBNumberButHasParts)]
         [InlineData(MsForm)]
-        [InlineData(ArchiveFormNoSlashes)]
         [InlineData(ArchiveFormWithSlashes)]
-        [InlineData(MixedSlashesAndUnderscores)]
-        public void ImplicitToString_ReturnsOriginalValue(string value)
+        public void ImplicitToString_ReturnsOriginalValue_ForSafeForms(string value)
         {
             // Arrange
             var identifier = new DdsIdentifier(value);
@@ -217,6 +225,22 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             strValue.Should().Be(value);
+        }
+        
+        [Theory]
+        [InlineData(NotBNumberButHasParts, "2b99977766/0002/0005")]
+        [InlineData(ArchiveFormNoSlashes, "PPCRI/D/4/5A")]
+        [InlineData(MixedSlashesAndUnderscores, "PPCRI/2/b12312345//a")] // yes really
+        public void ImplicitToString_ReturnsCanonicalValue_ForUnsafeForms(string value, string expected)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Act
+            string strValue = identifier;
+            
+            // Assert
+            strValue.Should().Be(expected);
         }
 
         [Theory]
@@ -253,13 +277,28 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData(Volume)]
         [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
+        public void BNumber_Forms_Yield_BNumber_PackageIdentifierPathElementSafe(string value)
         {
             // Arrange
             var identifier = new DdsIdentifier(value);
             
             // Assert
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+        }
+        
+                
+        [Theory]
+        [InlineData(BNumber)]
+        [InlineData(Volume)]
+        [InlineData(BNumberSequence)]
+        [InlineData(Issue)]
+        public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PathElementSafe.Should().Be(value);
         }
         
         [Theory]
@@ -275,7 +314,22 @@ namespace Wellcome.Dds.Common.Tests
             // Assert
             identifier.StorageSpace.Should().Be("digitised");
         }
-
+        
+        [Theory]
+        [InlineData(MsForm, MsForm)]
+        [InlineData(ArchiveFormWithSlashes, ArchiveFormNoSlashes)]
+        [InlineData(ArchiveFormNoSlashes, ArchiveFormNoSlashes)]
+        [InlineData(NotBNumberButHasParts, NotBNumberButHasParts)]
+        [InlineData(MixedSlashesAndUnderscores, "PPCRI_2_b12312345__a")]
+        public void Non_BNumbers_Yields_Same_PathElementSafe(string value, string expected)
+        {
+            // Arrange
+            var identifier = new DdsIdentifier(value);
+            
+            // Assert
+            identifier.PackageIdentifierPathElementSafe.Should().Be(expected);
+            identifier.PathElementSafe.Should().Be(expected);
+        }
 
         [Theory]
         [InlineData(MsForm)]

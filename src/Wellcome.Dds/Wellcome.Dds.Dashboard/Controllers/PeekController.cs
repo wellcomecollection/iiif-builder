@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using IIIF.Presentation;
 using IIIF.Serialisation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -22,53 +24,78 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ILogger<PeekController> logger;
+        private readonly LinkRewriter linkRewriter;
 
         public PeekController(
             IDds dds,
             ICatalogue catalogue,
             IWorkStorageFactory workStorageFactory,
             ILogger<PeekController> logger,
-            IIIIFBuilder iiifBuilder)
+            IIIIFBuilder iiifBuilder,
+            LinkRewriter linkRewriter)
         {
             this.dds = dds;
             this.catalogue = catalogue;
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
             this.iiifBuilder = iiifBuilder;
+            this.linkRewriter = linkRewriter;
         }
 
+        private ContentResult IIIFContent(string json)
+        {
+            if (json.IsNullOrWhiteSpace())
+            {
+                json = "{\"error\": \"No content to serve\" }";
+            }
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            if (linkRewriter.RequiresRewriting())
+            {
+                json = linkRewriter.RewriteLinks(json);
+            }
+            return Content(json, "application/json");
+        }
+
+        [AllowAnonymous]
         public async Task<ContentResult> IIIFRaw(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
-            return Content(build.IIIFResource.AsJson(), "application/json");
+            build.IIIFResource?.EnsurePresentation3Context();
+            return IIIFContent(build.IIIFResource?.AsJson());
         }
         
+        [AllowAnonymous]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            if (build.MayBeConvertedToV2)
+            {
+                var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] { build });
+                return IIIFContent(iiif2[id]?.IIIFResource?.AsJson());
+            }
 
-            var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] {build});
-            return Content(iiif2[id]?.IIIFResource.AsJson(), "application/json");
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            return Content("Contains AV, not going to convert to V2", "text/plain");
         }
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
+            build.IIIFResource?.EnsurePresentation3Context();
             var model = new CodeModel
             {
                 Title = "IIIF Resource Preview",
                 Description = "This has been built on the fly - it won't have been written to S3 yet.",
-                BNumber = ddsId.PackageIdentifier,
-                RelativePath = ddsId,
-                Manifestation = ddsId,
-                CodeAsString = build.IIIFResource.AsJson(),
+                Identifier = ddsId,
+                RelativePath = ddsId, // ?
+                CodeAsString = build.IIIFResource?.AsJson(),
                 ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("IIIFRaw", new {id}),
-                IncludeLinksToFullBuild = true
+                IncludeLinksToFullBuild = ddsId.HasBNumber
             };
             return View("Code", model);
         }
@@ -77,24 +104,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
         /// If no document path has been supplied, redirect to the appropriate root document
         /// </summary>
         /// <param name="store"></param>
-        /// <param name="id"></param>
         /// <param name="parts"></param>
         /// <returns></returns>
-        private string GetRedirectPath(IWorkStore store, string id, string parts)
+        private static string GetRedirectPath(IWorkStore store, string parts)
         {
             if (parts.HasText()) return null;
             var rootDocument = store.GetRootDocument();
-            if (rootDocument.HasText())
-            {
-                return rootDocument;
-            }
-            return null;
+            return rootDocument.HasText() ? rootDocument : null;
         }
 
         public async Task<ActionResult> XmlRaw(string id, string parts)
         {
-            var store = await workStorageFactory.GetWorkStore(id);
-            var redirect = GetRedirectPath(store, id, parts);
+            var packageIdentifier = new DdsIdentifier(id);
+            var store = await workStorageFactory.GetWorkStore(packageIdentifier);
+            var redirect = GetRedirectPath(store, parts);
             if (redirect.HasText())
             {
                 return RedirectToAction("XmlRaw", new {id, parts = redirect});
@@ -105,8 +128,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ActionResult> XmlView(string id, string parts)
         {
-            var store = await workStorageFactory.GetWorkStore(id);            
-            var redirect = GetRedirectPath(store, id, parts);
+            var packageIdentifier = new DdsIdentifier(id);
+            var store = await workStorageFactory.GetWorkStore(packageIdentifier);            
+            var redirect = GetRedirectPath(store, parts);
             if (redirect.HasText())
             {
                 return RedirectToAction("XmlView", new {id, parts = redirect});
@@ -124,34 +148,40 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 errorMessage = ex.Message;
             }
 
-            var manifestation = id;
-            try
+            DdsIdentifier manifestationIdentifier = null;
+            if (packageIdentifier.HasBNumber)
             {
-                var firstPart = parts.Split('/')[0].Split('.')[0];
-                manifestation = firstPart;
-            }
-            catch 
-            {
+                try
+                {
+                    // we need to get a manifestation ID from just a file path which might be alto etc.
+                    var manifestation = parts.Split('/').Last().Split('.')[0];
+                    var bParts = manifestation.Split('_');
+                    if (bParts.Length == 3)
+                    {
+                        manifestation = $"{bParts[0]}_{bParts[1]}";
+                    }
+
+                    manifestationIdentifier = new DdsIdentifier(manifestation);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
 
             var model = new CodeModel
             {
                 Title = "XML File View",
                 Description = $"You can view other XML resources for {id} by changing the URL of this page.",
-                BNumber = id,
-                Manifestation = manifestation,
+                Identifier = manifestationIdentifier ?? packageIdentifier,
                 RelativePath = parts,
                 CodeAsString = xmlAsString,
                 ErrorMessage = errorMessage,
                 Mode = "ace/mode/xml",
-                Raw = Url.Action("XmlRaw", new {id, parts})
+                Raw = Url.Action("XmlRaw", new {id, parts}),
+                AnchorFile = store.GetRootDocument()
             };
             
-            string anchorFile = id.ToLowerInvariant() + ".xml";
-            if (parts != anchorFile)
-            {
-                model.AnchorFile = anchorFile;
-            }
             return View("Code", model);
         }
         
@@ -164,7 +194,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ActionResult> StorageManifest(string id)
         {
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
+            var packageIdentifier = new DdsIdentifier(id);
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(packageIdentifier);
 
             string errorMessage = null;
             string jsonAsString = null;
@@ -182,12 +213,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new CodeModel
             {
                 Title = "Storage Manifest",
-                BNumber = id,
-                Manifestation = id,
+                Identifier = packageIdentifier,
                 CodeAsString = jsonAsString ?? string.Empty,
                 ErrorMessage = errorMessage,
                 Mode = "ace/mode/json",
-                Raw = Url.Action("StorageManifestRaw", new {id})
+                Raw = Url.Action("StorageManifestRaw", new {id}),
+                AnchorFile = archiveStore.GetRootDocument()
             };
             return View("Code", model);
         }
@@ -196,32 +227,27 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var results = await BuildIIIF(ddsId, all);
             var build = results[ddsId];
-            if (build.RequiresMultipleBuild && all == false)
+            if (build is { RequiresMultipleBuild: true } && all == false)
             {
                 results = await BuildIIIF(ddsId.PackageIdentifier, true);
-                build = results[ddsId];
                 // do we still have the same resource in the results?
                 // This particular manifestation might have been removed.
-                if (build == null)
-                {
-                    // e.g., AV MM rearranged into one Manifest
-                    // So return the b number
-                    build = results[ddsId.PackageIdentifier];
-                }
+                // e.g., AV MM rearranged into one Manifest
+                // So return the b number
+                build = results[ddsId] ?? results[ddsId.PackageIdentifier];
             }
             return build;
         }
         
-        private async Task<MultipleBuildResult> BuildIIIF(string id, bool all)
+        private async Task<MultipleBuildResult> BuildIIIF(DdsIdentifier ddsId, bool all)
         {
-            var ddsId = new DdsIdentifier(id);
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
             await dds.RefreshManifestations(ddsId.PackageIdentifier, work);
             if (all)
             {
-                return await iiifBuilder.BuildAllManifestations(id);
+                return await iiifBuilder.BuildAllManifestations(ddsId);
             }
-            return await iiifBuilder.Build(id, work);
+            return await iiifBuilder.Build(ddsId, work);
         }
     }
 }

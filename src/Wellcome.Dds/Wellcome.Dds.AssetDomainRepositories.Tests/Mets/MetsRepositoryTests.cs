@@ -32,7 +32,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             b16675630.Should().BeOfType<Collection>();
             b16675630.Partial.Should().BeFalse();
             var m0 = ((Collection) b16675630).Manifestations[0];
-            var b16675630_0001 = await metsRepository.GetAsync(m0.Id);
+            var b16675630_0001 = await metsRepository.GetAsync(m0.Identifier);
             b16675630_0001.Should().BeOfType<MetsManifestation>();
             b16675630_0001.Type.Should().Be("Video");
             var mb16675630_0001 = (MetsManifestation) b16675630_0001;
@@ -49,7 +49,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // This property should reflect the access file metadata, not any of the others
             physFile.AssetMetadata.GetFileName().Should().Be("0055-0000-3718-0000-0-0000-0000-0.mpg");
             physFile.AssetMetadata.GetFormatName().Should().Be("MPEG-2 Video Format");
-            physFile.AssetMetadata.GetLengthInSeconds().Should().Be("14mn 20s");
+            physFile.AssetMetadata.GetDisplayDuration().Should().Be("14mn 20s");
             
             // old poster image
             mb16675630_0001.PosterImage.Should().BeOfType<StoredFile>();
@@ -79,7 +79,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // This property should reflect the access file metadata, not any of the others
             physFile.AssetMetadata.GetFileName().Should().Be("b30496160_0002.mp4");
             physFile.AssetMetadata.GetFormatName().Should().Be("MPEG-4 Media File");
-            physFile.AssetMetadata.GetLengthInSeconds().Should().Be("58s");
+            physFile.AssetMetadata.GetDisplayDuration().Should().Be("58s");
             
             // we retain physFile.AssetMetadata as the access file's metadata.
             // But we allow access to the assetMetadata of the other files through a new lookup:
@@ -93,7 +93,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             // Transcript with metadata
             physFile.Files.Should().Contain(f => f.Use == "TRANSCRIPT");
             var transcript = physFile.Files.Single(f => f.Use == "TRANSCRIPT");
-            transcript.Family.Should().Be(AssetFamily.File);
+            transcript.ProcessingBehaviour.AssetFamily.Should().Be(AssetFamily.File);
             transcript.RelativePath.Should().Be(physFile.RelativeTranscriptPath);
             transcript.AssetMetadata.GetNumberOfPages().Should().Be(86);
 

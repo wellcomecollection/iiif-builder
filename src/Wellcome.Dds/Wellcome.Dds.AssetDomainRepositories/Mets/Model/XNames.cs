@@ -16,12 +16,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName MetsFileSec = mets + "fileSec";
         public static readonly XName MetsFile = mets + "file";
         public static readonly XName MetsMptr = mets + "mptr";
+        public static readonly XName MetsAmdSec = mets + "amdSec";
         public static readonly XName MetsDmdSec = mets + "dmdSec";
         public static readonly XName MetsMdWrap = mets + "mdWrap";
         public static readonly XName MetsXmlData = mets + "xmlData";
         public static readonly XName MetsFptr = mets + "fptr";
         public static readonly XName MetsFLocat = mets + "FLocat";
         public static readonly XName MetsTechMD = mets + "techMD";
+        public static readonly XName MetsRightsMD = mets + "rightsMD";
 
         public static readonly XNamespace mods = "http://www.loc.gov/mods/v3";
         public static readonly XName ModsTitle = mods + "title";
@@ -66,7 +68,28 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public static readonly XName PremisSignificantPropertiesValue = premis + "significantPropertiesValue";
         public static readonly XName PremisSize = premis + "size";
         public static readonly XName PremisFormatName = premis + "formatName";
+        public static readonly XName PremisFormatVersion = premis + "formatVersion";
+        public static readonly XName PremisFormatRegistryKey = premis + "formatRegistryKey";
+        public static readonly XName PremisOriginalName = premis + "originalName";
+        public static readonly XName PremisDateCreatedByApplication = premis + "dateCreatedByApplication";
+        public static readonly XName PremisObjectCharacteristicsExtension = premis + "objectCharacteristicsExtension";
+        public static readonly XName PremisRightsStatement = premis + "rightsStatement";
+        public static readonly XName PremisRightsStatementIdentifier = premis + "rightsStatementIdentifier";
+        public static readonly XName PremisRightsBasis = premis + "rightsBasis";
+        public static readonly XName PremisRightsGrantedNote = premis + "rightsGrantedNote";
+        public static readonly XName PremisLicenseNote = premis + "licenseNote";
+        public static readonly XName PremisCopyrightNote = premis + "copyrightNote";
+        public static readonly XName PremisCopyrightStatus = premis + "copyrightStatus";
+        
+        public static readonly XNamespace fits = "http://hul.harvard.edu/ois/xml/ns/fits/fits_output";
+        public static readonly XName FitsIdentity = fits + "identity";
+        public static readonly XName FitsTool = fits + "tool";
 
+        public static readonly XNamespace MediaInfo = "https://mediaarea.net/mediainfo";
+        public static readonly XName MediaInfoTrack = MediaInfo + "track";
+        public static readonly XName MediaInfoWidth = MediaInfo + "Width";
+        public static readonly XName MediaInfoHeight = MediaInfo + "Height";
+        public static readonly XName MediaInfoDuration = MediaInfo + "Duration";
 
         public static readonly XNamespace wt = "http://wellcome.ac.uk/";
         public static readonly XName WtVolumeNumber = wt + "volumeNumber";

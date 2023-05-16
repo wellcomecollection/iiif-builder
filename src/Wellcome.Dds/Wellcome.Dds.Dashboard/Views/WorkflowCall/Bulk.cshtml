@@ -1,0 +1,33 @@
+@model BulkWorkflowModel
+
+@{
+    ViewBag.Title = "Bulk workflow tool";
+}
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Bulk workflow tool</h3>
+    
+    <p>Paste identifiers into the large text box or populate it by uploading a file.</p>
+    
+    <form enctype="multipart/form-data" method="post">
+        <div class="input-group">
+            <input type="file" class="form-control" name="identifiersFile" placeholder="upload a file..."/>
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="submit">Upload</button>
+            </span>
+        </div>
+    </form>
+    
+    <form action="@Url.Action("BulkAnalyse")" method="POST">
+        <div class="form-group">
+            <textarea class="form-control" rows="10" name="identifiers">@Model.Identifiers</textarea>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-default">Analyse these identifiers...</button>
+        </div>
+    </form>
+    
+</div>
+
+<hr/>
+

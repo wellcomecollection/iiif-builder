@@ -1,4 +1,5 @@
 ﻿using Utils.Storage;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
 namespace Wellcome.Dds.AssetDomain.Mets
@@ -13,18 +14,18 @@ namespace Wellcome.Dds.AssetDomain.Mets
     /// </summary>
     public interface IStoredFile
     {
-        IWorkStore WorkStore { get; set; }
+        IWorkStore? WorkStore { get; set; }
         
         /// <summary>
         /// The technical metadata about the file included in the techMD section of the METS
         /// ALTO files won't have any technical metadata.
         /// </summary>
-        IAssetMetadata AssetMetadata { get; set; }
+        IAssetMetadata? AssetMetadata { get; set; }
         
         /// <summary>
         /// Location relative to the METS file
         /// </summary>
-        string RelativePath { get; set; }
+        string? RelativePath { get; set; }
         IArchiveStorageStoredFileInfo GetStoredFileInfo();
         
         // New to support AV workflow
@@ -33,21 +34,23 @@ namespace Wellcome.Dds.AssetDomain.Mets
         /// The mets:file ID.
         /// This will be null for legacy poster images.
         /// </summary>
-        string Id { get; set; }
-        public string StorageIdentifier { get; set; }
-        string MimeType { get; set; }
+        string? Id { get; set; }
+        public string? StorageIdentifier { get; set; }
+        string? MimeType { get; set; }
         
         /// <summary>
         /// e.g., ACCESS, POSTER, etc.
         /// This will only be declared in
         /// </summary>
-        string Use { get; set; }
-        AssetFamily Family { get; set; }
+        string? Use { get; set; }
         
         /// <summary>
         /// The METS PhysicalFile this stored file belongs to
         /// </summary>
-        IPhysicalFile PhysicalFile { get; set; }
+        IPhysicalFile? PhysicalFile { get; set; }
+        
+        
+        IProcessingBehaviour ProcessingBehaviour { get; }
         
     }
 }

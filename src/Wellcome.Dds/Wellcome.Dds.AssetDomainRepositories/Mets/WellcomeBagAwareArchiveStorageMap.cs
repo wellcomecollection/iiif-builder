@@ -15,6 +15,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     [ProtoContract]
     public class WellcomeBagAwareArchiveStorageMap
     {
+        #nullable disable
+        
         /// <summary>
         /// a List of: "v1" => { "alto/#_0001.xml", ... }
         /// in increasing order of size of set 
@@ -52,7 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 Identifier = identifier,
                 BucketName = bucketName,
-                StorageManifestCreated = storageManifest.Value<DateTime>("createdDate")
+                StorageManifestCreated = storageManifest.Value<DateTime>("createdDate").ToUniversalTime()
             };
             var pathSep = new[] {'/'};
 

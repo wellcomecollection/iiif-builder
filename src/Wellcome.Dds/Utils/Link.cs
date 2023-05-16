@@ -4,9 +4,9 @@ using System.Text;
 namespace Utils
 {
     /// <summary>
-    /// Represention of the properties of an anchor tag (hyperlink element) - its attributes and inner text.
+    /// Representation of the properties of an anchor tag (hyperlink element) - its attributes and inner text.
     /// 
-    /// This is useful in databinding scenarios, and in manipulating HTML.
+    /// This is useful in data-binding scenarios, and in manipulating HTML.
     /// 
     /// Do not add any properties to this class that do not directly represent attributes of a link element
     /// This represents a hyperlink HTML element (anchor tag), it is NOT a lightweight IItem 
@@ -18,20 +18,20 @@ namespace Utils
     [Serializable]
     public class Link : IComparable<Link>
     {
-        public string Href { get; set; }
-        public string Text { get; set; }
-        public string CssClass { get; set; }
-        public string Rel { get; set; }
-        public string Title { get; set; }
+        public string? Href { get; set; }
+        public string? Text { get; set; }
+        public string? CssClass { get; set; }
+        public string? Rel { get; set; }
+        public string? Title { get; set; }
 
-        public int CompareTo(Link other)
+        public int CompareTo(Link? other)
         {
-            return String.CompareOrdinal(Text, other.Text);
+            return String.CompareOrdinal(Text, other?.Text);
         }
 
         public override string ToString()
         {
-            return String.Format("[{0} - {1}]", Href, Text);
+            return $"[{Href} - {Text}]";
         }
 
         public string ToHtml()

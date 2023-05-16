@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using DlcsWebClient.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Utils;
 using Utils.Web;
 using Wellcome.Dds.AssetDomain.Dlcs;
 
@@ -27,6 +28,10 @@ namespace DlcsWebClient.Dlcs
             {
                 client.DefaultRequestHeaders.Accept
                     .Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                if (dlcsOptions.ApiKey.IsNullOrWhiteSpace() || dlcsOptions.ApiSecret.IsNullOrWhiteSpace())
+                {
+                    throw new InvalidOperationException("Missing DLCS API key/secret in config");
+                }
                 client.DefaultRequestHeaders.AddBasicAuth(dlcsOptions.ApiKey, dlcsOptions.ApiSecret);
                 client.Timeout = TimeSpan.FromMilliseconds(dlcsOptions.DefaultTimeoutMs);
             });

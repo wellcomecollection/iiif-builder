@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using IIIF;
 using IIIF.Auth.V1;
+using IIIF.Auth.V2;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
 using IIIF.Presentation.V2.Annotation;
@@ -42,7 +43,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         /// </summary>
         public MultipleBuildResult ConvertAll(string identifier, IEnumerable<BuildResult> buildResults)
         {
-            var multipleBuildResult = new MultipleBuildResult();
+            var multipleBuildResult = new MultipleBuildResult(identifier);
             logger.LogDebug("Building LegacyIIIF for Id '{Identifier}'", identifier);
 
             int count = 0;
@@ -98,7 +99,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 ResourceBase p2Resource = presentation switch
                 {
                     Presi3.Manifest p3Manifest => ConvertManifest(p3Manifest, identifier, true, sequence),
-                    Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier!),
+                    Presi3.Collection p3Collection => ConvertCollection(p3Collection, identifier),
                     _ => throw new ArgumentException(
                         $"Unable to convert {presentation.GetType()} to v2. Expected: Canvas or Manifest",
                         nameof(presentation))
@@ -176,11 +177,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 {
                     switch (service)
                     {
-                        case ResourceBase authService:
-                            var wellcomeAuthService = GetWellcomeAuthService(identifier, authService);
+                        case AuthAccessService2:
+                            logger.LogDebug("Skipping V2 Auth Service");
+                            break;
+                        case ResourceBase legacyAuthService:
+                            var wellcomeAuthService = GetWellcomeAuthService(identifier, legacyAuthService);
                             
                             // I think it's OK to leave the extra labels on
-                            manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService, null)!);
+                            manifest.Service.Add(ObjectCopier.DeepCopy(wellcomeAuthService)!);
                             
                             // Add to wellcomeAuthServices collection
                             authServiceManager.Add(wellcomeAuthService);
@@ -209,7 +213,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             if (p3Manifest.Structures.HasItems())
             {
                 manifest.Structures = new List<Range>(p3Manifest.Structures!.Count);
-                foreach (var r in p3Manifest!.Structures)
+                foreach (var r in p3Manifest.Structures)
                 {
                     var range = ConverterHelpers.GetIIIFPresentationBase<Range>(r);
                     range.ViewingDirection = r.ViewingDirection;
@@ -256,11 +260,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Label = new MetaDataValue($"XSequence {itemCount++}"),
                 };
 
-                var elements = new AnnotationListForMedia();
-                elements.Label = manifest.Label;
-                elements.Thumbnail = new List<Thumbnail>
+                var elements = new AnnotationListForMedia
                 {
-                    new() {Id = uriPatterns.PdfThumbnail(identifier), Type = null}
+                    Label = manifest.Label,
+                    Thumbnail = new List<Thumbnail>
+                    {
+                        new() {Id = uriPatterns.PdfThumbnail(identifier), Type = null}
+                    }
                 };
 
                 // Assumption is always 0 or 1 item (0 for born-digital, 1 for av)
@@ -285,12 +291,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                 var anno = p3Canvas.Annotations?.FirstOrDefault();
                 if (anno != null)
                 {
-                    var annotation = new Annotation();
-                    annotation.Id = anno.Id;
-                    annotation.Motivation = "oad:transcribing";
-                    annotation.On = elements.Id;
+                    var annotation = new Annotation
+                    {
+                        Id = anno.Id,
+                        Motivation = "oad:transcribing",
+                        On = elements.Id!
+                    };
 
-                    if (anno.Items.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
+                    if (anno.Items?.FirstOrDefault() is SupplementingDocumentAnnotation {Body: var body} &&
                         body is ExternalResource extBody)
                     {
                         var pageMetaPair = body.Metadata?.FirstOrDefault(
@@ -325,12 +333,14 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                         }
                         else
                         {
-                            var resource = new ResourceForMedia();
-                            resource.Id = body.Id;
-                            resource.Type = "foaf:Document";
-                            resource.Format = extBody.Format;
-                            resource.Label = manifest.Label;
-                            resource.Thumbnail = uriPatterns.PdfThumbnail(identifier);
+                            var resource = new ResourceForMedia
+                            {
+                                Id = body.Id,
+                                Type = "foaf:Document",
+                                Format = extBody.Format,
+                                Label = manifest.Label,
+                                Thumbnail = uriPatterns.PdfThumbnail(identifier)
+                            };
                             annotation.Resource = resource;
                             elements.Resources.Add(annotation);
                             if (pageCountMeta != null)
@@ -373,7 +383,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var annotations = p3Canvas.Items[0].Items;
                     var paintingAnnotations = annotations!.OfType<PaintingAnnotation>().ToList();
 
-                    if (annotations.Count > paintingAnnotations.Count)
+                    if (annotations!.Count > paintingAnnotations.Count)
                         logger.LogWarning("'{ManifestId}', canvas '{CanvasId}' has non-painting annotations",
                             p3Manifest.Id, p3Canvas.Id);
 
@@ -449,11 +459,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
 
             // Create a fake WellcomeAuthService to contain the above services
-            var wellcomeAuthService = new WellcomeAccessControlHintService();
-            wellcomeAuthService.Id = GetAccessControlHintServiceId(identifier);
-            wellcomeAuthService.Profile = GetAccessControlHintServiceProfile(identifier);
-            wellcomeAuthService.AuthService = new List<IService> {(IService)copiedService};
-            wellcomeAuthService.AccessHint = accessHint;
+            var wellcomeAuthService = new WellcomeAccessControlHintService
+            {
+                Id = GetAccessControlHintServiceId(identifier),
+                Profile = GetAccessControlHintServiceProfile(identifier),
+                AuthService = new List<IService> {(IService)copiedService},
+                AccessHint = accessHint
+            };
             wellcomeAuthService.EnsureContext($"{Constants.WellcomeCollectionUri}/ld/iiif-ext/0/context.json");
             return wellcomeAuthService;
         }

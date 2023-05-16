@@ -2,12 +2,12 @@
 {
     public class Contributor : CatalogueEntity
     {
-        public IdentifiedEntity Agent { get; set; }
-        public IdentifiedEntity[] Roles { get; set; }
+        public IdentifiedEntity? Agent { get; set; }
+        public IdentifiedEntity[]? Roles { get; set; }
 
-        public override string ToString()
+        public override string? ToString()
         {
-            return Agent.ToString();
+            return Agent?.ToString();
         }
     }
 }

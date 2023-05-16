@@ -1,4 +1,4 @@
-@model string[]
+@model List<string>
 @{
     Layout = null;
 }
@@ -22,11 +22,17 @@ var mirador = Mirador.viewer({
       "loadedManifest": "@Model[0]",
       "thumbnailNavigationPosition": 'far-bottom',
       "view": "single"
-    },    
+    }
+    @if (Model.Count > 1)
     {
-      "loadedManifest": "@Model[1]",
-      "thumbnailNavigationPosition": 'far-bottom',
-      "view": "single"
+        <text>
+        ,    
+        {
+            "loadedManifest": "@Model[1]",
+            "thumbnailNavigationPosition": 'far-bottom',
+            "view": "single"
+        }
+        </text>
     }
   ]
 });

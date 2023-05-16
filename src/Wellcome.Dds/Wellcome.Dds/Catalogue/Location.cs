@@ -2,11 +2,11 @@
 {
     public class Location : CatalogueEntity
     {
-        public LabelledEntity LocationType { get; set; }
-        public string Url { get; set; }
-        public string Credit { get; set; }
-        public License License { get; set; }
-        public AccessCondition[] AccessConditions { get; set; }
+        public LabelledEntity? LocationType { get; set; }
+        public string? Url { get; set; }
+        public string? Credit { get; set; }
+        public License? License { get; set; }
+        public AccessCondition[]? AccessConditions { get; set; }
 
         public override string ToString()
         {

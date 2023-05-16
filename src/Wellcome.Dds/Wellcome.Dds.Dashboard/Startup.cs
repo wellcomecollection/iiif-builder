@@ -1,4 +1,6 @@
 using System;
+using Amazon.SimpleNotificationService;
+using Amazon.SQS;
 using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -18,12 +20,12 @@ using Utils.Aws.S3;
 using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
-using Wellcome.Dds.AssetDomain.Dashboard;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
-using Wellcome.Dds.AssetDomainRepositories.Dashboard;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Ingest;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
@@ -52,9 +54,6 @@ namespace Wellcome.Dds.Dashboard
         
         public void ConfigureServices(IServiceCollection services)
         {
-            // Use pre-v6 handling of datetimes for npgsql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
                 .UseSnakeCaseNamingConvention());
@@ -68,7 +67,11 @@ namespace Wellcome.Dds.Dashboard
 
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
             
-            services.AddDefaultAWSOptions(Configuration.GetAWSOptions("Dds-AWS"));
+            var ddsAwsOptions = Configuration.GetAWSOptions("Dds-AWS");
+            var platformAwsOptions = Configuration.GetAWSOptions("Platform-AWS");
+            services.AddDefaultAWSOptions(ddsAwsOptions);   
+            services.AddAWSService<IAmazonSQS>(ddsAwsOptions);
+            services.AddAWSService<IAmazonSimpleNotificationService>(platformAwsOptions);
 
             var dlcsSection = Configuration.GetSection("Dlcs");
             var dlcsOptions = dlcsSection.Get<DlcsOptions>();
@@ -78,6 +81,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<DashOptions>(Configuration.GetSection("Dash"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
+            services.Configure<CacheInvalidationOptions>(Configuration.GetSection("CacheInvalidation"));
 
             // we need more than one of these
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
@@ -90,6 +94,7 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
+            services.AddSingleton<LinkRewriter>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
@@ -110,7 +115,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
 
             // TODO - assess the lifecycle of all of these
-            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IDigitalObjectRepository, DigitalObjectRepository>();
             services.AddScoped<IWorkflowCallRepository, WorkflowCallRepository>();
             services.AddScoped<IDatedIdentifierProvider, RecentlyAddedItemProvider>();
             services.AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>();
@@ -119,6 +124,9 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<ManifestationModelBuilder>(opts =>
                 ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
+            services.AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
+            
+            
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
 
@@ -143,7 +151,7 @@ namespace Wellcome.Dds.Dashboard
                 UpdateDatabase(logger);
             }
             
-            if (env.IsDevelopment())
+            if (env.IsDevelopment() || env.EnvironmentName == "Staging-New")
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -168,7 +176,7 @@ namespace Wellcome.Dds.Dashboard
                     .MapControllers()
                     .RequireAuthorization();
 
-                string actionRegex = "^(?!account|goobicall|job|log|peek|settings).*$";
+                string actionRegex = "^(?!account|workflowcall|job|log|peek|settings).*$";
                 endpoints.MapControllerRoute(name: "dash",
                     pattern: "{action}/{id?}/{*parts}",
                     constraints: new { action = actionRegex, },

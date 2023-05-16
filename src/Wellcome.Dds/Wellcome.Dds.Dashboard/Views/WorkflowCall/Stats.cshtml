@@ -1,0 +1,71 @@
+﻿@model WorkflowCallStats
+
+@{
+    ViewBag.Title = "Workflow call stats";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Workflow call stats</h3>
+</div>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Total Jobs</th>
+        <th>Finished Jobs</th>
+        <th>Word Count</th>
+        <th>Errors</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>@($"{Model.TotalJobs:n0}")</td>
+        <td>
+            @($"{Model.FinishedJobs:n0}")
+            (@($"{Model.FinishedPercent:P2}"))
+        </td>
+        <td>@($"{Model.WordCount:n0}")</td>
+        <td>@($"{Model.Errors}")</td>
+    </tr>
+    <tr>
+        <td colspan="4">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" 
+                     aria-valuenow='@($"{Model.FinishedJobs}")'
+                     aria-valuemin="0"
+                     aria-valuemax='@($"{Model.TotalJobs}")' 
+                     style="width: @($"{Model.FinishedPercent*100}")%;">
+                    <span class="sr-only">@($"{Model.FinishedPercent:P2}") Complete</span>
+                </div>
+            </div>
+            
+            Estimated completion based on last @Model.RecentSampleHours hours activity:
+            <strong>@Model.EstimatedCompletion</strong>
+            <p>
+                <br/>
+                @Html.ActionLink("Recent workflow calls", "Recent", "WorkflowCall")
+                |
+                @Html.ActionLink("Errors", "Errors", "WorkflowCall")
+                |
+                @Html.ActionLink("Bulk create workflow jobs", "Bulk", "WorkflowCall")
+            </p>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Last 10 Taken</h3>
+</div>
+<partial name="_WorkflowJobList" for="RecentlyTaken" />
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Taken but unfinished</h3>
+</div>
+<partial name="_WorkflowJobList" for="TakenAndUnfinished" />

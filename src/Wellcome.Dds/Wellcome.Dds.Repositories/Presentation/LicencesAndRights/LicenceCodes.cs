@@ -1,8 +1,8 @@
 ﻿namespace Wellcome.Dds.Repositories.Presentation.LicencesAndRights
 {
-    public class LicenceCodes
+    public static class LicenceCodes
     {
-        public static string MapLicenseCode(string dzLicenseCode)
+        public static string? MapLicenseCode(string? dzLicenseCode)
         {
             switch (dzLicenseCode)
             {

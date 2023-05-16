@@ -8,11 +8,12 @@ using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Control;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories
 {
     /// <summary>
-    /// This class merges WorlflowContext and WorkflowContext from old DDS,
+    /// This class merges CloudIngestContext and WorkflowContext from old DDS,
     /// which both use the Instrumentation database.
     /// 
     /// Two other DbContext classes are present in old Dds:
@@ -28,14 +29,14 @@ namespace Wellcome.Dds.AssetDomainRepositories
         { }
 
         // From CloudIngestContext:
-        public DbSet<DlcsIngestJob> DlcsIngestJobs { get; set; }
-        public DbSet<DlcsBatch> DlcsBatches { get; set; }
-        public DbSet<IngestAction> IngestActions { get; set; }
+        public DbSet<DlcsIngestJob> DlcsIngestJobs => Set<DlcsIngestJob>();
+        public DbSet<DlcsBatch> DlcsBatches => Set<DlcsBatch>();
+        public DbSet<IngestAction> IngestActions => Set<IngestAction>();
 
         // from WorkflowContext:
-        public DbSet<WorkflowJob> WorkflowJobs { get; set; }
-        
-        public DbSet<ControlFlow> ControlFlows { get; set; }
+        public DbSet<WorkflowJob> WorkflowJobs => Set<WorkflowJob>();
+
+        public DbSet<ControlFlow> ControlFlows => Set<ControlFlow>();
 
         public async Task<int> CountBatchesAsync()
         {
@@ -50,22 +51,22 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.ExecuteSqlRaw(sql);
         }
 
-        public async Task<WorkflowJob> PutJob(string bNumber, bool forceRebuild, bool take, int? workflowOptions,
+        public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
-            WorkflowJob job = await WorkflowJobs.FindAsync(bNumber);
+            WorkflowJob? job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
-                job = new WorkflowJob {Identifier = bNumber};
+                job = new WorkflowJob {Identifier = ddsId.PackageIdentifier};
                 await WorkflowJobs.AddAsync(job);
             }
 
-            job.Created = DateTime.Now;
+            job.Created = DateTime.UtcNow;
             job.WorkflowOptions = workflowOptions >= 0 ? workflowOptions : null;
             if (take)
             {
                 job.Waiting = false;
-                job.Taken = DateTime.Now;
+                job.Taken = DateTime.UtcNow;
             }
             else
             {
@@ -82,7 +83,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return job;
         }
 
-        public string MarkFirstJobAsTaken(int minAgeInMinutes)
+        public string? MarkFirstJobAsTaken(int minAgeInMinutes)
         {
             var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
                 + " select identifier from workflow_jobs "
@@ -94,7 +95,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             return Database.MapRawSql(sql, MapString).FirstOrDefault();
         }
 
-        private string MapString(DbDataReader dr)
+        private string? MapString(DbDataReader dr)
         {
             if (dr.IsDBNull(0)) return null;
             return (string) dr[0];

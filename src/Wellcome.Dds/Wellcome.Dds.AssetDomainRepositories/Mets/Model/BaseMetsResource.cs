@@ -1,33 +1,33 @@
 ﻿using Utils;
-using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
-    public abstract class BaseMetsResource : IMetsResource, IFileBasedResource
+    public abstract class BaseMetsResource : IMetsResource
     {
-        public string Id { get; set; }
-        public string Label { get; set; }
-        public string Type { get; set; }
+        public DdsIdentifier Identifier { get; set; } = null!;
+        public string? Label { get; set; }
+        public string? Type { get; set; }
         public int? Order { get; set; }
-        public IModsData ModsData { get; set; }
-        public IModsData ParentModsData { get; set; }
-        public IArchiveStorageStoredFileInfo SourceFile { get; set; }
+        public ISectionMetadata? SectionMetadata { get; set; }
+        public ISectionMetadata? ParentSectionMetadata { get; set; }
+        public IArchiveStorageStoredFileInfo? SourceFile { get; set; }
         public bool Partial { get; set; }
         
-        protected string GetLabel(ILogicalStructDiv div, IModsData mods)
+        protected string GetLabel(ILogicalStructDiv div, ISectionMetadata? sectionMetadata)
         {
-            string label = null;
-            if (mods != null)
+            string? label = null;
+            if (sectionMetadata != null)
             {
                 if (div.Type == "PeriodicalIssue")
                 {
-                    var issue = mods.GetDisplayTitle();
-                    var issueIsUseful = issue.ToAlphanumeric().HasText();
-                    if (mods.OriginDateDisplay.HasText())
+                    var issue = sectionMetadata.GetDisplayTitle();
+                    var issueIsUseful = issue!.ToAlphanumeric().HasText();
+                    if (sectionMetadata.DisplayDate.HasText())
                     {
-                        label = mods.OriginDateDisplay;
+                        label = sectionMetadata.DisplayDate;
                         if (issueIsUseful)
                         {
                             label += " (issue " + issue + ")";
@@ -44,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 }
                 else
                 {
-                    label = mods.GetDisplayTitle();
+                    label = sectionMetadata.GetDisplayTitle();
                 }
             }
             if (!label.HasText())
@@ -59,12 +59,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
         /// <summary>
-        /// Always returns the b Number
+        /// Always returns the package identifier, e.g., b Number
         /// </summary>
         /// <returns></returns>
         public string GetRootId()
         {
-            return Id.SplitByDelimiterIntoArray('_')[0];
+            return Identifier!.PackageIdentifier;
         }
     }
 }

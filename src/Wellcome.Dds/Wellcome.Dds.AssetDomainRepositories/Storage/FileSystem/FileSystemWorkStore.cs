@@ -28,18 +28,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
         {
             var path = FileUri(relativePath);
             XElement metsXml = await LoadReadOnly(path);
-            return new XmlSource
-            {
-                XElement = metsXml,
-                RelativeXmlFilePath = relativePath
-            };
+            return new XmlSource(metsXml, relativePath);
         }
         
         private async Task<XElement> LoadReadOnly(string filePath)
         {
-            XElement xel = null;
             await using Stream s = File.OpenRead(filePath);
-            xel = await XElement.LoadAsync(s, LoadOptions.None, CancellationToken.None);
+            var xel = await XElement.LoadAsync(s, LoadOptions.None, CancellationToken.None);
             return xel;
         }
 
@@ -55,12 +50,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             return await LoadXmlForPath(relativePath);
         }
 
+        public Task<XmlSource> LoadRootDocumentXml()
+        {
+            // Only for born digital
+            throw new System.NotImplementedException();
+        }
+
         public IArchiveStorageStoredFileInfo GetFileInfoForPath(string relativePath)
         {
             var fullPath = FileUri(relativePath);
             var fi = new FileInfo(fullPath);
             return new ArchiveStorageStoredFileInfo(
-                fi.LastWriteTime,
+                fi.LastWriteTime.ToUniversalTime(),
                 fullPath,
                 relativePath);
         }

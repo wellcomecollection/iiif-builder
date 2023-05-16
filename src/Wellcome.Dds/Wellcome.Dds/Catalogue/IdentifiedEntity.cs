@@ -2,7 +2,7 @@
 {
     public class IdentifiedEntity : LabelledEntity
     {
-        public Identifier[] Identifiers { get; set; }
+        public Identifier[]? Identifiers { get; set; }
         
         public override string ToString()
         {

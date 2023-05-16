@@ -5,6 +5,11 @@
     /// </summary>
     public class MultipleManifestationMember
     {
+        public MultipleManifestationMember(string id, string type)
+        {
+            Id = id;
+            Type = type;
+        }
         public string Id { get; set; }
         public string Type { get; set; }
     }
