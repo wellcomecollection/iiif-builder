@@ -481,6 +481,7 @@ namespace WorkflowProcessor
                         foreach (var message in response!.Messages!)
                         {
                             if (cancellationToken.IsCancellationRequested) return;
+                            logger.LogDebug("WorkflowProcessor received SQS message {messageBody}", message.Body);
 
                             var queueMessage = new QueueMessage
                             (
@@ -494,9 +495,16 @@ namespace WorkflowProcessor
                             var workflowMessage = body.ToObject<WorkflowMessage>();
                             if (workflowMessage != null)
                             {
-                                await dbContext.PutJob(workflowMessage.Identifier, 
-                                    true, false, null, false, true);
-                                await dbContext.SaveChangesAsync(cancellationToken);
+                                if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
+                                {
+                                    await dbContext.PutJob(workflowMessage.Identifier, 
+                                        true, false, null, false, true);
+                                    await dbContext.SaveChangesAsync(cancellationToken);
+                                }
+                                else
+                                {
+                                    logger.LogError("Received message with invalid identifier {identifier}", workflowMessage.Identifier);
+                                }
                             }
                             await sqsClient.DeleteMessageAsync(new DeleteMessageRequest
                             {
