@@ -10,6 +10,7 @@ using IIIF.Presentation.V3.Strings;
 using IIIF.Serialisation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
 using Newtonsoft.Json;
@@ -43,8 +44,10 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ICatalogue catalogue;
         private readonly LinkRewriter linkRewriter;
+        private readonly ILogger<PresentationController> logger;
 
         public PresentationController(
+            ILogger<PresentationController> logger,
             IOptions<DdsOptions> options,
             Helpers helpers,
             UriPatterns uriPatterns,
@@ -54,6 +57,7 @@ namespace Wellcome.Dds.Server.Controllers
             LinkRewriter linkRewriter
             )
         {
+            this.logger = logger;
             ddsOptions = options.Value;
             this.helpers = helpers;
             this.uriPatterns = uriPatterns;
@@ -74,10 +78,12 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("{*id}")] 
         public async Task<IActionResult> Index(string id)
         {
+            logger.LogDebug("IIIF Resource request for {id}", id);
             var ddsId = new DdsIdentifier(id);
             var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
+                logger.LogDebug("{id} required redirect to {redirect}", id, redirect);
                 return Redirect(redirect);
             }
             // Return requested version if headers present, or fallback to known version
@@ -86,6 +92,7 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 if (! await helpers.ExistsInStorage(ddsOptions.PresentationContainer, $"v3/{ddsId}"))
                 {
+                    logger.LogInformation("{ddsId} does not exist in storage on v3 path", ddsId.ToString());
                     return await HandleMissingPresentationResource(ddsId);
                 }
             }
@@ -105,12 +112,15 @@ namespace Wellcome.Dds.Server.Controllers
             var alternative = ddsContext.GetManifestationByAnyIdentifier(id);
             if (alternative != null)
             {
+                logger.LogInformation("Found alternative Manifestation for {id}: {altId}", id, alternative.ManifestationIdentifier);
                 if (alternative.ManifestationIdentifier != id)
                 {
                     // This was requested with an alternative identifier
+                    logger.LogInformation("RedirectPermanent to {altId}", alternative.ManifestationIdentifier);
                     return RedirectPermanent(uriPatterns.Manifest(alternative.ManifestationIdentifier));
                 }
-
+                
+                logger.LogInformation("Returning 404 as alternative has same id {id}", id);
                 return NotFound();
             }
             
@@ -143,16 +153,19 @@ namespace Wellcome.Dds.Server.Controllers
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
         {
+            logger.LogDebug("Serving IIIF Content for {path}", path);
             return await helpers.ServeIIIFContent(ddsOptions.PresentationContainer, path, contentType, this);
         }
 
         private IActionResult CollectionContent(IIIF.Presentation.V3.Collection coll)
         {
+            logger.LogDebug("Returning V3 CollectionContent for {collectionId}", coll.Id);
             return CollectionContent(coll.AsJson(), IIIFPresentation.ContentTypes.V3);
         }
         
         private IActionResult CollectionContent(IIIF.Presentation.V2.Collection coll)
         {
+            logger.LogDebug("Returning V2 CollectionContent for {collectionId}", coll.Id);
             return CollectionContent(coll.AsJson(), IIIFPresentation.ContentTypes.V2);
         }
 
@@ -174,6 +187,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections")]
         public IActionResult TopLevelCollection()
         {
+            logger.LogDebug("Request for V3 top level collection");
             var tlc = new Collection
             {
                 Id = uriPatterns.CollectionForAggregation(),
@@ -198,6 +212,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections")]
         public IActionResult TopLevelCollectionV2()
         {
+            logger.LogDebug("Request for V2 top level collection");
             var tlc = new IIIF.Presentation.V2.Collection
             {
                 Id = uriPatterns.CollectionForAggregation().AsV2(),
@@ -224,6 +239,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/archives")]
         public IActionResult ArchivesTopLevelCollection()
         {
+            logger.LogDebug("Request for V3 top level ARCHIVES collection");
             var archiveRoot = CollectionForAggregationId("archives");
             var coll = new Collection
             {
@@ -270,6 +286,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/archives")]
         public IActionResult ArchivesTopLevelCollectionV2()
         {
+            logger.LogDebug("Request for V2 top level ARCHIVES collection");
             var archiveRoot = CollectionForAggregationId("archives").AsV2();
             var coll = new IIIF.Presentation.V2.Collection
             {
@@ -318,9 +335,12 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/archives/{*referenceNumber}")]
         public async Task<IActionResult> ArchivesReference(string referenceNumber, bool fromPresentationPath = false)
         {
+            logger.LogDebug("Handling potential V3 Archives reference {referenceNumber} on {requestPath}", 
+                referenceNumber, Request.Path);
             Collection collection;
             if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
             {
+                logger.LogDebug("{referenceNumber} is top level collection", referenceNumber);
                 collection = GetNoCollectionArchive();
             }
             else
@@ -332,18 +352,22 @@ namespace Wellcome.Dds.Server.Controllers
                 }
                 if (work.HasIIIFDigitalLocation())
                 {
+                    logger.LogDebug("{referenceNumber} has digital location", referenceNumber);
                     var refAsDdsId = new DdsIdentifier(referenceNumber);
                     // Should we instead get the work from the Manifestations table at this point?
                     var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
                     if (bNumber.HasText())
                     {
+                        logger.LogDebug("Found bNumber for {referenceNumber}: {bNumber}", referenceNumber, bNumber);
                         var bNumberAsDdsId = new DdsIdentifier(bNumber);
                         // There's a slim chance of a circular redirect without checking this;
                         // don't redirect if it's already a b-number. It shouldn't be! 
                         if (refAsDdsId != bNumberAsDdsId)
                         {
+                            logger.LogDebug("They are different, so redirecting to {bNumber}", bNumber);
                             return Redirect(uriPatterns.Manifest(bNumber));
                         }
+                        logger.LogDebug("{refAsDdsId} and {bNumberAsDdsId} are the same so return 404", refAsDdsId, bNumberAsDdsId);
                         return NotFound();
                     }
                     
@@ -353,21 +377,25 @@ namespace Wellcome.Dds.Server.Controllers
                     // ddsContext.GetManifestationByAnyIdentifier(referenceNumber);
                     // ... redirect... avoiding circular ref.
                     
+                    logger.LogInformation("Has digital location but can't get bNumber for {referenceNumber}, return 404", referenceNumber);
                     // but for now:
                     return NotFound();
                 }
 
                 if (fromPresentationPath)
                 {
-                    // The user has likely hacked back the URL path to get here, so redirect to the archives path
-                    return Redirect(uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber));
+                    var pattern = uriPatterns.CollectionForAggregation("archives", work.ReferenceNumber);
+                    logger.LogDebug("The user has likely hacked back the URL path to get here, so redirect to {pattern}", pattern);
+                    return Redirect(pattern);
                 }
+                logger.LogDebug("Build an archival node (hierarchical container) for {workId}", work.Id);
                 collection = iiifBuilder.BuildArchiveNode(work);
                 
             }
 
             if (collection == null)
             {
+                logger.LogDebug("Could not build archival node so return 404");
                 return NotFound();
             }
             
@@ -384,6 +412,8 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/archives/{*referenceNumber}")]
         public async Task<IActionResult> ArchivesReferenceV2(string referenceNumber)
         {
+            logger.LogDebug("Handling potential V2 Archives reference {referenceNumber} on {requestPath}", 
+                referenceNumber, Request.Path);
             IIIF.Presentation.V2.Collection collection;
             if (referenceNumber == Manifestation.EmptyTopLevelArchiveReference)
             {
@@ -441,6 +471,7 @@ namespace Wellcome.Dds.Server.Controllers
 
         private Collection GetNoCollectionArchive()
         {
+            logger.LogDebug("GetNoCollectionArchive V3");
             var collection = new Collection
             {
                 Id = uriPatterns.CollectionForAggregation("archives", Manifestation.EmptyTopLevelArchiveReference),
@@ -465,6 +496,7 @@ namespace Wellcome.Dds.Server.Controllers
         
         private IIIF.Presentation.V2.Collection GetNoCollectionArchiveV2()
         {
+            logger.LogDebug("GetNoCollectionArchive V2");
             var collection = new IIIF.Presentation.V2.Collection
             {
                 Id = uriPatterns.CollectionForAggregation("archives", Manifestation.EmptyTopLevelArchiveReference).AsV2(),
@@ -491,6 +523,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/{aggregator}")]
         public IActionResult Aggregation(string aggregator)
         {
+            logger.LogDebug("Building V3 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
             {
@@ -520,6 +553,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/chunked/{aggregator}/{chunk}")]        
         public IActionResult ChunkedAggregation(string aggregator, char chunk)
         {
+            logger.LogDebug("Building CHUNKED V3 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
             {
@@ -553,6 +587,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}")]
         public IActionResult AggregationV2(string aggregator)
         {
+            logger.LogDebug("Building V2 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
             {
@@ -581,6 +616,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/chunked/{aggregator}/{chunk}")]        
         public IActionResult ChunkedAggregationV2(string aggregator, char chunk)
         {
+            logger.LogDebug("Building CHUNKED V2 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
             {
@@ -614,6 +650,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValue(string aggregator, string value)
         {
+            logger.LogDebug("Building V3 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
             const int maxThumbnails = 50; // to avoid huge collections
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
@@ -650,6 +687,7 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValueV2(string aggregator, string value)
         {
+            logger.LogDebug("Building V2 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
             {
