@@ -190,8 +190,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var locationOfOriginal = manifestationMetadata.Metadata.GetLocationOfOriginal();
             if (locationOfOriginal.HasText())
             {
-                attribution =
-                    $"This material has been provided by {locationOfOriginal} where the originals may be consulted.";
+                attribution = locationOfOriginal;
             }
 
             if (StringUtils.AnyHaveText(usage, attribution))
