@@ -25,8 +25,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     new("Text")
                     {
-                        Id = $"{Constants.WellcomeCollectionUri}/works",
-                        Label = Lang.Map("Explore our collections"),
+                        Id = Constants.WellcomeCollectionUri,
+                        Label = Lang.Map("Wellcome Collection"),
                         Format = "text/html"
                     }
                 },
