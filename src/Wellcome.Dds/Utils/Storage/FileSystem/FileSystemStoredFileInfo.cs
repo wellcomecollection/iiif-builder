@@ -21,5 +21,7 @@ namespace Utils.Storage.FileSystem
         public string? Container => fileInfo.DirectoryName;
 
         public string Path => fileInfo.Name;
+
+        public long? Size => fileInfo.Length;
     }
 }

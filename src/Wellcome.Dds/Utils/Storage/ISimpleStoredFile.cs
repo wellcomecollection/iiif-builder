@@ -14,6 +14,8 @@ namespace Utils.Storage
         // add folder/key idea here...
         public string? Container { get; }
         
-        public string Path { get; }
+        public string Path { get; } 
+        
+        public long? Size { get; }
     }
 }

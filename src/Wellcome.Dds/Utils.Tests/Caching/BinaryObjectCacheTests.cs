@@ -261,5 +261,7 @@ namespace Utils.Tests.Caching
         {
             Path = path;
         }
+
+        public long? Size { get; }
     }
 }

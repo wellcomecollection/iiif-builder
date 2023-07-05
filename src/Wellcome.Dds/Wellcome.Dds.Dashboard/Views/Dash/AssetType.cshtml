@@ -1,4 +1,5 @@
-﻿@model Wellcome.Dds.Dashboard.Controllers.AssetTypeModel
+﻿@using Utils.Storage
+@model Wellcome.Dds.Dashboard.Controllers.AssetTypeModel
 
 @{
     ViewBag.Title = "Dash: Assets by Type";
@@ -38,7 +39,23 @@
                     <tr>
                         <td>@Html.ActionLink(dispId, "Manifestation", "Dash", new { id = dispId }, new { })</td>
                         <td width="165">@fm.Processed</td>
-                        <td>@fm.Label</td>@*formerly RootSectionTitle*@
+                        <td>@fm.Label
+                        @if (Model.Type == "application/pdf")
+                        {
+                            ISimpleStoredFileInfo file;
+                            if(Model.Thumbnails.TryGetValue(fm.ManifestationIdentifier, out file))
+                            {
+                                <br/><text>Thumbnail is </text> @StringUtils.FormatFileSize(file.Size!.Value);
+                            }
+                            else
+                            {
+                                <div class="alert small alert-danger" role="alert">
+                                    Missing thumbnail in S3
+                                </div>
+                            }
+                            
+                        }
+                        </td>@*formerly RootSectionTitle*@
                     </tr>
                 }
             }
