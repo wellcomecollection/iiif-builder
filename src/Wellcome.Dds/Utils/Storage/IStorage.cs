@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Utils.Storage
@@ -25,5 +26,8 @@ namespace Utils.Storage
         Task<T?> Read<T>(ISimpleStoredFileInfo fileInfo) where T : class;
 
         Task<Stream?> GetStream(string container, string fileName);
+
+        Task<List<ISimpleStoredFileInfo>> GetFiles(string container, string prefix);
+
     }
 }

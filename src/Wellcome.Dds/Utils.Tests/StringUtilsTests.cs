@@ -83,6 +83,73 @@ namespace Utils.Tests
             result.Should().Be(str);
         }
 
+                
+        [Fact]
+        public void RemoveEnd_ReturnsNull_IfStringNull()
+        {
+            // Arrange 
+            const string str = null;
+            
+            // Act
+            var result = str.RemoveEnd("hi");
+            
+            // Assert
+            result.Should().BeNull();
+        }
+        
+        [Fact]
+        public void RemoveEnd_ReturnsEmptyString_IfStringEmpty()
+        {
+            // Arrange 
+            const string str = "";
+            
+            // Act
+            var result = str.RemoveEnd("hi");
+            
+            // Assert
+            result.Should().BeEmpty();
+        }
+        
+        [Fact]
+        public void RemoveEnd_RemovesEnd_IfProvidedStringEndsWith()
+        {
+            // Arrange 
+            const string str = "something";
+            const string expected = "some";
+            
+            // Act
+            var result = str.RemoveEnd("thing");
+            
+            // Assert
+            result.Should().Be(expected);
+        }
+        
+        [Fact]
+        public void RemoveEnd_ReturnsOriginalString_IfDoesntEndWith()
+        {
+            // Arrange 
+            const string str = "something";
+
+            // Act
+            var result = str.RemoveEnd("fing");
+            
+            // Assert
+            result.Should().Be(str);
+        }
+        
+        [Fact]
+        public void RemoveEnd_ReturnsOriginalString_IfEndsWithIsFullString()
+        {
+            // Arrange 
+            const string str = "something";
+
+            // Act
+            var result = str.RemoveEnd("something");
+            
+            // Assert
+            result.Should().Be(str);
+        }
+        
         [Theory]
         [InlineData(null)]
         [InlineData("")]

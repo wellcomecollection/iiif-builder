@@ -53,6 +53,19 @@ namespace Utils
 
             return str;
         }
+        
+        public static string? RemoveEnd(this string? str, string end)
+        {
+            if (str == null) return null;
+            if (str == string.Empty) return string.Empty;
+
+            if (str.EndsWith(end) && str.Length > end.Length)
+            {
+                return str[0..^end.Length];
+            }
+
+            return str;
+        }
 
         public static DateTime? GetNullableDateTime(string? s)
         {

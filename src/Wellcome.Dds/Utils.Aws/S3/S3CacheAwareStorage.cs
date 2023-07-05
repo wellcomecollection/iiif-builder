@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -148,6 +150,24 @@ namespace Utils.Aws.S3
                     getObjectRequest, e.StatusCode);
                 throw;
             }
+        }
+
+        public async Task<List<ISimpleStoredFileInfo>> GetFiles(string container, string prefix)
+        {
+            var resp = await amazonS3.ListObjectsV2Async(new ListObjectsV2Request
+            {
+                BucketName = container,
+                Prefix = prefix
+            });
+            var files = new List<ISimpleStoredFileInfo>();
+            foreach (var s3Object in resp.S3Objects)
+            {
+                var file = new S3StoredFileInfo(s3Object.BucketName, s3Object.Key, null);
+                file.SetMetadata(true, s3Object.LastModified, s3Object.Size);
+                files.Add(file);
+            }
+
+            return files;
         }
 
         private T Deserialize<T>(Stream source, ISimpleStoredFileInfo fileInfo)

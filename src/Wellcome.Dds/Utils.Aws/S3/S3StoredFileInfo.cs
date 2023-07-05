@@ -14,13 +14,14 @@ namespace Utils.Aws.S3
     /// </summary>
     public class S3StoredFileInfo : ISimpleStoredFileInfo
     {
-        private readonly IAmazonS3 amazonS3;
+        private readonly IAmazonS3? amazonS3;
         private readonly string bucket;
         private readonly string key;
         private DateTime? lastWriteTime;
         private bool? exists;
+        private long? size;
 
-        public S3StoredFileInfo(string bucket, string key, IAmazonS3 amazonS3)
+        public S3StoredFileInfo(string bucket, string key, IAmazonS3? amazonS3)
         {
             this.bucket = bucket;
             this.key = key;
@@ -28,9 +29,34 @@ namespace Utils.Aws.S3
             Uri = $"s3://{bucket}/{key}";
         }
 
+        /// <summary>
+        /// Use this to populate FileInfo with known data to avoid a trip to S3, e.g., when getting a bucket listing
+        /// </summary>
+        /// <param name="fileExists"></param>
+        /// <param name="fileLastWriteTime"></param>
+        /// <param name="fileSize"></param>
+        public void SetMetadata(bool fileExists, DateTime? fileLastWriteTime, long? fileSize)
+        {
+            if (fileExists)
+            {
+                exists = true;
+                lastWriteTime = fileLastWriteTime;
+                size = fileSize;
+            }
+            else
+            {
+                exists = false;
+            }
+        }
+        
         public async Task EnsureObjectMetadata()
         {
             if (exists.HasValue)
+            {
+                return;
+            }
+
+            if (amazonS3 == null)
             {
                 return;
             }
@@ -48,6 +74,7 @@ namespace Utils.Aws.S3
                 {
                     exists = true;
                     lastWriteTime = metadataResult.LastModified;
+                    size = metadataResult.ContentLength;
                     return;
                 }
             }
@@ -74,5 +101,6 @@ namespace Utils.Aws.S3
 
         public string Container => bucket;
         public string Path => key;
+        public long? Size => size;
     }
 }

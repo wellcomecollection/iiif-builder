@@ -2,13 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.S3;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Utils;
 using Utils.Logging;
+using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -36,6 +39,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly UriPatterns uriPatterns;
         private readonly ManifestationModelBuilder modelBuilder;
         private readonly IWorkflowCallRepository workflowCallRepository;
+        private readonly IStorage storage;
+        private readonly DdsOptions ddsOptions;
         
         public DashController(
             IDigitalObjectRepository digitalObjectRepository,
@@ -48,7 +53,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
             ILogger<DashController> logger,
             UriPatterns uriPatterns,
             ManifestationModelBuilder modelBuilder,
-            IWorkflowCallRepository workflowCallRepository
+            IWorkflowCallRepository workflowCallRepository,
+            IStorage storage,
+            IOptions<DdsOptions> options
         )
         {
             // TODO - we need a review of all these dependencies!
@@ -64,6 +71,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.uriPatterns = uriPatterns;
             this.modelBuilder = modelBuilder;
             this.workflowCallRepository = workflowCallRepository;
+            this.storage = storage;
+            ddsOptions = options.Value;
         }
 
         public ActionResult Index()
@@ -276,7 +285,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(model);
         }
 
-        public ActionResult AssetType(string id = "video/mpeg")
+        public async Task<ActionResult> AssetType(string id = "video/mpeg")
         {
             var type = id.ReplaceFirst("-", "/");
             var model = new AssetTypeModel
@@ -285,6 +294,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 FlatManifestations = dds.GetByAssetType(type),
                 TotalsByAssetType = dds.GetTotalsByAssetType()
             };
+            if (type == "application/pdf")
+            {
+                const string prefix = "_pdf_thumbs/";
+                var pdfThumbs = await storage.GetFiles(ddsOptions.PresentationContainer!, prefix);
+                model.Thumbnails = pdfThumbs.ToDictionary(f => f.Path.RemoveStart(prefix).RemoveEnd(".jpg"));
+            }
             return View(model);
         }
 
@@ -472,6 +487,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public string Type { get; set; }
         public List<Manifestation> FlatManifestations { get; set; }
         public Dictionary<string, long> TotalsByAssetType { get; set; }
+        
+        public Dictionary<string, ISimpleStoredFileInfo> Thumbnails { get; set; }
     }
 
     /// <summary>

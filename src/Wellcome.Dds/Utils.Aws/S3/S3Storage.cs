@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -106,6 +107,11 @@ namespace Utils.Aws.S3
                     getObjectRequest, e.StatusCode);
                 throw;
             }
+        }
+
+        public Task<List<ISimpleStoredFileInfo>> GetFiles(string container, string prefix)
+        {
+            throw new NotImplementedException();
         }
     }
 }

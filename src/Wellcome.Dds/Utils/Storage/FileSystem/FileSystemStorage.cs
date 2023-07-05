@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 
 namespace Utils.Storage.FileSystem
@@ -15,8 +14,6 @@ namespace Utils.Storage.FileSystem
         {
             this.logger = logger;
         }
-
-        //public string Container { get; set; }
 
         public ISimpleStoredFileInfo GetCachedFileInfo(string container, string fileName)
         {
@@ -87,6 +84,11 @@ namespace Utils.Storage.FileSystem
         }
 
         public Task<Stream?> GetStream(string container, string fileName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<ISimpleStoredFileInfo>> GetFiles(string container, string prefix)
         {
             throw new NotImplementedException();
         }
