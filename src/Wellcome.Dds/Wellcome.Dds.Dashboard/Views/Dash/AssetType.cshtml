@@ -45,12 +45,12 @@
                             ISimpleStoredFileInfo file;
                             if(Model.Thumbnails.TryGetValue(fm.ManifestationIdentifier, out file))
                             {
-                                <br/><text>Thumbnail is </text> @StringUtils.FormatFileSize(file.Size!.Value);
+                                <br/><small><text>Thumbnail is </text> @StringUtils.FormatFileSize(file.Size!.Value)</small>
                             }
                             else
                             {
                                 <div class="alert small alert-danger" role="alert">
-                                    Missing thumbnail in S3
+                                    Missing thumbnail in S3 - @Html.ActionLink("Upload", "PdfThumb", "Upload", new {id=fm.ManifestationIdentifier})
                                 </div>
                             }
                             

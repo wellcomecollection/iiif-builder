@@ -1,0 +1,31 @@
+@model dynamic
+
+@{
+    ViewBag.Title = "Upload a PDF Thumbnail";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Upload a 1024 px wide (approx) JPEG</h3>
+    
+    @if (ViewBag.Error == null)
+    {
+        <div class="alert alert-danger" role="alert">@ViewBag.Error</div>
+    }
+    else
+    {
+        <form action="@Url.Action("UploadedPdfThumb", new { id = ViewBag.Identifier })" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="fileInput">Choose file</label>
+                <input type="file" id="fileInput" name="thumbFile">
+                <p class="help-block">The exact size doesn't matter as long as it's reasonably large.</p>
+            </div>
+            <button type="submit" class="btn btn-default">Upload</button>
+        </form>        
+    }
+
+    
+</div>
+

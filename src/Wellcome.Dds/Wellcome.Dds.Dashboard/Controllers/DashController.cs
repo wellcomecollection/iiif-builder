@@ -142,7 +142,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 ddsId = new DdsIdentifier(id);
                 ViewBag.DdsId = ddsId;
-                var result = await modelBuilder.Build(id, Url);
+                var result = await modelBuilder.Build(ddsId, Url);
 
                 // if we have a model render it
                 if (result.Model != null)

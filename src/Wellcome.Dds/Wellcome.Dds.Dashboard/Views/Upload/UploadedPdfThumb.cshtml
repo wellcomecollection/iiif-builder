@@ -1,0 +1,27 @@
+@model dynamic
+
+@{
+    ViewBag.Title = "Upload a PDF Thumbnail";
+}
+
+<a id="top"></a>
+
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Upload a 1024 px wide (approx) JPEG</h3>
+    
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger" role="alert">@ViewBag.Error</div>
+    }
+    else
+    {
+        <div class="alert alert-success" role="alert">@ViewBag.Message</div>     
+    }
+    
+    <p>
+        @Html.ActionLink("View PDFs", "AssetType", "Dash", new { id="application-pdf"})
+    </p>
+
+    
+</div>
