@@ -72,7 +72,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             return new AuthAccessService2
             {
                 Id = uriPatterns.DlcsClickthroughLoginServiceV2Id(dlcsEntryPoint),
-                Profile = AuthAccessService2.InteractiveProfile,
+                Profile = AuthAccessService2.ActiveProfile,
                 Label = new LanguageMap("en", ClickthroughHeader),
                 Heading = new LanguageMap("en", ClickthroughHeader),
                 Note = new LanguageMap("en", ClickthroughLoginDescription),
@@ -100,7 +100,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
             return new AuthAccessService2
             {
                 Id = uriPatterns.DlcsLoginServiceV2Id(dlcsEntryPoint),
-                Profile = AuthAccessService2.InteractiveProfile,
+                Profile = AuthAccessService2.ActiveProfile,
                 Label = new LanguageMap("en", ClinicalHeader),
                 Heading = new LanguageMap("en", ClinicalHeader),
                 Note = new LanguageMap("en", ClinicalLoginDescription),
