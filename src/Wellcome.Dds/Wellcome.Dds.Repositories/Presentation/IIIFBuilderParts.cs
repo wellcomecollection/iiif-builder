@@ -1505,7 +1505,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
             ((ICollectionItem)iiifResource).Services ??= new List<IService>();
             ((ICollectionItem)iiifResource).Services?.Add(
-                new ExternalResource("Text")
+                new SimpleTextBasedService
                 {
                     Id = iiifResource.Id + "#tracking",
                     Profile = Constants.Profiles.TrackingExtension,
@@ -1517,7 +1517,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         {            
             ((ICollectionItem)iiifResource).Services ??= new List<IService>();
             ((ICollectionItem)iiifResource).Services?.Add(
-                new ExternalResource("Text")
+                new SimpleTextBasedService
                 {
                     Id = iiifResource.Id + "#timestamp",
                     Profile = Constants.Profiles.BuilderTime,
@@ -1546,7 +1546,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     break;
             }        
             manifest.Services ??= new List<IService>();
-            var accessHintService = new ExternalResource("Text")
+            var accessHintService = new SimpleTextBasedService
             {
                 Id = manifest.Id + "#accesscontrolhints",
                 Profile = Constants.Profiles.AccessControlHints,
