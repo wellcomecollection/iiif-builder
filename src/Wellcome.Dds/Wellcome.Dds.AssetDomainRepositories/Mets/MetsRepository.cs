@@ -26,6 +26,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private const string Item = "Item";
         private const string TypeAttribute = "TYPE";
         private const string LabelAttribute = "LABEL";
+        private const string MetadataLabel = "metadata";
+        private const string SubmissionDocumentationLabel = "submissionDocumentation";
         
 
         public MetsRepository(
@@ -111,25 +113,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var objectsChildren = objectsDir.Elements().ToArray();
 
             var metadataDirectories = objectsChildren
-                .Where(el => IsLabelledDirectory(el, "metadata")).ToList();
+                .Where(el => IsLabelledDirectory(el, MetadataLabel)).ToList();
             var submissionDocumentationDirectories = objectsChildren
-                .Where(el => IsLabelledDirectory(el, "submissionDocumentation")).ToList();
+                .Where(el => IsLabelledDirectory(el, SubmissionDocumentationLabel)).ToList();
             
             if (metadataDirectories.Count == 0)
             {
-                throw new NotSupportedException("Could not find directory labelled 'metadata' in objects directory");
+                throw new NotSupportedException($"Could not find directory labelled '{MetadataLabel}' in objects directory");
             }
             if (submissionDocumentationDirectories.Count == 0)
             {
-                throw new NotSupportedException("Could not find directory labelled 'submissionDocumentation' in objects directory");
+                throw new NotSupportedException($"Could not find directory labelled '{SubmissionDocumentationLabel}' in objects directory");
             }
             if (metadataDirectories.Count > 1)
             {
-                throw new NotSupportedException("More than one directory labelled 'metadata' in objects directory");
+                throw new NotSupportedException($"More than one directory labelled '{MetadataLabel}' in objects directory");
             }
             if (submissionDocumentationDirectories.Count > 1)
             {
-                throw new NotSupportedException("More than one directory labelled 'submissionDocumentation' in objects directory");
+                throw new NotSupportedException($"More than one directory labelled '{SubmissionDocumentationLabel}' in objects directory");
             }
             
             if (ddsOptions.ArchivematicaStrictDirectoryOrder)
@@ -138,9 +140,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 if (objectsChildren.Length >= 2)
                 {
                     metadataDirectory = objectsChildren[^2..]
-                        .SingleOrDefault(el => IsLabelledDirectory(el, "metadata"));
+                        .SingleOrDefault(el => IsLabelledDirectory(el, MetadataLabel));
                     submissionDocumentationDirectory = objectsChildren[^2..]
-                        .SingleOrDefault(el => IsLabelledDirectory(el, "submissionDocumentation"));
+                        .SingleOrDefault(el => IsLabelledDirectory(el, SubmissionDocumentationLabel));
                 }
                 if (metadataDirectory == null || submissionDocumentationDirectory == null)
                 {
@@ -154,7 +156,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 metadataDirectory = metadataDirectories.Single();
                 submissionDocumentationDirectory = submissionDocumentationDirectories.Single();
                 digitalContent = objectsChildren.Where(el =>
-                    !(IsLabelledDirectory(el, "metadata") || IsLabelledDirectory(el, "submissionDocumentation")))
+                    !(IsLabelledDirectory(el, MetadataLabel) || IsLabelledDirectory(el, SubmissionDocumentationLabel)))
                     .ToArray();
             }
             
