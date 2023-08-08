@@ -66,7 +66,7 @@ else
     <li class="list-group-item"><a href="@Url.Action("PutWorkflowMessageOnQueue", "WorkflowCall", new {id = ddsId.PathElementSafe})"><span class="glyphicon glyphicon-bullhorn"></span> Push to workflow queue (SQS)</a></li>
     <li class="list-group-item">@Html.ActionLink("DDS View of " + ddsId, "Manifestation", "Dash", new {id = ddsId.PathElementSafe}, new {})</li>
     <li class="list-group-item"><a href="@Url.Action("StorageManifest", "Peek", new {id = ddsId.PathElementSafe})">Storage Manifest</a></li>
-    <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = ddsId.PathElementSafe, parts = ddsId.PathElementSafe + ".xml"})">METS file</a></li>
+    <li class="list-group-item"><a href="@Url.Action("XmlView", "Peek", new {id = ddsId.PackageIdentifierPathElementSafe })">METS file</a></li>
 </ul>
 <ul class="list-group">
     <li class="list-group-item">@Html.ActionLink("Show Recent Calls", "Recent", "WorkflowCall")</li>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -18,19 +19,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
     {
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly ILogger<MetsRepository> logger;
+        private readonly DdsOptions ddsOptions;
         
         // For born-digital
         private const string Directory = "Directory";
         private const string Item = "Item";
         private const string TypeAttribute = "TYPE";
         private const string LabelAttribute = "LABEL";
+        private const string MetadataLabel = "metadata";
+        private const string SubmissionDocumentationLabel = "submissionDocumentation";
+        
 
         public MetsRepository(
             IWorkStorageFactory workStorageFactory,
-            ILogger<MetsRepository> logger)
+            ILogger<MetsRepository> logger,
+            IOptions<DdsOptions> options)
         {
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
+            ddsOptions = options.Value;
         }
 
         public async Task<IMetsResource?> GetAsync(DdsIdentifier identifier)
@@ -72,6 +79,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             throw new NotSupportedException("Unknown identifier");
         }
 
+        private bool IsLabelledDirectory(XElement el, string value)
+        {
+            return el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == value;
+        }
+
         private async Task<IManifestation?> BuildBornDigitalManifestation(IWorkStore workStore)
         {
             // we can't get a logical struct map, because there isn't one in this METS.
@@ -95,28 +107,63 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             {
                 throw new NotSupportedException("Could not find objects directory in physical structMap");
             }
-            // These should be the last two, but we won't mind the order
             XElement? metadataDirectory = null;
             XElement? submissionDocumentationDirectory = null;
+            XElement[] digitalContent;
             var objectsChildren = objectsDir.Elements().ToArray();
-            if (objectsChildren.Length >= 2)
-            {
-                metadataDirectory = objectsChildren[^2..].SingleOrDefault(el =>
-                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "metadata");
-                submissionDocumentationDirectory = objectsChildren[^2..].SingleOrDefault(el =>
-                    el.Attribute(TypeAttribute)?.Value == Directory && el.Attribute(LabelAttribute)?.Value == "submissionDocumentation");
-            }
-            if (metadataDirectory == null || submissionDocumentationDirectory == null)
-            {
-                throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
-            }
 
+            var metadataDirectories = objectsChildren
+                .Where(el => IsLabelledDirectory(el, MetadataLabel)).ToList();
+            var submissionDocumentationDirectories = objectsChildren
+                .Where(el => IsLabelledDirectory(el, SubmissionDocumentationLabel)).ToList();
+            
+            if (metadataDirectories.Count == 0)
+            {
+                throw new NotSupportedException($"Could not find directory labelled '{MetadataLabel}' in objects directory");
+            }
+            if (submissionDocumentationDirectories.Count == 0)
+            {
+                throw new NotSupportedException($"Could not find directory labelled '{SubmissionDocumentationLabel}' in objects directory");
+            }
+            if (metadataDirectories.Count > 1)
+            {
+                throw new NotSupportedException($"More than one directory labelled '{MetadataLabel}' in objects directory");
+            }
+            if (submissionDocumentationDirectories.Count > 1)
+            {
+                throw new NotSupportedException($"More than one directory labelled '{SubmissionDocumentationLabel}' in objects directory");
+            }
+            
+            if (ddsOptions.ArchivematicaStrictDirectoryOrder)
+            {
+                // These should be the last two, but we won't mind the order
+                if (objectsChildren.Length >= 2)
+                {
+                    metadataDirectory = objectsChildren[^2..]
+                        .SingleOrDefault(el => IsLabelledDirectory(el, MetadataLabel));
+                    submissionDocumentationDirectory = objectsChildren[^2..]
+                        .SingleOrDefault(el => IsLabelledDirectory(el, SubmissionDocumentationLabel));
+                }
+                if (metadataDirectory == null || submissionDocumentationDirectory == null)
+                {
+                    throw new NotSupportedException("Objects directory does not have metadata and submissionDocumentation as last two entries");
+                }
+                // We can now ignore the last two.
+                digitalContent = objectsChildren[..^2];
+            }
+            else
+            {
+                metadataDirectory = metadataDirectories.Single();
+                submissionDocumentationDirectory = submissionDocumentationDirectories.Single();
+                digitalContent = objectsChildren.Where(el =>
+                    !(IsLabelledDirectory(el, MetadataLabel) || IsLabelledDirectory(el, SubmissionDocumentationLabel)))
+                    .ToArray();
+            }
+            
             // Get the path to the METS for submission doc if we need it later - it has the logical structMap
             // var subLabel = submissionDocumentationDirectory.Elements().First().Attribute(LabelAttribute)?.Value;
             // var submissionMetsRelativePath = $"submissionDocumentation/{subLabel}/METS.xml";
             
-            // We can now ignore the last two.
-            var digitalContent = objectsChildren[..^2];
             if (digitalContent.Length == 0)
             {
                 throw new NotSupportedException("The objects directory has no digital content");
