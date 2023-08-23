@@ -41,7 +41,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             => CreateAndProcessJobs(id, false, false, "Sync");
         
         public Task<ActionResult> SyncSingleBatch(string id) 
-            => CreateAndProcessJobs(id, false, false, "Sync");
+            => CreateAndProcessJobs(id, false, false, "Sync", singleBatch:true);
         
         public Task<ActionResult> Resubmit(string id) 
             => CreateAndProcessJobs(id, true, false, "Resubmit");
