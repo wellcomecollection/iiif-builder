@@ -16,7 +16,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
             bool reIngestErrorImages,
             DlcsCallContext dlcsCallContext);
         
-        Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue, DlcsCallContext dlcsCallContext);
+        Task ExecuteDlcsSyncOperation(SyncOperation syncOperation, bool usePriorityQueue, DlcsCallContext dlcsCallContext, bool singleBatch = false);
         int DefaultSpace { get; }
         Task<IEnumerable<DlcsIngestJob>> GetMostRecentIngestJobs(string identifier, int number);
         //IEnumerable<DlcsIngestJob> GetUpdatedIngestJobs(string identifier, SyncOperation syncOperation);

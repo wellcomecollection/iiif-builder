@@ -228,6 +228,9 @@
                     {
                         <a href="@Url.Action("Sync", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" 
                            class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync</a>
+                        <br/>
+                        <a href="@Url.Action("SyncSingleBatch", "Job", new {id = Model.DdsIdentifier.PathElementSafe})" 
+                           class="btn btn-info"><span class="glyphicon glyphicon-transfer"></span> Sync one batch</a>                                                                         
                     }
                 </div>
             </div>

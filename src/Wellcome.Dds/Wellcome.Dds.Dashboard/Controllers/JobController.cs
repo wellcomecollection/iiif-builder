@@ -39,7 +39,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
         // Different actions that all trigger jobs
         public Task<ActionResult> Sync(string id) 
             => CreateAndProcessJobs(id, false, false, "Sync");
-
+        
+        public Task<ActionResult> SyncSingleBatch(string id) 
+            => CreateAndProcessJobs(id, false, false, "Sync");
+        
         public Task<ActionResult> Resubmit(string id) 
             => CreateAndProcessJobs(id, true, false, "Resubmit");
 
@@ -73,7 +76,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View(model);
         }
         
-        private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
+        private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action, bool singleBatch = false)
         {
             logger.LogDebug("Creating and immediately processing a job for {identifier}", id);
             var ddsId = new DdsIdentifier(id);
@@ -82,7 +85,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             await foreach (var job in jobs)
             {
                 digitalObjectRepository.LogAction(job.GetManifestationIdentifier(), job.Id, User.Identity.Name, action);
-                await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true);
+                await jobProcessor.ProcessJob(job, includeIngestingImages, forceReingest, true, singleBatch);
             }
 
             try

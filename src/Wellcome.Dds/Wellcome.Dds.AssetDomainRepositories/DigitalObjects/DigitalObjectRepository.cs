@@ -100,7 +100,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         public async Task ExecuteDlcsSyncOperation(
             SyncOperation syncOperation,
             bool usePriorityQueue,
-            DlcsCallContext dlcsCallContext)
+            DlcsCallContext dlcsCallContext,
+            bool singleBatch = false)
         {
             logger.LogDebug("Executing SyncOperation for {callContext}", dlcsCallContext);
 
@@ -133,12 +134,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 "Registering BATCH INGESTS for METS resource (manifestation) with Id {0}, context {callContext}",
                 syncOperation.ManifestationIdentifier, dlcsCallContext);
             ingestOps.Add(DoBatchIngest(syncOperation.DlcsImagesToIngest, syncOperation, usePriorityQueue,
-                dlcsCallContext));
+                dlcsCallContext, singleBatch));
 
             logger.LogInformation(
                 "Registering BATCH PATCHES for METS resource (manifestation) with Id {0}, context {callContext}",
                 syncOperation.ManifestationIdentifier, dlcsCallContext);
-            ingestOps.Add(DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation, dlcsCallContext));
+            ingestOps.Add(DoBatchPatch(syncOperation.DlcsImagesToPatch, syncOperation, dlcsCallContext, singleBatch));
 
             await Task.WhenAll(ingestOps);
             syncOperation.Succeeded = true;
@@ -467,15 +468,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
 
         private async Task DoBatchPatch(List<Image>? dlcsImages, SyncOperation syncOperation,
-            DlcsCallContext dlcsCallContext)
+            DlcsCallContext dlcsCallContext, bool singleBatch = false)
         {
-            await DoDlcsBatchOperation(BatchPatchOperation, dlcsImages, syncOperation, dlcsCallContext);
+            await DoDlcsBatchOperation(BatchPatchOperation, dlcsImages, syncOperation, dlcsCallContext, false, singleBatch);
         }
 
         private async Task DoBatchIngest(List<Image>? dlcsImages, SyncOperation syncOperation, bool priority,
-            DlcsCallContext dlcsCallContext)
+            DlcsCallContext dlcsCallContext, bool singleBatch = false)
         {
-            await DoDlcsBatchOperation(BatchIngestOperation, dlcsImages, syncOperation, dlcsCallContext, priority);
+            await DoDlcsBatchOperation(BatchIngestOperation, dlcsImages, syncOperation, dlcsCallContext, priority, singleBatch);
         }
 
         private async Task DoDlcsBatchOperation(
@@ -483,7 +484,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             List<Image>? dlcsImages,
             SyncOperation syncOperation,
             DlcsCallContext dlcsCallContext,
-            bool priority = false)
+            bool priority = false,
+            bool singleBatch = false)
         {
             // TODO - refactor DoBatchPatch and DoBatchIngest - They are 95% the same, they just wrap a different DLCS call
             if (dlcsImages.IsNullOrEmpty()) return;
@@ -541,6 +543,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     batchMetrics!.EndBatch();
                     logger.LogDebug("Batch {batchCounter} took {batchTime} ms.", batchMetrics.BatchCounter,
                         batchMetrics.LastBatchTime);
+                }
+
+                if (singleBatch)
+                {
+                    break;
                 }
             }
 

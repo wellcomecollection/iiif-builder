@@ -7,8 +7,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
     public interface IIngestJobProcessor
     {
         Task ProcessQueue(int maxJobs = -1, bool usePriorityQueue = false, string? filter = null);
-        Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false);
-        Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false);
+        Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false, bool singleBatch = false);
+        Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, Func<Image, bool> includeIngestingImage, bool forceReingest = false, bool usePriorityQueue = false, bool singleBatch = false);
 
         void UpdateStatus();
     }
