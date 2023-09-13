@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Utils;
@@ -98,7 +99,7 @@ namespace Wellcome.Dds.Repositories
             return new List<AggregationMetadata>();
         }
 
-        public IEnumerable<ValueAggregationResult> GetAggregation(string aggregator, string value)
+        public IEnumerable<ValueAggregationResult> GetAggregation(string aggregator, string value, int? skip = null, int? take = null)
         {
             var query =
                 from metadata in Metadata
@@ -106,6 +107,10 @@ namespace Wellcome.Dds.Repositories
                     on metadata.ManifestationId equals manifestation.PackageIdentifier
                 where manifestation.Index == 0 && metadata.Label == aggregator && metadata.Identifier == value
                 select new {metadata, manifestation};
+            if (skip.HasValue && take.HasValue)
+            {
+                query = query.Skip(skip.Value).Take(take.Value);
+            }
             foreach (var result in query)
             {
                 yield return new ValueAggregationResult
@@ -116,6 +121,18 @@ namespace Wellcome.Dds.Repositories
                 };
             }
         }
+
+        public int GetAggregationCount(string aggregator, string value)
+        {
+            var query =
+                from metadata in Metadata
+                join manifestation in Manifestations
+                    on metadata.ManifestationId equals manifestation.PackageIdentifier
+                where manifestation.Index == 0 && metadata.Label == aggregator && metadata.Identifier == value
+                select new {metadata, manifestation};
+            return query.Count();
+        }
+
 
         public IEnumerable<ArchiveCollectionTop> GetTopLevelArchiveCollections()
         {
