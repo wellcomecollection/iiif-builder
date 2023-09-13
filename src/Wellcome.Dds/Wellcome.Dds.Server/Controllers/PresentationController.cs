@@ -764,6 +764,9 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValueV2(string aggregator, string value)
         {
+            // NB - we haven't added the extra intermediate page for collections over 100 manifests to the V2
+            // It's only in the V3. if we see people crawling the V2 and causing memory issues, that behaviour can
+            // be reproduced here.
             logger.LogDebug("Building V2 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
