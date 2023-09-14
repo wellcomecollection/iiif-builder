@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
-using Newtonsoft.Json;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
@@ -651,8 +650,13 @@ namespace Wellcome.Dds.Server.Controllers
         public IActionResult ManifestsByAggregationValue(string aggregator, string value)
         {
             logger.LogDebug("Building V3 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
-            const int maxThumbnails = 50; // to avoid huge collections
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            int total = ddsContext.GetAggregationCount(apiType, value);
+            if (total > ddsOptions.IIIFCollectionAggregationMaxManifests)
+            {
+                return MakeManifestsByAggregationValueCollection(total, aggregator, value);
+            }
+            const int maxThumbnails = 50; // to avoid huge collections
             var coll = new Collection
             {
                 Id = CollectionForAggregationId(aggregator, value),
@@ -677,8 +681,81 @@ namespace Wellcome.Dds.Server.Controllers
             Response.CacheForDays(30);
             return CollectionContent(coll);
         }
-        
-                
+
+        private IActionResult MakeManifestsByAggregationValueCollection(int total, string aggregator, string value)
+        {
+            var coll = new Collection
+            {
+                Id = CollectionForAggregationId(aggregator, value),
+                Items = new List<ICollectionItem>()
+            };
+            int pages = total / ddsOptions.IIIFCollectionAggregationMaxManifests;
+            if (total % ddsOptions.IIIFCollectionAggregationMaxManifests > 0)
+            {
+                pages += 1;
+            }
+            int page = 1;
+            while (page <= pages)
+            {
+                var start = (page - 1) * ddsOptions.IIIFCollectionAggregationMaxManifests + 1;
+                var end = start + 99;  // Deliberately do not make this the exact number - this makes it more persistent
+                var pageColl = new Collection
+                {
+                    Id = $"{coll.Id}/paged/{start}-{end}",
+                    Label = new LanguageMap("en", $"Page {page} of {aggregator}/{value}")
+                };
+                coll.Items.Add(pageColl);
+                page++;
+            }
+            
+            coll.EnsurePresentation3Context();
+            Response.CacheForDays(30);
+            return CollectionContent(coll);
+        }
+
+
+        /// <summary>
+        /// A Collection of Manifests with the given metadata
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("collections/{aggregator}/{value}/paged/{range}")]
+        [HttpGet("v3/collections/{aggregator}/{value}/paged/{range}")]
+        public IActionResult ManifestsByAggregationValuePage(string aggregator, string value, string range)
+        {
+            int skip = 0;
+            int take = ddsOptions.IIIFCollectionAggregationMaxManifests;
+
+            if (range.HasText() && range.IndexOf("-", StringComparison.Ordinal) != -1)
+            {
+                int rangeStart;
+                if (int.TryParse(range.SplitByDelimiterIntoArray('-')[0], out rangeStart))
+                {
+                    skip = rangeStart - 1;
+                }
+            }
+            
+            var coll = new Collection
+            {
+                Id = $"{CollectionForAggregationId(aggregator, value)}/paged/{range}",
+                Items = new List<ICollectionItem>()
+            };
+            int thumbnailCount = 0;
+            var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
+            foreach (var result in ddsContext.GetAggregation(apiType, value, skip, take))
+            {
+                var manifest = new Manifest
+                {
+                    Id = uriPatterns.Manifest(result.Manifestation.PackageIdentifier),
+                    Label = new LanguageMap("none", result.Manifestation.PackageLabel)
+                };
+                coll.Items.Add(manifest);
+                coll.Label ??= new LanguageMap("none", $"{range} - {result.CollectionLabel}: {result.CollectionStringValue}");
+            }
+            coll.EnsurePresentation3Context();
+            Response.CacheForDays(30);
+            return CollectionContent(coll);
+        }
+
 
         /// <summary>
         /// A Collection of Manifests with the given metadata
@@ -687,6 +764,9 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValueV2(string aggregator, string value)
         {
+            // NB - we haven't added the extra intermediate page for collections over 100 manifests to the V2
+            // It's only in the V3. if we see people crawling the V2 and causing memory issues, that behaviour can
+            // be reproduced here.
             logger.LogDebug("Building V2 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection

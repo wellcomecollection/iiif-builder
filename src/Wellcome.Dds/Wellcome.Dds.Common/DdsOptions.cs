@@ -79,5 +79,7 @@
         public int PlaceholderCanvasCacheTimeDays { get; set; }
 
         public bool ArchivematicaStrictDirectoryOrder { get; set; } = false;
+
+        public int IIIFCollectionAggregationMaxManifests { get; set; } = 100;
     }
 }
