@@ -76,16 +76,10 @@ public class SvgController : ControllerBase
     {
         var sb = new StringBuilder();
 
-        const string invisibleStyle = """
-                                      
-                                          .text-line-segment {
-                                              fill: rgba(0,0,0,0);
-                                          }
-                                          .text-line-segment::selection {
-                                              fill: #000;
-                                          }
-
-                                      """;
+        const string invisibleStyle = @"                                     
+.text-line-segment { fill: rgba(0,0,0,0) }
+.text-line-segment::selection { fill: #fff; background: rgba(15, 76, 155, 0.8) }
+  ";
         
         using (XmlWriter writer = XmlWriter.Create(sb, _xmlWriterSettings))
         {
