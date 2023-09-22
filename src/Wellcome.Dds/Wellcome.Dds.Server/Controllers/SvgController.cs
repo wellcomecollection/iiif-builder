@@ -84,42 +84,47 @@ public class SvgController : ControllerBase
         using (XmlWriter writer = XmlWriter.Create(sb, _xmlWriterSettings))
         {
             writer.WriteStartElement("svg", "http://www.w3.org/2000/svg");
-            writer.WriteAttributeString("width", $"{wh.Item1}px");
-            writer.WriteAttributeString("height", $"{wh.Item2}px");
+            // writer.WriteAttributeString("width", $"{wh.Item1}px");
+            // writer.WriteAttributeString("height", $"{wh.Item2}px");
             writer.WriteAttributeString("viewbox", $"0 0 {wh.Item1} {wh.Item2}");
-            foreach (var jAnno in v3Annos["items"])
-            {
-                var anno = (JObject) jAnno;
-                var target = anno["target"]?.Value<string>().Split("=")[^1];
-                if (target == null)
+            var items = v3Annos["items"];
+            if (items != null)
+            { 
+                foreach (var jAnno in items)
                 {
-                    continue;
+                    var anno = (JObject) jAnno;
+                    var target = anno["target"]?.Value<string>().Split("=")[^1];
+                    if (target == null)
+                    {
+                        continue;
+                    }
+                    var xywh = target.Split(",");
+                    if (xywh.Length != 4)
+                    {
+                        continue;
+                    }
+                    var body = anno["body"]?["value"]?.Value<string>();
+                    if (body.IsNullOrWhiteSpace())
+                    {
+                        continue;
+                    }
+                    writer.WriteStartElement("text");
+                    writer.WriteAttributeString("x", xywh[0]);
+                    var y = Convert.ToInt32(xywh[1]);
+                    var h = Convert.ToInt32(xywh[3]);
+                    writer.WriteAttributeString("y", $"{(int)(y + h * 0.75)}");
+                    writer.WriteAttributeString("textLength", xywh[2]);
+                    writer.WriteAttributeString("font-size", xywh[3]);
+                    writer.WriteAttributeString("lengthAdjust", "spacingAndGlyphs");
+                    writer.WriteAttributeString("class", "text-line-segment");
+                    writer.WriteString(body);
+                    writer.WriteEndElement();
                 }
-                var xywh = target.Split(",");
-                if (xywh.Length != 4)
-                {
-                    continue;
-                }
-                var body = anno["body"]?["value"]?.Value<string>();
-                if (body.IsNullOrWhiteSpace())
-                {
-                    continue;
-                }
-                writer.WriteStartElement("text");
-                writer.WriteAttributeString("x", xywh[0]);
-                var y = Convert.ToInt32(xywh[1]);
-                var h = Convert.ToInt32(xywh[3]);
-                writer.WriteAttributeString("y", $"{(int)(y + h * 0.75)}");
-                writer.WriteAttributeString("textLength", xywh[2]);
-                writer.WriteAttributeString("font-size", xywh[3]);
-                writer.WriteAttributeString("lengthAdjust", "spacingAndGlyphs");
-                writer.WriteAttributeString("class", "text-line-segment");
-                writer.WriteString(body);
+                writer.WriteStartElement("style");
+                writer.WriteString(invisibleStyle);
                 writer.WriteEndElement();
-            }
-            writer.WriteStartElement("style");
-            writer.WriteString(invisibleStyle);
-            writer.WriteEndElement();
+                
+            }   
             writer.WriteEndElement();
         }
 
