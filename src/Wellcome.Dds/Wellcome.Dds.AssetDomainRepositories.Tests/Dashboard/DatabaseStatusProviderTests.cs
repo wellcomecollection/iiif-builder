@@ -41,18 +41,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
         }
 
-        // [Fact]
-        // public void EarliestJobToTake_ReturnsCorrectValue()
-        // {
-        //     // Arrange
-        //     var date = DateTime.Today.AddDays(-4);
-        //     
-        //     // Act
-        //     var sut = GetSut(date);
-        //     
-        //     // Assert
-        //     sut.EarliestJobToTake.Should().Be(date);
-        // }
+        [Fact]
+        public void EarliestJobToTake_ReturnsCorrectValue()
+        {
+            // Arrange
+            var date = DateTime.Today.AddDays(-4);
+            
+            // Act
+            var sut = GetSut(date);
+            
+            // Assert
+            sut.EarliestJobToTake.Should().Be(date);
+        }
         
         [Fact]
         public void EarliestJobToTake_Null_IfNoValue()
