@@ -15,8 +15,8 @@ using Wellcome.Dds.Common;
 namespace Wellcome.Dds.Server.Controllers;
 
 
-[FeatureGate(FeatureFlags.TextServices)]
-[Route("text/[controller]")]
+[FeatureGate(FeatureFlags.PresentationServices)]
+[Route("[controller]")]
 [ApiController]
 public class SvgController : ControllerBase
 {
