@@ -86,7 +86,7 @@ public class SvgController : ControllerBase
             writer.WriteStartElement("svg", "http://www.w3.org/2000/svg");
             // writer.WriteAttributeString("width", $"{wh.Item1}px");
             // writer.WriteAttributeString("height", $"{wh.Item2}px");
-            writer.WriteAttributeString("viewbox", $"0 0 {wh.Item1} {wh.Item2}");
+            writer.WriteAttributeString("viewBox", $"0 0 {wh.Item1} {wh.Item2}");
             var items = v3Annos["items"];
             if (items != null)
             { 
