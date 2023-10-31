@@ -85,7 +85,9 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
                 ComposedBlocks = Array.Empty<Illustration>(),
                 ManifestationIdentifier = manifestationIdentifier,
                 AssetIdentifier = assetIdentifier,
-                Index = index
+                Index = index,
+                ActualWidth = actualWidth,
+                ActualHeight = actualHeight
             };
         }
 

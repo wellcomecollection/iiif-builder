@@ -518,6 +518,28 @@ namespace Wellcome.Dds.Repositories.Presentation
                 };
                 w3CPage.EnsurePresentation3Context();
                 string canvasId = uriPatterns.Canvas(manifestation.Identifier, altoPage.AssetIdentifier);
+                string manifestId = uriPatterns.Manifest(manifestation.Identifier);
+                if (altoPage.ActualWidth > 0 && altoPage.ActualHeight > 0)
+                {
+                    w3CPage.PartOf = new List<ResourceBase>
+                    {
+                        new Canvas
+                        {
+                            Id = canvasId,
+                            Width = altoPage.ActualWidth,
+                            Height = altoPage.ActualHeight,
+                            PartOf = new List<ResourceBase>
+                            {
+                                new Manifest
+                                {
+                                    Id = manifestId,
+                                    Label = Lang.Map(manifestation.Label ?? "Parent Manifest")
+                                }
+                            }
+                        }
+                    };
+                }
+                
 
                 // Do the W3C conversions
                 var w3CTextLines = altoPage.TextLines
@@ -537,7 +559,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     // NB this won't have any effect if the TargetConverter Serialiser is in use
                     firstAnnoCanvas.PartOf = new List<ResourceBase>
                     {
-                        new Manifest {Id = uriPatterns.Manifest(manifestation.Identifier)}
+                        new Manifest {Id = manifestId}
                     };
                 }
                 result.AllContentAnnotations?.Items?.AddRange(allW3CPageAnnotations);

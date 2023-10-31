@@ -29,6 +29,12 @@ namespace Wellcome.Dds.WordsAndPictures.SimpleAltoServices
         
         [ProtoMember(6)]
         public string AssetIdentifier { get; set; }
+        
+        [ProtoMember(7)]
+        public int ActualWidth { get; set; }
+        
+        [ProtoMember(8)]
+        public int ActualHeight { get; set; }
     }
 
     [Serializable]

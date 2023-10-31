@@ -62,6 +62,7 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string RawTextFormat =              "/text/v1/{identifier}"; // v1 refers to Wellcome API
         private const string MetsAltoFormat =             "/text/alto/{identifier}/{assetIdentifier}"; // not versioned
         private const string WorkTextZipFormat =          "/text/v1/{identifier}.zip";
+        private const string SvgPageFormat =              "/svg/{identifier}/{assetIdentifier}";
         
         // Other resources
         private const string WorkThumbnailFormat =                  "/thumb/{identifier}";
@@ -342,6 +343,11 @@ namespace Wellcome.Dds.IIIFBuilding
         public string MetsAlto(string manifestIdentifier, string? assetIdentifier)
         {
             return ApiManifestAndAssetIdentifiers(MetsAltoFormat, manifestIdentifier, assetIdentifier);
+        }
+        
+        public string SvgPage(string manifestIdentifier, string? assetIdentifier)
+        {
+            return ManifestAndAssetIdentifiers(SvgPageFormat, manifestIdentifier, assetIdentifier);
         }
 
         public string WorkZippedText(string manifestIdentifier)

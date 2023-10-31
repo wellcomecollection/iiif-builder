@@ -402,6 +402,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                                     Label = Lang.Map(physicalFile.OrderLabel.HasText() ? $"Text of page {physicalFile.OrderLabel}" : "Text of this page")
                                 }
                             };
+                            canvas.Rendering ??= new List<ExternalResource>();
+                            canvas.Rendering.Add(new("Image")
+                            {
+                                Id = uriPatterns.SvgPage(manifestIdentifier, assetIdentifier),
+                                Format = "image/svg+xml",
+                                Label = new LanguageMap("en", "SVG XML for page text")
+                            });
                         }
 
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
