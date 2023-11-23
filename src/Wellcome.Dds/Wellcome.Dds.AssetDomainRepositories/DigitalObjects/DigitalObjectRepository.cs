@@ -863,7 +863,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             {
                 var processing = asset.ProcessingBehaviour;
                 imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
-                imageRegistration.DeliveryChannels = processing.DeliveryChannels.ToArray();
+                imageRegistration.DeliveryChannels = processing.DeliveryChannels.OrderBy(dc => dc).ToArray();
                 imageRegistration.Family = null;
             }
             return imageRegistration;
