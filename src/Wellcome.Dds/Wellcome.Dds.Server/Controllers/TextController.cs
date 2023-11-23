@@ -1,7 +1,9 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
 using Utils;
@@ -23,6 +25,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly IStorage storage;
         private readonly DdsOptions ddsOptions;
         private readonly IMetsRepository metsRepository;
+        private readonly ILogger<TextController> logger;
 
         /// <summary>
         /// ctor
@@ -33,12 +36,14 @@ namespace Wellcome.Dds.Server.Controllers
         public TextController(
             IStorage storage,
             IOptions<DdsOptions> options,
-            IMetsRepository metsRepository
+            IMetsRepository metsRepository,
+            ILogger<TextController> logger
         )
         {
             this.storage = storage;
             ddsOptions = options.Value;
             this.metsRepository = metsRepository;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -89,8 +94,18 @@ namespace Wellcome.Dds.Server.Controllers
             var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
             if (asset != null && asset.RelativeAltoPath.HasText())
             {
-                var stream = await asset.WorkStore.GetStreamForPathAsync(asset.RelativeAltoPath);
-                return File(stream, "text/xml");
+                try
+                {
+                    var stream = await asset.WorkStore.GetStreamForPathAsync(asset.RelativeAltoPath);
+                    return File(stream, "text/xml");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Cannot stream ALTO: {manifestationIdentifier}/{assetIdentifier}", 
+                        manifestationIdentifier, assetIdentifier);
+                    return Problem("Unable to stream expected ALTO file from S3", 
+                        null, 500, "Stream error", null);
+                }
             }
             return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
         }
