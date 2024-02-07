@@ -129,8 +129,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false) 
-            => ProcessJob(job, image => includeIngestingImages, forceReingest, usePriorityQueue);
+        public Task<ImageIngestResult> ProcessJob(DlcsIngestJob job, bool includeIngestingImages, bool forceReingest = false, bool usePriorityQueue = false, bool singleBatch = false) 
+            => ProcessJob(job, image => includeIngestingImages, forceReingest, usePriorityQueue, singleBatch);
 
         /// <summary>
         /// Each job is a sequence from a b number
@@ -147,7 +147,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             DlcsIngestJob job, 
             Func<Image, bool> includeIngestingImage, 
             bool forceReingest = false, 
-            bool usePriorityQueue = false)
+            bool usePriorityQueue = false, 
+            bool singleBatch = false)
         {
             int jobId = job.Id;
             var dlcsCallContext = new DlcsCallContext("ProcessJob", jobId, job.Identifier);
@@ -308,7 +309,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     logger.LogDebug("SyncOperation contains at least one non-image, so switching to regular queue");
                 }
                 
-                await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue, dlcsCallContext);
+                await digitalObjectRepository.ExecuteDlcsSyncOperation(syncOperation, usePriorityQueue, dlcsCallContext, singleBatch);
 
                 result.CloudBatchRegistrationResponse = syncOperation.Batches.ToArray();
                 logger.LogDebug("Received {batchCount} batches back for syncOperation {syncOperationId}", 
