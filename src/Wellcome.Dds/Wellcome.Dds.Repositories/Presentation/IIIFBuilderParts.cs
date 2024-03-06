@@ -414,7 +414,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         AddAuthServices(mainImage, physicalFile, foundAuthServices);
 
                         var deliveredFiles = digitalObjectRepository.GetDeliveredFiles(physicalFile);
-                        var asFile = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == Channels.File);
+                        var asFile = deliveredFiles.SingleOrDefault(df => df.DeliveryChannel == ChannelNames.File);
                         if (asFile != null)
                         {
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;

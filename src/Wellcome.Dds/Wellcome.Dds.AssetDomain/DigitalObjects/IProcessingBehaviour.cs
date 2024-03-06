@@ -6,8 +6,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects;
 
 public interface IProcessingBehaviour
 {
-    HashSet<string> DeliveryChannels { get; }
-    string? ImageOptimisationPolicy { get; }
+    HashSet<DeliveryChannel> DeliveryChannels { get; }
     Size? GetVideoSize(string deliveryChannel);
     AssetFamily AssetFamily { get; }
 }

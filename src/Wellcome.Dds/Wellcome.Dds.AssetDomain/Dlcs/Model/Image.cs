@@ -110,14 +110,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 71, PropertyName = "batch")]
         public string? Batch { get; set; }
 
-        [JsonProperty(Order = 80, PropertyName = "imageOptimisationPolicy")]
-        public string? ImageOptimisationPolicy { get; set; }
-
-        [JsonProperty(Order = 81, PropertyName = "thumbnailPolicy")]
-        public string? ThumbnailPolicy { get; set; }
-
-        [JsonProperty(Order = 82, PropertyName = "wcDeliveryChannels")]
-        public string[]? DeliveryChannels { get; set; }
+        [JsonProperty(Order = 82, PropertyName = "deliveryChannels")]
+        public HydraDeliveryChannel[]? DeliveryChannels { get; set; }
     }
 
     public class Thumbnail

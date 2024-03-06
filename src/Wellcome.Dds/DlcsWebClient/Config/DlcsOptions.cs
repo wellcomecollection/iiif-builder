@@ -20,11 +20,6 @@
         /// Default timeout (in ms) use for HttpClient.Timeout.
         /// </summary>
         public int DefaultTimeoutMs { get; set; } = 30000;
-
-        /// <summary>
-        /// Whether to call the DLCS using old Deliverator AssetFamily, or protagonist delivery channels
-        /// </summary>
-        public bool SupportsDeliveryChannels { get; set; } = false;
         
         public string? PortalPageTemplate { get; set; }
         public string? PortalBatchTemplate { get; set; }

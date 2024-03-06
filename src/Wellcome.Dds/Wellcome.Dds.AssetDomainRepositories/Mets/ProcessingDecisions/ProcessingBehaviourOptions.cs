@@ -1,30 +1,31 @@
 using System.Collections.Generic;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 
 public class ProcessingBehaviourOptions
 {
     public bool UseNamedAVDefaults { get; set; } = false;
-    public bool AddThumbsAsSeparateChannel { get; set; } = false;
     public int MaxUntranscodedAccessMp4 { get; set; } = 720;
     public bool MakeAllAccessMP4sAvailable { get; set; } = true;
 
-
+    
     /// <summary>
     /// Image formats (contentType: image/*) that ARE NOT in this list will be `file` only
+    /// The thumbs channel is added later
     /// </summary>
-    public Dictionary<string, string[]> ImageDeliveryChannels { get; set; } = new()
+    public Dictionary<string, DeliveryChannel[]> ImageDeliveryChannels { get; set; } = new()
     {
-        ["jp2"]  = new[] { Channels.IIIFImage },  // do not serve JP2s on the file channel, yet
-        ["jpg"]  = new[] { Channels.IIIFImage, Channels.File },
-        ["jpeg"] = new[] { Channels.IIIFImage, Channels.File },
-        ["tif"]  = new[] { Channels.IIIFImage, Channels.File },
-        ["tiff"] = new[] { Channels.IIIFImage, Channels.File },
-        ["png"]  = new[] { Channels.IIIFImage, Channels.File },
-        ["gif"]  = new[] { Channels.IIIFImage, Channels.File },
-        ["bmp"]  = new[] { Channels.IIIFImage, Channels.File }
+        ["jp2"]  = new[] { Channels.IIIFImage("use-original"), Channels.Thumbs() },  // do not serve JP2s on the file channel, yet
+        ["jpg"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["jpeg"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["tif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["tiff"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["png"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["gif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
+        ["bmp"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() }
     };
-
-    public string[] DefaultImageDeliveryChannels { get; set; } = { Channels.File };
+    
+    public DeliveryChannel[] DefaultImageDeliveryChannels { get; set; } = { Channels.File() };
 
 }
