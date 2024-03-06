@@ -229,7 +229,7 @@ public class ProcessingBehaviourTests
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
         processing.DeliveryChannels.First().Policy.Should().BeNull();
-        // processing.ImageOptimisationPolicy.Should().Be("QHD");
-        // processing.ImageOptimisationPolicy.Should().Be("HIGHER");
+        // ...policy.Should().Be("QHD");
+        // ...policy.Should().Be("HIGHER");  etc
     }
 }

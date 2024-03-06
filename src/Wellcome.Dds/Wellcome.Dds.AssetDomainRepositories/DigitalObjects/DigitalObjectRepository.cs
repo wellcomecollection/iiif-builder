@@ -749,7 +749,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 // remove fields not permitted in patch:
                 patchImage.Origin = null;
                 patchImage.MaxUnauthorised = null;
-                // patchImage.ImageOptimisationPolicy = null;
                 patchImage.DeliveryChannels = null;
                 // others?
             }

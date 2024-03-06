@@ -107,7 +107,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
                     [ChannelNames.IIIFAv] = new (1280, 720)
                 };
 
-                // We need to set the ImageOptimsationPolicy
+                // We need to set the av channel policy
                 // At the moment this always returns videoDefault but the logic is here to do other things.
                 // But what policy are we going to pick? The following allows that to be based on resolution:
                 switch (height)
