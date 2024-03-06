@@ -755,7 +755,7 @@ namespace DlcsWebClient.Dlcs
 
         public string ResourceEntryPoint => options.ResourceEntryPoint!;
         public string InternalResourceEntryPoint => options.InternalResourceEntryPoint!;
-        public bool SupportsDeliveryChannels => options.SupportsDeliveryChannels;
+        // public bool SupportsDeliveryChannels => options.SupportsDeliveryChannels;
     }
 
     class MessageObject : JSONLDBase

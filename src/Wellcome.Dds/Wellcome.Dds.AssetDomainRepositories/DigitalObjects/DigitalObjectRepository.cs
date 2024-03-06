@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using IIIF;
 using Microsoft.EntityFrameworkCore;
@@ -626,52 +627,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised));
                 reingestImage ??= newDlcsImage;
             }
-
-            // In DDS we never change these but they would need to be considered here
-            // We also need to consider what's significant when either new or existing are null
-            if (dlcs.SupportsDeliveryChannels)
+                
+            if (!AreEqual(existingDlcsImage.DeliveryChannels, newDlcsImage.DeliveryChannels))
             {
-                // While we now set IOP to `use-original` for JP2s, we're relying on DLCS defaults for everything else still.
-                // So we can't make this check just yet, because the DDS will assume no policy, which is a mismatch from 
-                // the DLCS' assigned default policy (e.g., `video-max`)
-                /*
-                if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ImageOptimisationPolicy, newDlcsImage.ImageOptimisationPolicy))
-                {
-                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
-                        "imageOptimisationPolicy", newDlcsImage.ImageOptimisationPolicy, existingDlcsImage.ImageOptimisationPolicy);
-                    reasons.Add(string.Format(reingestMessageUIFormat,
-                        "imageOptimisationPolicy", newDlcsImage.ImageOptimisationPolicy, existingDlcsImage.ImageOptimisationPolicy));
-                    reingestImage ??= newDlcsImage;
-                }
-                */
-
-                // We don't yet support editing the thumbnail policy, but when we do, it will look like this.
-                // For that to work, the expected policy will need to be set in ProcessingBehaviour
-                /*
-                if (!StringUtils.EndWithSamePathElements(existingDlcsImage.ThumbnailPolicy, newDlcsImage.ThumbnailPolicy))
-                {
-                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
-                        "thumbnailPolicy", newDlcsImage.ThumbnailPolicy, existingDlcsImage.ThumbnailPolicy);
-                    reasons.Add(string.Format(reingestMessageUIFormat,
-                        "thumbnailPolicy", newDlcsImage.ThumbnailPolicy, existingDlcsImage.ThumbnailPolicy));
-                    reingestImage ??= newDlcsImage;
-                }
-                */
-                
-                // See https://github.com/dlcs/protagonist/issues/489 for the above.
-                
-                if (!AreEqual(existingDlcsImage.DeliveryChannels, newDlcsImage.DeliveryChannels))
-                {
-                    logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,
-                        "deliveryChannels", newDlcsImage.DeliveryChannels.ToCommaDelimitedList(), existingDlcsImage.DeliveryChannels.ToCommaDelimitedList());
-                    reasons.Add(string.Format(reingestMessageUIFormat,
-                        "deliveryChannels", newDlcsImage.DeliveryChannels.ToCommaDelimitedList(), existingDlcsImage.DeliveryChannels.ToCommaDelimitedList()));
-                    reingestImage ??= newDlcsImage;
-                }
+                logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,
+                    "deliveryChannels", 
+                    newDlcsImage.DeliveryChannels?.Select(dc => dc.ToString()).ToCommaDelimitedList(), 
+                    existingDlcsImage.DeliveryChannels?.Select(dc => dc.ToString()).ToCommaDelimitedList());
+                reasons.Add(string.Format(reingestMessageUIFormat,
+                    "deliveryChannels", 
+                    newDlcsImage.DeliveryChannels?.Select(dc => dc.ToString()).ToCommaDelimitedList(), 
+                    existingDlcsImage.DeliveryChannels?.Select(dc => dc.ToString()).ToCommaDelimitedList()));
+                reingestImage ??= newDlcsImage;
             }
 
             return reingestImage;
         }
+
 
 
         /// <summary>
@@ -777,7 +749,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 // remove fields not permitted in patch:
                 patchImage.Origin = null;
                 patchImage.MaxUnauthorised = null;
-                patchImage.ImageOptimisationPolicy = null;
+                // patchImage.ImageOptimisationPolicy = null;
                 patchImage.DeliveryChannels = null;
                 // others?
             }
@@ -798,6 +770,59 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
 
             return s1.SequenceEqual(s2);
+        }
+        
+        /// <summary>
+        /// For DDS registrations we are going to be explicit and always name our delivery channels when registering
+        /// assets, rather than being assigned defaults.
+        ///
+        /// BUT we won't always specify policy, we will allow that to be populated from defaults.
+        ///
+        /// We will also always use the object form rather than the simple string form:
+        /// [{ "channel": "iiif-img" }] rather than just ["iiif-img"] 
+        /// </summary>
+        /// <param name="existingDeliveryChannels"></param>
+        /// <param name="newDeliveryChannels"></param>
+        /// <returns></returns>
+        private bool AreEqual(HydraDeliveryChannel[]? existingDeliveryChannels, HydraDeliveryChannel[]? newDeliveryChannels)
+        {
+            var existingDCs = (existingDeliveryChannels ?? Array.Empty<HydraDeliveryChannel>())
+                .OrderBy(dc => dc.Channel)
+                .ToList();
+            var newDCs = (newDeliveryChannels ?? Array.Empty<HydraDeliveryChannel>())
+                .OrderBy(dc => dc.Channel)
+                .ToList();
+
+            if (existingDCs.Count != newDCs.Count)
+            {
+                return false;
+            }
+
+            if (existingDCs.Count == 0)
+            {
+                // no DCs
+                return true;
+            }
+
+            for (var i = 0; i < existingDCs.Count; i++)
+            {
+                if (existingDCs[i].Channel != newDCs[i].Channel)
+                {
+                    return false;
+                }
+
+                // This allows for a new asset to acquire the defaults by not specifying policy.
+                // However it does NOT know whether an existing policy is the default, but for our workflow
+                // we can assume that it is. Any special behaviour and the new policy here should be explicit.
+                // This doesn't handle the case when we want to change an existing policy from non-default back to
+                // default. We can do it but in that case we have to be explicit on the new asset.
+                if (newDCs[i].Policy.HasText() && newDCs[i].Policy != existingDCs[i].Policy)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
 
@@ -859,13 +884,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.MaxUnauthorised = -1;
             }
 
-            if (dlcs.SupportsDeliveryChannels)
-            {
-                var processing = asset.ProcessingBehaviour;
-                imageRegistration.ImageOptimisationPolicy = processing.ImageOptimisationPolicy;
-                imageRegistration.DeliveryChannels = processing.DeliveryChannels.OrderBy(dc => dc).ToArray();
-                imageRegistration.Family = null;
-            }
+            var processing = asset.ProcessingBehaviour;
+            imageRegistration.DeliveryChannels = processing.DeliveryChannels
+                .Select(dc => new HydraDeliveryChannel{Channel = dc.Channel, Policy = dc.Policy})
+                .OrderBy(dc => dc.Channel).ToArray();
+            imageRegistration.Family = null;
+            
             return imageRegistration;
         }
   
@@ -1132,116 +1156,119 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var deliveredFiles = new List<DeliveredFile>();
             DeliveredFile? file = null;
 
-            if (dlcs.SupportsDeliveryChannels)
+           
+        var behaviour = storedFile.ProcessingBehaviour;
+        if (behaviour.DeliveryChannels.Any(dc => dc.Channel == ChannelNames.File))
+        {
+            file = new DeliveredFile
             {
-                var behaviour = storedFile.ProcessingBehaviour;
-                if (behaviour.DeliveryChannels.Contains("file"))
+                DeliveryChannel = "file",
+                PublicUrl = uriPatterns.DlcsFile(dlcs.ResourceEntryPoint, storedFile.StorageIdentifier),
+                MediaType = storedFile.MimeType
+            };
+            file.DlcsUrl = file.PublicUrl.Replace(
+                $"{dlcs.ResourceEntryPoint}file/",
+                $"{dlcs.InternalResourceEntryPoint}file/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+            deliveredFiles.Add(file);
+        }
+
+        switch (storedFile.ProcessingBehaviour.AssetFamily)
+        {
+            case AssetFamily.Image:
+                if (behaviour.DeliveryChannels.Any(dc => dc.Channel == ChannelNames.IIIFImage))
                 {
-                    file = new DeliveredFile
+                    var imgService = new DeliveredFile
                     {
-                        DeliveryChannel = "file",
-                        PublicUrl = uriPatterns.DlcsFile(dlcs.ResourceEntryPoint, storedFile.StorageIdentifier),
-                        MediaType = storedFile.MimeType
+                        DeliveryChannel = "iiif-img",
+                        PublicUrl = uriPatterns.DlcsImageService(dlcs.ResourceEntryPoint,
+                            storedFile.StorageIdentifier),
+                        MediaType = "iiif/image",
+                        Width = metadata?.GetImageWidth(),
+                        Height = metadata?.GetImageHeight()
                     };
-                    file.DlcsUrl = file.PublicUrl.Replace(
-                        $"{dlcs.ResourceEntryPoint}file/",
-                        $"{dlcs.InternalResourceEntryPoint}file/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
-                    deliveredFiles.Add(file);
+                    imgService.DlcsUrl = imgService.PublicUrl.Replace(
+                        $"{dlcs.ResourceEntryPoint}image/",
+                        $"{dlcs.InternalResourceEntryPoint}iiif-img/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                    deliveredFiles.Add(imgService);
+
+                    // TODO - thumbs as separate channel
                 }
 
-                switch (storedFile.ProcessingBehaviour.AssetFamily)
+                if (file != null)
                 {
-                    case AssetFamily.Image:
-                        if (behaviour.DeliveryChannels.Contains(Channels.IIIFImage))
-                        {
-                            var imgService = new DeliveredFile
-                            {
-                                DeliveryChannel = "iiif-img",
-                                PublicUrl = uriPatterns.DlcsImageService(dlcs.ResourceEntryPoint,
-                                    storedFile.StorageIdentifier),
-                                MediaType = "iiif/image",
-                                Width = metadata?.GetImageWidth(),
-                                Height = metadata?.GetImageHeight()
-                            };
-                            imgService.DlcsUrl = imgService.PublicUrl.Replace(
-                                $"{dlcs.ResourceEntryPoint}image/",
-                                $"{dlcs.InternalResourceEntryPoint}iiif-img/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
-                            deliveredFiles.Add(imgService);
-                            
-                            // TODO - thumbs as separate channel
-                        }
-
-                        if (file != null)
-                        {
-                            file.Width = metadata?.GetImageWidth();
-                            file.Height = metadata?.GetImageHeight();
-                        }
-                        break;
-                    
-                    case AssetFamily.TimeBased:
-                        if (storedFile.MimeType.IsAudioMimeType())
-                        {
-                            if (file != null)
-                            {
-                                file.Duration = metadata?.GetDuration();
-                            }
-                            if (behaviour.DeliveryChannels.Contains(Channels.IIIFAv))
-                            {
-                                var mp3 = new DeliveredFile
-                                {
-                                    DeliveryChannel = Channels.IIIFAv,
-                                    PublicUrl = uriPatterns.DlcsAudio(dlcs.ResourceEntryPoint,
-                                        storedFile.StorageIdentifier, "mp3"),
-                                    MediaType = "audio/mp3",
-                                    Duration = metadata?.GetDuration()
-                                };
-                                mp3.DlcsUrl = mp3.PublicUrl.Replace(
-                                    $"{dlcs.ResourceEntryPoint}av/",
-                                    $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
-                                deliveredFiles.Add(mp3);
-                            }
-                        }
-                        else if (storedFile.MimeType.IsVideoMimeType())
-                        {
-                            if (file != null)
-                            {
-                                file.Duration = metadata?.GetDuration();
-                                file.Width = metadata?.GetImageWidth();
-                                file.Height = metadata?.GetImageHeight();
-                            }
-                            if (behaviour.DeliveryChannels.Contains(Channels.IIIFAv))
-                            {
-                                // our iiif-av channel mp4 will always be confined to a box.
-                                // Only the ProcessingBehaviour should know how big that box is (it's the transcode policy).
-                                var confineToBox = storedFile.ProcessingBehaviour.GetVideoSize(Channels.IIIFAv);
-
-                                // we still need to accomodate this hangover from early Goobi flows with no dimensions
-                                var videoSize = storedFile.PhysicalFile!.GetWhSize() ?? new Size(999, 999);
-                                var computedSize = Size.Confine(confineToBox!, videoSize);
-                                
-                                var mp4 = new DeliveredFile
-                                {
-                                    DeliveryChannel = Channels.IIIFAv,
-                                    PublicUrl = uriPatterns.DlcsVideo(dlcs.ResourceEntryPoint,
-                                        storedFile.StorageIdentifier, "mp4"),
-                                    MediaType = "video/mp4",
-                                    Duration = metadata?.GetDuration(),
-                                    Width = computedSize.Width,
-                                    Height = computedSize.Height
-                                };
-                                mp4.DlcsUrl = mp4.PublicUrl.Replace(
-                                    $"{dlcs.ResourceEntryPoint}av/",
-                                    $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
-                                deliveredFiles.Add(mp4);
-                            }
-                            
-                        }
-                        break;
+                    file.Width = metadata?.GetImageWidth();
+                    file.Height = metadata?.GetImageHeight();
                 }
-                
-            }
 
-            return deliveredFiles.ToArray();
+                break;
+
+            case AssetFamily.TimeBased:
+                if (storedFile.MimeType.IsAudioMimeType())
+                {
+                    if (file != null)
+                    {
+                        file.Duration = metadata?.GetDuration();
+                    }
+
+                    if (behaviour.DeliveryChannels.Any(dc => dc.Channel == ChannelNames.IIIFAv))
+                    {
+                        var mp3 = new DeliveredFile
+                        {
+                            DeliveryChannel = ChannelNames.IIIFAv,
+                            PublicUrl = uriPatterns.DlcsAudio(dlcs.ResourceEntryPoint,
+                                storedFile.StorageIdentifier, "mp3"),
+                            MediaType = "audio/mp3",
+                            Duration = metadata?.GetDuration()
+                        };
+                        mp3.DlcsUrl = mp3.PublicUrl.Replace(
+                            $"{dlcs.ResourceEntryPoint}av/",
+                            $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                        deliveredFiles.Add(mp3);
+                    }
+                }
+                else if (storedFile.MimeType.IsVideoMimeType())
+                {
+                    if (file != null)
+                    {
+                        file.Duration = metadata?.GetDuration();
+                        file.Width = metadata?.GetImageWidth();
+                        file.Height = metadata?.GetImageHeight();
+                    }
+
+                    if (behaviour.DeliveryChannels.Any(dc => dc.Channel == ChannelNames.IIIFAv))
+                    {
+                        // our iiif-av channel mp4 will always be confined to a box.
+                        // Only the ProcessingBehaviour should know how big that box is (it's the transcode policy).
+                        var confineToBox = storedFile.ProcessingBehaviour.GetVideoSize(ChannelNames.IIIFAv);
+
+                        // we still need to accomodate this hangover from early Goobi flows with no dimensions
+                        var videoSize = storedFile.PhysicalFile!.GetWhSize() ?? new Size(999, 999);
+                        var computedSize = Size.Confine(confineToBox!, videoSize);
+
+                        var mp4 = new DeliveredFile
+                        {
+                            DeliveryChannel = ChannelNames.IIIFAv,
+                            PublicUrl = uriPatterns.DlcsVideo(dlcs.ResourceEntryPoint,
+                                storedFile.StorageIdentifier, "mp4"),
+                            MediaType = "video/mp4",
+                            Duration = metadata?.GetDuration(),
+                            Width = computedSize.Width,
+                            Height = computedSize.Height
+                        };
+                        mp4.DlcsUrl = mp4.PublicUrl.Replace(
+                            $"{dlcs.ResourceEntryPoint}av/",
+                            $"{dlcs.InternalResourceEntryPoint}iiif-av/{dlcs.DefaultCustomer}/{dlcs.DefaultSpace}/");
+                        deliveredFiles.Add(mp4);
+                    }
+
+                }
+
+                break;
+        }
+
+
+
+        return deliveredFiles.ToArray();
         }
     }
 }

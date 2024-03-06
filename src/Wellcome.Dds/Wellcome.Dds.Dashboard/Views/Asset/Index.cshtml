@@ -71,7 +71,7 @@
     </tr>
     <tr>
         <td>Delivery Channels</td>
-        <td>@String.Join(", ", Model.Asset.DeliveryChannels ?? new[]{"(no delivery channels)"})</td>
+        <td>@String.Join(", ", Model.Asset.DeliveryChannels.Select(dc=> dc.ToString()) ?? new[]{"(no delivery channels)"})</td>
     </tr>
     <tr>
         <td>Size</td>
@@ -100,14 +100,6 @@
     <tr>
         <td>Origin</td>
         <td><a href="@Model.Asset.Origin">@Model.Asset.Origin</a></td>
-    </tr>
-    <tr>
-        <td>Image Optimisation Policy</td>
-        <td>@Model.Asset.ImageOptimisationPolicy</td>
-    </tr>
-    <tr>
-        <td>Thumbnail Policy</td>
-        <td>@Model.Asset.ThumbnailPolicy</td>
     </tr>
     <tr>
         <td>Width x Height</td>
