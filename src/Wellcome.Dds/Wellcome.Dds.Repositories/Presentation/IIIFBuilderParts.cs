@@ -420,7 +420,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             var label = physicalFile.MimeType == "image/jp2" ? "JPEG 2000" : physicalFile.MimeType;
                             var rendering = new Image
                             {
-                                Id = asFile.DlcsUrl,
+                                Id = uriPatterns.DlcsFile(dlcsEntryPoint, physicalFile.StorageIdentifier),
                                 Format = physicalFile.MimeType,
                                 Label = Lang.Map(label ?? "(unknown format)")
                             };
