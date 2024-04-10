@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.Runtime.Internal;
 using DlcsWebClient.Config;
 using IIIF.Presentation;
 using IIIF.Presentation.V2.Annotation;
@@ -48,6 +49,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ILogger<IIIFBuilder> logger;
         private readonly IIIFBuilderParts build;
         private readonly PresentationConverter presentation2Converter;
+        private readonly ThumbnailSizeDecorator thumbnailSizeDecorator;
 
         public IIIFBuilder(
             IDds dds,
@@ -57,7 +59,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
-            ILogger<IIIFBuilder> logger)
+            ILogger<IIIFBuilder> logger,
+            ThumbnailSizeDecorator thumbnailSizeDecorator)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -66,6 +69,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.logger = logger;
+            this.thumbnailSizeDecorator = thumbnailSizeDecorator;
 
             if (dlcsOptions.Value.ResourceEntryPoint.IsNullOrWhiteSpace())
             {
@@ -425,6 +429,32 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
             build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
             build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
+
+            if (ddsOptions.UseDlcsForThumbSizes)
+            {
+                // As it's calling the DLCS with httpClient, we're suddenly introducing an async operation
+                // into our previously synchronous IIIF Building.
+                var task = Task.Run(async () => await thumbnailSizeDecorator.UpdateManifestSizesFromExternal(manifest, metsManifestation.Identifier));
+                var result = task.Result;
+                if (result.Any(r => r.Success == false))
+                {
+                    logger.LogError("Could not populate DDS Manifest with DLCS sizes");
+                    foreach (var decoratorResult in result.Where(r => r.Success == false))
+                    {
+                        logger.LogError("Asset {assetId} could not be matched from DLCS: {problem}", 
+                            decoratorResult.AssetIdPart, decoratorResult.Problem);
+                    }
+                }
+
+                if (result.Any(r => r.SizesDiffer))
+                {
+                    logger.LogWarning("Computed size / DLCS size mismatch");
+                    foreach (var decoratorResult in result.Where(r => r.SizesDiffer))
+                    {
+                        logger.LogError("Asset {assetId} has mismatched sizes", decoratorResult.AssetIdPart);
+                    }
+                }
+            }
         }
         
         
