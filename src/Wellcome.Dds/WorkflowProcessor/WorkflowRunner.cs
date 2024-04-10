@@ -99,27 +99,30 @@ namespace WorkflowProcessor
                         job.FirstDlcsJobId = batchResponse[0].Id;
                         job.DlcsJobCount = batchResponse.Length;
                         
-                        job.IngestJobStarted = DateTime.UtcNow;
-                        if (jobOptions.HasWorkDependentOnDlcs())
+                        if (ddsOptions.UseDlcsForThumbSizes)
                         {
-                            // Should we do this:
-                            // make eligible for taking again...
-                            job.Waiting = true; 
-                            // ...but without the register images option
-                            job.WorkflowOptions = jobOptions.WithoutRegisterImages().ToInt32();
-                            logger.LogInformation("Keeping {JobId} open for dependent options", ddsIdentifier);
+                            job.IngestJobStarted = DateTime.UtcNow;
+                            if (jobOptions.HasWorkDependentOnDlcs())
+                            {
+                                // Should we do this:
+                                // make eligible for taking again...
+                                job.Waiting = true; 
+                                // ...but without the register images option
+                                job.WorkflowOptions = jobOptions.WithoutRegisterImages().ToInt32();
+                                logger.LogInformation("Keeping {JobId} open for dependent options", ddsIdentifier);
                             
-                            // ...or should we create a new job here and finish the old one?
-                            // Maybe we add an OriginalJobOptions field for reporting/visibility
+                                // ...or should we create a new job here and finish the old one?
+                                // Maybe we add an OriginalJobOptions field for reporting/visibility
+                            }
+                            else
+                            {
+                                job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
+                                logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
+                                job.Finished = true;
+                            }
+                            // We can't do any other options if we've just kicked off some ingests
+                            return;
                         }
-                        else
-                        {
-                            job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
-                            logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
-                            job.Finished = true;
-                        }
-                        // We can't do any other options if we've just kicked off some ingests
-                        return;
                     }
                 }
 

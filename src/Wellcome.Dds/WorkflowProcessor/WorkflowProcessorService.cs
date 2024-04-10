@@ -459,6 +459,10 @@ namespace WorkflowProcessor
 
         private async Task UpdateIngestJobs(DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
         {
+            if (!ddsOptions.UseDlcsForThumbSizes)
+            {
+                return;
+            }
             var jobsRegisteringImages = await dbContext.GetJobsRegisteringImages(10, cancellationToken);
             foreach (var job in jobsRegisteringImages)
             {
