@@ -215,6 +215,15 @@ namespace Wellcome.Dds.Repositories
                         switch (metsManifestation.Sequence.First().GetDefaultProcessingBehaviour().AssetFamily)
                         {
                             case AssetFamily.Image:
+                                
+                                // TODO: get single asset manifest from DLCS (extend (rename?) ExternalManifestReader
+                                // ExternalIIIFReader ?
+                                // for FirstFileThumbnailDimensions and CatalogueThumbnailDimensions
+                                // (reuse the former if same, don't make two calls!)
+                                
+                                // write tests for ImageApiSizeHelper and others
+                                
+                                
                                 ddsManifestation.FirstFileThumbnailDimensions = asset.GetAvailableSizeAsString();
                                 ddsManifestation.FirstFileThumbnail = GetDlcsThumbnailServiceForAsset(asset);
                                 if (ddsManifestation.Index == 0)
