@@ -15,7 +15,9 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Aws.SQS;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Catalogue;
@@ -32,6 +34,7 @@ namespace WorkflowProcessor
         private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly DdsOptions ddsOptions;
         private readonly IAmazonSQS sqsClient;
+        private readonly IDlcs dlcs;
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
@@ -93,12 +96,14 @@ namespace WorkflowProcessor
             ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory,
             IOptions<DdsOptions> options,
-            IAmazonSQS sqsClient)
+            IAmazonSQS sqsClient,
+            IDlcs dlcs)
         {
             this.logger = logger;
             this.serviceScopeFactory = serviceScopeFactory;
             this.ddsOptions = options.Value;
             this.sqsClient = sqsClient;
+            this.dlcs = dlcs;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -413,7 +418,8 @@ namespace WorkflowProcessor
                             waitMs = GetWaitMs(waitMs);
                             if (waitMs > 30000)
                             {
-                                // idle more than 30s, see if we can make more jobs form queues
+                                // idle more than 30s, see if we can make more jobs from queues
+                                await UpdateIngestJobs(dbContext, cancellationToken);
                                 await PollQueues(queues, dbContext, cancellationToken);
                             }
                             continue;
@@ -423,7 +429,6 @@ namespace WorkflowProcessor
                         var runner = GetWorkflowRunner(scope);
                         var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
                         await runner.ProcessJob(job, cancellationToken);
-                        job!.Finished = true;
                         try
                         {
                             await dbContext.SaveChangesAsync(cancellationToken);
@@ -437,6 +442,7 @@ namespace WorkflowProcessor
                         if (iterationsSinceQueuesPolled > 50)
                         {
                             // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
+                            await UpdateIngestJobs(dbContext, cancellationToken);
                             await PollQueues(queues, dbContext, cancellationToken);
                             iterationsSinceQueuesPolled = 0;
                         }
@@ -449,6 +455,57 @@ namespace WorkflowProcessor
             }
 
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
+        }
+
+        private async Task UpdateIngestJobs(DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        {
+            var jobsRegisteringImages = await dbContext.GetJobsRegisteringImages(10, cancellationToken);
+            foreach (var job in jobsRegisteringImages)
+            {
+                if (job.IngestJobStarted < DateTime.UtcNow.AddDays(-1))
+                {
+                    // clear it anyway
+                    job.IngestJobStarted = null;
+                    continue;
+                }
+
+                // what's the quickest way to see if anything from the job is running?
+                // This is not the same logic as the dashboard, we're only really interested in recently created
+                // batches and their states (as reinforced by the cutoff above)
+                var recentBatchesOldestFirst = await dbContext.GetRecentBatches(job.Identifier, 1, cancellationToken);
+                
+                var dlcsCallContext = new DlcsCallContext("WorkflowProcessorService::UpdateIngestJobs", job.Identifier);
+                var isRunning = false;
+                
+                // now ask DLCS about each batch, bailing out if we find one still active
+                foreach (var batchRecord in recentBatchesOldestFirst)
+                {
+                    try
+                    {
+                        var batchId = batchRecord.GetResponseBatchId();
+                        if (string.IsNullOrWhiteSpace(batchId)) continue;
+                    
+                        var batchOp = await dlcs.GetBatch(batchId, dlcsCallContext);
+                        var batch = batchOp.ResponseObject;
+                        if (batch?.Finished != null) continue;
+                    
+                        // At least one batch is still running
+                        isRunning = true;
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError("Unable to obtain a DLCS batch for {instrumentationBatchRowId}", batchRecord.Id);
+                    }
+                }
+
+                if (!isRunning)
+                {
+                    job.IngestJobStarted = null;
+                }
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
@@ -533,8 +590,6 @@ namespace WorkflowProcessor
                 
                 var runner = GetWorkflowRunner(scope);
                 await runner.ProcessJob(workflowJob, stoppingToken);
-                
-                workflowJob.Finished = true;
                 try
                 {
                     await dbContext.SaveChangesAsync(stoppingToken);

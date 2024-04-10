@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json.Linq;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
@@ -19,6 +20,22 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         public int BatchSize { get; set; }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-        public int? ContentLength { get; set; }        
+        public int? ContentLength { get; set; }
+
+        public string? GetResponseBatchId()
+        {
+            if (string.IsNullOrWhiteSpace(ResponseBody))
+            {
+                return null;
+            }
+            
+            // let exception propagate 
+            var jObj = JObject.Parse(ResponseBody);
+            if (jObj.TryGetValue("@id", out var idToken))
+            {
+                return (string?) idToken;
+            }
+            return null;
+        }
     }
 }

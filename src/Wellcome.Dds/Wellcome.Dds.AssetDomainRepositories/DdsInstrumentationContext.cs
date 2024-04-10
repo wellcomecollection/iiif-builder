@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
@@ -87,7 +89,9 @@ namespace Wellcome.Dds.AssetDomainRepositories
         {
             var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
                 + " select identifier from workflow_jobs "
-                + $" where waiting=true and (created < now() - interval '{minAgeInMinutes} minutes' or expedite=true) "
+                + " where waiting=true "
+                + $" and (created < now() - interval '{minAgeInMinutes} minutes' or expedite=true) "
+                + " and ingest_job_started is null "
                 + " order by expedite desc, created "
                 + " limit 1 "
                 + " for update skip locked "
@@ -103,16 +107,38 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         public int FinishAllJobs()
         {
-            const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, " +
+            const string sql = "update workflow_jobs set waiting=false, ingest_job_started=null, finished=true, workflow_options=null, " +
                                "error='Force-finished before job could be taken' where waiting=true";
             return Database.ExecuteSqlRaw(sql);
         }
 
         public int ResetJobsMatchingError(string error)
         {
-            const string sql = "update workflow_jobs set waiting=true, finished=false, taken=null, " +
+            const string sql = "update workflow_jobs set waiting=true, ingest_job_started=null, finished=false, taken=null, " +
                                "error=null, workflow_options=null where error like '%' || {0} || '%'";
             return Database.ExecuteSqlRaw(sql, error);
+        }
+
+        public async Task<List<WorkflowJob>> GetJobsRegisteringImages(int numberToTake, CancellationToken cancellationToken)
+        {
+            var jobs = await WorkflowJobs
+                .Where(job => job.IngestJobStarted != null)
+                .OrderBy(job => job.Taken) // ascending, oldest first
+                .Take(numberToTake)
+                .ToListAsync(cancellationToken);
+            return jobs;
+        }
+
+        public async Task<List<DlcsBatch>> GetRecentBatches(string packageIdentifier, int maxAgeDays, CancellationToken cancellationToken)
+        {
+            var batches = await DlcsIngestJobs
+                .Where(dlcsJob =>
+                       dlcsJob.Identifier == packageIdentifier 
+                    && dlcsJob.Created > DateTime.UtcNow.AddDays(0 - maxAgeDays))
+                .SelectMany(dlcsJob => dlcsJob.DlcsBatches)
+                .OrderBy(batch => batch.RequestSent)
+                .ToListAsync(cancellationToken);
+            return batches;
         }
     }
 

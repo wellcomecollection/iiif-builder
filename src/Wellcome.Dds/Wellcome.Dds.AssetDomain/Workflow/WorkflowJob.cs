@@ -9,6 +9,9 @@ namespace Wellcome.Dds.AssetDomain.Workflow
     public class WorkflowJob
     {
         [Key] public string Identifier { get; set; } = null!;
+        
+        public DateTime? IngestJobStarted { get; set; }
+        
         public bool ForceTextRebuild { get; set; }
         public bool Waiting { get; set; }
         public bool Finished { get; set; }
