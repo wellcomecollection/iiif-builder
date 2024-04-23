@@ -71,7 +71,19 @@
     </tr>
     <tr>
         <td>Delivery Channels</td>
-        <td>@String.Join(", ", Model.Asset.DeliveryChannels.Select(dc=> dc.ToString()) ?? new[]{"(no delivery channels)"})</td>
+        <td>
+            @if (Model.Asset.DeliveryChannels.HasItems())
+            {
+                foreach (var deliveryChannel in Model.Asset.DeliveryChannels)
+                {
+                    <text>@deliveryChannel.ToString()<br/></text>
+                }
+            }
+            else
+            {
+                <text>(no delivery channels)</text>
+            }
+        </td>
     </tr>
     <tr>
         <td>Size</td>

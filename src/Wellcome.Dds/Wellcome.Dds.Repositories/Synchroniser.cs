@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
+using IIIF;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
@@ -27,6 +28,7 @@ namespace Wellcome.Dds.Repositories
         private readonly ICatalogue catalogue;
         private readonly DlcsOptions dlcsOptions;
         private readonly UriPatterns uriPatterns;
+        private readonly ExternalIIIFReader externalIIIFReader;
         
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
@@ -42,7 +44,8 @@ namespace Wellcome.Dds.Repositories
             DdsContext ddsContext,
             ICatalogue catalogue,
             IOptions<DlcsOptions> dlcsOptions,
-            UriPatterns uriPatterns)
+            UriPatterns uriPatterns,
+            ExternalIIIFReader externalIIIFReader)
         {
             this.dlcsOptions = dlcsOptions.Value;
             if (this.dlcsOptions.ResourceEntryPoint.IsNullOrWhiteSpace())
@@ -54,6 +57,7 @@ namespace Wellcome.Dds.Repositories
             this.ddsContext = ddsContext;
             this.catalogue = catalogue;
             this.uriPatterns = uriPatterns;
+            this.externalIIIFReader = externalIIIFReader;
         }
         
 
@@ -216,26 +220,55 @@ namespace Wellcome.Dds.Repositories
                         {
                             case AssetFamily.Image:
                                 
-                                // TODO: get single asset manifest from DLCS (extend (rename?) ExternalManifestReader
-                                // ExternalIIIFReader ?
-                                // for FirstFileThumbnailDimensions and CatalogueThumbnailDimensions
-                                // (reuse the former if same, don't make two calls!)
-                                
-                                // write tests for ImageApiSizeHelper and others
-                                
-                                
-                                ddsManifestation.FirstFileThumbnailDimensions = asset.GetAvailableSizeAsString();
+                                // Get the computed sizes. The first will be the actual size.
+                                List<Size> firstFileSizes = asset.GetAvailableSizes();
+                                List<Size>? catThumbSizes = null;
+                                IPhysicalFile? catThumbAsset = null;
+                                ddsManifestation.FirstFileThumbnailDimensions = firstFileSizes.AsString();
                                 ddsManifestation.FirstFileThumbnail = GetDlcsThumbnailServiceForAsset(asset);
                                 if (ddsManifestation.Index == 0)
                                 {
                                     // the first manifestation; add in the thumb from the catalogue, too
-                                    IPhysicalFile? catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
+                                    catThumbAsset = GetPhysicalFileFromThumbnailPath(work, assets);
                                     if (catThumbAsset != null)
                                     {
-                                        ddsManifestation.CatalogueThumbnailDimensions = catThumbAsset.GetAvailableSizeAsString();
+                                        // Get the computed sizes. The first will be the actual size.
+                                        catThumbSizes = catThumbAsset.GetAvailableSizes();
+                                        ddsManifestation.CatalogueThumbnailDimensions = catThumbSizes.AsString();
                                         ddsManifestation.CatalogueThumbnail = GetDlcsThumbnailServiceForAsset(catThumbAsset);
                                     }
                                 }
+                                
+                                // Now ask the DLCS for the advertised thumbnail service sizes, and update the above if available
+                                var firstFileDlcsSizes =
+                                    await externalIIIFReader.GetThumbSizesForSingleAsset(asset.StorageIdentifier!);
+                                if (firstFileDlcsSizes.Any())
+                                {
+                                    List<Size> updatedFirstFileSizes = [firstFileSizes[0], .. firstFileDlcsSizes];
+                                    ddsManifestation.FirstFileThumbnailDimensions = updatedFirstFileSizes.AsString();
+                                }
+
+                                if (catThumbAsset != null && catThumbSizes != null)
+                                {
+                                    List<Size> catThumbDlcsSizes;
+                                    if (catThumbAsset.StorageIdentifier == asset.StorageIdentifier)
+                                    {
+                                        catThumbDlcsSizes = firstFileDlcsSizes;
+                                    }
+                                    else
+                                    {
+                                        catThumbDlcsSizes = await externalIIIFReader.GetThumbSizesForSingleAsset(
+                                                catThumbAsset.StorageIdentifier!);
+                                    }
+
+                                    if (catThumbDlcsSizes.Any())
+                                    {
+                                        List<Size> updatedCatThumbFileSizes = [catThumbSizes[0], .. catThumbDlcsSizes];
+                                        ddsManifestation.CatalogueThumbnailDimensions = updatedCatThumbFileSizes.AsString();
+                                    }
+                                }
+                                
+                                
                                 break;
                             case AssetFamily.TimeBased:
                                 ddsManifestation.FirstFileThumbnailDimensions =

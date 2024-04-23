@@ -451,7 +451,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                     logger.LogWarning("Computed size / DLCS size mismatch");
                     foreach (var decoratorResult in result.Where(r => r.SizesDiffer))
                     {
-                        logger.LogError("Asset {assetId} has mismatched sizes", decoratorResult.AssetIdPart);
+                        logger.LogWarning("Asset {assetId} has mismatched sizes", decoratorResult.AssetIdPart);
                     }
                 }
             }

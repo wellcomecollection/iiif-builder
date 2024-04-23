@@ -125,11 +125,12 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
             services.AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
-            
-            
+
+            services.AddHttpClient<ExternalIIIFReader>();
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
-
+            services.AddSingleton<ThumbnailSizeDecorator>();
+            
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
 
             services.AddControllersWithViews(

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,11 +10,11 @@ namespace Wellcome.Dds.Repositories.Presentation;
 
 public class ThumbnailSizeDecorator
 {
-    private readonly ExternalManifestReader externalManifestReader;
+    private readonly ExternalIIIFReader externalIIIFReader;
 
-    public ThumbnailSizeDecorator(ExternalManifestReader externalManifestReader)
+    public ThumbnailSizeDecorator(ExternalIIIFReader externalIIIFReader)
     {
-        this.externalManifestReader = externalManifestReader;
+        this.externalIIIFReader = externalIIIFReader;
     }
 
     public async Task<List<ThumbnailSizeDecoratorResult>> UpdateManifestSizesFromExternal(
@@ -25,7 +26,19 @@ public class ThumbnailSizeDecorator
         // Only ImageService2 for now
         var ddsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items!.Count);
         var dlcsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items.Count);
-        var dlcsManifest = await externalManifestReader.LoadDlcsManifest(manifestationIdentifier);
+        Manifest dlcsManifest;
+        try
+        {
+            dlcsManifest = await externalIIIFReader.LoadDlcsNamedQueryManifest(manifestationIdentifier);
+        }
+        catch (Exception e)
+        {
+            result.Add(new ThumbnailSizeDecoratorResult(-1, manifestationIdentifier)
+            {
+                Problem = $"Unable to retrieve Manifest from DLCS: {e.Message}"
+            });
+            return result;
+        }
         for (int i = 0; i < ddsManifest.Items.Count; i++)
         {
             var ddsThumbService = ddsManifest.Items[i].Thumbnail?[0].Service?[0] as ImageService2;
@@ -87,6 +100,7 @@ public class ThumbnailSizeDecorator
                     successResult.SizesDiffer = true;
                     successResult.ComputedSizes = ddsThumbService.Sizes;
                     successResult.GeneratedSizes = dlcsThumbService.Sizes;
+                    break;
                 }
             }
         }

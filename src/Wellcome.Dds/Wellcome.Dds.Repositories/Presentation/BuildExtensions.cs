@@ -45,9 +45,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             return null;
         }
 
-        public static string GetAvailableSizeAsString(this IPhysicalFile asset)
+        public static string AsString(this List<Size> sizes)
         {
-            var sizes = asset.GetAvailableSizes();
             return JsonConvert.SerializeObject(sizes.Select(s => new []{s.Width,s.Height}.ToList()));
         }
 
