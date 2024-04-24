@@ -419,12 +419,18 @@ namespace WorkflowProcessor
                             if (waitMs > 30000)
                             {
                                 // idle more than 30s, see if we can make more jobs from queues
-                                await UpdateIngestJobs(dbContext, cancellationToken);
+                                bool jobChangedState = await UpdateIngestJobs(dbContext, cancellationToken);
+                                if (jobChangedState)
+                                {
+                                    waitMs = 2;
+                                }
                                 await PollQueues(queues, dbContext, cancellationToken);
                             }
                             continue;
                         }
 
+                        logger.LogDebug("Marked job {jobId} as taken", jobId);
+                        
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
                         var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
@@ -457,60 +463,111 @@ namespace WorkflowProcessor
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
         }
 
-        private async Task UpdateIngestJobs(DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        private async Task<bool> UpdateIngestJobs(DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
         {
             if (!ddsOptions.UseDlcsForThumbSizes)
             {
-                return;
+                return false;
             }
-            var jobsRegisteringImages = await dbContext.GetJobsRegisteringImages(10, cancellationToken);
-            foreach (var job in jobsRegisteringImages)
+            
+            var workflowJobsRegisteringImages = await dbContext.GetJobsRegisteringImages(10, cancellationToken);
+            bool atLeastOneJobChangedState = false;
+            // This means that WorkflowRunner has kicked off a DLCS import job
+            logger.LogDebug("{jobsRegisteringImagesCount} jobs are marked as IngestJobStarted", workflowJobsRegisteringImages.Count);
+            
+            foreach (var workflowJob in workflowJobsRegisteringImages)
             {
-                if (job.IngestJobStarted < DateTime.UtcNow.AddDays(-1))
+                if (workflowJob.IngestJobStarted < DateTime.UtcNow.AddDays(-1))
                 {
-                    // clear it anyway
-                    job.IngestJobStarted = null;
+                    logger.LogDebug("Job was started over a day ago, don't let that hold ou other Workflow options, clear the flag");
+                    workflowJob.IngestJobStarted = null;
                     continue;
                 }
 
-                // what's the quickest way to see if anything from the job is running?
-                // This is not the same logic as the dashboard, we're only really interested in recently created
-                // batches and their states (as reinforced by the cutoff above)
-                var recentBatchesOldestFirst = await dbContext.GetRecentBatches(job.Identifier, 1, cancellationToken);
+                bool isRunning = false;
                 
-                var dlcsCallContext = new DlcsCallContext("WorkflowProcessorService::UpdateIngestJobs", job.Identifier);
-                var isRunning = false;
-                
-                // now ask DLCS about each batch, bailing out if we find one still active
-                foreach (var batchRecord in recentBatchesOldestFirst)
+                var dlcsIngestJobsOfInterest = await dbContext.DlcsIngestJobs.Where(dlcsJob =>
+                    dlcsJob.Identifier == workflowJob.Identifier
+                    && dlcsJob.Created > DateTime.UtcNow.AddDays(-1))
+                    .ToListAsync(cancellationToken);
+                foreach (var dlcsIngestJob in dlcsIngestJobsOfInterest)
                 {
-                    try
+                    // There will be multiple dlcsIngestJob for multiple manifestations
+                    if (!dlcsIngestJob.Succeeded)
                     {
-                        var batchId = batchRecord.GetResponseBatchId();
-                        if (string.IsNullOrWhiteSpace(batchId)) continue;
-                    
-                        var batchOp = await dlcs.GetBatch(batchId, dlcsCallContext);
-                        var batch = batchOp.ResponseObject;
-                        if (batch?.Finished != null) continue;
-                    
-                        // At least one batch is still running
-                        logger.LogDebug("Batch(es) {batch} for job {job} is still running", batchId, job.Identifier);
+                        // It's either not been picked up yet by DlcsJobProcessor, or is in the (very short)
+                        // window where DlcsJobProcessor is building a SyncOperation and registering batches.
+                        logger.LogDebug("DLCS Ingest Job {dlcsIngestJobId} is not yet marked succeeded", dlcsIngestJob.Id);
                         isRunning = true;
                         break;
                     }
-                    catch (Exception e)
+
+                    var dlcsBatches = await dbContext.DlcsBatches
+                        .Where(batch => batch.DlcsIngestJobId == dlcsIngestJob.Id)
+                        .OrderBy(batch => batch.RequestSent)
+                        .ToListAsync(cancellationToken);
+                    
+                    // There are no batches, but the job is mark succeeded. We can be sure that no batches were sent,
+                    // and therefore there's nothing to wait for from DLCS.
+                    if (dlcsBatches.Count == 0)
                     {
-                        logger.LogError("Unable to obtain a DLCS batch for {instrumentationBatchRowId}", batchRecord.Id);
+                        logger.LogDebug("No batches recorded for succeeded DLCS Ingest Job {jobId}", dlcsIngestJob.Id);
+                    }
+                    else
+                    {
+                        // There are batches. But we can't tell from here what status they have. We need to ask DLCS.
+                        // What's the quickest way to see if anything from the job is running?
+                        // This is not the same logic as the dashboard, we're only really interested in recently created
+                        // batches and their states (as reinforced by the cutoff above)
+                        foreach (var dlcsBatch in dlcsBatches)
+                        {
+                            try
+                            {
+                                var batchId = dlcsBatch.GetResponseBatchId();
+                                if (string.IsNullOrWhiteSpace(batchId))
+                                {
+                                    // No response body from DLCS yet. Something may have gone wrong, but it could be
+                                    // that the DLCS is currently processing the batch payload. Again this is a very small 
+                                    // window but has to be taken into account.
+                                    isRunning = true;
+                                    break;
+                                }
+
+                                // We do have a response body recorded, but that will be the initial batch state.
+                                // We need to see what the state of the batch is _now_.
+                                var traceIdentifier = $"{workflowJob.Identifier}/{dlcsIngestJob.Identifier}/{batchId.Split('/')[^1]}";
+                                var dlcsCallContext = new DlcsCallContext("WorkflowProcessorService::UpdateIngestJobs", traceIdentifier);
+                                var batchOp = await dlcs.GetBatch(batchId, dlcsCallContext);
+                                var batch = batchOp.ResponseObject;
+                                if (batch?.Finished != null) continue;
+                    
+                                // At least one batch is still running
+                                logger.LogDebug("Batch {batch} for job {job} is still running", batchId, workflowJob.Identifier);
+                                isRunning = true;
+                                break;
+                            }
+                            catch (Exception e)
+                            {
+                                logger.LogError("Unable to obtain a DLCS batch for {instrumentationBatchRowId}", dlcsBatch.Id);
+                            }
+                        }
+                    }
+                    
+                    if (isRunning)
+                    {
+                        break;
                     }
                 }
 
                 if (isRunning) continue;
                 
-                logger.LogDebug("All batches for {job} have finished", job.Identifier);
-                job.IngestJobStarted = null;
+                logger.LogDebug("All batches for {job} have finished", workflowJob.Identifier);
+                workflowJob.IngestJobStarted = null;
+                atLeastOneJobChangedState = true;
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            return atLeastOneJobChangedState;
         }
 
         private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)

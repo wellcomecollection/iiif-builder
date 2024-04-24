@@ -35,7 +35,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
             {
                 return (string?) idToken;
             }
-            return null;
+
+            throw new InvalidOperationException("Batch response body does not contain an @id");
         }
     }
 }

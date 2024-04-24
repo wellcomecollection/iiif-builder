@@ -128,18 +128,6 @@ namespace Wellcome.Dds.AssetDomainRepositories
                 .ToListAsync(cancellationToken);
             return jobs;
         }
-
-        public async Task<List<DlcsBatch>> GetRecentBatches(string packageIdentifier, int maxAgeDays, CancellationToken cancellationToken)
-        {
-            var batches = await DlcsIngestJobs
-                .Where(dlcsJob =>
-                       dlcsJob.Identifier == packageIdentifier 
-                    && dlcsJob.Created > DateTime.UtcNow.AddDays(0 - maxAgeDays))
-                .SelectMany(dlcsJob => dlcsJob.DlcsBatches)
-                .OrderBy(batch => batch.RequestSent)
-                .ToListAsync(cancellationToken);
-            return batches;
-        }
     }
 
     [Serializable]

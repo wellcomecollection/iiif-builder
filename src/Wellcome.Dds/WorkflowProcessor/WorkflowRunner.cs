@@ -94,6 +94,7 @@ namespace WorkflowProcessor
                 if (jobOptions.RegisterImages)
                 {
                     var batchResponse = await ingestJobRegistry.RegisterImages(ddsIdentifier);
+                    logger.LogDebug("Created {jobLength} ingest jobs", batchResponse.Length);
                     if (batchResponse.Length > 0)
                     {
                         job.FirstDlcsJobId = batchResponse[0].Id;
@@ -101,7 +102,9 @@ namespace WorkflowProcessor
                         
                         if (ddsOptions.UseDlcsForThumbSizes)
                         {
+                            // The DLCS Ingest Job has been registered, but not picked up yet
                             job.IngestJobStarted = DateTime.UtcNow;
+                            
                             if (jobOptions.HasWorkDependentOnDlcs())
                             {
                                 // Should we do this:
