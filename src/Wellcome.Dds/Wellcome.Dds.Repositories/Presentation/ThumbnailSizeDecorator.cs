@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using IIIF;
 using IIIF.ImageApi.V2;
 using IIIF.Presentation.V3;
+using Microsoft.Extensions.Primitives;
 
 namespace Wellcome.Dds.Repositories.Presentation;
 
@@ -151,4 +153,23 @@ public class ThumbnailSizeDecoratorResult
     // Only bother populating these if there is a discrepancy
     public List<Size>? ComputedSizes { get; set; }
     public List<Size>? GeneratedSizes { get; set; }
+
+    public string GetMismatchSummary()
+    {
+        var sb = new StringBuilder();
+        bool flag = false;
+        for (int i = 0; i < ComputedSizes!.Count; i++)
+        {
+            if (ComputedSizes[i].Width != GeneratedSizes![i].Width ||
+                ComputedSizes[i].Height != GeneratedSizes[i].Height)
+            {
+                if (flag) sb.Append("; ");
+                sb.Append($"expected ({ComputedSizes[i].Width},{ComputedSizes[i].Height}), ");
+                sb.Append($"actual ({GeneratedSizes[i].Width},{GeneratedSizes[i].Height})");
+                flag = true;
+            }
+        }
+
+        return sb.ToString();
+    }
 }

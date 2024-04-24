@@ -436,6 +436,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // into our previously synchronous IIIF Building.
                 var task = Task.Run(async () => await thumbnailSizeDecorator.UpdateManifestSizesFromExternal(manifest, metsManifestation.Identifier));
                 var result = task.Result;
+
+                
                 if (result.Any(r => r.Success == false))
                 {
                     logger.LogError("Could not populate DDS Manifest with DLCS sizes");
@@ -446,12 +448,13 @@ namespace Wellcome.Dds.Repositories.Presentation
                     }
                 }
 
-                if (result.Any(r => r.SizesDiffer))
+                if (logger.IsEnabled(LogLevel.Debug) && result.Any(r => r.SizesDiffer))
                 {
-                    logger.LogWarning("Computed size / DLCS size mismatch");
+                    logger.LogDebug("Computed size / DLCS size mismatch");
                     foreach (var decoratorResult in result.Where(r => r.SizesDiffer))
                     {
-                        logger.LogWarning("Asset {assetId} has mismatched sizes", decoratorResult.AssetIdPart);
+                        logger.LogDebug("Asset {assetId} has mismatched sizes: {summary}", 
+                            decoratorResult.AssetIdPart, decoratorResult.GetMismatchSummary());
                     }
                 }
             }
