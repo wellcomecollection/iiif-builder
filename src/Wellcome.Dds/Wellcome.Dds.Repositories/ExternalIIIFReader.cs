@@ -42,7 +42,7 @@ public class ExternalIIIFReader
         var singleAssetManifestUri = string.Format(
             dlcsOptions.SingleAssetManifestTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
 
-        var manifestStream = await httpClient.GetStreamAsync(singleAssetManifestUri);
+        var manifestStream = await httpClient.GetStreamAsync($"{singleAssetManifestUri}?ts={DateTime.Now.Ticks}");
         return manifestStream.FromJsonStream<Manifest>();
     }
 

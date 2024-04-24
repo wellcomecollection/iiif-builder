@@ -494,6 +494,7 @@ namespace WorkflowProcessor
                         if (batch?.Finished != null) continue;
                     
                         // At least one batch is still running
+                        logger.LogDebug("Batch(es) {batch} for job {job} is still running", batchId, job.Identifier);
                         isRunning = true;
                         break;
                     }
@@ -503,10 +504,10 @@ namespace WorkflowProcessor
                     }
                 }
 
-                if (!isRunning)
-                {
-                    job.IngestJobStarted = null;
-                }
+                if (isRunning) continue;
+                
+                logger.LogDebug("All batches for {job} have finished", job.Identifier);
+                job.IngestJobStarted = null;
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
