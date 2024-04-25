@@ -33,6 +33,8 @@ public class ExternalIIIFReader
         var namedQueryManifestUri = string.Format(
             dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
 
+        namedQueryManifestUri += "?ts=" + DateTime.Now.Ticks;
+
         var manifestStream = await httpClient.GetStreamAsync(namedQueryManifestUri);
         return manifestStream.FromJsonStream<Manifest>();
     }
