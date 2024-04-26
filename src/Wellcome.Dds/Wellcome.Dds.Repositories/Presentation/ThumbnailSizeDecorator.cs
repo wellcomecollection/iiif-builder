@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using IIIF;
 using IIIF.ImageApi.V2;
 using IIIF.Presentation.V3;
+using IIIF.Presentation.V3.Annotation;
+using IIIF.Presentation.V3.Content;
 using Microsoft.Extensions.Primitives;
 
 namespace Wellcome.Dds.Repositories.Presentation;
@@ -26,8 +28,11 @@ public class ThumbnailSizeDecorator
         var result = new List<ThumbnailSizeDecoratorResult>();
         
         // Only ImageService2 for now
-        var ddsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items!.Count);
-        var dlcsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items.Count);
+        // var ddsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items!.Count);
+        // var dlcsThumbServices = new Dictionary<string, ImageService2>(ddsManifest.Items.Count);
+        var ddsCanvases = new Dictionary<string, Canvas>(ddsManifest.Items!.Count);
+        var dlcsCanvases = new Dictionary<string, Canvas>(ddsManifest.Items.Count);
+        
         Manifest dlcsManifest;
         try
         {
@@ -46,12 +51,16 @@ public class ThumbnailSizeDecorator
             var ddsThumbService = ddsManifest.Items[i].Thumbnail?[0].Service?[0] as ImageService2;
             if (ddsThumbService == null)
             {
+                // usually because it's not an image!
                 continue;
             }
 
             var ddsIdPart = ddsThumbService.Id!.Split('/')[^1];
-            ddsThumbServices[ddsIdPart] = ddsThumbService;
-
+            
+            
+            //ddsThumbServices[ddsIdPart] = ddsThumbService;
+            ddsCanvases[ddsIdPart] = ddsManifest.Items[i];
+            
             var dlcsThumbService = dlcsManifest.Items![i].Thumbnail?[0].Service?.SingleOrDefault(svc => svc is ImageService2) as ImageService2;
             if (dlcsThumbService == null)
             {
@@ -63,6 +72,7 @@ public class ThumbnailSizeDecorator
             }
             
             var dlcsIdPart = dlcsThumbService.Id!.Split('/')[^1];
+            
             if (ddsIdPart != dlcsIdPart)
             {
                 result.Add(new ThumbnailSizeDecoratorResult(i, ddsIdPart)
@@ -74,7 +84,8 @@ public class ThumbnailSizeDecorator
             
             // We know that DDS sizes are in ascending order, but DLCS are not (at least for now)
             dlcsThumbService.Sizes = dlcsThumbService.Sizes.OrderBy(s => s.Width).ToList();
-            dlcsThumbServices[ddsIdPart] = dlcsThumbService;
+            //dlcsThumbServices[ddsIdPart] = dlcsThumbService;
+            dlcsCanvases[ddsIdPart] = dlcsManifest.Items[i];
 
             if (dlcsThumbService.Sizes.Count != ddsThumbService.Sizes.Count)
             {
@@ -116,17 +127,40 @@ public class ThumbnailSizeDecorator
         // Only now will we swap in the DLCS sizes in the manifest instead of the computed sizes
         foreach (var serviceResult in result.Where(r => r.SizesDiffer))
         {
-            ddsThumbServices[serviceResult.AssetIdPart].Sizes = dlcsThumbServices[serviceResult.AssetIdPart].Sizes;
+            var ddsCanvas = ddsCanvases[serviceResult.AssetIdPart];
+            var dlcsCanvas = dlcsCanvases[serviceResult.AssetIdPart];
+            var ddsThumbService = ddsCanvas.Thumbnail?[0].Service?[0] as ImageService2;
+            var dlcsThumbService = dlcsCanvas.Thumbnail?[0].Service?.SingleOrDefault(svc => svc is ImageService2) as ImageService2;
+            if (ddsThumbService != null && dlcsThumbService != null)
+            {
+                // swap the sizes
+                if (ddsCanvas.Thumbnail?[0] is Image img && dlcsThumbService.Sizes.Count > 0)   
+                {
+                    ddsThumbService.Sizes = dlcsThumbService.Sizes.OrderBy(s => s.Width).ToList();
+                    img.Width = ddsThumbService.Sizes[0].Width;
+                    img.Height = ddsThumbService.Sizes[0].Height;
+                    img.Id = $"{ddsThumbService.Id}/full/{img.Width},{img.Height}/0/default.jpg";
+                    
+                    // We also need to update the Canvas's painting annotation
+                    var paintingAnno = ddsCanvas.Items?[0].Items?[0] as PaintingAnnotation;
+                    if (paintingAnno?.Body is Image cvsImg)
+                    {
+                        var largest = ddsThumbService.Sizes.Last();
+                        cvsImg.Width = largest.Width;
+                        cvsImg.Height = largest.Height;
+                        cvsImg.Id = $"{cvsImg.Service?[0].Id}/full/{cvsImg.Width},{cvsImg.Height}/0/default.jpg";
+                    }
+                }
+            }
         }
         
         // We also need to update the manifest thumbnail, and we assume that the manifest thumbnail is one
         // of the manifest's canvases thumbnails.
         if (ddsManifest.Thumbnail is not { Count: 1 }) return result;
-
         if (ddsManifest.Thumbnail[0].Service?[0] is not ImageService2 manifestThumbService) return result;
         
         var manifestThumbnailIdPart = manifestThumbService.Id!.Split('/')[^1];
-        manifestThumbService.Sizes = ddsThumbServices[manifestThumbnailIdPart].Sizes;
+        ddsManifest.Thumbnail = ddsCanvases[manifestThumbnailIdPart].Thumbnail;
 
         return result;
     }
