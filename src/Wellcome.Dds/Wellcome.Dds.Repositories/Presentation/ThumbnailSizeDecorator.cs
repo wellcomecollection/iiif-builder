@@ -137,18 +137,23 @@ public class ThumbnailSizeDecorator
                 if (ddsCanvas.Thumbnail?[0] is Image img && dlcsThumbService.Sizes.Count > 0)   
                 {
                     ddsThumbService.Sizes = dlcsThumbService.Sizes.OrderBy(s => s.Width).ToList();
-                    img.Width = ddsThumbService.Sizes[0].Width;
-                    img.Height = ddsThumbService.Sizes[0].Height;
-                    img.Id = $"{ddsThumbService.Id}/full/{img.Width},{img.Height}/0/default.jpg";
+                    var smallest = ddsThumbService.Sizes[0];
+                    var largest = ddsThumbService.Sizes[^1];
+                    img.Width = smallest.Width;
+                    img.Height = smallest.Height;
+                    img.Id = $"{ddsThumbService.Id}/full/{smallest.Width},{smallest.Height}/0/default.jpg";
+                    
+                    // The service itself has a width and height, from the largest thumb
+                    ddsThumbService.Width = largest.Width;
+                    ddsThumbService.Height = largest.Height;
                     
                     // We also need to update the Canvas's painting annotation
                     var paintingAnno = ddsCanvas.Items?[0].Items?[0] as PaintingAnnotation;
                     if (paintingAnno?.Body is Image cvsImg)
                     {
-                        var largest = ddsThumbService.Sizes.Last();
                         cvsImg.Width = largest.Width;
                         cvsImg.Height = largest.Height;
-                        cvsImg.Id = $"{cvsImg.Service?[0].Id}/full/{cvsImg.Width},{cvsImg.Height}/0/default.jpg";
+                        cvsImg.Id = $"{cvsImg.Service?[0].Id}/full/{largest.Width},{largest.Height}/0/default.jpg";
                     }
                 }
             }
