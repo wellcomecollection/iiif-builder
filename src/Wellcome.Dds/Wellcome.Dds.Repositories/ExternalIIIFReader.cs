@@ -35,6 +35,7 @@ public class ExternalIIIFReader
 
         namedQueryManifestUri += "?ts=" + DateTime.Now.Ticks;
 
+        logger.LogDebug("Asking DLCS for NQ Manifest {namedQueryManifestUri}", namedQueryManifestUri);
         var manifestStream = await httpClient.GetStreamAsync(namedQueryManifestUri);
         return manifestStream.FromJsonStream<Manifest>();
     }
