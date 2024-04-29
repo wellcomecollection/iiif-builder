@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
@@ -31,7 +32,9 @@ public class ExternalIIIFReader
     public async Task<Manifest> LoadDlcsNamedQueryManifest(string identifier)
     {
         var namedQueryManifestUri = string.Format(
-            dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
+            dlcsOptions.SkeletonNamedQueryTemplate!, 
+            dlcsOptions.CustomerDefaultSpace, 
+            WebUtility.UrlEncode(identifier));
 
         namedQueryManifestUri += "?ts=" + DateTime.Now.Ticks;
 
