@@ -22,21 +22,34 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public int? ContentLength { get; set; }
 
-        public string? GetResponseBatchId()
+        public (string?, string?) GetBatchResponseTypeAndId()
         {
             if (string.IsNullOrWhiteSpace(ResponseBody))
             {
-                return null;
-            }
-            
-            // let exception propagate 
-            var jObj = JObject.Parse(ResponseBody);
-            if (jObj.TryGetValue("@id", out var idToken))
-            {
-                return (string?) idToken;
+                return (null, null);
             }
 
-            throw new InvalidOperationException("Batch response body does not contain an @id");
+            string? type = null;
+            string? id = null;
+            
+            var jObj = JObject.Parse(ResponseBody);
+            // Our dlcs_batch is a Collection if it was a batch patch operation
+            if (jObj.TryGetValue("@type", out var typeToken))
+            {
+                type = (string?) typeToken;
+            }
+            // let exception propagate 
+            if (jObj.TryGetValue("@id", out var idToken))
+            {
+                id = (string?) idToken;
+            }
+
+            if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(id))
+            {
+                throw new InvalidOperationException("Batch response body does not contain an @id / @type");
+            }
+            
+            return (type, id);
         }
     }
 }

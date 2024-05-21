@@ -470,16 +470,25 @@ namespace WorkflowProcessor
                 return false;
             }
             
-            var workflowJobsRegisteringImages = await dbContext.GetJobsRegisteringImages(10, cancellationToken);
+            
+            var rnd = new Random();
+            var numberToTake = rnd.Next(1, 9) * rnd.Next(1, 9) * rnd.Next(1, 9);
+            logger.LogInformation("Going to ask for {numberToTake} workflow jobs registering images", numberToTake);
+            var workflowJobsRegisteringImages = await dbContext.GetJobsRegisteringImages(numberToTake, cancellationToken);
+            if (rnd.Next(0, 2) == 1)
+            {
+                logger.LogInformation("Processing workflowJobsRegisteringImages in reverse order");
+                workflowJobsRegisteringImages.Reverse();
+            }
             bool atLeastOneJobChangedState = false;
             // This means that WorkflowRunner has kicked off a DLCS import job
-            logger.LogDebug("{jobsRegisteringImagesCount} jobs are marked as IngestJobStarted", workflowJobsRegisteringImages.Count);
+            logger.LogDebug("Received {jobsRegisteringImagesCount} jobs marked as IngestJobStarted", workflowJobsRegisteringImages.Count);
             
             foreach (var workflowJob in workflowJobsRegisteringImages)
             {
                 if (workflowJob.IngestJobStarted < DateTime.UtcNow.AddDays(-1))
                 {
-                    logger.LogDebug("Job was started over a day ago, don't let that hold ou other Workflow options, clear the flag");
+                    logger.LogDebug("Job {jobId} was started over a day ago, don't let that hold up other Workflow options, clear the flag", workflowJob.Identifier);
                     workflowJob.IngestJobStarted = null;
                     continue;
                 }
@@ -496,7 +505,9 @@ namespace WorkflowProcessor
                     if (!dlcsIngestJob.Succeeded)
                     {
                         // It's either not been picked up yet by DlcsJobProcessor, or is in the (very short)
-                        // window where DlcsJobProcessor is building a SyncOperation and registering batches.
+                        // window where DlcsJobProcessor is building a SyncOperation and registering batches,
+                        // OR
+                        // There is a manifestation error and the job never got marked succeeded.
                         logger.LogDebug("DLCS Ingest Job {dlcsIngestJobId} is not yet marked succeeded", dlcsIngestJob.Id);
                         isRunning = true;
                         break;
@@ -523,7 +534,12 @@ namespace WorkflowProcessor
                         {
                             try
                             {
-                                var batchId = dlcsBatch.GetResponseBatchId();
+                                if (dlcsBatch.ErrorText.HasText())
+                                {
+                                    logger.LogInformation("Batch not considered running because it has error text: {errorText}", dlcsBatch.ErrorText);
+                                    break;
+                                }
+                                var (type, batchId) = dlcsBatch.GetBatchResponseTypeAndId();
                                 if (string.IsNullOrWhiteSpace(batchId))
                                 {
                                     // No response body from DLCS yet. Something may have gone wrong, but it could be
@@ -531,6 +547,12 @@ namespace WorkflowProcessor
                                     // window but has to be taken into account.
                                     isRunning = true;
                                     break;
+                                }
+
+                                if (type == "Collection")
+                                {
+                                    logger.LogDebug("{batchId} is a Collection, ignoring", batchId);
+                                    continue;
                                 }
 
                                 // We do have a response body recorded, but that will be the initial batch state.
@@ -546,7 +568,7 @@ namespace WorkflowProcessor
                                 isRunning = true;
                                 break;
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 logger.LogError("Unable to obtain a DLCS batch for {instrumentationBatchRowId}", dlcsBatch.Id);
                             }
