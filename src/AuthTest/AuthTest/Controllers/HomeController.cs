@@ -43,6 +43,11 @@ namespace AuthTest.Controllers
             {
                 "https://api.dlcs.io/customers/2/roles/clickthrough",
                 "https://api.dlcs.io/customers/2/roles/clinicalImages",
+            },
+            ["StaffWithRestricted"] = new[]
+            {
+                "https://api.dlcs.io/customers/2/roles/clickthrough",
+                "https://api.dlcs.io/customers/2/roles/clinicalImages",
                 "https://api.dlcs.io/customers/2/roles/restrictedFiles"
             },
             ["SelfRegistered"] = Enumerable.Empty<string>(),
