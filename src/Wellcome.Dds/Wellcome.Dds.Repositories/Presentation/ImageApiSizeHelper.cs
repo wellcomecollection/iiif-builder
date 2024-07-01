@@ -13,6 +13,10 @@ public class ImageApiSizeHelper
 {
     // Will add some `w,` to these
     private static readonly string[] ThumbSizes = [
+        "1338,",
+        "880,",
+        "420,",
+        "282,",
         "!1024,1024", 
         "!400,400",
         "!200,200",
