@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0-bullseye-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS build
 WORKDIR /src
 
 COPY src/Wellcome.Dds/WorkflowProcessor/WorkflowProcessor.csproj WorkflowProcessor/
@@ -27,7 +27,7 @@ WORKDIR "/src/WorkflowProcessor"
 RUN dotnet publish "WorkflowProcessor.csproj" -c Release -o /app/publish
 
 # Runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-bullseye-slim
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim
 
 LABEL maintainer="Donald Gray <donald.gray@digirati.com>,Tom Crane <tom.crane@digirati.com>"
 LABEL org.opencontainers.image.source=https://github.com/wellcomecollection/iiif-builder

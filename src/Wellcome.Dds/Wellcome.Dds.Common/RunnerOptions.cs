@@ -68,6 +68,11 @@ namespace Wellcome.Dds.Common
                    RebuildAllAnnoPageCaches;
         }
 
+        public bool HasWorkDependentOnDlcs()
+        {
+            return RefreshFlatManifestations || RebuildIIIF || RebuildTextCaches || RebuildAllAnnoPageCaches;
+        }
+
         public string ToDisplayString()
         {
             return ToFlags().ToString();
@@ -83,6 +88,12 @@ namespace Wellcome.Dds.Common
                 RebuildTextCaches = true,
                 RebuildAllAnnoPageCaches = true
             };
+        }
+
+        public RunnerOptions WithoutRegisterImages()
+        {
+            var newFlags = ToFlags() & ~RunnerOptionsFlags.RegisterImages;
+            return FromFlags(newFlags);
         }
     }
 

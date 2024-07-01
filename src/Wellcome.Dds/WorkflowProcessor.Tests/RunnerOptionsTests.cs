@@ -76,5 +76,55 @@ namespace WorkflowProcessor.Tests
             fromTest2.RebuildTextCaches.Should().BeFalse();
             fromTest2.RebuildAllAnnoPageCaches.Should().BeTrue();
         }
+        
+        
+        [Fact]
+        public void RunnerOptions_Can_Remove_RegisterImages()
+        {
+            // Arrange
+            var test1 = new RunnerOptions
+            {
+                RebuildIIIF = true,
+                RebuildAllAnnoPageCaches = true
+            };
+            var test2 = new RunnerOptions
+            {
+                RegisterImages = true,
+                RefreshFlatManifestations = true,
+                RebuildAllAnnoPageCaches = true
+            };
+            var test3 = new RunnerOptions
+            {
+                RegisterImages = true,
+                RebuildAllAnnoPageCaches = true,
+                RefreshFlatManifestations = true,
+                RebuildTextCaches = true,
+                RebuildIIIF = true
+            };
+            
+            // Act
+            var act1 = test1.WithoutRegisterImages();
+            var act2 = test2.WithoutRegisterImages();
+            var act3 = test3.WithoutRegisterImages();
+
+            // Assert
+            act1.RegisterImages.Should().BeFalse();
+            act1.RefreshFlatManifestations.Should().BeFalse();
+            act1.RebuildIIIF.Should().BeTrue();
+            act1.RebuildAllAnnoPageCaches.Should().BeTrue();
+            act1.RebuildTextCaches.Should().BeFalse();
+            
+            act2.RegisterImages.Should().BeFalse();
+            act2.RefreshFlatManifestations.Should().BeTrue();
+            act2.RebuildIIIF.Should().BeFalse();
+            act2.RebuildAllAnnoPageCaches.Should().BeTrue();
+            act2.RebuildTextCaches.Should().BeFalse();
+            
+            act3.RegisterImages.Should().BeFalse();
+            act3.RefreshFlatManifestations.Should().BeTrue();
+            act3.RebuildIIIF.Should().BeTrue();
+            act3.RebuildAllAnnoPageCaches.Should().BeTrue();
+            act3.RebuildTextCaches.Should().BeTrue();
+        }
     }
 }

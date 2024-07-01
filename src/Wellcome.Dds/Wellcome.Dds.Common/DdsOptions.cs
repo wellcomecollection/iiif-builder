@@ -81,5 +81,6 @@
         public bool ArchivematicaStrictDirectoryOrder { get; set; } = false;
 
         public int IIIFCollectionAggregationMaxManifests { get; set; } = 100;
+        public bool UseDlcsForThumbSizes { get; set; } = true;
     }
 }

@@ -87,6 +87,8 @@ namespace WorkflowProcessor
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+            services.AddHttpClient<ExternalIIIFReader>();
+            services.AddSingleton<ThumbnailSizeDecorator>();
             services
                 .AddScoped<IMetsRepository, MetsRepository>()
                 .AddScoped<IIngestJobRegistry, CloudServicesIngestRegistry>()

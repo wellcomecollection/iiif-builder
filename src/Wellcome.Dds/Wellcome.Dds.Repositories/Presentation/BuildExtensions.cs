@@ -7,9 +7,7 @@ using IIIF.Presentation.V3.Constants;
 using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
-using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
 using Wellcome.Dds.Common;
 using Image = IIIF.Presentation.V3.Content.Image;
 using Size = IIIF.Size;
@@ -18,7 +16,6 @@ namespace Wellcome.Dds.Repositories.Presentation
 {
     public static class BuildExtensions
     {
-        public static readonly int[] ThumbSizes = { 1024, 400, 200, 100 };
         
         public static List<Size> GetThumbSizes(this string metadataString)
         {
@@ -48,12 +45,17 @@ namespace Wellcome.Dds.Repositories.Presentation
             return null;
         }
 
-        public static string GetAvailableSizeAsString(this IPhysicalFile asset)
+        public static string AsString(this List<Size> sizes)
         {
-            var sizes = asset.GetAvailableSizes();
             return JsonConvert.SerializeObject(sizes.Select(s => new []{s.Width,s.Height}.ToList()));
         }
 
+        /// <summary>
+        /// This is how we compute the expected sizes, now from IIIF Image API Size parameters.
+        /// These values may later be updated with actual generated values from the DLCS
+        /// </summary>
+        /// <param name="asset"></param>
+        /// <returns></returns>
         public static List<Size> GetAvailableSizes(this IPhysicalFile asset)
         {
             var sizes = new List<Size>();
@@ -61,22 +63,18 @@ namespace Wellcome.Dds.Repositories.Presentation
                 asset.AssetMetadata!.GetImageWidth(),
                 asset.AssetMetadata.GetImageHeight());
             sizes.Add(new Size(actualSize.Width, actualSize.Height));
-            var usableThumbs = new List<int>();
+            var usableThumbs = new List<Size>();
             switch (asset.AccessCondition)
             {
                 case AccessCondition.Open:
-                    usableThumbs = ThumbSizes.ToList();
+                    usableThumbs = ImageApiSizeHelper.GetPossibleSizes(actualSize, true);
                     break;
                 case AccessCondition.RequiresRegistration:
                 case AccessCondition.OpenWithAdvisory:
-                    usableThumbs = ThumbSizes.Skip(2).ToList();
+                    usableThumbs = ImageApiSizeHelper.GetPossibleSizes(actualSize, false);
                     break;
             }
-            foreach (int thumbSize in usableThumbs)
-            {
-                var confinedSize = Size.Confine(thumbSize, actualSize);
-                sizes.Add(new Size(confinedSize.Width, confinedSize.Height));
-            }
+            sizes.AddRange(usableThumbs);
             return sizes;
         }
         

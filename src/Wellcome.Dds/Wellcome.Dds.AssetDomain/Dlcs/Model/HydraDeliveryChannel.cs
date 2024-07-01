@@ -12,6 +12,6 @@ public class HydraDeliveryChannel
 
     public override string ToString()
     {
-        return $"{Channel ?? "(no channel)"}|{Policy ?? "(no policy)"}";
+        return $"{Channel ?? "(no channel)"} : {Policy ?? "(no policy)"}";
     }
 }
