@@ -264,7 +264,14 @@
                 </li>
                 <li class="list-group-item">
                     <ul class="list-unstyled">
-                        <li><a href="@Model.WorkPage">Work page</a></li>
+                        @if (Model.WorkPage.HasText())
+                        {
+                            <li><a href="@Model.WorkPage">Work page</a></li>
+                        }
+                        else
+                        {
+                            <li><span style="color:red;">Work page</span> <small>(no catalogue api)</small></li>
+                        }
                         <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
                     </ul>
                 </li>
