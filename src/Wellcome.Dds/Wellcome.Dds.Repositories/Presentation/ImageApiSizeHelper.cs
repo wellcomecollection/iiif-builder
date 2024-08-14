@@ -47,12 +47,19 @@ public class ImageApiSizeHelper
             if (sizeParam.Confined)
             {
                 var requiredSize = new Size(sizeParam.Width!.Value, sizeParam.Height!.Value);
-                sizes.Add(Size.Confine(requiredSize, actualSize));
+                if (requiredSize.IsConfinedWithin(actualSize))
+                {
+                    sizes.Add(Size.Confine(requiredSize, actualSize));
+                }
             }
             else
             {
                 // should only be of the form `w,` if our checks above have succeeded
-                sizes.Add(Size.Resize(actualSize, targetWidth: sizeParam.Width));
+                var resized = Size.Resize(actualSize, targetWidth: sizeParam.Width);
+                if (resized.IsConfinedWithin(actualSize))
+                {
+                    sizes.Add(Size.Resize(actualSize, targetWidth: sizeParam.Width));
+                }
             }
         }
 
