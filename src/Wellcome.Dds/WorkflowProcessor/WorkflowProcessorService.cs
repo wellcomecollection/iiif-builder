@@ -486,9 +486,12 @@ namespace WorkflowProcessor
             
             foreach (var workflowJob in workflowJobsRegisteringImages)
             {
-                if (workflowJob.IngestJobStarted < DateTime.UtcNow.AddDays(-1))
+                // we are only interested in jobs started in the last xx hours 
+                var cutoff = DateTime.UtcNow.AddHours(0 - ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
+                if (workflowJob.IngestJobStarted < cutoff)
                 {
-                    logger.LogDebug("Job {jobId} was started over a day ago, don't let that hold up other Workflow options, clear the flag", workflowJob.Identifier);
+                    logger.LogDebug("Job {jobId} was started over {cutoff} hours ago, don't let that hold up other Workflow options, clear the flag",
+                        workflowJob.Identifier, ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
                     workflowJob.IngestJobStarted = null;
                     continue;
                 }
@@ -497,7 +500,7 @@ namespace WorkflowProcessor
                 
                 var dlcsIngestJobsOfInterest = await dbContext.DlcsIngestJobs.Where(dlcsJob =>
                     dlcsJob.Identifier == workflowJob.Identifier
-                    && dlcsJob.Created > DateTime.UtcNow.AddDays(-1))
+                    && dlcsJob.Created > cutoff)
                     .ToListAsync(cancellationToken);
                 foreach (var dlcsIngestJob in dlcsIngestJobsOfInterest)
                 {

@@ -39,14 +39,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Recent()
         {
             ViewBag.IsErrorList = false;
-            var recent = await workflowCallRepository.GetRecent(100);
+            var recent = await workflowCallRepository.GetRecent(1000);
             return View("WorkflowCallList", recent);
         }
         
         public async Task<ActionResult> Errors()
         {
             ViewBag.IsErrorList = true;
-            var errors = await workflowCallRepository.GetRecentErrors(100);
+            var errors = await workflowCallRepository.GetRecentErrors(500);
             return View("WorkflowCallList", errors);
         }
         
