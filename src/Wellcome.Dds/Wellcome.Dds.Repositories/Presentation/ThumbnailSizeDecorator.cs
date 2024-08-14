@@ -87,23 +87,31 @@ public class ThumbnailSizeDecorator
             //dlcsThumbServices[ddsIdPart] = dlcsThumbService;
             dlcsCanvases[ddsIdPart] = dlcsManifest.Items[i];
 
-            if (dlcsThumbService.Sizes.Count != ddsThumbService.Sizes.Count)
-            {
-                result.Add(new ThumbnailSizeDecoratorResult(i, ddsIdPart)
-                {
-                    Problem = $"Different number of sizes at index {i}",
-                    ComputedSizes = ddsThumbService.Sizes,
-                    GeneratedSizes = dlcsThumbService.Sizes
-                });
-                continue;
-            }
-
-            // now compare the actual sizes - still a success for now if they differ, but we want to log it
+            // Ideally, we would report a problem with the whole manifest here, but we want to be tolerant
+            // of a low error rate, so we won't reject this - we just won't _use_ it.
             var successResult = new ThumbnailSizeDecoratorResult(i, ddsIdPart)
             {
                 Success = true
             };
             result.Add(successResult);
+            
+            
+            if (dlcsThumbService.Sizes.Count != ddsThumbService.Sizes.Count)
+            {
+                successResult.CountsDiffer = true;
+                continue; // i.e., don't see if SizesDiffer
+                
+                // Put this back in when we have a super-reliable engine-thumbs
+                // result.Add(new ThumbnailSizeDecoratorResult(i, ddsIdPart)
+                // {
+                //     Problem = $"Different number of sizes at index {i}",
+                //     ComputedSizes = ddsThumbService.Sizes,
+                //     GeneratedSizes = dlcsThumbService.Sizes
+                // });
+                // continue;
+            }
+
+            // now compare the actual sizes - still a success for now if they differ, but we want to log it
             for (int si = 0; si < ddsThumbService.Sizes.Count; si++)
             {
                 var ddsSize = ddsThumbService.Sizes[si];
@@ -186,6 +194,7 @@ public class ThumbnailSizeDecoratorResult
     // For now we will consider it to be a Success if all assets are matched across the manifests,
     // even if the sizes don't match - we're not trusting our own computation just yet.
     public bool SizesDiffer { get; set; }
+    public bool CountsDiffer { get; set; }
     public int DdsIndex { get; set; }
     public string? Problem { get; set; }
     
