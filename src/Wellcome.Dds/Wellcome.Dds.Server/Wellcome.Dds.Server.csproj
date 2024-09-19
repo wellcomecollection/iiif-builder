@@ -31,7 +31,7 @@
       <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
       <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
       <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta19" />
-      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.9" />
       <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
     </ItemGroup>
