@@ -59,7 +59,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.First().Policy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     
@@ -180,7 +180,7 @@ public class ProcessingBehaviourTests
     }
 
     [Fact]
-    public void Access_MP4_720_Has_None_IOP()
+    public void Access_MP4_720_Has_None_Policy()
     {
         var physicalFile = MakePhysicalFile();
         physicalFile.Files = new List<IStoredFile>
@@ -193,11 +193,11 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.First().Policy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     [Fact]
-    public void Access_MP4_1440_Has_Null_IOP()
+    public void Access_MP4_1440_Has_None_Policy()
     {
         var physicalFile = MakePhysicalFile();
         physicalFile.Files = new List<IStoredFile>
@@ -210,7 +210,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.First().Policy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     // Use this to test resolution-specific transcoding - needs the logic in ProcessingBehaviour to change
