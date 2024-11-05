@@ -57,7 +57,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
             AssetFamily = AssetFamily.TimeBased;
             if (storedFile.MimeType is "audio/mp3" or "audio/x-mpeg-3")
             {
-                DeliveryChannels.Add(Channels.File());
+                DeliveryChannels.Add(Channels.File("none"));
             }
             else
             {
@@ -78,7 +78,7 @@ public class ProcessingBehaviour : IProcessingBehaviour
                 // then it is the access copy and we can use it as-is.
                 if (height <= options.MaxUntranscodedAccessMp4 || options.MakeAllAccessMP4sAvailable)
                 {
-                    DeliveryChannels.Add(Channels.File());
+                    DeliveryChannels.Add(Channels.File("none"));
                 }
 
                 if (options.MaxUntranscodedAccessMp4 > 0 && height > options.MaxUntranscodedAccessMp4)

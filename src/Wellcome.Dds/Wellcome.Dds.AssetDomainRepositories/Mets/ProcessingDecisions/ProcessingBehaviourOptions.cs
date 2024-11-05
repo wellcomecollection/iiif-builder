@@ -17,15 +17,15 @@ public class ProcessingBehaviourOptions
     public Dictionary<string, DeliveryChannel[]> ImageDeliveryChannels { get; set; } = new()
     {
         ["jp2"]  = new[] { Channels.IIIFImage("use-original"), Channels.Thumbs() },  // do not serve JP2s on the file channel, yet
-        ["jpg"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["jpeg"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["tif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["tiff"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["png"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["gif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() },
-        ["bmp"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File() }
+        ["jpg"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["jpeg"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["tif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["tiff"] = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["png"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["gif"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") },
+        ["bmp"]  = new[] { Channels.IIIFImage("default"),      Channels.Thumbs(),    Channels.File("none") }
     };
     
-    public DeliveryChannel[] DefaultImageDeliveryChannels { get; set; } = { Channels.File() };
+    public DeliveryChannel[] DefaultImageDeliveryChannels { get; set; } = { Channels.File("none") };
 
 }
