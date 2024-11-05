@@ -167,7 +167,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        var expected = new HashSet<DeliveryChannel> { Channels.IIIFAv(), Channels.File() };
+        var expected = new HashSet<DeliveryChannel> { Channels.IIIFAv(), Channels.File("none") };
         processing.DeliveryChannels.Should().BeEquivalentTo(expected);
     }
     
