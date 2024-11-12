@@ -25,7 +25,7 @@
       <PackageReference Include="AWSSDK.SecurityToken" Version="3.7.1.167" />
       <PackageReference Include="Community.Microsoft.Extensions.Caching.PostgreSql" Version="3.1.2" />
       <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.2" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="6.0.6" />
       <PackageReference Include="Microsoft.FeatureManagement.AspNetCore" Version="2.5.1" />
       <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
