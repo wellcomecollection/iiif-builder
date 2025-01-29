@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain.Workflow
 {
@@ -55,6 +57,37 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         public override string ToString()
         {
             return $"{Identifier}: {Created}, options: {WorkflowOptions}";
+        }
+
+        public string PrintState()
+        {
+            var sb = new StringBuilder();
+            sb.Append(Identifier);
+            sb.Append(": ");
+            sb.Append("; WorkflowOptions: ");
+            if (WorkflowOptions.HasValue)
+            {
+                sb.Append(RunnerOptions.FromInt32(WorkflowOptions.Value).ToDisplayString());
+            }
+            else
+            {
+                sb.Append("(all)");
+            }
+            sb.Append("; Waiting: ");
+            sb.Append(Waiting);
+            sb.Append("; Finished: ");
+            sb.Append(Finished);
+            sb.Append("; Created: ");
+            sb.Append(Created);
+            sb.Append("; Taken: ");
+            sb.Append(Taken);
+            sb.Append("; FirstDlcsJobId: ");
+            sb.Append(FirstDlcsJobId);
+            sb.Append("; DlcsJobCount: ");
+            sb.Append(DlcsJobCount);
+            sb.Append("; DlcsJobCount: ");
+            sb.Append(DlcsJobCount);
+            return sb.ToString();
         }
     }
 }

@@ -3,6 +3,7 @@ using DotNet.Testcontainers.Containers.Builders;
 using DotNet.Testcontainers.Containers.Configurations.Databases;
 using DotNet.Testcontainers.Containers.Modules.Databases;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Wellcome.Dds.AssetDomainRepositories;
 using Xunit;
 
@@ -34,7 +35,8 @@ namespace Wellcome.Dds.Server.Tests.Integration
             DdsInstrumentationContext = new DdsInstrumentationContext(
                 new DbContextOptionsBuilder<DdsInstrumentationContext>()
                     .UseNpgsql(DdsInstrumentationConnectionString)
-                    .UseSnakeCaseNamingConvention().Options);
+                    .UseSnakeCaseNamingConvention().Options,
+                new NullLogger<DdsInstrumentationContext>());
             DdsInstrumentationContext.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
 

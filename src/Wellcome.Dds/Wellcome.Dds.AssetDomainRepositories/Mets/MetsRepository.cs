@@ -384,7 +384,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
 
         public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(DdsIdentifier identifier)
         {
-            logger.LogInformation($"Get all manifestations in context for {identifier}", identifier);
+            logger.LogInformation("JQ {identifier} - Get all manifestations in context", identifier);
             var rootMets = await GetAsync(identifier);
             int sequenceIndex = 0;
             if (rootMets is IManifestation mets)
@@ -402,6 +402,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         sequenceIndex = await FindSequenceIndex(identifier);
                         break;
                 }
+                logger.LogInformation("JQ {identifier} - rootMets is IManifestation", identifier);
                 yield return new ManifestationInContext(mets, identifier.PackageIdentifier)
                 {
                     SequenceIndex = sequenceIndex,
@@ -423,7 +424,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                             yield return new ManifestationInContext(manifestation, identifier)
                             {
                                 SequenceIndex = sequenceIndex++,
-                                VolumeIdentifier = volume.Identifier!,
+                                VolumeIdentifier = volume.Identifier,
                                 IssueIdentifier = manifestation.Identifier!
                             };
                         }
@@ -431,12 +432,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 }
                 else
                 {
+                    logger.LogInformation("JQ {identifier} - rootMets is ICollection", identifier);
                     foreach (var manifestation in rootCollection.Manifestations!)
                     {
+                        logger.LogInformation("JQ {identifier} - yielding volume {manifestationIdentifier}", identifier, manifestation.Identifier);
                         yield return new ManifestationInContext(manifestation, identifier)
                         {
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = manifestation.Identifier!,
+                            VolumeIdentifier = manifestation.Identifier,
                             IssueIdentifier = null
                         };
                     }

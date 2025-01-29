@@ -130,6 +130,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
+                logger.LogInformation("JQ {identifier} - manifestationInContext has identifier {PackageIdentifier}", identifier, manifestationInContext.PackageIdentifier);
                 if (manifestationInContext.PackageIdentifier.IsNullOrWhiteSpace())
                 {
                     throw new InvalidOperationException("Can't create a job without a package identifier");
@@ -163,7 +164,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
-            logger.LogDebug("Adding a new DlcsIngestJob for {identifier}", job.Identifier);
+            logger.LogInformation("JQ {identifier} - Adding a new DlcsIngestJob, details: {fullState}", job.Identifier, job.PrintState());
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
             try
             {
@@ -174,6 +175,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             catch (DbUpdateException e)
             {
+                logger.LogError("JQ {identifier} - Could not save new DLCS Ingest Job", job.Identifier);
                 throw new DdsInstrumentationDbException("Could not save new DLCS Ingest Jobs: " + e.Message, e);
             }
         }

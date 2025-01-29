@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
@@ -27,8 +28,13 @@ namespace Wellcome.Dds.AssetDomainRepositories
     /// </summary>
     public class DdsInstrumentationContext : DbContext
     {
-        public DdsInstrumentationContext(DbContextOptions<DdsInstrumentationContext> options) : base(options)
-        { }
+        private ILogger<DdsInstrumentationContext> logger;
+        public DdsInstrumentationContext(
+            DbContextOptions<DdsInstrumentationContext> options,
+            ILogger<DdsInstrumentationContext> logger) : base(options)
+        {
+            this.logger = logger;
+        }
 
         // From CloudIngestContext:
         public DbSet<DlcsIngestJob> DlcsIngestJobs => Set<DlcsIngestJob>();
@@ -56,11 +62,17 @@ namespace Wellcome.Dds.AssetDomainRepositories
         public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
+            logger.LogInformation("JQ {ddsId} - PutJob for  with workflowOptions {workflowOptions}", ddsId, workflowOptions);
             WorkflowJob? job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
+                logger.LogInformation("JQ {ddsId} - PutJob for is a NEW entry in the table", ddsId);
                 job = new WorkflowJob {Identifier = ddsId.PackageIdentifier};
                 await WorkflowJobs.AddAsync(job);
+            }
+            else
+            {
+                logger.LogInformation("JQ {ddsId} PutJob found existing job, CURRENT state is {fullState}", ddsId, job.PrintState());
             }
 
             job.Created = DateTime.UtcNow;
@@ -81,7 +93,9 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.ForceTextRebuild = forceRebuild;
             job.FlushCache = flushCache;
             job.Expedite = expedite;
+            // job.IngestJobStarted = null; we were not doing this but does it make a difference?
             await SaveChangesAsync();
+            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId, job.PrintState());
             return job;
         }
 
@@ -96,7 +110,12 @@ namespace Wellcome.Dds.AssetDomainRepositories
                 + " limit 1 "
                 + " for update skip locked "
                 + ") returning identifier;";
-            return Database.MapRawSql(sql, MapString).FirstOrDefault();
+            var identifier = Database.MapRawSql(sql, MapString).FirstOrDefault();
+            if (identifier != null)
+            {
+                logger.LogInformation("JQ {identifier} - MarkFirstJobAsTaken returning", identifier);
+            }
+            return identifier;
         }
 
         private string? MapString(DbDataReader dr)

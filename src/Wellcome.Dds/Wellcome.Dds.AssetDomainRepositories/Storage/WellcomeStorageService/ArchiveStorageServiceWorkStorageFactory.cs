@@ -44,7 +44,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         {
             Task<WellcomeBagAwareArchiveStorageMap?> GetFromSource() => BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
 
-            logger.LogInformation("Getting IWorkStore for {Identifier}", ddsId.PackageIdentifier);
+            logger.LogInformation("JQ {identifier} - Getting IWorkStore for ", ddsId);
             
             WellcomeBagAwareArchiveStorageMap? storageMap =
                 await storageMapCache.GetCachedObject(ddsId.PackageIdentifier, GetFromSource, NeedsRebuilding);
@@ -60,7 +60,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         private async Task<WellcomeBagAwareArchiveStorageMap?> BuildStorageMap(string storageSpace, string packageIdentifier)
         {
-            logger.LogInformation("Requires new build of storage map for {Identifier}", packageIdentifier);
+            logger.LogInformation("JQ {packageIdentifier} - Requires new build of storage map ", packageIdentifier);
             var storageManifest = await storageServiceClient.LoadStorageManifest(storageSpace, packageIdentifier);
             var wellcomeBagAwareArchiveStorageMap = WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, packageIdentifier);
             if (wellcomeBagAwareArchiveStorageMap.VersionSets.IsNullOrEmpty())
@@ -85,11 +85,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             
             if (storageOptions.PreferCachedStorageMap)
             {
+                logger.LogInformation("JQ {identifier} - NeedsRebuilding=false because PreferCachedStorageMap", map.Identifier);
                 return false;
             }
 
             if (storageOptions.MaxAgeStorageMap < 0)
             {
+                logger.LogInformation("JQ {identifier} - NeedsRebuilding=false because MaxAgeStorageMap < 0", map.Identifier);
                 return false;
             }
 
@@ -100,7 +102,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             }
 
             var age = DateTime.UtcNow - map.Built;
-            return age.TotalSeconds > storageOptions.MaxAgeStorageMap;
+            bool rebuild = age.TotalSeconds > storageOptions.MaxAgeStorageMap;
+            logger.LogInformation("JQ {identifier} - NeedsRebuilding = {rebuild} because age = {age}", 
+                map.Identifier, rebuild, age.TotalSeconds);
+            return rebuild;
         }
     }
 }

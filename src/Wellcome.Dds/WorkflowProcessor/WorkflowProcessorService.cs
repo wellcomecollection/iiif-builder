@@ -429,7 +429,7 @@ namespace WorkflowProcessor
                             continue;
                         }
 
-                        logger.LogDebug("Marked job {jobId} as taken", jobId);
+                        logger.LogInformation("JQ {jobId} Marked job as taken", jobId);
                         
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
@@ -441,6 +441,7 @@ namespace WorkflowProcessor
                         }
                         catch (DbUpdateException e)
                         {
+                            logger.LogError("JQ {jobId} Could not save workflow job", jobId);
                             throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
                         }
                         
@@ -490,7 +491,7 @@ namespace WorkflowProcessor
                 var cutoff = DateTime.UtcNow.AddHours(0 - ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
                 if (workflowJob.IngestJobStarted < cutoff)
                 {
-                    logger.LogDebug("Job {jobId} was started over {cutoff} hours ago, don't let that hold up other Workflow options, clear the flag",
+                    logger.LogInformation("JQ {jobId} Job was started over {cutoff} hours ago, don't let that hold up other Workflow options, clear the flag",
                         workflowJob.Identifier, ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
                     workflowJob.IngestJobStarted = null;
                     continue;
@@ -511,7 +512,7 @@ namespace WorkflowProcessor
                         // window where DlcsJobProcessor is building a SyncOperation and registering batches,
                         // OR
                         // There is a manifestation error and the job never got marked succeeded.
-                        logger.LogDebug("DLCS Ingest Job {dlcsIngestJobId} is not yet marked succeeded", dlcsIngestJob.Id);
+                        logger.LogInformation("JQ {identifier} - DLCS Ingest Job {dlcsIngestJobId} is not yet marked succeeded", workflowJob.Identifier, dlcsIngestJob.Id);
                         isRunning = true;
                         break;
                     }
@@ -525,7 +526,7 @@ namespace WorkflowProcessor
                     // and therefore there's nothing to wait for from DLCS.
                     if (dlcsBatches.Count == 0)
                     {
-                        logger.LogDebug("No batches recorded for succeeded DLCS Ingest Job {jobId}", dlcsIngestJob.Id);
+                        logger.LogInformation("JQ {identifier} - No batches recorded for succeeded DLCS Ingest Job {jobId}", workflowJob.Identifier, dlcsIngestJob.Id);
                     }
                     else
                     {
@@ -539,7 +540,7 @@ namespace WorkflowProcessor
                             {
                                 if (dlcsBatch.ErrorText.HasText())
                                 {
-                                    logger.LogInformation("Batch not considered running because it has error text: {errorText}", dlcsBatch.ErrorText);
+                                    logger.LogInformation("JQ {identifier} - Batch not considered running because it has error text: {errorText}", workflowJob.Identifier, dlcsBatch.ErrorText);
                                     break;
                                 }
                                 var (type, batchId) = dlcsBatch.GetBatchResponseTypeAndId();
@@ -548,13 +549,14 @@ namespace WorkflowProcessor
                                     // No response body from DLCS yet. Something may have gone wrong, but it could be
                                     // that the DLCS is currently processing the batch payload. Again this is a very small 
                                     // window but has to be taken into account.
+                                    logger.LogInformation("JQ {identifier} - No response body from DLCS yet", workflowJob.Identifier);
                                     isRunning = true;
                                     break;
                                 }
 
                                 if (type == "Collection")
                                 {
-                                    logger.LogDebug("{batchId} is a Collection, ignoring", batchId);
+                                    logger.LogInformation("JQ {identifier} - {batchId} is a Collection, ignoring", workflowJob.Identifier, batchId);
                                     continue;
                                 }
 
@@ -567,13 +569,14 @@ namespace WorkflowProcessor
                                 if (batch?.Finished != null) continue;
                     
                                 // At least one batch is still running
-                                logger.LogDebug("Batch {batch} for job {job} is still running", batchId, workflowJob.Identifier);
+                                logger.LogInformation("JQ {identifier} - Batch {batch} is still running", workflowJob.Identifier, batchId);
                                 isRunning = true;
                                 break;
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
-                                logger.LogError("Unable to obtain a DLCS batch for {instrumentationBatchRowId}", dlcsBatch.Id);
+                                logger.LogError("JQ {identifier} - Unable to obtain a DLCS batch for {instrumentationBatchRowId}", workflowJob.Identifier, dlcsBatch.Id);
+                                logger.LogError("JQ {identifier}", ex);
                             }
                         }
                     }
@@ -586,7 +589,7 @@ namespace WorkflowProcessor
 
                 if (isRunning) continue;
                 
-                logger.LogDebug("All batches for {job} have finished", workflowJob.Identifier);
+                logger.LogDebug("JQ {identifier} - All batches have finished", workflowJob.Identifier);
                 workflowJob.IngestJobStarted = null;
                 atLeastOneJobChangedState = true;
             }

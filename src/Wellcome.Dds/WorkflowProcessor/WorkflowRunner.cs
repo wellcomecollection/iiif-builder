@@ -73,6 +73,7 @@ namespace WorkflowProcessor
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
+            logger.LogInformation("JQ {ddsId} - ProcessJob. Job is {fullState}", job.Identifier, job.PrintState());
             var ddsIdentifier = new DdsIdentifier(job.Identifier);
             job.Taken = DateTime.UtcNow;
             var jobOptions = runnerOptions;
@@ -93,8 +94,9 @@ namespace WorkflowProcessor
             {
                 if (jobOptions.RegisterImages)
                 {
+                    logger.LogInformation("JQ {ddsId} ProcessJob: need to register images", job.Identifier);
                     var batchResponse = await ingestJobRegistry.RegisterImages(ddsIdentifier);
-                    logger.LogDebug("Created {jobLength} ingest jobs", batchResponse.Length);
+                    logger.LogInformation("JQ {ddsId} - Created {jobLength} ingest jobs", job.Identifier, batchResponse.Length);
                     if (batchResponse.Length > 0)
                     {
                         job.FirstDlcsJobId = batchResponse[0].Id;
@@ -112,7 +114,7 @@ namespace WorkflowProcessor
                                 job.Waiting = true; 
                                 // ...but without the register images option
                                 job.WorkflowOptions = jobOptions.WithoutRegisterImages().ToInt32();
-                                logger.LogInformation("Keeping {JobId} open for dependent options", ddsIdentifier);
+                                logger.LogInformation("JQ {identifier} Keeping job open for dependent options", ddsIdentifier);
                             
                                 // ...or should we create a new job here and finish the old one?
                                 // Maybe we add an OriginalJobOptions field for reporting/visibility
@@ -120,7 +122,7 @@ namespace WorkflowProcessor
                             else
                             {
                                 job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
-                                logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
+                                logger.LogInformation("JQ {identifier} - Processed in {TotalTime} ms", ddsIdentifier, job.TotalTime);
                                 job.Finished = true;
                             }
                             // We can't do any other options if we've just kicked off some ingests
@@ -134,6 +136,7 @@ namespace WorkflowProcessor
                     work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
+                        logger.LogInformation("JQ {identifier} RefreshFlatManifestations", ddsIdentifier);
                         await dds.RefreshManifestations(ddsIdentifier, work);
                     }
                     else
@@ -147,6 +150,7 @@ namespace WorkflowProcessor
                     work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
                     if (work != null)
                     {
+                        logger.LogInformation("JQ {identifier} RebuildIIIF", ddsIdentifier);
                         await RebuildIIIF(job, work);
                     }
                     else
@@ -160,6 +164,7 @@ namespace WorkflowProcessor
                     // This criterion could change but for now it's the simplest test; we only have ALTO for b numbers.
                     if (ddsIdentifier.HasBNumber)
                     {
+                        logger.LogInformation("JQ {identifier} RebuildAltoDerivedAssets", ddsIdentifier);
                         await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
                     }
                 }
@@ -183,7 +188,7 @@ namespace WorkflowProcessor
                 }
                 job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
                 job.Finished = true;
-                logger.LogInformation("Processed {JobId} in {TotalTime}ms", ddsIdentifier, job.TotalTime);
+                logger.LogInformation("JQ {JobId} Processed in {TotalTime} ms", ddsIdentifier, job.TotalTime);
             }
             catch (Exception ex)
             {
@@ -206,12 +211,12 @@ namespace WorkflowProcessor
         {
             IManifestation manifestation = null;
             // Just look at the first one for now
-            logger.LogInformation("Setting job error message for {identifier}", job.Identifier);
+            logger.LogInformation("JQ {identifier} - Setting job error message", job.Identifier);
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
-                    logger.LogInformation("Error manifestation is partial, getting full for {identifier}", manifestationInContext.Manifestation.Identifier);
+                    logger.LogInformation("JQ {identifier} - Error manifestation is partial, getting full", manifestationInContext.Manifestation.Identifier);
                     manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Identifier);
                 }
                 else
