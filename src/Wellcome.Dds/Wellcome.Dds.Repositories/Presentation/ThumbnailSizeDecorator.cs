@@ -25,6 +25,7 @@ public class ThumbnailSizeDecorator
     public async Task<List<ThumbnailSizeDecoratorResult>> UpdateManifestSizesFromExternal(Manifest ddsManifest,
         string manifestationIdentifier, ILogger<IIIFBuilder> logger)
     {
+        logger.LogInformation("UpdateManifestSizesFromExternal, ddsManifest.Items.Count is {count}", ddsManifest.Items!.Count);
         var result = new List<ThumbnailSizeDecoratorResult>();
         
         // Only ImageService2 for now
@@ -40,6 +41,7 @@ public class ThumbnailSizeDecorator
         }
         catch (Exception e)
         {
+            logger.LogError(e, "Unable to retrieve Manifest from DLCS");
             result.Add(new ThumbnailSizeDecoratorResult(-1, manifestationIdentifier)
             {
                 Problem = $"Unable to retrieve Manifest from DLCS: {e.Message}"
@@ -57,8 +59,8 @@ public class ThumbnailSizeDecorator
 
             var ddsIdPart = ddsThumbService.Id!.Split('/')[^1];
             
-            
             //ddsThumbServices[ddsIdPart] = ddsThumbService;
+            logger.LogDebug("Using canvas key {ddsIdPart}", ddsIdPart);
             ddsCanvases[ddsIdPart] = ddsManifest.Items[i];
             
             var dlcsThumbService = dlcsManifest.Items![i].Thumbnail?[0].Service?.SingleOrDefault(svc => svc is ImageService2) as ImageService2;
@@ -189,7 +191,14 @@ public class ThumbnailSizeDecorator
         if (ddsManifest.Thumbnail[0].Service?[0] is not ImageService2 manifestThumbService) return result;
         
         var manifestThumbnailIdPart = manifestThumbService.Id!.Split('/')[^1];
-        ddsManifest.Thumbnail = ddsCanvases[manifestThumbnailIdPart].Thumbnail;
+        if (ddsCanvases.TryGetValue(manifestThumbnailIdPart, out var canvas))
+        {
+            ddsManifest.Thumbnail = canvas.Thumbnail;
+        }
+        else
+        {
+            logger.LogInformation("Could not find {manifestThumbnailIdPart} in ddsCanvases", manifestThumbnailIdPart);
+        }
 
         return result;
     }

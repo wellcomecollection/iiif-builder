@@ -434,9 +434,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 // As it's calling the DLCS with httpClient, we're suddenly introducing an async operation
                 // into our previously synchronous IIIF Building.
+                logger.LogInformation("About to call UpdateManifestSizesFromExternal");
                 var task = Task.Run(async () => await thumbnailSizeDecorator.UpdateManifestSizesFromExternal(manifest, metsManifestation.Identifier, logger));
                 var result = task.Result;
-
+                logger.LogInformation("After calling UpdateManifestSizesFromExternal");
                 
                 if (result.Any(r => r.Success == false))
                 {
