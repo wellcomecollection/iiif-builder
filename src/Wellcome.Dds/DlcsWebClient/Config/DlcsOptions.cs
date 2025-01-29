@@ -24,7 +24,7 @@
         /// <summary>
         /// Whether to call the DLCS using old Deliverator AssetFamily, or protagonist delivery channels
         /// </summary>
-        public bool SupportsDeliveryChannels { get; set; } = false;
+        public bool SupportsDeliveryChannels { get; set; } = true;
         
         public string? PortalPageTemplate { get; set; }
         public string? PortalBatchTemplate { get; set; }

@@ -1,4 +1,4 @@
 ﻿boto3==1.16.62
 Flask==2.2.5
 reportlab==3.6.13
-uwsgi==2.0.19.1
+uwsgi==2.0.22
