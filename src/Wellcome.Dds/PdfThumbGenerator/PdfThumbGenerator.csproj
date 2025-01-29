@@ -24,7 +24,7 @@
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
       <PackageReference Include="ShellProgressBar" Version="5.2.0" />
-      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
+      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.9" />
       <PackageReference Include="System.CommandLine.DragonFruit" Version="0.3.0-alpha.20303.1" />
     </ItemGroup>
 
