@@ -263,6 +263,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             try
             {
+                q = q.Split(' ')[0];
                 DdsIdentifier ddsId = new DdsIdentifier(q);
                 if (ddsId.IdentifierType == IdentifierType.Volume || ddsId.IdentifierType == IdentifierType.Issue)
                 {
@@ -270,6 +271,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
                 // for now, just try to turn it into a b number and redirect
                 var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
+
+                if (bnumber == null)
+                {
+                    return RedirectToAction("Manifestation", new { id = ddsId.PackageIdentifierPathElementSafe });
+                    
+                }
                 return RedirectToAction("Manifestation", new { id = bnumber });
             }
             catch (Exception)
