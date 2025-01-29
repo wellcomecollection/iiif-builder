@@ -8,6 +8,7 @@ using IIIF.ImageApi.V2;
 using IIIF.Presentation.V3;
 using IIIF.Presentation.V3.Annotation;
 using IIIF.Presentation.V3.Content;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
 namespace Wellcome.Dds.Repositories.Presentation;
@@ -21,9 +22,8 @@ public class ThumbnailSizeDecorator
         this.externalIIIFReader = externalIIIFReader;
     }
 
-    public async Task<List<ThumbnailSizeDecoratorResult>> UpdateManifestSizesFromExternal(
-        Manifest ddsManifest,
-        string manifestationIdentifier)
+    public async Task<List<ThumbnailSizeDecoratorResult>> UpdateManifestSizesFromExternal(Manifest ddsManifest,
+        string manifestationIdentifier, ILogger<IIIFBuilder> logger)
     {
         var result = new List<ThumbnailSizeDecoratorResult>();
         
@@ -135,6 +135,22 @@ public class ThumbnailSizeDecorator
         // Only now will we swap in the DLCS sizes in the manifest instead of the computed sizes
         foreach (var serviceResult in result.Where(r => r.SizesDiffer))
         {
+            bool canvasesMissing = true;
+            if (!ddsCanvases.ContainsKey(serviceResult.AssetIdPart))
+            {
+                logger.LogError("ddsCanvases does not contain key {assetIdPart}.", serviceResult.AssetIdPart);
+                canvasesMissing = false;
+            }
+            if (!dlcsCanvases.ContainsKey(serviceResult.AssetIdPart))
+            {
+                logger.LogError("dlcsCanvases does not contain key {assetIdPart}.", serviceResult.AssetIdPart);
+                canvasesMissing = false;
+            }
+
+            if (canvasesMissing)
+            {
+                throw new InvalidOperationException("Missing canvas: " + serviceResult.AssetIdPart);
+            }
             var ddsCanvas = ddsCanvases[serviceResult.AssetIdPart];
             var dlcsCanvas = dlcsCanvases[serviceResult.AssetIdPart];
             var ddsThumbService = ddsCanvas.Thumbnail?[0].Service?[0] as ImageService2;
