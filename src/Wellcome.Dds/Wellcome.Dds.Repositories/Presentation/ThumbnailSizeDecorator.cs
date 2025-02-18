@@ -137,16 +137,16 @@ public class ThumbnailSizeDecorator
         // Only now will we swap in the DLCS sizes in the manifest instead of the computed sizes
         foreach (var serviceResult in result.Where(r => r.SizesDiffer))
         {
-            bool canvasesMissing = true;
+            bool canvasesMissing = false;
             if (!ddsCanvases.ContainsKey(serviceResult.AssetIdPart))
             {
                 logger.LogError("ddsCanvases does not contain key {assetIdPart}.", serviceResult.AssetIdPart);
-                canvasesMissing = false;
+                canvasesMissing = true;
             }
             if (!dlcsCanvases.ContainsKey(serviceResult.AssetIdPart))
             {
                 logger.LogError("dlcsCanvases does not contain key {assetIdPart}.", serviceResult.AssetIdPart);
-                canvasesMissing = false;
+                canvasesMissing = true;
             }
 
             if (canvasesMissing)

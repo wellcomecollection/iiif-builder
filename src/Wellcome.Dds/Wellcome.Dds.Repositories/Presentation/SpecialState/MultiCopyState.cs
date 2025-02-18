@@ -43,13 +43,27 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
             var copies = state.MultiCopyState!.CopyAndVolumes.Values
                 .Select(cv => cv.CopyNumber)
                 .Distinct().ToList(); // leave in the order we find them
+            
+            // see JIRA WSUPP-4
+            var atLeastOneCopyHasMultipleVolumes = false;
+            foreach (var copy in copies)
+            {
+                var volumeCountForCopy = state.MultiCopyState.CopyAndVolumes.Values
+                    .Count(cv => cv.CopyNumber == copy);
+                if (volumeCountForCopy > 1)
+                {
+                    atLeastOneCopyHasMultipleVolumes = true;
+                    break;
+                }
+            }
+            
             foreach (int copy in copies)
             {
                 var volumesForCopy = state.MultiCopyState.CopyAndVolumes.Values
                     .Where(cv => cv.CopyNumber == copy)
                     .Select(cv => cv.VolumeNumber)
                     .ToList();
-                if (volumesForCopy.Count > 1)
+                if (volumesForCopy.Count > 1 || atLeastOneCopyHasMultipleVolumes)
                 {
                     // This volume is a collection child of the root;
                     // create the copy collection then add its volumes
