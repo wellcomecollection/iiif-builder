@@ -392,6 +392,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                         order = counter;
                     }
 
+                    int? volumeOrder = order.Value;
+                    int? modsVol = metsManifestation.SectionMetadata?.VolumeNumber;
+                    if (modsVol.HasValue && modsVol > 0)
+                    {
+                        volumeOrder = modsVol.Value;
+                    }
                     collection.Items.Add(new Manifest
                     {
                         Id = uriPatterns.Manifest(metsManifestation.Identifier!),
@@ -400,7 +406,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             ["en"] = new()
                             {
                                 work.Title!,
-                                $"Volume {order}"
+                                $"Volume {volumeOrder}"
                             }
                         },
                         Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!)
