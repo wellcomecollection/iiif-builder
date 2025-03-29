@@ -513,6 +513,12 @@ namespace Wellcome.Dds.Server.Controllers
 
             return collection;
         }
+
+        ObjectResult DynamicCollectionProblem()
+        {
+            return Problem("Dynamic collections are disabled because of too many requests", 
+                null, 503, "Temporarily unavailable", null);
+        }
         
         /// <summary>
         /// An aggregation - subjects, contributors etc
@@ -522,6 +528,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/{aggregator}")]
         public IActionResult Aggregation(string aggregator)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             logger.LogDebug("Building V3 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
@@ -552,6 +562,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/chunked/{aggregator}/{chunk}")]        
         public IActionResult ChunkedAggregation(string aggregator, char chunk)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             logger.LogDebug("Building CHUNKED V3 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new Collection
@@ -586,6 +600,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}")]
         public IActionResult AggregationV2(string aggregator)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             logger.LogDebug("Building V2 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
@@ -615,6 +633,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/chunked/{aggregator}/{chunk}")]        
         public IActionResult ChunkedAggregationV2(string aggregator, char chunk)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             logger.LogDebug("Building CHUNKED V2 aggregation for {aggregator}", aggregator);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             var coll = new IIIF.Presentation.V2.Collection
@@ -649,6 +671,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValue(string aggregator, string value)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             logger.LogDebug("Building V3 ManifestsByAggregationValue for {aggregator}/{value}", aggregator, value);
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             int total = ddsContext.GetAggregationCount(apiType, value);
@@ -722,6 +748,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v3/collections/{aggregator}/{value}/paged/{range}")]
         public IActionResult ManifestsByAggregationValuePage(string aggregator, string value, string range)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             int skip = 0;
             int take = ddsOptions.IIIFCollectionAggregationMaxManifests;
 
@@ -764,6 +794,10 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("v2/collections/{aggregator}/{value}")]
         public IActionResult ManifestsByAggregationValueV2(string aggregator, string value)
         {
+            if (!ddsOptions.DynamicCollectionsEnabled)
+            {
+                return DynamicCollectionProblem();    
+            }
             // NB - we haven't added the extra intermediate page for collections over 100 manifests to the V2
             // It's only in the V3. if we see people crawling the V2 and causing memory issues, that behaviour can
             // be reproduced here.

@@ -88,5 +88,8 @@
         /// before we make the IIIF Manifest anyway?
         /// </summary>
         public int MaximumWaitTimeForDlcsBatchesHours { get; set; } = 48;
+
+        // Whether to return IIIF Collections from DB queries
+        public bool DynamicCollectionsEnabled { get; set; } = true;
     }
 }
