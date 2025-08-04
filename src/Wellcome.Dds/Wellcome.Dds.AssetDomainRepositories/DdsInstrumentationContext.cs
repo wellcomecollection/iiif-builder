@@ -96,7 +96,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.Expedite = expedite;
             // job.IngestJobStarted = null; we were not doing this but does it make a difference?
             await SaveChangesAsync();
-            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId.LogSafe(), job.PrintState());
+            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId.LogSafe(), job.PrintState().LogSafe());
             return job;
         }
 
