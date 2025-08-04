@@ -10,6 +10,7 @@ using IIIF.Presentation.V3;
 using IIIF.Serialisation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Utils;
 
 namespace Wellcome.Dds.Repositories;
 
@@ -38,7 +39,7 @@ public class ExternalIIIFReader
 
         namedQueryManifestUri += "?ts=" + DateTime.Now.Ticks;
 
-        logger.LogDebug("Asking DLCS for NQ Manifest {namedQueryManifestUri}", namedQueryManifestUri);
+        logger.LogDebug("Asking DLCS for NQ Manifest {namedQueryManifestUri}", namedQueryManifestUri.LogSafe());
         var manifestStream = await httpClient.GetStreamAsync(namedQueryManifestUri);
         return manifestStream.FromJsonStream<Manifest>();
     }
