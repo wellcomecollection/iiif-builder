@@ -654,5 +654,24 @@ namespace Utils
 
             return true;
         }
+
+        /// <summary>
+        /// Avoid build warnings about unsanitised user input ending up in logs.
+        /// https://codeql.github.com/codeql-query-help/csharp/cs-log-forging/
+        /// "If the log entries are plain text then line breaks should be removed from user input, using String.Replace or similar." 
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string LogSafe(this string s)
+        {
+            // can maybe add more mutations to this extension method if necessary
+            return s.Replace(Environment.NewLine, "");
+        }
+        
+        
+        public static string LogSafe(this object o)
+        {
+            return o.ToString()?.LogSafe() ?? "";
+        }
     }
 }

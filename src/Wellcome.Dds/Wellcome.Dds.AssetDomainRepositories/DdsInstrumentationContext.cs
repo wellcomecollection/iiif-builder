@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Utils;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
@@ -95,7 +96,7 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.Expedite = expedite;
             // job.IngestJobStarted = null; we were not doing this but does it make a difference?
             await SaveChangesAsync();
-            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId, job.PrintState());
+            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId.LogSafe(), job.PrintState());
             return job;
         }
 
