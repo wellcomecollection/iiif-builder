@@ -130,7 +130,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         {
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {
-                logger.LogInformation("JQ {identifier} - manifestationInContext has identifier {PackageIdentifier}", identifier.LogSafe(), manifestationInContext.PackageIdentifier);
+                logger.LogInformation("JQ {identifier} - manifestationInContext has identifier {PackageIdentifier}", 
+                    identifier.LogSafe(), manifestationInContext.PackageIdentifier.LogSafe());
                 if (manifestationInContext.PackageIdentifier.IsNullOrWhiteSpace())
                 {
                     throw new InvalidOperationException("Can't create a job without a package identifier");
@@ -164,7 +165,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             ddsInstrumentationContext.DlcsIngestJobs.RemoveRange(existingQuery);
             // now add the new one
-            logger.LogInformation("JQ {identifier} - Adding a new DlcsIngestJob, details: {fullState}", job.Identifier.LogSafe(), job.PrintState());
+            logger.LogInformation("JQ {identifier} - Adding a new DlcsIngestJob, details: {fullState}", 
+                job.Identifier.LogSafe(), job.PrintState().LogSafe());
             ddsInstrumentationContext.DlcsIngestJobs.Add(job);
             try
             {
