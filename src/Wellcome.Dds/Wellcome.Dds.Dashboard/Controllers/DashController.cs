@@ -269,15 +269,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 {
                     return RedirectToAction("Manifestation", new { id = ddsId.ToString() });
                 }
-                // for now, just try to turn it into a b number and redirect
-                var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
 
-                if (bnumber == null)
+                if (ddsId.HasBNumber)
+                {
+                    var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
+                    return RedirectToAction("Manifestation", new { id = bnumber });
+                }
+                else
                 {
                     return RedirectToAction("Manifestation", new { id = ddsId.PackageIdentifierPathElementSafe });
-                    
                 }
-                return RedirectToAction("Manifestation", new { id = bnumber });
             }
             catch (Exception)
             {

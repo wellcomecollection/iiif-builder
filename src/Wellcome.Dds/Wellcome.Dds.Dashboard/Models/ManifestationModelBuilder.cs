@@ -170,15 +170,22 @@ namespace Wellcome.Dds.Dashboard.Models
                             // Move this to the repository
                             if (dbBatch.ResponseBody.HasText())
                             {
-                                var reportedBatch = JsonConvert.DeserializeObject<Batch>(dbBatch.ResponseBody);
-                                var activeBatch = model.BatchesForImages.SingleOrDefault(b => b.Id == reportedBatch.Id);
-                                if (activeBatch != null)
+                                Batch reportedDbBatch;
+                                try
                                 {
-                                    if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id]
-                                        .Exists(b => b.Id == activeBatch.Id))
-                                    {
-                                        model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Add(activeBatch);
-                                    }
+                                    reportedDbBatch = JsonConvert.DeserializeObject<Batch>(dbBatch.ResponseBody);
+                                }
+                                catch
+                                {
+                                    logger.LogWarning("Batch response in Instrumentation DB is not a JSON Batch: body is {responseBody}", dbBatch.ResponseBody);
+                                    continue;
+                                }
+                                var activeBatch = model.BatchesForImages.SingleOrDefault(b => b.Id == reportedDbBatch.Id);
+                                if (activeBatch == null) continue;
+                                
+                                if (!model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Exists(b => b.Id == activeBatch.Id))
+                                {
+                                    model.DbJobIdsToActiveBatches[dlcsIngestJob.Id].Add(activeBatch);
                                 }
                             }
                         }
