@@ -36,8 +36,10 @@
             {
                 {
                     var dispId = fm.ManifestationIdentifier ?? fm.PackageIdentifier;
+                    var ddsId = new DdsIdentifier(dispId);
+                    var pathId = ddsId.HasBNumber ? dispId : ddsId.PackageIdentifierPathElementSafe;
                     <tr>
-                        <td>@Html.ActionLink(dispId, "Manifestation", "Dash", new { id = dispId }, new { })</td>
+                        <td>@Html.ActionLink(dispId, "Manifestation", "Dash", new { id = pathId }, new { })</td>
                         <td width="165">@fm.Processed</td>
                         <td>@fm.Label
                         @if (Model.Type == "application/pdf")

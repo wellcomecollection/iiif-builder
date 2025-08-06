@@ -7,7 +7,7 @@ public class DeliveredFile
 {
     public string? PublicUrl { get; set; }
     public string? DlcsUrl { get; set; }
-    public string? DeliveryChannel { get; set; }
+    public string? DeliveryChannel { get; set; } // always single, represents an OUTPUT
     
     public string? MediaType { get; set; }
     public int? Width { get; set; }

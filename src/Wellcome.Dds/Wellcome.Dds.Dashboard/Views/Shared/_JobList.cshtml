@@ -44,11 +44,12 @@
                 <tr class="@Model.GetCssClassForJobRow(job, isDetail)">
                     <td>@Html.Raw(Model.GetIconForJobRow(job))</td>
                     <td colspan="@(isDetail ? "5" : "7")">
-                        <div class="progress">
-                            <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
-                                <span class="sr-only">60% Complete</span>
-                            </div>
-                        </div>
+                        This job is not marked as finished, and Succeeded=@job.Succeeded
+                        @if (job.DlcsBatches != null)
+                        {
+                            <br/>
+                            <text>It has @job.DlcsBatches.Count batches recorded.</text>
+                        }
                     </td>
                 </tr>
             }

@@ -263,11 +263,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             try
             {
+                q = q.Split(' ')[0];
                 DdsIdentifier ddsId = new DdsIdentifier(q);
                 if (ddsId.IdentifierType == IdentifierType.Volume || ddsId.IdentifierType == IdentifierType.Issue)
                 {
                     return RedirectToAction("Manifestation", new { id = ddsId.ToString() });
                 }
+
                 if (ddsId.HasBNumber)
                 {
                     var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);

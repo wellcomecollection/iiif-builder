@@ -81,5 +81,15 @@
         public bool ArchivematicaStrictDirectoryOrder { get; set; } = false;
 
         public int IIIFCollectionAggregationMaxManifests { get; set; } = 100;
+        public bool UseDlcsForThumbSizes { get; set; } = true;
+        
+        /// <summary>
+        /// In the two step workflow, how long before we give up waiting for DLCS to finish batches
+        /// before we make the IIIF Manifest anyway?
+        /// </summary>
+        public int MaximumWaitTimeForDlcsBatchesHours { get; set; } = 48;
+
+        // Whether to return IIIF Collections from DB queries
+        public bool DynamicCollectionsEnabled { get; set; } = true;
     }
 }

@@ -15,7 +15,9 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Aws.SQS;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories;
 using Wellcome.Dds.Catalogue;
@@ -32,6 +34,7 @@ namespace WorkflowProcessor
         private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly DdsOptions ddsOptions;
         private readonly IAmazonSQS sqsClient;
+        private readonly IDlcs dlcs;
         private readonly string[] knownPopulationOperations = {"--populate-file", "--populate-slice"};
         private readonly string[] workflowOptionsParam = {"--workflow-options"};
         private readonly string FinishAllJobsParam = "--finish-all";
@@ -93,12 +96,14 @@ namespace WorkflowProcessor
             ILogger<WorkflowProcessorService> logger,
             IServiceScopeFactory serviceScopeFactory,
             IOptions<DdsOptions> options,
-            IAmazonSQS sqsClient)
+            IAmazonSQS sqsClient,
+            IDlcs dlcs)
         {
             this.logger = logger;
             this.serviceScopeFactory = serviceScopeFactory;
             this.ddsOptions = options.Value;
             this.sqsClient = sqsClient;
+            this.dlcs = dlcs;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
@@ -413,23 +418,30 @@ namespace WorkflowProcessor
                             waitMs = GetWaitMs(waitMs);
                             if (waitMs > 30000)
                             {
-                                // idle more than 30s, see if we can make more jobs form queues
+                                // idle more than 30s, see if we can make more jobs from queues
+                                bool jobChangedState = await UpdateIngestJobs(dbContext, cancellationToken);
+                                if (jobChangedState)
+                                {
+                                    waitMs = 2;
+                                }
                                 await PollQueues(queues, dbContext, cancellationToken);
                             }
                             continue;
                         }
 
+                        logger.LogInformation("JQ {jobId} Marked job as taken", jobId);
+                        
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
                         var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
                         await runner.ProcessJob(job, cancellationToken);
-                        job!.Finished = true;
                         try
                         {
                             await dbContext.SaveChangesAsync(cancellationToken);
                         }
                         catch (DbUpdateException e)
                         {
+                            logger.LogError("JQ {jobId} Could not save workflow job", jobId);
                             throw new DdsInstrumentationDbException("Could not save workflow job: " + e.Message, e);
                         }
                         
@@ -437,6 +449,7 @@ namespace WorkflowProcessor
                         if (iterationsSinceQueuesPolled > 50)
                         {
                             // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
+                            await UpdateIngestJobs(dbContext, cancellationToken);
                             await PollQueues(queues, dbContext, cancellationToken);
                             iterationsSinceQueuesPolled = 0;
                         }
@@ -449,6 +462,140 @@ namespace WorkflowProcessor
             }
 
             logger.LogInformation("Cancellation requested in WorkflowProcessor, shutting down.");
+        }
+
+        private async Task<bool> UpdateIngestJobs(DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        {
+            if (!ddsOptions.UseDlcsForThumbSizes)
+            {
+                return false;
+            }
+            
+            
+            var rnd = new Random();
+            var numberToTake = rnd.Next(1, 9) * rnd.Next(1, 9) * rnd.Next(1, 9);
+            logger.LogInformation("Going to ask for {numberToTake} workflow jobs registering images", numberToTake);
+            var workflowJobsRegisteringImages = await dbContext.GetJobsRegisteringImages(numberToTake, cancellationToken);
+            if (rnd.Next(0, 2) == 1)
+            {
+                logger.LogInformation("Processing workflowJobsRegisteringImages in reverse order");
+                workflowJobsRegisteringImages.Reverse();
+            }
+            bool atLeastOneJobChangedState = false;
+            // This means that WorkflowRunner has kicked off a DLCS import job
+            logger.LogDebug("Received {jobsRegisteringImagesCount} jobs marked as IngestJobStarted", workflowJobsRegisteringImages.Count);
+            
+            foreach (var workflowJob in workflowJobsRegisteringImages)
+            {
+                // we are only interested in jobs started in the last xx hours 
+                var cutoff = DateTime.UtcNow.AddHours(0 - ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
+                if (workflowJob.IngestJobStarted < cutoff)
+                {
+                    logger.LogInformation("JQ {jobId} Job was started over {cutoff} hours ago, don't let that hold up other Workflow options, clear the flag",
+                        workflowJob.Identifier, ddsOptions.MaximumWaitTimeForDlcsBatchesHours);
+                    workflowJob.IngestJobStarted = null;
+                    continue;
+                }
+
+                bool isRunning = false;
+                
+                var dlcsIngestJobsOfInterest = await dbContext.DlcsIngestJobs.Where(dlcsJob =>
+                    dlcsJob.Identifier == workflowJob.Identifier
+                    && dlcsJob.Created > cutoff)
+                    .ToListAsync(cancellationToken);
+                foreach (var dlcsIngestJob in dlcsIngestJobsOfInterest)
+                {
+                    // There will be multiple dlcsIngestJob for multiple manifestations
+                    if (!dlcsIngestJob.Succeeded)
+                    {
+                        // It's either not been picked up yet by DlcsJobProcessor, or is in the (very short)
+                        // window where DlcsJobProcessor is building a SyncOperation and registering batches,
+                        // OR
+                        // There is a manifestation error and the job never got marked succeeded.
+                        logger.LogInformation("JQ {identifier} - DLCS Ingest Job {dlcsIngestJobId} is not yet marked succeeded", workflowJob.Identifier, dlcsIngestJob.Id);
+                        isRunning = true;
+                        break;
+                    }
+
+                    var dlcsBatches = await dbContext.DlcsBatches
+                        .Where(batch => batch.DlcsIngestJobId == dlcsIngestJob.Id)
+                        .OrderBy(batch => batch.RequestSent)
+                        .ToListAsync(cancellationToken);
+                    
+                    // There are no batches, but the job is mark succeeded. We can be sure that no batches were sent,
+                    // and therefore there's nothing to wait for from DLCS.
+                    if (dlcsBatches.Count == 0)
+                    {
+                        logger.LogInformation("JQ {identifier} - No batches recorded for succeeded DLCS Ingest Job {jobId}", workflowJob.Identifier, dlcsIngestJob.Id);
+                    }
+                    else
+                    {
+                        // There are batches. But we can't tell from here what status they have. We need to ask DLCS.
+                        // What's the quickest way to see if anything from the job is running?
+                        // This is not the same logic as the dashboard, we're only really interested in recently created
+                        // batches and their states (as reinforced by the cutoff above)
+                        foreach (var dlcsBatch in dlcsBatches)
+                        {
+                            try
+                            {
+                                if (dlcsBatch.ErrorText.HasText())
+                                {
+                                    logger.LogInformation("JQ {identifier} - Batch not considered running because it has error text: {errorText}", workflowJob.Identifier, dlcsBatch.ErrorText);
+                                    break;
+                                }
+                                var (type, batchId) = dlcsBatch.GetBatchResponseTypeAndId();
+                                if (string.IsNullOrWhiteSpace(batchId))
+                                {
+                                    // No response body from DLCS yet. Something may have gone wrong, but it could be
+                                    // that the DLCS is currently processing the batch payload. Again this is a very small 
+                                    // window but has to be taken into account.
+                                    logger.LogInformation("JQ {identifier} - No response body from DLCS yet", workflowJob.Identifier);
+                                    isRunning = true;
+                                    break;
+                                }
+
+                                if (type == "Collection")
+                                {
+                                    logger.LogInformation("JQ {identifier} - {batchId} is a Collection, ignoring", workflowJob.Identifier, batchId);
+                                    continue;
+                                }
+
+                                // We do have a response body recorded, but that will be the initial batch state.
+                                // We need to see what the state of the batch is _now_.
+                                var traceIdentifier = $"{workflowJob.Identifier}/{dlcsIngestJob.Identifier}/{batchId.Split('/')[^1]}";
+                                var dlcsCallContext = new DlcsCallContext("WorkflowProcessorService::UpdateIngestJobs", traceIdentifier);
+                                var batchOp = await dlcs.GetBatch(batchId, dlcsCallContext);
+                                var batch = batchOp.ResponseObject;
+                                if (batch?.Finished != null) continue;
+                    
+                                // At least one batch is still running
+                                logger.LogInformation("JQ {identifier} - Batch {batch} is still running", workflowJob.Identifier, batchId);
+                                isRunning = true;
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError("JQ {identifier} - Unable to obtain a DLCS batch for {instrumentationBatchRowId}", workflowJob.Identifier, dlcsBatch.Id);
+                                logger.LogError("JQ {identifier}", ex);
+                            }
+                        }
+                    }
+                    
+                    if (isRunning)
+                    {
+                        break;
+                    }
+                }
+
+                if (isRunning) continue;
+                
+                logger.LogDebug("JQ {identifier} - All batches have finished", workflowJob.Identifier);
+                workflowJob.IngestJobStarted = null;
+                atLeastOneJobChangedState = true;
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return atLeastOneJobChangedState;
         }
 
         private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
@@ -533,8 +680,6 @@ namespace WorkflowProcessor
                 
                 var runner = GetWorkflowRunner(scope);
                 await runner.ProcessJob(workflowJob, stoppingToken);
-                
-                workflowJob.Finished = true;
                 try
                 {
                     await dbContext.SaveChangesAsync(stoppingToken);

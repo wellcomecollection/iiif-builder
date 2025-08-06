@@ -53,7 +53,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // using here as the queries in sut are very simple so behaviour won't differ across db providers
             ddsInstrumentationContext = new DdsInstrumentationContext(
                 new DbContextOptionsBuilder<DdsInstrumentationContext>()
-                    .UseInMemoryDatabase(nameof(DashboardRepositoryTests)).Options);
+                    .UseInMemoryDatabase(nameof(DashboardRepositoryTests)).Options,
+                new NullLogger<DdsInstrumentationContext>());
 
             var ddsOptions = new DdsOptions
             {

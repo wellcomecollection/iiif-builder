@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using FakeItEasy;
 using FluentAssertions;
+using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 using Wellcome.Dds.AssetDomainRepositories.Mets.ProcessingDecisions;
@@ -31,8 +33,9 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().HaveCount(2);
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.IIIFImage || s == Channels.File);
+        processing.DeliveryChannels.Should().HaveCount(3);
+        processing.DeliveryChannels.Should().OnlyContain(s => 
+            s.Channel == ChannelNames.IIIFImage | s.Channel == ChannelNames.File || s.Channel == ChannelNames.Thumbs);
     }
     
     
@@ -44,7 +47,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.File);
+        processing.DeliveryChannels.Should().OnlyContain(s => s.Channel == ChannelNames.File);
     }
     
     
@@ -56,7 +59,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().Be("none");
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     
@@ -68,7 +71,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.IIIFAv);
+        processing.DeliveryChannels.Should().OnlyContain(s => s.Channel == ChannelNames.IIIFAv);
     }    
     
     [Fact]
@@ -79,7 +82,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().BeNull();
     }
     
     [Fact]
@@ -90,7 +93,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.IIIFAv);
+        processing.DeliveryChannels.Should().OnlyContain(s => s.Channel == ChannelNames.IIIFAv);
     }    
         
     [Fact]
@@ -101,7 +104,7 @@ public class ProcessingBehaviourTests
 
         var processing = storedFile.ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().BeNull();
     }
     
     [Fact]
@@ -116,7 +119,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.IIIFAv);
+        processing.DeliveryChannels.Should().OnlyContain(s => s.Channel == ChannelNames.IIIFAv);
     }    
         
     [Fact]
@@ -131,7 +134,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().BeNull();
     }
     
     [Fact]
@@ -148,7 +151,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.DeliveryChannels.Should().OnlyContain(s => s == Channels.File);
+        processing.DeliveryChannels.Should().OnlyContain(s => s.Channel == ChannelNames.File);
     }
     [Fact]
     public void Access_MP4_1440_Has_iiif_av_and_file_Delivery_Channel()
@@ -164,7 +167,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        var expected = new HashSet<string> { Channels.IIIFAv, Channels.File };
+        var expected = new HashSet<DeliveryChannel> { Channels.IIIFAv(), Channels.File("none") };
         processing.DeliveryChannels.Should().BeEquivalentTo(expected);
     }
     
@@ -177,7 +180,7 @@ public class ProcessingBehaviourTests
     }
 
     [Fact]
-    public void Access_MP4_720_Has_None_IOP()
+    public void Access_MP4_720_Has_None_Policy()
     {
         var physicalFile = MakePhysicalFile();
         physicalFile.Files = new List<IStoredFile>
@@ -190,11 +193,11 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().Be("none");
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     [Fact]
-    public void Access_MP4_1440_Has_Null_IOP()
+    public void Access_MP4_1440_Has_None_Policy()
     {
         var physicalFile = MakePhysicalFile();
         physicalFile.Files = new List<IStoredFile>
@@ -207,7 +210,7 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().BeNull();
+        processing.DeliveryChannels.First().Policy.Should().Be("none");
     }
     
     // Use this to test resolution-specific transcoding - needs the logic in ProcessingBehaviour to change
@@ -225,8 +228,8 @@ public class ProcessingBehaviourTests
 
         var processing = physicalFile.Files[0].ProcessingBehaviour;
 
-        processing.ImageOptimisationPolicy.Should().BeNull();
-        // processing.ImageOptimisationPolicy.Should().Be("QHD");
-        // processing.ImageOptimisationPolicy.Should().Be("HIGHER");
+        processing.DeliveryChannels.First().Policy.Should().BeNull();
+        // ...policy.Should().Be("QHD");
+        // ...policy.Should().Be("HIGHER");  etc
     }
 }

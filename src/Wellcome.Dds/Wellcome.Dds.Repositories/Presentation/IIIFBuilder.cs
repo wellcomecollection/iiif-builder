@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Amazon.Runtime.Internal;
 using DlcsWebClient.Config;
 using IIIF.Presentation;
 using IIIF.Presentation.V2.Annotation;
@@ -48,6 +49,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly ILogger<IIIFBuilder> logger;
         private readonly IIIFBuilderParts build;
         private readonly PresentationConverter presentation2Converter;
+        private readonly ThumbnailSizeDecorator thumbnailSizeDecorator;
 
         public IIIFBuilder(
             IDds dds,
@@ -57,7 +59,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             IOptions<DdsOptions> ddsOptions,
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
-            ILogger<IIIFBuilder> logger)
+            ILogger<IIIFBuilder> logger,
+            ThumbnailSizeDecorator thumbnailSizeDecorator)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -66,6 +69,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.ddsOptions = ddsOptions.Value;
             this.uriPatterns = uriPatterns;
             this.logger = logger;
+            this.thumbnailSizeDecorator = thumbnailSizeDecorator;
 
             if (dlcsOptions.Value.ResourceEntryPoint.IsNullOrWhiteSpace())
             {
@@ -388,6 +392,12 @@ namespace Wellcome.Dds.Repositories.Presentation
                         order = counter;
                     }
 
+                    int? volumeOrder = order.Value;
+                    int? modsVol = metsManifestation.SectionMetadata?.VolumeNumber;
+                    if (modsVol.HasValue && modsVol > 0)
+                    {
+                        volumeOrder = modsVol.Value;
+                    }
                     collection.Items.Add(new Manifest
                     {
                         Id = uriPatterns.Manifest(metsManifestation.Identifier!),
@@ -396,7 +406,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                             ["en"] = new()
                             {
                                 work.Title!,
-                                $"Volume {order}"
+                                $"Volume {volumeOrder}"
                             }
                         },
                         Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!)
@@ -425,6 +435,36 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
             build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
             build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
+
+            if (ddsOptions.UseDlcsForThumbSizes)
+            {
+                // As it's calling the DLCS with httpClient, we're suddenly introducing an async operation
+                // into our previously synchronous IIIF Building.
+                logger.LogInformation("About to call UpdateManifestSizesFromExternal");
+                var task = Task.Run(async () => await thumbnailSizeDecorator.UpdateManifestSizesFromExternal(manifest, metsManifestation.Identifier, logger));
+                var result = task.Result;
+                logger.LogInformation("After calling UpdateManifestSizesFromExternal");
+                
+                if (result.Any(r => r.Success == false))
+                {
+                    logger.LogError("Could not populate DDS Manifest with DLCS sizes");
+                    foreach (var decoratorResult in result.Where(r => r.Success == false))
+                    {
+                        logger.LogError("Asset {assetId} could not be matched from DLCS: {problem}", 
+                            decoratorResult.AssetIdPart, decoratorResult.Problem);
+                    }
+                }
+
+                if (logger.IsEnabled(LogLevel.Debug) && result.Any(r => r.SizesDiffer))
+                {
+                    logger.LogDebug("Computed size / DLCS size mismatch");
+                    foreach (var decoratorResult in result.Where(r => r.SizesDiffer))
+                    {
+                        logger.LogDebug("Asset {assetId} has mismatched sizes: {summary}", 
+                            decoratorResult.AssetIdPart, decoratorResult.GetMismatchSummary());
+                    }
+                }
+            }
         }
         
         

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
 {
@@ -57,6 +59,26 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         {
             return string.Format("[DlcsIngestJob {0} for {1}/{2}|{3}|{4}|{5}|{6}]",
                 Id, Identifier, SequenceIndex, VolumePart, IssuePart, AssetType, Created);
+        }
+
+        public string PrintState()
+        {
+            var sb = new StringBuilder();
+            sb.Append("Id: ");
+            sb.Append(Id);
+            sb.Append("; Identifier");
+            sb.Append(Identifier);
+            sb.Append("; Created");
+            sb.Append(Created);
+            sb.Append("; VolumePart");
+            sb.Append(VolumePart);
+            sb.Append("; StartProcessed");
+            sb.Append(StartProcessed);
+            sb.Append("; EndProcessed");
+            sb.Append(EndProcessed);
+            sb.Append("; Succeeded");
+            sb.Append(Succeeded);
+            return sb.ToString();
         }
     }
 }

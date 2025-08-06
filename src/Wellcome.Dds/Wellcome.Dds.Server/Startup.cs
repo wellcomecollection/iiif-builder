@@ -144,6 +144,8 @@ namespace Wellcome.Dds.Server
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddHttpClient<OAuth2ApiConsumer>();
+            services.AddHttpClient<ExternalIIIFReader>();
+            services.AddSingleton<ThumbnailSizeDecorator>();
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<Synchroniser>()
                 .AddScoped<IDds, Repositories.Dds>()

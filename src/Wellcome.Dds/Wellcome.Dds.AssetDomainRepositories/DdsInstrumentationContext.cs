@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Utils;
 using Utils.Database;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
@@ -25,8 +29,13 @@ namespace Wellcome.Dds.AssetDomainRepositories
     /// </summary>
     public class DdsInstrumentationContext : DbContext
     {
-        public DdsInstrumentationContext(DbContextOptions<DdsInstrumentationContext> options) : base(options)
-        { }
+        private ILogger<DdsInstrumentationContext> logger;
+        public DdsInstrumentationContext(
+            DbContextOptions<DdsInstrumentationContext> options,
+            ILogger<DdsInstrumentationContext> logger) : base(options)
+        {
+            this.logger = logger;
+        }
 
         // From CloudIngestContext:
         public DbSet<DlcsIngestJob> DlcsIngestJobs => Set<DlcsIngestJob>();
@@ -54,11 +63,17 @@ namespace Wellcome.Dds.AssetDomainRepositories
         public async Task<WorkflowJob> PutJob(DdsIdentifier ddsId, bool forceRebuild, bool take, int? workflowOptions,
             bool expedite, bool flushCache)
         {
+            logger.LogInformation("JQ {ddsId} - PutJob for  with workflowOptions {workflowOptions}", ddsId, workflowOptions);
             WorkflowJob? job = await WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
             if (job == null)
             {
+                logger.LogInformation("JQ {ddsId} - PutJob for is a NEW entry in the table", ddsId);
                 job = new WorkflowJob {Identifier = ddsId.PackageIdentifier};
                 await WorkflowJobs.AddAsync(job);
+            }
+            else
+            {
+                logger.LogInformation("JQ {ddsId} PutJob found existing job, CURRENT state is {fullState}", ddsId, job.PrintState());
             }
 
             job.Created = DateTime.UtcNow;
@@ -79,7 +94,9 @@ namespace Wellcome.Dds.AssetDomainRepositories
             job.ForceTextRebuild = forceRebuild;
             job.FlushCache = flushCache;
             job.Expedite = expedite;
+            // job.IngestJobStarted = null; we were not doing this but does it make a difference?
             await SaveChangesAsync();
+            logger.LogInformation("JQ {ddsId} - PutJob saved state is {fullState}", ddsId.LogSafe(), job.PrintState().LogSafe());
             return job;
         }
 
@@ -87,12 +104,19 @@ namespace Wellcome.Dds.AssetDomainRepositories
         {
             var sql = "update workflow_jobs set waiting=false, taken=now() where identifier = ( "
                 + " select identifier from workflow_jobs "
-                + $" where waiting=true and (created < now() - interval '{minAgeInMinutes} minutes' or expedite=true) "
+                + " where waiting=true "
+                + $" and (created < now() - interval '{minAgeInMinutes} minutes' or expedite=true) "
+                + " and ingest_job_started is null "
                 + " order by expedite desc, created "
                 + " limit 1 "
                 + " for update skip locked "
                 + ") returning identifier;";
-            return Database.MapRawSql(sql, MapString).FirstOrDefault();
+            var identifier = Database.MapRawSql(sql, MapString).FirstOrDefault();
+            if (identifier != null)
+            {
+                logger.LogInformation("JQ {identifier} - MarkFirstJobAsTaken returning", identifier);
+            }
+            return identifier;
         }
 
         private string? MapString(DbDataReader dr)
@@ -103,16 +127,26 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         public int FinishAllJobs()
         {
-            const string sql = "update workflow_jobs set waiting=false, finished=true, workflow_options=null, " +
+            const string sql = "update workflow_jobs set waiting=false, ingest_job_started=null, finished=true, workflow_options=null, " +
                                "error='Force-finished before job could be taken' where waiting=true";
             return Database.ExecuteSqlRaw(sql);
         }
 
         public int ResetJobsMatchingError(string error)
         {
-            const string sql = "update workflow_jobs set waiting=true, finished=false, taken=null, " +
+            const string sql = "update workflow_jobs set waiting=true, ingest_job_started=null, finished=false, taken=null, " +
                                "error=null, workflow_options=null where error like '%' || {0} || '%'";
             return Database.ExecuteSqlRaw(sql, error);
+        }
+
+        public async Task<List<WorkflowJob>> GetJobsRegisteringImages(int numberToTake, CancellationToken cancellationToken)
+        {
+            var jobs = await WorkflowJobs
+                .Where(job => job.IngestJobStarted != null)
+                .OrderBy(job => job.Taken) // ascending, oldest first
+                .Take(numberToTake)
+                .ToListAsync(cancellationToken);
+            return jobs;
         }
     }
 

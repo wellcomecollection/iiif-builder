@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Identity.Web.UI;
 using OAuth2;
 using Utils.Aws.Options;
@@ -125,11 +126,12 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
             services.AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
-            
-            
+
+            services.AddHttpClient<ExternalIIIFReader>();
             // These are non-working impls atm
             services.AddScoped<Synchroniser>(); // make this a service provided by IDds
-
+            services.AddSingleton<ThumbnailSizeDecorator>();
+            
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
 
             services.AddControllersWithViews(
@@ -193,7 +195,8 @@ namespace Wellcome.Dds.Dashboard
                 new DbContextOptionsBuilder<DdsInstrumentationContext>()
                     .UseNpgsql(ddsInstrumentationConnection)
                     .UseSnakeCaseNamingConvention()
-                    .Options))
+                    .Options,
+                new NullLogger<DdsInstrumentationContext>()))
             {
                 logger.LogInformation("Running migrations on DdsInstrumentation");
                 context.Database.Migrate();

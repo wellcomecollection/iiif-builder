@@ -211,6 +211,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             id = identifier.Replace("/", "_") + "---" + id;
             if (id.Length > 220) // this can be longer, we'll see what happens when we run into it.
             {
+                // The premis:originalName in the METS could be used instead, which is not the
+                // actual original file name but Archivematica's GUID form.
                 throw new NotSupportedException($"Identifier longer than 220: {id}");
             }
 

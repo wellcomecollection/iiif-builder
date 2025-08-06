@@ -71,7 +71,19 @@
     </tr>
     <tr>
         <td>Delivery Channels</td>
-        <td>@String.Join(", ", Model.Asset.DeliveryChannels ?? new[]{"(no delivery channels)"})</td>
+        <td>
+            @if (Model.Asset.DeliveryChannels.HasItems())
+            {
+                foreach (var deliveryChannel in Model.Asset.DeliveryChannels)
+                {
+                    <text>@deliveryChannel.ToString()<br/></text>
+                }
+            }
+            else
+            {
+                <text>(no delivery channels)</text>
+            }
+        </td>
     </tr>
     <tr>
         <td>Size</td>
@@ -100,14 +112,6 @@
     <tr>
         <td>Origin</td>
         <td><a href="@Model.Asset.Origin">@Model.Asset.Origin</a></td>
-    </tr>
-    <tr>
-        <td>Image Optimisation Policy</td>
-        <td>@Model.Asset.ImageOptimisationPolicy</td>
-    </tr>
-    <tr>
-        <td>Thumbnail Policy</td>
-        <td>@Model.Asset.ThumbnailPolicy</td>
     </tr>
     <tr>
         <td>Width x Height</td>
