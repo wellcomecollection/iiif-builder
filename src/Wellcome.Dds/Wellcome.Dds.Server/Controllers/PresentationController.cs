@@ -769,7 +769,6 @@ namespace Wellcome.Dds.Server.Controllers
                 Id = $"{CollectionForAggregationId(aggregator, value)}/paged/{range}",
                 Items = new List<ICollectionItem>()
             };
-            int thumbnailCount = 0;
             var apiType = Metadata.FromUrlFriendlyAggregator(aggregator);
             foreach (var result in ddsContext.GetAggregation(apiType, value, skip, take))
             {
