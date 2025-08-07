@@ -143,6 +143,15 @@ namespace Wellcome.Dds.Dashboard
                 .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db")
                 .AddDbContextCheck<DdsContext>("Dds-db")
                 .AddUrlGroup(new Uri(dlcsOptions.ApiEntryPoint), "DLCS API");
+            
+            services.Configure<ForwardedHeadersOptions>(opts =>
+            {
+                // This maintains the behaviour that was present in
+                // dotnet until .NET 8.0.17 + .NET 9.0.6 release and so avoids breaking changes.
+                opts.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+                opts.KnownNetworks.Clear();
+                opts.KnownProxies.Clear();
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
