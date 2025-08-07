@@ -4,6 +4,8 @@ namespace Wellcome.Dds.Common;
 
 public class DdsIdentity
 {
+    public required string Value;
+    
     /// <summary>
     /// The identifier for the stored digital object of which this ID might be whole or part.
     /// This is needed to obtain the object from the storage service, or look up a record in the Catalogue API.
@@ -49,9 +51,44 @@ public class DdsIdentity
     /// </summary>
     public string? CatalogueId { get; set; }
 
-    public Dictionary<string, string> SourceMap = new();
+    public Dictionary<string, string> AllIdentities = new();
 
     // How do we retain the notion of volume and issue... keep as is? We have lots of MMs.
+    
+    public string? VolumePart { get; set; }
+    public string? IssuePart { get; set; }
+    
+    public bool IsPackageLevelIdentifier { get; set; }
+    
+    public static bool operator ==(DdsIdentity? d1, DdsIdentity? d2)
+    {
+        if (d1 is null)
+        {
+            return d2 is null;
+        }
+
+        if (ReferenceEquals(d1, d2))
+        {
+            return true;
+        }
+
+        return d2 != null && d1.Value == d2.Value;
+    }
+
+    public static bool operator !=(DdsIdentity? d1, DdsIdentity? d2)
+    {
+        return !(d1 == d2);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is DdsIdentity identifier && this == identifier;
+    }
+    
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
 }
 
 
@@ -71,8 +108,9 @@ public static class Source
 {
     public const string Sierra = "sierra"; // b numbers
     public const string Calm = "calm";
-    public const string CatalogueApi = "catalogueapi";
-    // other sources may follow
+
+    private const string CatalogueApi = "catalogueapi";
+    // other sources may follow, make this public later...
     
     public static readonly List<string> AllSources = [Sierra, Calm, CatalogueApi];
 }

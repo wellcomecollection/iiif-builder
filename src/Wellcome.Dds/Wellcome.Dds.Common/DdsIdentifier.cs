@@ -43,11 +43,15 @@ namespace Wellcome.Dds.Common
         
         /// <summary>
         /// Whether this identifier starts with a BNumber
+        ///
+        /// ** Becomes source == Sierra
         /// </summary>
         public bool HasBNumber { get; }
 
         /// <summary>
         /// If the identifier starts with a b number, the value of that b number.
+        ///
+        /// ** use PackageIdentifier when source == Sierra
         /// </summary>
         public string? BNumber { get; }
 
@@ -211,10 +215,10 @@ namespace Wellcome.Dds.Common
 
     public enum IdentifierType
     {
-        BNumber,
-        Volume,
-        Issue,
-        BNumberAndSequenceIndex,
-        NonBNumber
+        BNumber,                 // => Package
+        Volume,                  // => keep for now
+        Issue,                   // => keep for now
+        BNumberAndSequenceIndex, // => delete
+        NonBNumber               // => delete
     }
 }
