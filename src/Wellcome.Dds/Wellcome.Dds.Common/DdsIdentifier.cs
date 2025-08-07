@@ -106,12 +106,8 @@ namespace Wellcome.Dds.Common
         /// If not provided, it will be determined from the format of the string.
         /// 
         /// </param>
-        public DdsIdentifier(string value, string? storageSpace = null)
+        public DdsIdentifier(string value)
         {
-            if (!string.IsNullOrWhiteSpace(storageSpace))
-            {
-                StorageSpace = storageSpace;
-            }
             IdentifierType = IdentifierType.NonBNumber;
             this.value = value;
             parts = value.Split(Separators);
