@@ -203,8 +203,10 @@ namespace Wellcome.Dds.Common
             return value.GetHashCode();
         }
 
+        [Obsolete]
         public static implicit operator string(DdsIdentifier di) => di.ToString();
 
+        [Obsolete]
         public static implicit operator DdsIdentifier(string di) => new(di);
 
         public override string ToString() => value;
