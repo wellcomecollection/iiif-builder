@@ -20,6 +20,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly ILogger<MetsRepository> logger;
         private readonly DdsOptions ddsOptions;
+        private readonly IIdentityService identityService;
         
         // For born-digital
         private const string Directory = "Directory";
@@ -33,14 +34,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         public MetsRepository(
             IWorkStorageFactory workStorageFactory,
             ILogger<MetsRepository> logger,
-            IOptions<DdsOptions> options)
+            IOptions<DdsOptions> options,
+            IIdentityService identityService)
         {
             this.workStorageFactory = workStorageFactory;
             this.logger = logger;
+            this.identityService = identityService;
             ddsOptions = options.Value;
         }
 
-        public async Task<IMetsResource?> GetAsync(DdsIdentifier identifier)
+        public async Task<IMetsResource?> GetAsync(DdsIdentity identifier)
         {
             // forms:
             // b12345678 - could be an anchor file or a single manifestation work. 
@@ -55,28 +58,28 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             // b12345678/0 - old form, must be an IManifestation
             IWorkStore workStore = await workStorageFactory.GetWorkStore(identifier);
             ILogicalStructDiv structMap;
-            switch (identifier.IdentifierType)
+            if (identifier.Source == Source.Sierra)
             {
-                case IdentifierType.BNumber:
-                    structMap = await GetFileStructMap(identifier.BNumber!, workStore);
-                    return GetMetsResource(structMap);
-                case IdentifierType.Volume:
+                // It's a b number, and may be a volume or issue
+                if (identifier.VolumePart.HasText())
+                {
                     structMap = await GetLinkedStructMapAsync(identifier.VolumePart!, workStore);
-                    return GetMetsResource(structMap);
-                case IdentifierType.BNumberAndSequenceIndex:
-                    return await GetMetsResourceByIndex(identifier.BNumber!, identifier.SequenceIndex, workStore);
-                case IdentifierType.Issue:
-                    structMap = await GetLinkedStructMapAsync(identifier.VolumePart!, workStore);
-                    // we only want a specific issue
-                    var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier.ToString());
-                    return new MetsManifestation(issueStruct, structMap);
-                
-                case IdentifierType.NonBNumber:
-                    var bdManifestation = await BuildBornDigitalManifestation(workStore);
-                    return bdManifestation;
+                    if (identifier.IssuePart.HasText())
+                    {
+                        // we only want a specific issue
+                        var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier.ToString());
+                        return new MetsManifestation(issueStruct, structMap);
+                    }
+                }
+                else
+                {
+                    structMap = await GetFileStructMap(identifier.PackageIdentifier, workStore);
+                }
+                return GetMetsResource(structMap);
             }
 
-            throw new NotSupportedException("Unknown identifier");
+            var bdManifestation = await BuildBornDigitalManifestation(workStore);
+            return bdManifestation;
         }
 
         private bool IsLabelledDirectory(XElement el, string value)
@@ -195,7 +198,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             var bdm = new BornDigitalManifestation(workStore.Identifier)
             {
                 // Many props still to assigned 
-                Label = workStore.Identifier, // we have no descriptive metadata!
+                Label = workStore.Identifier.ToString(), // we have no descriptive metadata!
                 Type = "Born Digital",
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),
@@ -382,7 +385,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
         }
 
-        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(DdsIdentifier identifier)
+        public async IAsyncEnumerable<IManifestationInContext> GetAllManifestationsInContext(DdsIdentity identifier)
         {
             logger.LogInformation("JQ {identifier} - Get all manifestations in context", identifier);
             var rootMets = await GetAsync(identifier);
@@ -390,17 +393,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             if (rootMets is IManifestation mets)
             {
                 string? volumeIdentifier = null, issueIdentifier = null;
-                switch (identifier.IdentifierType)
+                if (identifier.IssuePart.HasText())
                 {
-                    case IdentifierType.Volume:
-                        volumeIdentifier = identifier;
-                        sequenceIndex = await FindSequenceIndex(identifier);
-                        break;
-                    case IdentifierType.Issue:
-                        volumeIdentifier = identifier.VolumePart;
-                        issueIdentifier = identifier;
-                        sequenceIndex = await FindSequenceIndex(identifier);
-                        break;
+                    volumeIdentifier = identifier.VolumePart;
+                    issueIdentifier = identifier.ToString();
+                    sequenceIndex = await FindSequenceIndex(identifier);
+                }
+                else if (identifier.VolumePart.HasText())
+                {
+                    volumeIdentifier = identifier.ToString();
+                    sequenceIndex = await FindSequenceIndex(identifier);
                 }
                 logger.LogInformation("JQ {identifier} - rootMets is IManifestation", identifier);
                 yield return new ManifestationInContext(mets, identifier.PackageIdentifier)
@@ -417,15 +419,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections!)
                     {
-                        var volume = await GetAsync(partialVolume.Identifier!) as ICollection;
+                        var volume = await GetAsync(partialVolume.Identifier) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations!)
                         {
-                            yield return new ManifestationInContext(manifestation, identifier)
+                            yield return new ManifestationInContext(manifestation, identifier.PackageIdentifier)
                             {
                                 SequenceIndex = sequenceIndex++,
-                                VolumeIdentifier = volume.Identifier,
-                                IssueIdentifier = manifestation.Identifier!
+                                VolumeIdentifier = volume.Identifier.ToString(),
+                                IssueIdentifier = manifestation.Identifier.ToString()
                             };
                         }
                     }
@@ -436,10 +438,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     foreach (var manifestation in rootCollection.Manifestations!)
                     {
                         logger.LogInformation("JQ {identifier} - yielding volume {manifestationIdentifier}", identifier, manifestation.Identifier);
-                        yield return new ManifestationInContext(manifestation, identifier)
+                        yield return new ManifestationInContext(manifestation, identifier.PackageIdentifier)
                         {
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = manifestation.Identifier,
+                            VolumeIdentifier = manifestation.Identifier.ToString(),
                             IssueIdentifier = null
                         };
                     }
@@ -447,90 +449,31 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
             }
         }
 
-        /// <summary>
-        /// Old format:
-        /// b12345678/0 or b12345678/3421 (indexed position)
-        /// 
-        /// This finds the indexed position b12345678/n
-        /// 
-        /// Obviously performs rather badly the further you go into C and D - it has to count logical struct divs
-        /// </summary>
-        /// <param name="bNumber"></param>
-        /// <param name="index"></param>
-        /// <param name="workStore"></param>
-        /// <returns></returns>
-        private async Task<IMetsResource?> GetMetsResourceByIndex(string bNumber, int index, IWorkStore workStore)
+        public async Task<int> FindSequenceIndex(DdsIdentity identifier)
         {
-            // 
-            var structMap = await GetFileStructMap(bNumber, workStore);
-            if (structMap.IsManifestation)
+            if (identifier.IssuePart.HasText())
             {
-                return GetMetsResource(structMap);
-            }
-            // an anchor file...
-            if (structMap.Type != "Periodical")
-            {
-                var child = structMap.Children[index];
-                if (child.IsManifestation)
-                {
-                    if (child.LinkId.IsNullOrWhiteSpace())
-                    {
-                        throw new InvalidOperationException("An anchor file must have links to further METS files");
-                    }
-                    structMap = await GetLinkedStructMapAsync(child.LinkId, workStore);
-                    return GetMetsResource(structMap);
-                }
-                return null;
-            }
-            // A volume. This is trickier! need to count all the other ones
-            int counter = 0;
-            foreach (var structDiv in structMap.Children)
-            {
-                if (structDiv.LinkId.IsNullOrWhiteSpace())
-                {
-                    throw new InvalidOperationException("An anchor file must have links to further METS files");
-                }
-                var pdVolume = await GetLinkedStructMapAsync(structDiv.LinkId, workStore);
-                foreach (var pdIssue in pdVolume.Children)
-                {
-                    if (counter++ == index)
-                    {
-                        return new MetsManifestation(pdIssue);
-                    }
-                }
-            }
-            return null;
-        }
-
-        public async Task<int> FindSequenceIndex(DdsIdentifier identifier)
-        {
-            int sequenceIndex = 0;
-            switch (identifier.IdentifierType)
-            {
-                case IdentifierType.BNumber:
-                case IdentifierType.NonBNumber:
-                    return 0;
-                case IdentifierType.Volume:
-                    var anchor = await GetAsync(identifier.PackageIdentifier) as ICollection;
-                    if (anchor == null) return -1;
-                    foreach (var manifestation in anchor.Manifestations!)
-                    {
-                        if (manifestation.Identifier == identifier)
-                        {
-                            return sequenceIndex;
-                        }
-                        sequenceIndex++;
-                    }
-                    return -1;
-                case IdentifierType.BNumberAndSequenceIndex:
-                    throw new ArgumentException("Identifier already assumes sequence index");
-                case IdentifierType.Issue:
-                    return -1; // No finding issues by sequence index ANY MORE
-                    // throw new NotSupportedException("No finding issues by sequence index ANY MORE");
-                    // return GetCachedIssueSequenceIndex(ddsId);
+                return -1; // No finding issues by sequence index ANY MORE
             }
 
-            throw new NotSupportedException("Unknown identifier");
+            if (identifier.VolumePart.HasText())
+            {
+                int sequenceIndex = 0;
+                var rootIdentifier = identityService.GetIdentity(identifier.PackageIdentifier);
+                var anchor = await GetAsync(rootIdentifier) as ICollection;
+                if (anchor == null) return -1;
+                foreach (var manifestation in anchor.Manifestations!)
+                {
+                    if (manifestation.Identifier == identifier)
+                    {
+                        return sequenceIndex;
+                    }
+                    sequenceIndex++;
+                }
+                return -1;
+            }
+
+            return 0;
         }
 
         private async Task<ILogicalStructDiv> GetFileStructMap(string identifier, IWorkStore workStore)

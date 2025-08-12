@@ -29,16 +29,19 @@ namespace DlcsWebClient.Dlcs
         private readonly HttpClient httpClient;
         private readonly DlcsOptions options;
         private readonly JsonSerializerSettings jsonSerializerSettings;
+        private readonly IIdentityService identityService;
 
 
         public Dlcs(
             ILogger<Dlcs> logger,
             IOptions<DlcsOptions> options,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IIdentityService identityService)
         {
             this.logger = logger;
             this.httpClient = httpClient;
             this.options = options.Value;
+            this.identityService = identityService;
             
             jsonSerializerSettings = new JsonSerializerSettings
             {
@@ -359,21 +362,19 @@ namespace DlcsWebClient.Dlcs
 
         public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier, DlcsCallContext dlcsCallContext)
         {
-            var ddsId = new DdsIdentifier(identifier);
-            if(ddsId.IdentifierType == IdentifierType.BNumberAndSequenceIndex)
+            var ddsId = identityService.GetIdentity(identifier);
+            if (ddsId.Source != Source.Sierra) throw new NotSupportedException("Unknown identifier: " + identifier);
+            if (ddsId.IssuePart.HasText())
             {
-                throw new NotSupportedException("No more sequence index");
+                return GetImagesForIssue(identifier, dlcsCallContext);
             }
-            return ddsId.IdentifierType switch
+            if (ddsId.VolumePart.HasText())
             {
-                IdentifierType.BNumber => GetImagesForBNumber(identifier, dlcsCallContext),
-                IdentifierType.Volume => GetImagesForVolume(identifier, dlcsCallContext),
-                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber!, ddsId.SequenceIndex, dlcsCallContext),
-                IdentifierType.Issue => GetImagesForIssue(identifier, dlcsCallContext),
-                // TODO - Archival
-                IdentifierType.NonBNumber => throw new NotSupportedException("Unknown identifier"),
-                _ => throw new NotSupportedException("Unknown identifier")
-            };
+                return GetImagesForVolume(identifier, dlcsCallContext);
+            }
+
+            return GetImagesForBNumber(identifier, dlcsCallContext);
+
         }
 
         /// <summary>

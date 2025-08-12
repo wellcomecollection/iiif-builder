@@ -18,6 +18,10 @@ public class ParsingIdentityService(
     
     public DdsIdentity GetIdentity(string s)
     {
+        if (s.IsNullOrWhiteSpace())
+        {
+            throw new FormatException("Identifier has no content");
+        }
         var lowered = s.ToLowerInvariant();
         // This lowered form is not the fully normalised form; we might cache under different keys
         if (memoryCache.TryGetValue(lowered, out DdsIdentity cachedIdentity))
@@ -26,11 +30,7 @@ public class ParsingIdentityService(
         }
 
         var ddsIdentity = Parse(s);
-        var possibleCacheKeys= GetCacheKeys(ddsIdentity);
-        if (!possibleCacheKeys.Contains(lowered))
-        {
-            throw new FormatException("One of the possible cache keys must be the one we looked up on!");
-        }
+        var possibleCacheKeys= GetCacheKeys(ddsIdentity, lowered);
         foreach(var key in possibleCacheKeys)
         {
             memoryCache.Set(key, ddsIdentity);
@@ -38,12 +38,12 @@ public class ParsingIdentityService(
         return ddsIdentity;
     }
     
-    public Task<DdsIdentity> GetIdentityAsync(string s)
-    {
-        // use the same memory cache as above but with
-        // var ddsIdentity = await ParseAsync(s);
-        throw new NotImplementedException();
-    }
+    // public Task<DdsIdentity> GetIdentityAsync(string s)
+    // {
+    //     // use the same memory cache as above but with
+    //     // var ddsIdentity = await ParseAsync(s);
+    //     throw new NotImplementedException();
+    // }
 
     private Task<DdsIdentity> ParseAsync(string s)
     {
@@ -58,6 +58,11 @@ public class ParsingIdentityService(
         string source, value, pathElementSafe, packageIdentifier, packageIdentifierPathElementSafe;
         if (parts.Length > 0 && parts[0].IsBNumber())
         {
+            // Explicitly throw if we see a bNumber/sequenceIndex format
+            if (parts.Length == 2 && rawString[parts[0].Length] == '/')
+            {
+                throw new FormatException("BNumber / SequenceIndex format no longer supported.");
+            }
             source = Source.Sierra; // For now
             hasBNumber = true;
             packageIdentifier = parts[0].ToLowerInvariant();
@@ -73,8 +78,8 @@ public class ParsingIdentityService(
             // dismiss is as invalid at this stage. We are assuming that anything that doesn't start with a 
             // BNumber is a potential born digital identifier.
             source = Source.Calm; // For now
-            value = rawString; // we can't normalise case for CALM identifiers
-            packageIdentifier = rawString.Replace(Underscore, Slash);
+            value = rawString.Replace(Underscore, Slash); // we can't normalise case for CALM identifiers
+            packageIdentifier = value;
             packageIdentifierPathElementSafe = packageIdentifier.Replace(Slash, Underscore);
             pathElementSafe = packageIdentifierPathElementSafe;
         }
@@ -120,7 +125,7 @@ public class ParsingIdentityService(
         throw new FormatException("Could not parse identifier");
     }
 
-    private List<string> GetCacheKeys(DdsIdentity ddsIdentity)
+    private List<string> GetCacheKeys(DdsIdentity ddsIdentity, string originalString)
     {
         // In a lookup implementation, this could include the catalogue API 
         // It returns the various normalised forms.
@@ -129,6 +134,11 @@ public class ParsingIdentityService(
         if (pathLower != keys[0])
         {
             keys.Add(pathLower);
+        }
+
+        if (!keys.Contains(originalString))
+        {
+            keys.Add(originalString);
         }
         return keys;
     }

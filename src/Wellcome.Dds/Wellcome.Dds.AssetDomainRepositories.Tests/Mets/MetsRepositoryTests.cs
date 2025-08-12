@@ -3,6 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain;
@@ -19,18 +22,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
     public class MetsRepositoryTests
     {
         private readonly IWorkStorageFactory workStorageFactory;
+        private readonly IIdentityService identityService;
         
         public MetsRepositoryTests()
         {
             var fixtures = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FileSystemMetsFixtures");
             workStorageFactory = new FileSystemWorkStorageFactory(fixtures);
+            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
         }
 
         [Fact]
         public async Task Old_Workflow_Video_Yields_Collection()
         {
-            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>(), Options.Create(new DdsOptions()));
-            var b16675630 = await metsRepository.GetAsync("b16675630");
+            var metsRepository = new MetsRepository(
+                workStorageFactory, 
+                new NullLogger<MetsRepository>(),
+                Options.Create(new DdsOptions()),
+                identityService);
+            var identifier = identityService.GetIdentity("b16675630");
+            var b16675630 = await metsRepository.GetAsync(identifier);
             b16675630.Should().BeOfType<Collection>();
             b16675630.Partial.Should().BeFalse();
             var m0 = ((Collection) b16675630).Manifestations[0];
@@ -62,8 +72,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task New_Workflow_Video_Yields_Multiple_Files()
         {
-            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>(), Options.Create(new DdsOptions()));
-            var b30496160 = await metsRepository.GetAsync("b30496160");
+            var metsRepository = new MetsRepository(
+                workStorageFactory, 
+                new NullLogger<MetsRepository>(), 
+                Options.Create(new DdsOptions()),
+                identityService);
+            var identifier = identityService.GetIdentity("b30496160");
+            var b30496160 = await metsRepository.GetAsync(identifier);
             b30496160.Should().BeOfType<MetsManifestation>();
             b30496160.Partial.Should().BeFalse();
             var mb30496160 = (MetsManifestation) b30496160;
@@ -106,8 +121,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         [Fact]
         public async Task New_Model_Supports_Old_Alto()
         {
-            var metsRepository = new MetsRepository(workStorageFactory, new NullLogger<MetsRepository>(), Options.Create(new DdsOptions()));
-            var b30074976 = await metsRepository.GetAsync("b30074976");
+            var metsRepository = new MetsRepository(
+                workStorageFactory, 
+                new NullLogger<MetsRepository>(), 
+                Options.Create(new DdsOptions()),
+                identityService);
+            var identifier = identityService.GetIdentity("b30074976");
+            var b30074976 = await metsRepository.GetAsync(identifier);
             var mb30074976 = (MetsManifestation) b30074976;
             mb30074976.PosterImage.Should().BeNull();
             foreach (var physicalFile in mb30074976.Sequence)

@@ -11,6 +11,6 @@ namespace Wellcome.Dds.AssetDomain
         /// <summary>
         /// Get <see cref="IWorkStore"/> for specified bNumber. 
         /// </summary>
-        Task<IWorkStore> GetWorkStore(DdsIdentifier ddsId);
+        Task<IWorkStore> GetWorkStore(DdsIdentity ddsId);
     }
 }

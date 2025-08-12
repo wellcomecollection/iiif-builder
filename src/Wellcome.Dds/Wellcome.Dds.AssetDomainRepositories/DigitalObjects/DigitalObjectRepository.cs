@@ -29,6 +29,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly DdsOptions ddsOptions;
+        private readonly IIdentityService identityService;
 
         public int DefaultSpace { get; }
         public int DefaultCustomer { get; }
@@ -39,7 +40,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             IDlcs dlcs,
             IMetsRepository metsRepository,
             DdsInstrumentationContext ddsInstrumentationContext,
-            IOptions<DdsOptions> ddsOptions)
+            IOptions<DdsOptions> ddsOptions,
+            IIdentityService identityService)
         {
             this.logger = logger;
             this.uriPatterns = uriPatterns;
@@ -49,6 +51,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.ddsOptions = ddsOptions.Value;
+            this.identityService = identityService;
         }
 
         // make all the things, then hand back to DashboardCloudServicesJobProcessor process job.
@@ -63,13 +66,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
         public async Task<IDigitalObject> GetDigitalObject(
-            DdsIdentifier identifier,
+            string identifier,
             DlcsCallContext dlcsCallContext,
             bool includePdfDetails = false)
         {
+            var ddsId = identityService.GetIdentity(identifier);
             logger.LogInformation("GetDigitalObject (mets+dlcs) for {identifier}", identifier);
             IDigitalObject digObject;
-            var metsResource = await metsRepository.GetAsync(identifier);
+            var metsResource = await metsRepository.GetAsync(ddsId);
             if (metsResource is IManifestation resource)
             {
                 logger.LogDebug("{identifier} resolved to a Manifestation from METS", identifier);
@@ -170,7 +174,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imagesAlreadyOnDlcs.Count, digitisedManifestation.Identifier, dlcsCallContext.Id);
             var syncOperation = new SyncOperation(dlcsCallContext)
             {
-                ManifestationIdentifier = metsManifestation.Identifier,
+                ManifestationIdentifier = metsManifestation.Identifier.ToString(),
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers,
                 ImagesCurrentlyOnDlcs =
@@ -353,8 +357,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             bool includePdf,
             DlcsCallContext dlcsCallContext)
         {
-            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier, dlcsCallContext);
-            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf?>(null);
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier.ToString(), dlcsCallContext);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier.ToString()) : Task.FromResult<IPdf?>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
 
@@ -827,7 +831,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private Image MakeDlcsImage(
             IStoredFile asset,
-            DdsIdentifier ddsId,
+            DdsIdentity ddsId,
             int sequenceIndex,
             int maxUnauthorised)
         {
@@ -851,27 +855,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.TextType = "alto"; // also need a string to identify this as ALTO
             }
 
-            switch (ddsId.IdentifierType)
+            if (ddsId.IssuePart.HasText())
             {
-                case IdentifierType.BNumber:
-                case IdentifierType.NonBNumber: // for Archivematica, always (at present) a single manifestation
-                    imageRegistration.String2 = ddsId.PackageIdentifier;
-                    imageRegistration.String3 = ddsId.PackageIdentifier;
-                    break;
-                case IdentifierType.Volume:
-                    imageRegistration.String2 = ddsId.VolumePart;
-                    imageRegistration.String3 = ddsId.VolumePart;
-                    break;
-                case IdentifierType.Issue:
-                    imageRegistration.String2 = ddsId.VolumePart;
-                    imageRegistration.String3 = ddsId.IssuePart;
-                    break;
-                case IdentifierType.BNumberAndSequenceIndex:
-                    // we should not get any like this
-                    imageRegistration.Number1 = ddsId.SequenceIndex;
-                    break;
+                imageRegistration.String2 = ddsId.VolumePart;
+                imageRegistration.String3 = ddsId.IssuePart;
             }
-
+            else if (ddsId.VolumePart.HasText())
+            {
+                imageRegistration.String2 = ddsId.VolumePart;
+                imageRegistration.String3 = ddsId.VolumePart;
+            }
+            else
+            {
+                imageRegistration.String2 = ddsId.PackageIdentifier;
+                imageRegistration.String3 = ddsId.PackageIdentifier;
+            }
+            
             var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
             if (asset.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
@@ -995,34 +994,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return jobs;
         }
 
-        private IQueryable<DlcsIngestJob>? GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
+        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
         {
-            var ddsId = new DdsIdentifier(identifier);
-            IQueryable<DlcsIngestJob>? jobQuery = null;
-            switch (ddsId.IdentifierType)
+            var ddsId = identityService.GetIdentity(identifier);
+            if (ddsId.IssuePart.HasText())
             {
-                case IdentifierType.Volume:
-                    //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => (j.VolumePart != null && j.VolumePart == identifier));
-                    // || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
-                    break;
-                case IdentifierType.BNumberAndSequenceIndex:
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == ddsId.PackageIdentifier && j.SequenceIndex == ddsId.SequenceIndex);
-                    break;
-                case IdentifierType.Issue:
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.IssuePart == identifier);
-                    break;
-                default:
-                    // case IdentifierType.BNumber and Archival identifiers
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == identifier);
-                    break;
+                return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.IssuePart == identifier);
             }
-
-            return jobQuery;
+            if (ddsId.VolumePart.HasText())
+            {
+                return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.VolumePart != null && j.VolumePart == identifier);
+            }
+            return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.Identifier == identifier);
         }
 
 
@@ -1095,7 +1078,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         ///// <returns></returns>
         public async Task<int> FindSequenceIndex(string identifier)
         {
-            return await metsRepository.FindSequenceIndex(identifier);
+            var ddsId = identityService.GetIdentity(identifier);
+            return await metsRepository.FindSequenceIndex(ddsId);
         }
 
         public Task<bool> DeletePdf(string identifier) => dlcs.DeletePdf(identifier);

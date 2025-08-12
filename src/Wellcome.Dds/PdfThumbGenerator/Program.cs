@@ -35,6 +35,7 @@ namespace PdfThumbGenerator
                     services
                         .AddMemoryCache()
                         .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
+                        .AddSingleton<IIdentityService, ParsingIdentityService>()
                         .AddSingleton<IMetsRepository, MetsRepository>()
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
@@ -45,6 +46,7 @@ namespace PdfThumbGenerator
                                 provider.GetService<ILogger<PdfGenerator>>()!,
                                 provider.GetService<IMetsRepository>()!,
                                 provider.GetService<PdfThumbnailUtil>()!,
+                                provider.GetService<IIdentityService>()!,
                                 file));
 
                     services.AddHttpClient<OAuth2ApiConsumer>();
@@ -72,15 +74,17 @@ namespace PdfThumbGenerator
         private readonly IMetsRepository metsRepository;
         private readonly PdfThumbnailUtil pdfThumbnailUtil;
         private readonly string file;
+        private readonly IIdentityService identityService;
 
 
         public PdfGenerator(ILogger<PdfGenerator> logger, IMetsRepository metsRepository,
-            PdfThumbnailUtil pdfThumbnailUtil, string file)
+            PdfThumbnailUtil pdfThumbnailUtil, IIdentityService identityService, string file)
         {
             this.logger = logger;
             this.metsRepository = metsRepository;
             this.pdfThumbnailUtil = pdfThumbnailUtil;
             this.file = file;
+            this.identityService = identityService;
         }
 
 
@@ -114,7 +118,8 @@ namespace PdfThumbGenerator
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
-                IMetsResource? resource = await metsRepository.GetAsync(pdf.Identifier!);
+                var identity = identityService.GetIdentity(pdf.Identifier!);
+                IMetsResource? resource = await metsRepository.GetAsync(identity);
                 if (resource is ICollection)
                 {
                     throw new InvalidOperationException(

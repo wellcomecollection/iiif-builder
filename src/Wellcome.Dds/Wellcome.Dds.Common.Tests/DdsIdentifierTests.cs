@@ -1,5 +1,9 @@
 using System;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Wellcome.Dds.Common.Tests
@@ -16,179 +20,135 @@ namespace Wellcome.Dds.Common.Tests
         private const string NotBNumberButHasParts = "2b99977766_0002_0005";
         private const string MixedSlashesAndUnderscores = "PPCRI_2/b12312345/_a";
 
-        [Theory(Skip = "Verify this is expected behaviour")]
+        private IIdentityService identityService;
+        
+        public DdsIdentifierTests()
+        {
+            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+        }
+
+        [Theory]
         [InlineData(null)]
         [InlineData("")]
         [InlineData(" ")]
-        public void Ctor_Throws_IfNullOrWhitespaceValue(string value)
+        public void GetIdentity_Throws_IfNullOrWhitespaceValue(string value)
         {
             // Act
-            Action action = () => new DdsIdentifier(value);
+            Action action = () => identityService.GetIdentity(value);
             
             // Assert
-            action.Should().Throw<ArgumentNullException>();
+            action.Should().Throw<FormatException>();
         }
         
         [Fact]
         public void Ctor_Correct_BNumber()
         {
             // Act
-            var identifier = new DdsIdentifier(BNumber);
+            var identifier = identityService.GetIdentity(BNumber);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.BNumber);
+            identifier.Generator.Should().Be(Generator.Goobi);
+            identifier.Source.Should().Be(Source.Sierra);
+            identifier.StorageSpace.Should().Be(StorageSpace.Digitised);
+            identifier.IsPackageLevelIdentifier.Should().Be(true);
+            identifier.PackageIdentifier.Should().Be(BNumber);
+            identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+            identifier.PathElementSafe.Should().Be(BNumber);
+            identifier.Value.Should().Be(BNumber);
             identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().BeNull();
             identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(0);
         }
         
         [Fact]
         public void Ctor_Correct_Volume()
         {
             // Act
-            var identifier = new DdsIdentifier(Volume);
+            var identifier = identityService.GetIdentity(Volume);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Volume);
+            identifier.Generator.Should().Be(Generator.Goobi);
+            identifier.Source.Should().Be(Source.Sierra);
+            identifier.StorageSpace.Should().Be(StorageSpace.Digitised);
+            identifier.IsPackageLevelIdentifier.Should().Be(false);
+            identifier.PackageIdentifier.Should().Be(BNumber);
+            identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+            identifier.PathElementSafe.Should().Be(Volume);
+            identifier.Value.Should().Be(Volume);
             identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0003");
             identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(0);
         }
         
         [Fact]
         public void Ctor_Correct_BNumberAndSequenceIndex()
         {
             // Act
-            var identifier = new DdsIdentifier(BNumberSequence);
+            Action action = () => identityService.GetIdentity(BNumberSequence);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.BNumberAndSequenceIndex);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_123"); // NOTE: This doesn't seem right?
-            identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(123);
+            action.Should().Throw<FormatException>();
+            // "b99977766/123" format no longer supported
         }
         
         [Fact]
         public void Ctor_Correct_Issue()
         {
             // Act
-            var identifier = new DdsIdentifier(Issue);
+            var identifier = identityService.GetIdentity(Issue);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Issue);
+            BNumber.Should().Be("b99977766");
+            identifier.Generator.Should().Be(Generator.Goobi);
+            identifier.Source.Should().Be(Source.Sierra);
+            identifier.StorageSpace.Should().Be(StorageSpace.Digitised);
+            identifier.IsPackageLevelIdentifier.Should().Be(false);
+            identifier.PackageIdentifier.Should().Be(BNumber);
+            identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
+            identifier.PathElementSafe.Should().Be(Issue);
+            identifier.Value.Should().Be(Issue);
             identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().Be("b99977766_0002");
             identifier.IssuePart.Should().Be("b99977766_0002_0005");
-            identifier.SequenceIndex.Should().Be(0);
         }
         
         [Fact]
         public void Ctor_Correct_NotBNumber()
         {
             // Act
-            var identifier = new DdsIdentifier(NotBNumberButHasParts);
+            var identifier = identityService.GetIdentity(NotBNumberButHasParts);
             
             // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
+            identifier.Generator.Should().Be(Generator.Archivematica);
+            identifier.Source.Should().Be(Source.Calm);
+            identifier.StorageSpace.Should().Be(StorageSpace.BornDigital);
+            identifier.IsPackageLevelIdentifier.Should().Be(true);
+            
+            var expectedPackageIdentifier = NotBNumberButHasParts.Replace('_', '/');
+            identifier.PackageIdentifier.Should().Be(expectedPackageIdentifier);
+            identifier.PackageIdentifierPathElementSafe.Should().Be(NotBNumberButHasParts);
+            identifier.PathElementSafe.Should().Be(NotBNumberButHasParts);
+            identifier.Value.Should().Be(expectedPackageIdentifier);
+            identifier.VolumePart.Should().BeNull("It doesn't start with a B number");
+            identifier.IssuePart.Should().BeNull("It doesn't start with a B number");
 
             // This might seem wrong. But with just CALM IDs and bNumbers (or starts with b numbers),
             // we can have a rule that any non-bnumber identifier with slashes can have those slashes
             // converted to underscores. https://github.com/wellcomecollection/platform/issues/5498#issuecomment-1218213009
-            
-            var expectedPackageIdentifier = NotBNumberButHasParts.Replace('_', '/');
-            // The whole identifier
-            identifier.PackageIdentifier.Should().Be(expectedPackageIdentifier); 
-            identifier.VolumePart.Should().BeNull("It doesn't start with a B number");
-            identifier.IssuePart.Should().BeNull("It doesn't start with a B number");
-            identifier.SequenceIndex.Should().Be(0);
         }
+
         
-        [Fact]
-        public void ImplicitToDdsIdentifier_Correct_BNumber()
-        {
-            // Act
-            DdsIdentifier identifier = BNumber;
-            
-            // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.BNumber);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().BeNull();
-            identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(0);
-        }
-        
-        [Fact]
-        public void ImplicitToDdsIdentifier_Correct_Volume()
-        {
-            // Act
-            DdsIdentifier identifier = Volume;
-            
-            // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Volume);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_0003");
-            identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(0);
-        }
-        
-        [Fact]
-        public void ImplicitToDdsIdentifier_Correct_BNumberAndSequenceIndex()
-        {
-            // Act
-            DdsIdentifier identifier = BNumberSequence;
-            
-            // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.BNumberAndSequenceIndex);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_123"); 
-            identifier.IssuePart.Should().BeNull();
-            identifier.SequenceIndex.Should().Be(123);
-        }
-        
-        [Fact]
-        public void ImplicitToDdsIdentifier_Correct_Issue()
-        {
-            // Act
-            DdsIdentifier identifier = Issue;
-            
-            // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.Issue);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_0002");
-            identifier.IssuePart.Should().Be("b99977766_0002_0005");
-            identifier.SequenceIndex.Should().Be(0);
-        }
-        
-        [Fact]
-        public void ImplicitToDdsIdentifier_Correct_Unknown()
-        {
-            // Act
-            DdsIdentifier identifier = NotBNumberButHasParts;
-            
-            // Assert
-            identifier.IdentifierType.Should().Be(IdentifierType.NonBNumber);
-            
-            var expectedPackageIdentifier = NotBNumberButHasParts.Replace('_', '/');
-            identifier.PackageIdentifier.Should().Be(expectedPackageIdentifier); 
-            identifier.VolumePart.Should().BeNull("It doesn't start with a B number");
-            identifier.IssuePart.Should().BeNull("It doesn't start with a B number");
-            identifier.SequenceIndex.Should().Be(0);
-        }
 
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
         [InlineData(Issue)]
         [InlineData(MsForm)]
         [InlineData(ArchiveFormWithSlashes)]
         public void ToString_ReturnsOriginalValue_ForSafeForms(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.ToString().Should().Be(value);
@@ -202,71 +162,36 @@ namespace Wellcome.Dds.Common.Tests
         public void ToString_ReturnsCanonicalValue_ForUnSafeForms(string value, string expected)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.ToString().Should().Be(expected);
         }
         
-        [Theory]
-        [InlineData(BNumber)]
-        [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
-        [InlineData(Issue)]
-        [InlineData(MsForm)]
-        [InlineData(ArchiveFormWithSlashes)]
-        public void ImplicitToString_ReturnsOriginalValue_ForSafeForms(string value)
-        {
-            // Arrange
-            var identifier = new DdsIdentifier(value);
-            
-            // Act
-            string strValue = identifier;
-            
-            // Assert
-            strValue.Should().Be(value);
-        }
-        
-        [Theory]
-        [InlineData(NotBNumberButHasParts, "2b99977766/0002/0005")]
-        [InlineData(ArchiveFormNoSlashes, "PPCRI/D/4/5A")]
-        [InlineData(MixedSlashesAndUnderscores, "PPCRI/2/b12312345//a")] // yes really
-        public void ImplicitToString_ReturnsCanonicalValue_ForUnsafeForms(string value, string expected)
-        {
-            // Arrange
-            var identifier = new DdsIdentifier(value);
-            
-            // Act
-            string strValue = identifier;
-            
-            // Assert
-            strValue.Should().Be(expected);
-        }
 
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
         [InlineData(Issue)]
         public void BNumber_Forms_Yield_BNumber(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
-            identifier.HasBNumber.Should().BeTrue();
-            identifier.BNumber.Should().Be(BNumber);
+            identifier.Generator.Should().Be(Generator.Goobi);
+            identifier.Source.Should().Be(Source.Sierra);
+            identifier.StorageSpace.Should().Be(StorageSpace.Digitised);
         }
         
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
         [InlineData(Issue)]
-        public void BNumber_Forms_Yield_BNumber_PackageIdentfier(string value)
+        public void BNumber_Forms_Yield_BNumber_PackageIdentifier(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.PackageIdentifier.Should().Be(BNumber);
@@ -275,12 +200,11 @@ namespace Wellcome.Dds.Common.Tests
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
         [InlineData(Issue)]
         public void BNumber_Forms_Yield_BNumber_PackageIdentifierPathElementSafe(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
@@ -290,30 +214,16 @@ namespace Wellcome.Dds.Common.Tests
         [Theory]
         [InlineData(BNumber)]
         [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
         [InlineData(Issue)]
         public void BNumber_Forms_Yield_BNumber_PathElementSafe(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.PathElementSafe.Should().Be(value);
         }
         
-        [Theory]
-        [InlineData(BNumber)]
-        [InlineData(Volume)]
-        [InlineData(BNumberSequence)]
-        [InlineData(Issue)]
-        public void BNumber_Forms_Yield_Digitised_Storage_Type(string value)
-        {
-            // Arrange
-            var identifier = new DdsIdentifier(value);
-            
-            // Assert
-            identifier.StorageSpace.Should().Be("digitised");
-        }
         
         [Theory]
         [InlineData(MsForm, MsForm)]
@@ -324,7 +234,7 @@ namespace Wellcome.Dds.Common.Tests
         public void Non_BNumbers_Yields_Same_PathElementSafe(string value, string expected)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
             identifier.PackageIdentifierPathElementSafe.Should().Be(expected);
@@ -340,11 +250,12 @@ namespace Wellcome.Dds.Common.Tests
         public void Non_BNumbers_Dont_Have_BNumbers(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
-            identifier.HasBNumber.Should().BeFalse();
-            identifier.BNumber.Should().BeNull();
+            identifier.Generator.Should().Be(Generator.Archivematica);
+            identifier.Source.Should().Be(Source.Calm);
+            identifier.StorageSpace.Should().Be(StorageSpace.BornDigital);
         }
         
         [Theory]
@@ -356,17 +267,17 @@ namespace Wellcome.Dds.Common.Tests
         public void If_NonBNumber_Then_Storage_is_BornDigital(string value)
         {
             // Arrange
-            var identifier = new DdsIdentifier(value);
+            var identifier = identityService.GetIdentity(value);
             
             // Assert
-            identifier.StorageSpace.Should().Be("born-digital");
+            identifier.StorageSpace.Should().Be(StorageSpace.BornDigital);
         }
 
         [Fact]
         public void No_Slashes_Or_Underscores_Yields_Same_Id()
         {
             // Arrange
-            var identifier = new DdsIdentifier(MsForm);
+            var identifier = identityService.GetIdentity(MsForm);
             
             // Assert
             identifier.PackageIdentifier.Should().Be(MsForm);
@@ -377,7 +288,7 @@ namespace Wellcome.Dds.Common.Tests
         public void Package_Identifier_Has_Slashes()
         {
             // Arrange
-            var identifier = new DdsIdentifier(ArchiveFormNoSlashes);
+            var identifier = identityService.GetIdentity(ArchiveFormNoSlashes);
             
             // Assert
             identifier.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);
@@ -388,7 +299,7 @@ namespace Wellcome.Dds.Common.Tests
         public void Package_Identifier_Preserves_Slashes()
         {
             // Arrange
-            var identifier = new DdsIdentifier(ArchiveFormWithSlashes);
+            var identifier = identityService.GetIdentity(ArchiveFormWithSlashes);
             
             // Assert
             identifier.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);
@@ -399,11 +310,11 @@ namespace Wellcome.Dds.Common.Tests
         public void Path_Element_Safe_Form_Round_Trips()
         {
             // Arrange
-            var identifier = new DdsIdentifier(ArchiveFormNoSlashes);
+            var identifier = identityService.GetIdentity(ArchiveFormNoSlashes);
             
             // Act
             var packageIdentifier = identifier.PackageIdentifier;
-            var identifier2 = new DdsIdentifier(packageIdentifier);
+            var identifier2 = identityService.GetIdentity(packageIdentifier);
             
             // Assert
             identifier2.PackageIdentifier.Should().Be(ArchiveFormWithSlashes);

@@ -22,6 +22,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         private readonly IStatusProvider statusProvider;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly ILogger<DashboardCloudServicesJobProcessor> logger;
+        private readonly IIdentityService identityService;
 
         private static readonly string[] SupportedFormats = new []
         {
@@ -43,12 +44,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             IDigitalObjectRepository digitalObjectRepository,
             IStatusProvider statusProvider,
             DdsInstrumentationContext ddsInstrumentationContext,
-            ILogger<DashboardCloudServicesJobProcessor> logger)
+            ILogger<DashboardCloudServicesJobProcessor> logger,
+            IIdentityService identityService)
         {
             this.digitalObjectRepository = digitalObjectRepository;
             this.statusProvider = statusProvider;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         public void UpdateStatus()
@@ -347,7 +350,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return result;
         }
 
-        private static bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation, out string? reason)
+        private bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation, out string? reason)
         {
             if (job.AssetType.IsNullOrEmpty())
             {
@@ -355,9 +358,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 return false;
             }
 
-            var ddsId = new DdsIdentifier(job.GetManifestationIdentifier());
+            var ddsId = identityService.GetIdentity(job.GetManifestationIdentifier());
 
-            if (ddsId.HasBNumber)
+            if (ddsId.Generator == Generator.Goobi)
             {
                 bool isSupported = SupportedFormats.Contains(job.AssetType);
                 reason = isSupported ? null : "Asset Type is not a supported format for Bnumber jobs";

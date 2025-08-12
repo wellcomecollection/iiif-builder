@@ -41,7 +41,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <param name="workflowOptions">Workflow options to use when processing job</param>
         /// <returns>Created <see cref="WorkflowJob"/> object.</returns>
         /// <remarks>See Wellcome.Dds.Common.RunnerOptions and associated tests for workflowOptions values</remarks>
-        Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions);
+        Task<WorkflowJob> CreateWorkflowJob(string ddsId, int? workflowOptions);
 
         /// <summary>
         /// Create a new expedited workflow_job with specified workflowOptions.
@@ -51,7 +51,7 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <param name="invalidateCache">If true, caches for this object will be invalidated after processing</param>
         /// <returns>Created <see cref="WorkflowJob"/> object.</returns>
         /// <remarks>See Wellcome.Dds.Common.RunnerOptions and associated tests for workflowOptions values</remarks>
-        Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache);
+        Task<WorkflowJob> CreateExpeditedWorkflowJob(string ddsId, int? workflowOptions, bool invalidateCache);
 
         /// <summary>
         /// Create a new job from a received message (e.g., from an external queue)
@@ -77,6 +77,6 @@ namespace Wellcome.Dds.AssetDomain.Workflow
         /// <returns></returns>
         Task<int> ResetJobsMatchingError(string resetWithMessage);
 
-        Task DeleteJob(DdsIdentifier ddsId);
+        Task DeleteJob(string ddsId);
     }
 }

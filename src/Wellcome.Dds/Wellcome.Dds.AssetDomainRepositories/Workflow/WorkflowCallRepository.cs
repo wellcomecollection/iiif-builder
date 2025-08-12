@@ -26,13 +26,13 @@ public class WorkflowCallRepository : IWorkflowCallRepository
 
     private const int RecentSampleHours = 2;
 
-    public async Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions)
+    public async Task<WorkflowJob> CreateWorkflowJob(string ddsId, int? workflowOptions)
     {
         var workflowJob = await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, false, false);
         return workflowJob;
     }
 
-    public async Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache)
+    public async Task<WorkflowJob> CreateExpeditedWorkflowJob(string ddsId, int? workflowOptions, bool invalidateCache)
     {
         var workflowJob =
             await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, true, invalidateCache);
@@ -170,9 +170,9 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
         return Task.FromResult(count);
     }
 
-    public async Task DeleteJob(DdsIdentifier ddsId)
+    public async Task DeleteJob(string ddsId)
     {
-        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
+        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId);
         if (job != null)
         {
             ddsInstrumentationContext.WorkflowJobs.Remove(job);

@@ -9,13 +9,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
 public class BornDigitalManifestation : IManifestation
 {
-    public BornDigitalManifestation(DdsIdentifier identifier)
+    public BornDigitalManifestation(DdsIdentity identifier)
     {
         Identifier = identifier;
     }
     
     public IArchiveStorageStoredFileInfo? SourceFile { get; set; }
-    public DdsIdentifier Identifier { get; set; }
+    public DdsIdentity Identifier { get; set; }
     public string? Label { get; set; }
     public string? Type { get; set; }
     public int? Order { get; set; }

@@ -4,6 +4,7 @@ using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Test.Helpers;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
@@ -38,13 +39,14 @@ namespace WorkflowProcessor.Tests
         public async Task ProcessJob_CallsRegisterImage_IfRegisterImagesTrue()
         {
             // Arrange
-            var job = new WorkflowJob{ Identifier = "b9998887"};
+            var job = new WorkflowJob{ Identifier = "b99988877"};
+            var identity = IdentityHelper.GetSimpleTestBNumber("b99988877");
             
             // Act
             await sut.ProcessJob(job);
             
             // Assert
-            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).MustHaveHappened();
+            A.CallTo(() => ingestJobRegistry.RegisterImages(identity, false)).MustHaveHappened();
         }
         
         [Fact]
@@ -52,11 +54,12 @@ namespace WorkflowProcessor.Tests
         {
             // Arrange
             var job = new WorkflowJob{ Identifier = "b9998887"};
+            var identity = IdentityHelper.GetSimpleTestBNumber("b99988877");
             var jobs = new []
             {
                 new DlcsIngestJob("4") {Id = 4}, new DlcsIngestJob("1") {Id = 1},
             };
-            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
+            A.CallTo(() => ingestJobRegistry.RegisterImages(identity, false)).Returns(jobs);
             
             // Act
             await sut.ProcessJob(job);
@@ -70,7 +73,7 @@ namespace WorkflowProcessor.Tests
         public async Task ProcessJob_SetsTimingProperties()
         {
             // Arrange
-            var job = new WorkflowJob{ Identifier = "b9998887"};
+            var job = new WorkflowJob{ Identifier = "b99988877"};
             
             // Act
             await sut.ProcessJob(job);
@@ -84,8 +87,9 @@ namespace WorkflowProcessor.Tests
         public async Task ProcessJob_HandlesNullBatch()
         {
             // Arrange
-            var job = new WorkflowJob{ Identifier = "b9998887"};
-            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns((DlcsIngestJob[])null);
+            var job = new WorkflowJob{ Identifier = "b99988877"};
+            var identity = IdentityHelper.GetSimpleTestBNumber("b99988877");
+            A.CallTo(() => ingestJobRegistry.RegisterImages(identity, false)).Returns((DlcsIngestJob[])null);
             
             // Act
             await sut.ProcessJob(job);
@@ -99,10 +103,11 @@ namespace WorkflowProcessor.Tests
         public async Task ProcessJob_HandlesEmptyBatch()
         {
             // Arrange
-            var job = new WorkflowJob{ Identifier = "b9998887"};
+            var job = new WorkflowJob{ Identifier = "b99988877"};
+            var identity = IdentityHelper.GetSimpleTestBNumber("b99988877");
             var jobs = new DlcsIngestJob [0];
                 
-            A.CallTo(() => ingestJobRegistry.RegisterImages(job.Identifier, false)).Returns(jobs);
+            A.CallTo(() => ingestJobRegistry.RegisterImages(identity, false)).Returns(jobs);
             
             // Act
             await sut.ProcessJob(job);

@@ -27,7 +27,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="ddsId">e.g., b12345678, b87654321_0001</param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null);
+        public Task<MultipleBuildResult> Build(DdsIdentity ddsId, Work? work = null);
 
         /// <summary>
         /// Builds ALL Manifests and Collections for the given bNumber.
@@ -42,7 +42,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// <param name="ddsId"></param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
         /// <returns></returns>
-        public Task<MultipleBuildResult> BuildAllManifestations(DdsIdentifier ddsId, Work? work = null);
+        public Task<MultipleBuildResult> BuildAllManifestations(DdsIdentity ddsId, Work? work = null);
 
         /// <summary>
         /// Build IIIF Presentation 2 representation from provided IIIF Presentation 3 BuildResults.
@@ -50,7 +50,7 @@ namespace Wellcome.Dds.IIIFBuilding
         /// </summary>
         /// <param name="ddsId">e.g., b12345678, b87654321_0001</param>
         /// <param name="buildResults">IIIF 3 build results</param>
-        public MultipleBuildResult BuildLegacyManifestations(DdsIdentifier ddsId, IEnumerable<BuildResult> buildResults);
+        public MultipleBuildResult BuildLegacyManifestations(DdsIdentity ddsId, IEnumerable<BuildResult> buildResults);
 
         AltoAnnotationBuildResult BuildW3CAndOaAnnotations(IManifestation manifestation, AnnotationPageList annotationPages);
         

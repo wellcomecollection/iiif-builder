@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using IIIF.Presentation.V3.Content;
+using Test.Helpers;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.Presentation.V2;
 using Wellcome.Dds.Repositories.Presentation.V2.IXIF;
@@ -14,9 +15,10 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
         {
             // Arrange
             var resource = new ExternalResource("Test") {Profile = "unknown"};
+            var identity = IdentityHelper.GetSimpleTestBNumber("b19818786");
             
             // Act
-            var service = LegacyServiceFactory.GetLegacyService("b19818786", resource);
+            var service = LegacyServiceFactory.GetLegacyService(identity, resource);
             
             // Assert
             service.Should().BeNull();
@@ -31,9 +33,10 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                 Profile = Constants.Profiles.TrackingExtension,
                 Label = Lang.Map("Test Label")
             };
+            var identity = IdentityHelper.GetSimpleTestBNumber("b19818786");
             
             // Act
-            var service = LegacyServiceFactory.GetLegacyService("b19818786", resource);
+            var service = LegacyServiceFactory.GetLegacyService(identity, resource);
             
             // Assert
             service.Should()
@@ -50,9 +53,10 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                 Profile = Constants.Profiles.AccessControlHints,
                 Label = Lang.Map("Test Label")
             };
+            var identity = IdentityHelper.GetSimpleTestBNumber("b19818786");
             
             // Act
-            var service = LegacyServiceFactory.GetLegacyService("b19818786", resource);
+            var service = LegacyServiceFactory.GetLegacyService(identity, resource);
             
             // Assert
             service.Should()

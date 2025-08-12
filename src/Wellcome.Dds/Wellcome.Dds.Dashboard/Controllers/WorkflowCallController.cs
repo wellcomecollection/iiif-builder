@@ -23,17 +23,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly ILogger<WorkflowCallController> logger;
         private readonly DdsOptions ddsOptions;
         private readonly IAmazonSQS sqsClient;
+        private readonly IIdentityService identityService;
 
         public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowCallController> logger,
             IOptions<DdsOptions> options,
-            IAmazonSQS sqsClient)
+            IAmazonSQS sqsClient,
+            IIdentityService identityService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
             this.ddsOptions = options.Value;
             this.sqsClient = sqsClient;
+            this.identityService = identityService;
         }
 
         public async Task<ActionResult> Recent()
@@ -65,13 +68,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> WorkflowCall(string id)
         {
-            var ddsId = new DdsIdentifier(id);
-            var job = await workflowCallRepository.GetWorkflowJob(ddsId);
+            var job = await workflowCallRepository.GetWorkflowJob(id);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = ddsId,
+                    Identifier = id,
                     Created = null
                 };
             }
@@ -107,11 +109,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> PutWorkflowMessageOnQueue(string id)
         {
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = identityService.GetIdentity(id);
             string queueName = ddsId.StorageSpace switch
             {
-                DdsIdentifier.Digitised => ddsOptions.DashboardPushDigitisedQueue,
-                DdsIdentifier.BornDigital => ddsOptions.DashboardPushBornDigitalQueue,
+                StorageSpace.Digitised => ddsOptions.DashboardPushDigitisedQueue,
+                StorageSpace.BornDigital => ddsOptions.DashboardPushBornDigitalQueue,
                 _ => null
             };
 
@@ -127,7 +129,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var message = new WorkflowMessage
                 {
-                    Identifier = ddsId,
+                    Identifier = ddsId.PackageIdentifier,
                     Origin = "dashboard",
                     Space = ddsId.StorageSpace,
                     TimeSent = DateTime.UtcNow
@@ -239,9 +241,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<IActionResult> Delete(string id)
         { 
-            var ddsId = new DdsIdentifier(id);
-            await workflowCallRepository.DeleteJob(ddsId);
-            TempData["job-deleted"] = $"{ddsId} deleted.";
+            await workflowCallRepository.DeleteJob(id);
+            TempData["job-deleted"] = $"{id} deleted.";
             return RedirectToAction("WorkflowCall", new {id});
         }
     }

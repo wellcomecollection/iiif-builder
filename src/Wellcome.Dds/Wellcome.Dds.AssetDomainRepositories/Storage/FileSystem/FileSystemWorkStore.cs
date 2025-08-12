@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
 {
@@ -12,13 +13,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
     {
         private string rootDirectory;
         
-        public FileSystemWorkStore(string rootDirectory, string identifier)
+        public FileSystemWorkStore(string rootDirectory, DdsIdentity identifier)
         {
             Identifier = identifier;
             this.rootDirectory = rootDirectory;
         }
 
-        public string Identifier { get; set; }
+        public DdsIdentity Identifier { get; set; }
         private string FileUri(string relativePath)
         {
             return Path.Combine(rootDirectory, relativePath);
