@@ -33,6 +33,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="storage">Provides S3 locations</param>
         /// <param name="options">DDS Options</param>
         /// <param name="metsRepository"></param>
+        /// <param name="logger"></param>
         public TextController(
             IStorage storage,
             IOptions<DdsOptions> options,
