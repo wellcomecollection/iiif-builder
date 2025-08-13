@@ -25,6 +25,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IIIIFBuilder iiifBuilder;
         private readonly ILogger<PeekController> logger;
         private readonly LinkRewriter linkRewriter;
+        private readonly IIdentityService identityService;
 
         public PeekController(
             IDds dds,
@@ -32,7 +33,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             IWorkStorageFactory workStorageFactory,
             ILogger<PeekController> logger,
             IIIIFBuilder iiifBuilder,
-            LinkRewriter linkRewriter)
+            LinkRewriter linkRewriter,
+            IIdentityService identityService)
         {
             this.dds = dds;
             this.catalogue = catalogue;
@@ -40,6 +42,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.logger = logger;
             this.iiifBuilder = iiifBuilder;
             this.linkRewriter = linkRewriter;
+            this.identityService = identityService;
         }
 
         private ContentResult IIIFContent(string json)
@@ -59,7 +62,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         [AllowAnonymous]
         public async Task<ContentResult> IIIFRaw(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
+            var ddsId = identityService.GetIdentity(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
             build.IIIFResource?.EnsurePresentation3Context();
             return IIIFContent(build.IIIFResource?.AsJson());
@@ -68,11 +71,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
         [AllowAnonymous]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
+            var ddsId = identityService.GetIdentity(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
             if (build.MayBeConvertedToV2)
             {
-                var iiif2 = iiifBuilder.BuildLegacyManifestations(id, new[] { build });
+                var iiif2 = iiifBuilder.BuildLegacyManifestations(ddsId, new[] { build });
                 return IIIFContent(iiif2[id]?.IIIFResource?.AsJson());
             }
 
@@ -82,7 +85,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> IIIF(string id, bool all = false)
         {
-            var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
+            var ddsId = identityService.GetIdentity(id); // full manifestation id, e.g., b19974760_233_0024
             var build = await BuildResult(ddsId, all);
             build.IIIFResource?.EnsurePresentation3Context();
             var model = new CodeModel
@@ -90,12 +93,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 Title = "IIIF Resource Preview",
                 Description = "This has been built on the fly - it won't have been written to S3 yet.",
                 Identifier = ddsId,
-                RelativePath = ddsId, // ?
+                RelativePath = ddsId.Value, // ?
                 CodeAsString = build.IIIFResource?.AsJson(),
                 ErrorMessage = build.Message,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("IIIFRaw", new {id}),
-                IncludeLinksToFullBuild = ddsId.HasBNumber
+                IncludeLinksToFullBuild = ddsId.Source == Source.Sierra
             };
             return View("Code", model);
         }
@@ -115,8 +118,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> XmlRaw(string id, string parts)
         {
-            var packageIdentifier = new DdsIdentifier(id);
-            var store = await workStorageFactory.GetWorkStore(packageIdentifier);
+            var ddsId = identityService.GetIdentity(id);
+            var store = await workStorageFactory.GetWorkStore(ddsId);
             var redirect = GetRedirectPath(store, parts);
             if (redirect.HasText())
             {
@@ -128,8 +131,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ActionResult> XmlView(string id, string parts)
         {
-            var packageIdentifier = new DdsIdentifier(id);
-            var store = await workStorageFactory.GetWorkStore(packageIdentifier);            
+            var ddsId = identityService.GetIdentity(id);
+            var store = await workStorageFactory.GetWorkStore(ddsId);            
             var redirect = GetRedirectPath(store, parts);
             if (redirect.HasText())
             {
@@ -148,8 +151,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 errorMessage = ex.Message;
             }
 
-            DdsIdentifier manifestationIdentifier = null;
-            if (packageIdentifier.HasBNumber)
+            DdsIdentity manifestationIdentifier = null;
+            if (ddsId.Source == Source.Sierra)
             {
                 try
                 {
@@ -161,7 +164,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                         manifestation = $"{bParts[0]}_{bParts[1]}";
                     }
 
-                    manifestationIdentifier = new DdsIdentifier(manifestation);
+                    manifestationIdentifier = identityService.GetIdentity(manifestation);
                 }
                 catch
                 {
@@ -173,7 +176,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 Title = "XML File View",
                 Description = $"You can view other XML resources for {id} by changing the URL of this page.",
-                Identifier = manifestationIdentifier ?? packageIdentifier,
+                Identifier = manifestationIdentifier ?? ddsId,
                 RelativePath = parts,
                 CodeAsString = xmlAsString,
                 ErrorMessage = errorMessage,
@@ -187,15 +190,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<ContentResult> StorageManifestRaw(string id)
         {
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
+            var ddsId = identityService.GetIdentity(id);
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
             var storageManifest = await archiveStore.GetStorageManifest();
             return Content(storageManifest.ToString(Formatting.Indented), "application/json");
         }
         
         public async Task<ActionResult> StorageManifest(string id)
         {
-            var packageIdentifier = new DdsIdentifier(id);
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(packageIdentifier);
+            var ddsId = identityService.GetIdentity(id);
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
 
             string errorMessage = null;
             string jsonAsString = null;
@@ -213,7 +217,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new CodeModel
             {
                 Title = "Storage Manifest",
-                Identifier = packageIdentifier,
+                Identifier = ddsId,
                 CodeAsString = jsonAsString ?? string.Empty,
                 ErrorMessage = errorMessage,
                 Mode = "ace/mode/json",
@@ -223,26 +227,28 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Code", model);
         }
         
-        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all)
+        private async Task<BuildResult> BuildResult(DdsIdentity ddsId, bool all)
         {
             var results = await BuildIIIF(ddsId, all);
-            var build = results[ddsId];
+            var build = results[ddsId.Value];
             if (build is { RequiresMultipleBuild: true } && all == false)
             {
-                results = await BuildIIIF(ddsId.PackageIdentifier, true);
+                var packageId = identityService.GetIdentity(ddsId.PackageIdentifier);
+                results = await BuildIIIF(packageId, true);
                 // do we still have the same resource in the results?
                 // This particular manifestation might have been removed.
                 // e.g., AV MM rearranged into one Manifest
                 // So return the b number
-                build = results[ddsId] ?? results[ddsId.PackageIdentifier];
+                build = results[ddsId.Value] ?? results[ddsId.PackageIdentifier];
             }
             return build;
         }
         
-        private async Task<MultipleBuildResult> BuildIIIF(DdsIdentifier ddsId, bool all)
+        private async Task<MultipleBuildResult> BuildIIIF(DdsIdentity ddsId, bool all)
         {
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
-            await dds.RefreshManifestations(ddsId.PackageIdentifier, work);
+            var packageId = identityService.GetIdentity(ddsId.PackageIdentifier);
+            await dds.RefreshManifestations(packageId, work);
             if (all)
             {
                 return await iiifBuilder.BuildAllManifestations(ddsId);

@@ -24,14 +24,14 @@
 
         @foreach (DlcsIngestJob job in Model.Jobs)
         {
-            var manifestation = job.GetManifestationIdentifier();
+            var manifestationId = Model.ManifestationIdentifiers[job.Id];
             <tr class="row-overview @Model.GetCssClassForJobRow(job)">
                 @if (!isDetail)
                 {
                     <td><a class="row-toggle" href="#"><span class="glyphicon glyphicon-chevron-down"></span> </a></td>
                     <td>@Html.ActionLink(job.Id.ToString(), "Index", "Job", new { id = job.Id }, new { })</td>
                 }
-                <td>@Html.ActionLink(manifestation, "Manifestation", "Dash", new { id = ((DdsIdentifier)manifestation).PathElementSafe }, new { })</td>
+                <td>@Html.ActionLink(manifestationId.Value, "Manifestation", "Dash", new { id = manifestationId.PathElementSafe }, new { })</td>
                 <td>@StringUtils.GetLocalDate(job.Created)</td>
                 <td>@StringUtils.GetLocalDate(job.StartProcessed)</td>
                 <td>@StringUtils.GetLocalDate(job.EndProcessed)</td>

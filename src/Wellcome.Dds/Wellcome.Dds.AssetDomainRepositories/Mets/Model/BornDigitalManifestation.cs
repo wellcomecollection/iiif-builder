@@ -9,13 +9,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 
 public class BornDigitalManifestation : IManifestation
 {
-    public BornDigitalManifestation(DdsIdentity identifier)
+    public BornDigitalManifestation(string identifier)
     {
         Identifier = identifier;
     }
     
     public IArchiveStorageStoredFileInfo? SourceFile { get; set; }
-    public DdsIdentity Identifier { get; set; }
+    public string Identifier { get; set; }
     public string? Label { get; set; }
     public string? Type { get; set; }
     public int? Order { get; set; }
@@ -23,12 +23,6 @@ public class BornDigitalManifestation : IManifestation
     public ISectionMetadata? ParentSectionMetadata { get; }
     public bool Partial => false; // never partial  
     
-    public string GetRootId()
-    {
-        // We only have one manifestation per identifier for born digital
-        return Identifier!.ToString();
-    }
-
     public List<IPhysicalFile>? Sequence { get; set; }
 
     public List<IStoredFile> SynchronisableFiles

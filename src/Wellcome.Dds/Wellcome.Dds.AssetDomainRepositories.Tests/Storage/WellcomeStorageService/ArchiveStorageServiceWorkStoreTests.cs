@@ -26,7 +26,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageServ
         {
             var identifier = IdentityHelper.GetSimpleTestBNumber("b12345678");
             var storageMap =
-                WellcomeBagAwareArchiveStorageMap.FromJObject(SampleHelpers.GetJson("multi_version.json"), identifier.ToString());
+                WellcomeBagAwareArchiveStorageMap.FromJObject(SampleHelpers.GetJson("multi_version.json"), identifier.Value);
             s3Client = A.Fake<IAmazonS3>();
 
             sut = new ArchiveStorageServiceWorkStore("digital", identifier, storageMap, null, xmlElementCache, s3Client);

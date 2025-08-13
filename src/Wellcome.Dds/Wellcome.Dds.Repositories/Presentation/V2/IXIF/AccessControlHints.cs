@@ -20,7 +20,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         public AccessControlHints(DdsIdentity identifier, LanguageMap accessHint)
         {
             AccessHint = accessHint.ToString();
-            Id = IdTemplate.Replace("{identifier}", identifier.ToString());
+            Id = IdTemplate.Replace("{identifier}", identifier.Value);
             Profile = Constants.Profiles.AccessControlHints;
             Context = "http://wellcomelibrary.org/ld/iiif-ext/0/context.json";
         }

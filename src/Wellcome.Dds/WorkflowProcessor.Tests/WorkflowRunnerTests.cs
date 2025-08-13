@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Test.Helpers;
@@ -30,9 +31,21 @@ namespace WorkflowProcessor.Tests
             var ddsOptionsInst = Options.Create(ddsOptions);
             
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
-            // TODO need to fix this once runnable workflowrunner
-            sut = new WorkflowRunner(ingestJobRegistry, runnerOptionsInst, new NullLogger<WorkflowRunner>(),
-                null, null, null, ddsOptionsInst, null, null, null, A.Fake<ICacheInvalidationPathPublisher>(), null);
+            var identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            sut = new WorkflowRunner(
+                ingestJobRegistry, 
+                runnerOptionsInst, 
+                new NullLogger<WorkflowRunner>(),
+                null, 
+                null, 
+                null, 
+                ddsOptionsInst, 
+                null, 
+                null, 
+                null, 
+                A.Fake<ICacheInvalidationPathPublisher>(), 
+                null,
+                identityService);
         }
         
         [Fact]

@@ -6,7 +6,7 @@ namespace Wellcome.Dds.Dashboard.Models
     {
         public string Title { get; set; }
         public string Description { get; set; }
-        public DdsIdentifier Identifier { get; set; }
+        public DdsIdentity Identifier { get; set; }
         public string AnchorFile { get; set; }
         public string RelativePath { get; set; }
         public string CodeAsString { get; set; }

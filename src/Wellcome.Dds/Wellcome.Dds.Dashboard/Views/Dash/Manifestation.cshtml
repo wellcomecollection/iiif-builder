@@ -123,7 +123,7 @@
     @* BEGIN Manifestation Identifier and Label *@
     <div class="col-md-9">
         <h3 style="margin-top: 13px;">@Model.DigitisedManifestation.Identifier
-            @if (metsManifestation.Label.HasText() && metsManifestation.Label != Model.DigitisedManifestation.Identifier)
+            @if (metsManifestation.Label.HasText() && metsManifestation.Label != Model.DigitisedManifestation.Identifier!.Value)
             {
                 <span>-</span>
                 @metsManifestation.Label // Only Digitised objects will have a useful label
@@ -145,10 +145,10 @@
                         <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-right">
-                        @foreach (var manif in Model.Siblings)
+                        @foreach (var manifestation in Model.Siblings)
                         {
-                            <li class="@Model.GetDropDownClass(manif)">
-                                @Html.ActionLink(manif.Order + ": " + manif.Label, "Manifestation", new { id = manif.Identifier.PathElementSafe })
+                            <li class="@Model.GetDropDownClass(manifestation)">
+                                <a href="@Model.SiblingLinks[manifestation.Identifier]">@(manifestation.Order + ": " + manifestation.Label)</a>
                             </li>
                         }
                     </ul>
@@ -256,7 +256,7 @@
                         <li><a href="@Model.ManifestUrl">Live IIIF Manifest</a></li>
                         <li>@Html.ActionLink("Live IIIF 3 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=3}, new {target="_blank"}) </li>
                         <li>@Html.ActionLink("Live IIIF 2/3 in Mirador", "Mirador", "Dash", new {id = Model.DdsIdentifier.PathElementSafe}, new {target="_blank"}) </li>
-                        @if (Model.DdsIdentifier.StorageSpace != DdsIdentifier.BornDigital)
+                        @if (Model.DdsIdentifier.StorageSpace != StorageSpace.BornDigital)
                         {
                             <li>@Html.ActionLink("Live IIIF 2 in UV", "UV", "Dash", new {id = Model.DdsIdentifier.PathElementSafe, version=2}, new {target="_blank"}) </li>
                         }
@@ -569,7 +569,7 @@
         </h4>
 
         @* Tree here or table *@
-        @if (Model.DdsIdentifier.StorageSpace == DdsIdentifier.BornDigital)
+        @if (Model.DdsIdentifier.StorageSpace == StorageSpace.BornDigital)
         {
             var fileMap = Model.DigitisedManifestation.MetsManifestation.Sequence
                 .ToDictionary(pf => pf.Id, pf => pf);

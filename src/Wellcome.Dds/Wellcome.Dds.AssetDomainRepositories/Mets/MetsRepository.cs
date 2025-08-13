@@ -67,7 +67,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                     if (identifier.IssuePart.HasText())
                     {
                         // we only want a specific issue
-                        var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier.ToString());
+                        var issueStruct = structMap.Children.Single(c => c.ExternalId == identifier.Value);
                         return new MetsManifestation(issueStruct, structMap);
                     }
                 }
@@ -195,10 +195,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 PhysicalFileIds = new List<string>()
             };
             
-            var bdm = new BornDigitalManifestation(workStore.Identifier)
+            var bdm = new BornDigitalManifestation(workStore.Identifier.Value)
             {
-                // Many props still to assigned 
-                Label = workStore.Identifier.ToString(), // we have no descriptive metadata!
+                // Many props still to be assigned 
+                Label = workStore.Identifier.Value, // we have no descriptive metadata!
                 Type = "Born Digital",
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),
@@ -396,12 +396,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 if (identifier.IssuePart.HasText())
                 {
                     volumeIdentifier = identifier.VolumePart;
-                    issueIdentifier = identifier.ToString();
+                    issueIdentifier = identifier.Value;
                     sequenceIndex = await FindSequenceIndex(identifier);
                 }
                 else if (identifier.VolumePart.HasText())
                 {
-                    volumeIdentifier = identifier.ToString();
+                    volumeIdentifier = identifier.Value;
                     sequenceIndex = await FindSequenceIndex(identifier);
                 }
                 logger.LogInformation("JQ {identifier} - rootMets is IManifestation", identifier);
@@ -419,7 +419,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections!)
                     {
-                        var volume = await GetAsync(partialVolume.Identifier) as ICollection;
+                        var volumeId = identityService.GetIdentity(partialVolume.Identifier);
+                        var volume = await GetAsync(volumeId) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations!)
                         {
@@ -464,7 +465,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 if (anchor == null) return -1;
                 foreach (var manifestation in anchor.Manifestations!)
                 {
-                    if (manifestation.Identifier == identifier)
+                    if (manifestation.Identifier == identifier.Value)
                     {
                         return sequenceIndex;
                     }

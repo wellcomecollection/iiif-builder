@@ -151,6 +151,7 @@ namespace Wellcome.Dds.Common.Tests
             var identifier = identityService.GetIdentity(value);
             
             // Assert
+            identifier.Value.Should().Be(value);
             identifier.ToString().Should().Be(value);
         }
         
@@ -166,6 +167,7 @@ namespace Wellcome.Dds.Common.Tests
             
             // Assert
             identifier.ToString().Should().Be(expected);
+            identifier.Value.Should().Be(expected);
         }
         
 

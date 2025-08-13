@@ -1,14 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Threading.Tasks;
 using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
-using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -209,7 +206,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                 {
                     errorDataMessage = $"digitalManifestation.MetsManifestation is null for {job.Identifier} in job {jobId}";
                 }
-                else if (!digitalManifestation.JobExactMatchForManifestation(job))
+                else if (!JobExactMatchForManifestation(digitalManifestation, job))
                 {
                     errorDataMessage =
                         $"Job data doesn't match retrieved manifestation. Abandoning job {jobId} for {job.Identifier}";
@@ -348,6 +345,54 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             await ddsInstrumentationContext.SaveChangesAsync();
             return result;
+        }
+        
+        private bool JobExactMatchForManifestation(IDigitalManifestation digitalManifestation, DlcsIngestJob job)
+        {
+            if (job.Identifier != digitalManifestation.Identifier!.PackageIdentifier)
+            {
+                //Log.ErrorFormat("BNumber for job {0} does not match manifestation GetRootId() {1}",
+                //    job.Identifier, MetsManifestation.GetRootId());
+                return false;
+            }
+            if (job.IssuePart.HasText())
+            {
+                // a periodical issue
+                if (!job.VolumePart.HasText() || !job.IssuePart.StartsWith(job.VolumePart))
+                {
+                    //Log.ErrorFormat("Job has issuePart {0} that does not match volumePart {1}",
+                    //    job.IssuePart, job.VolumePart);
+                    return false;
+                }
+                if (job.IssuePart != digitalManifestation.Identifier.Value)
+                {
+                    //Log.ErrorFormat("Job has issuePart {0} that does not match manifestation ID {1}",
+                    //    job.IssuePart, MetsManifestation.Id);
+                    return false;
+
+                }
+            }
+            else if (job.VolumePart.HasText())
+            {
+                // a multiple manifestation volume
+                if (job.VolumePart != digitalManifestation.Identifier.Value)
+                {
+                    //Log.ErrorFormat("Job has VolumePart {0} that does not match manifestation ID {1}",
+                    //    job.VolumePart, MetsManifestation.Id);
+                    return false;
+                }
+            }
+            else
+            {
+                // a single manifestation
+                if (job.Identifier != digitalManifestation.Identifier.Value)
+                {
+                    //Log.ErrorFormat("Job has Identifier {0} that does not match manifestation ID {1}",
+                    //    job.Identifier, MetsManifestation.Id);
+                    return false;
+                }
+            }
+            return true;
         }
 
         private bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation, out string? reason)

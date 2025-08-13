@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Utils;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Workflow
@@ -8,10 +9,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
     public class RecentlyAddedItemProvider : IDatedIdentifierProvider
     {
         private DdsInstrumentationContext ddsInstrumentationContext;
+        private IIdentityService identityService;
 
-        public RecentlyAddedItemProvider(DdsInstrumentationContext ddsInstrumentationContext)
+        public RecentlyAddedItemProvider(
+            DdsInstrumentationContext ddsInstrumentationContext,
+            IIdentityService identityService)
         {
             this.ddsInstrumentationContext = ddsInstrumentationContext;
+            this.identityService = identityService;
         }
 
         public List<DatedIdentifier> GetDatedIdentifiers(DateTime @from, DateTime? to)
@@ -50,7 +55,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
         {
             if (max > 1000) max = 1000;
 
-            return ddsInstrumentationContext
+            var displayList = ddsInstrumentationContext
                 .DlcsIngestJobs
                 .GroupBy(j => new { j.Identifier, j.Label })
                 .Select(g => new DatedIdentifier
@@ -64,6 +69,21 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
                 .OrderByDescending(j => j.Date)
                 .Take(max)
                 .ToList();
+            
+            foreach (var di in displayList)
+            {
+                if (di.Identifier!.ToAlphanumeric() != di.Identifier)
+                {
+                    // This is an optimisation that is only really an optimisation when identityService.GetIdentity is 
+                    // expensive. And need to keep an eye on whether it remains valid.
+                    di.PathSafeIdentifier = di.Identifier;
+                }
+                else
+                {
+                    di.PathSafeIdentifier = identityService.GetIdentity(di.Identifier).PackageIdentifierPathElementSafe;
+                }
+            }
+            return displayList;
         }
     }
 }

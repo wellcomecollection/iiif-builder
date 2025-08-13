@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,15 +14,18 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowJobController> logger;
         private readonly ICacheInvalidationPathPublisher invalidationPathPublisher;
+        private readonly IIdentityService identityService;
 
         public WorkflowJobController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowJobController> logger,
-            ICacheInvalidationPathPublisher invalidationPathPublisher)
+            ICacheInvalidationPathPublisher invalidationPathPublisher,
+            IIdentityService identityService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
             this.invalidationPathPublisher = invalidationPathPublisher;
+            this.identityService = identityService;
         }
         
         /// <summary>
@@ -55,8 +57,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             
             try
             {
-                var bNumber = new DdsIdentifier(id).PackageIdentifier;
-                await workflowCallRepository.CreateExpeditedWorkflowJob(bNumber, iiifOnly ? 6 : null, true);
+                var ddsId = identityService.GetIdentity(id);
+                await workflowCallRepository.CreateExpeditedWorkflowJob(ddsId.PackageIdentifier, iiifOnly ? 6 : null, true);
             }
             catch (Exception ex)
             {

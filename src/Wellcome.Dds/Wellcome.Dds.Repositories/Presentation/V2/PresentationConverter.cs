@@ -31,11 +31,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     {
         private readonly UriPatterns uriPatterns;
         private readonly ILogger logger;
+        private readonly IIdentityService identityService;
 
-        public PresentationConverter(UriPatterns uriPatterns, ILogger logger)
+        public PresentationConverter(
+            UriPatterns uriPatterns,
+            ILogger logger,
+            IIdentityService identityService)
         {
             this.uriPatterns = uriPatterns;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -56,7 +61,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
                     try
                     {
-                        var iiif2 = Convert(iiif3, buildResult.Id, count);
+                        var ddsId = identityService.GetIdentity(buildResult.Id);
+                        var iiif2 = Convert(iiif3, ddsId, count);
                         result.IIIFResource = iiif2;
                         result.Outcome = BuildOutcome.Success;
                         
@@ -265,7 +271,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Label = manifest.Label,
                     Thumbnail = new List<Thumbnail>
                     {
-                        new() {Id = uriPatterns.PdfThumbnail(identifier.ToString()), Type = null}
+                        new() {Id = uriPatterns.PdfThumbnail(identifier.Value), Type = null}
                     }
                 };
 
@@ -339,7 +345,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                                 Type = "foaf:Document",
                                 Format = extBody.Format,
                                 Label = manifest.Label,
-                                Thumbnail = uriPatterns.PdfThumbnail(identifier.ToString())
+                                Thumbnail = uriPatterns.PdfThumbnail(identifier.Value)
                             };
                             annotation.Resource = resource;
                             elements.Resources.Add(annotation);
@@ -475,26 +481,26 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             const string sequenceIdentifierToken = "{sequenceIdentifier}";
             const string sequenceFormat = "/presentation/v2/{identifier}/sequences/{sequenceIdentifier}";
 
-            return uriPatterns.GetPath(sequenceFormat, identifier.ToString(), (sequenceIdentifierToken, sequenceIdentifier));
+            return uriPatterns.GetPath(sequenceFormat, identifier.Value, (sequenceIdentifierToken, sequenceIdentifier));
         } 
         
         private string GetAccessControlHintServiceId(DdsIdentity identifier)
         {
             const string idFormat = "/iiif/{identifier}-0/access-control-hints-service";
-            return uriPatterns.GetPath(idFormat, identifier.ToString());
+            return uriPatterns.GetPath(idFormat, identifier.Value);
         }
         
         private string GetAccessControlHintServiceProfile(DdsIdentity identifier)
         {
             const string profileFormat = "/ld/iiif-ext/access-control-hints";
-            return uriPatterns.GetPath(profileFormat, identifier.ToString());
+            return uriPatterns.GetPath(profileFormat, identifier.Value);
         }
         
         private string GetMediaSequenceIdProfile(DdsIdentity identifier, string sequenceIdentifier)
         {
             const string sequenceIdentifierToken = "{sequenceIdentifier}";
             const string mediaSequenceFormat = "/iiif/{identifier}/xsequence/{sequenceIdentifier}";
-            return uriPatterns.GetPath(mediaSequenceFormat, identifier.ToString(), (sequenceIdentifierToken, sequenceIdentifier));
+            return uriPatterns.GetPath(mediaSequenceFormat, identifier.Value, (sequenceIdentifierToken, sequenceIdentifier));
         }
     }
 }

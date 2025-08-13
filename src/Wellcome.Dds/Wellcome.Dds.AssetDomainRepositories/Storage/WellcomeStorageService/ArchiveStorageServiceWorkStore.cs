@@ -53,7 +53,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
 
         public string GetAwsKey(string relativePath)
         {            
-            var minRelativePath = relativePath.Replace(Identifier.ToString(), "#");
+            var minRelativePath = relativePath.Replace(Identifier.Value, "#");
             foreach (var versionSet in ArchiveStorageMap.VersionSets)
             {
                 // version keys are in descending order of the number of files at that version
@@ -158,6 +158,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             return $"{ArchiveStorageMap.Identifier}.xml";
         }
 
-        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageSpace, Identifier.ToString());
+        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageSpace, Identifier.Value);
     }
 }

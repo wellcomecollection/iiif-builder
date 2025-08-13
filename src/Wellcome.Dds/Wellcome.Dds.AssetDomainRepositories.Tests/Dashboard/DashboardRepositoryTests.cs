@@ -8,8 +8,6 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain;
@@ -105,11 +103,11 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             // Arrange
             var idString = "b1231231"; // This can be anything in this test
             var identifier = identityService.GetIdentity(idString); 
-            var testIdentity = identityService.GetIdentity("manifest-id"); 
+            var manifestId = identityService.GetIdentity("manifest-id"); 
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Identifier = testIdentity,
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
@@ -121,7 +119,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var result = (DigitalManifestation)await sut.GetDigitalObject(idString, ctx);
 
             // Assert
-            result.Identifier.Should().Be(testIdentity);
+            result.Identifier.Should().Be(manifestId);
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
@@ -137,7 +135,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => metsRepository.GetAsync(identifier))
                 .Returns(new TestManifestation
                 {
-                    Identifier = testIdentity,
+                    Identifier = "manifest-id",
                     Partial = true,
                     Label = "foo"
                 });
@@ -172,23 +170,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var man1 = identityService.GetIdentity("man-1"); 
             var testCollection = new TestCollection
             {
-                Identifier = theMainOne,
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Identifier = coll1,
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Identifier = coll1Man1}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Identifier = coll2,}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Identifier = man1}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
 
@@ -229,23 +227,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var man1 = identityService.GetIdentity("man-1"); 
             var testCollection = new TestCollection
             {
-                Identifier = theMainOne,
+                Identifier = "the-main-one",
                 Partial = true,
                 Collections = new List<ICollection>
                 {
                     new TestCollection
                     {
-                        Identifier = coll1,
+                        Identifier = "coll-1",
                         Manifestations = new List<IManifestation>
                         {
-                            new TestManifestation {Identifier = coll1Man1}
+                            new TestManifestation {Identifier = "coll-1-man-1"}
                         }
                     },
-                    new TestCollection {Identifier = coll2,}
+                    new TestCollection {Identifier = "coll-2",}
                 },
                 Manifestations = new List<IManifestation>
                 {
-                    new TestManifestation {Identifier = man1}
+                    new TestManifestation {Identifier = "man-1"}
                 }
             };
 
@@ -367,15 +365,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestManifestation : IManifestation
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public DdsIdentity Identifier { get; set; }
+            public string Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; set; }
             public ISectionMetadata SectionMetadata { get; set; }
             public ISectionMetadata ParentSectionMetadata { get; set; }
             public bool Partial { get; set; }
-            public string GetRootId() => "b12398761";
-
             public List<IPhysicalFile> Sequence { get; set; }
             public List<IPhysicalFile> SignificantSequence { get; }
             public IStructRange RootStructRange { get; set; }
@@ -391,14 +387,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestCollection : ICollection
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public DdsIdentity Identifier { get; set; }
+            public string Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; }
             public ISectionMetadata SectionMetadata { get; }
             public ISectionMetadata ParentSectionMetadata { get; }
             public bool Partial { get; set; }
-            public string GetRootId() => "b12398761";
 
             public List<ICollection> Collections { get; set; }
             public List<IManifestation> Manifestations { get; set; }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using IIIF;
 using Microsoft.EntityFrameworkCore;
@@ -89,8 +88,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 throw new ArgumentException($"Cannot get a digital resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
-
-            digObject.Identifier = metsResource.Identifier;
+            
+            var metsResourceId = identityService.GetIdentity(metsResource.Identifier);
+            if (metsResourceId != ddsId)
+            {
+                throw new InvalidOperationException($"DdsIdentity added exception: {metsResourceId} does not match {ddsId}");
+            }
+            digObject.Identifier = ddsId;
             digObject.Partial = metsResource.Partial;
 
             //// DEBUG step - force evaluation of DLCS query
@@ -166,15 +170,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         {
             logger.LogDebug("Will construct a SyncOperation for context: {callContext}", dlcsCallContext.Id);
             var metsManifestation = digitisedManifestation.MetsManifestation;
+            var manifestationDdsId = identityService.GetIdentity(metsManifestation.Identifier);
             var imagesAlreadyOnDlcs = digitisedManifestation.DlcsImages!.ToList();
-            var missingAccessConditions = metsManifestation!.SynchronisableFiles.AnyItems()
+            var missingAccessConditions = metsManifestation.SynchronisableFiles.AnyItems()
                 .Where(sf => sf.PhysicalFile!.AccessCondition == AccessCondition.Missing).ToList();
             logger.LogDebug(
                 "There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
                 imagesAlreadyOnDlcs.Count, digitisedManifestation.Identifier, dlcsCallContext.Id);
             var syncOperation = new SyncOperation(dlcsCallContext)
             {
-                ManifestationIdentifier = metsManifestation.Identifier.ToString(),
+                ManifestationIdentifier = metsManifestation.Identifier,
                 DlcsImagesCurrentlyIngesting = new List<Image>(),
                 StorageIdentifiersToIgnore = metsManifestation.IgnoredStorageIdentifiers,
                 ImagesCurrentlyOnDlcs =
@@ -214,7 +219,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // Get the manifestation level metadata that each image is going to need
             // NB This returns -1 for a Chemist and Druggist issue
-            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(manifestationDdsId);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
@@ -247,7 +252,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
                 if (!AccessCondition.IsValid(storedFile.PhysicalFile!.AccessCondition))
                 {
-                    // This does not have an access condition that we can sync wth the DLCS
+                    // This does not have an access condition that we can sync with the DLCS
                     syncOperation.HasInvalidAccessCondition = true;
                     syncOperation.Message = "Sync operation found at least one invalid access condition";
                     logger.LogDebug("Asset {identifier} has an invalid access condition {accessCondition}",
@@ -255,7 +260,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     continue;
                 }
 
-                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                var newDlcsImage = MakeDlcsImage(storedFile, manifestationDdsId,
                     syncOperation.LegacySequenceIndex, maxUnauthorised);
                 syncOperation.ImagesThatShouldBeOnDlcs[storedFile.StorageIdentifier!] = newDlcsImage;
                 var existingDlcsImage = syncOperation.ImagesCurrentlyOnDlcs[storedFile.StorageIdentifier!];
@@ -278,7 +283,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         // for the new information display in the dashboard. 
                         // Make a new candidate image for patch diff; we only want this to get patchMismatchReasons here, 
                         // we won't use newDlcsImageForPatchTest for anything else.
-                        var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                        var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, manifestationDdsId,
                             syncOperation.LegacySequenceIndex, maxUnauthorised);
                         var patchDiffImage = GetPatchImage(newDlcsImageForPatchTest, existingDlcsImage, out var patchMismatchReasons);
                         if (patchDiffImage != null)
@@ -326,7 +331,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var dc = new DigitalCollection
             {
                 MetsCollection = metsCollection,
-                Identifier = metsCollection.Identifier
+                Identifier = identityService.GetIdentity(metsCollection.Identifier)
             };
 
             // There are currently 0 instances of an item with both collection + manifestation here.
@@ -364,7 +369,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             return new DigitalManifestation(metsManifestation)
             {
-                Identifier = metsManifestation.Identifier,
+                Identifier = identityService.GetIdentity(metsManifestation.Identifier),
                 DlcsImages = getDlcsImages.Result,
                 PdfControlFile = getPdf.Result
             };

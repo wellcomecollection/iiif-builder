@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
@@ -17,6 +18,12 @@ using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
+    public class WorkflowJobWithIdentity
+    {
+        public WorkflowJob WorkflowJob { get; set; }
+        public DdsIdentity DdsIdentity { get; set; }
+    }
+    
     public class WorkflowCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
@@ -34,23 +41,33 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
-            this.ddsOptions = options.Value;
+            ddsOptions = options.Value;
             this.sqsClient = sqsClient;
             this.identityService = identityService;
+        }
+
+        private WorkflowJobWithIdentity GetWorkflowJobWithIdentity(WorkflowJob workflowJob)
+        {
+            var ddsId = identityService.GetIdentity(workflowJob.Identifier);
+            return new WorkflowJobWithIdentity
+            {
+                DdsIdentity = ddsId,
+                WorkflowJob = workflowJob
+            };
         }
 
         public async Task<ActionResult> Recent()
         {
             ViewBag.IsErrorList = false;
             var recent = await workflowCallRepository.GetRecent(1000);
-            return View("WorkflowCallList", recent);
+            return View("WorkflowCallList", recent.Select(GetWorkflowJobWithIdentity).ToList());
         }
         
         public async Task<ActionResult> Errors()
         {
             ViewBag.IsErrorList = true;
             var errors = await workflowCallRepository.GetRecentErrors(500);
-            return View("WorkflowCallList", errors);
+            return View("WorkflowCallList", errors.Select(GetWorkflowJobWithIdentity).ToList());
         }
         
         public async Task<ActionResult> MatchingErrors(string msg)
@@ -78,7 +95,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 };
             }
 
-            return View(job);
+            return View(GetWorkflowJobWithIdentity(job));
         }
 
         public async Task<ActionResult> Create(string id)
@@ -184,7 +201,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     model.Identifiers = await reader.ReadToEndAsync();
                 }
 
-                model.TidyIdentifiers();
+                model.TidyIdentifiers(identityService);
             }
 
             return View(model);
@@ -196,7 +213,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 Identifiers = identifiers
             };
-            model.TidyIdentifiers(true);
+            model.TidyIdentifiers(identityService, true);
             if (model.DdsIdentifiers.HasItems())
             {
                 return View(model);
@@ -211,7 +228,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (model.RunnerOptions.HasWorkToDo())
             {
                 var options = model.RunnerOptions.ToInt32();
-                model.TidyIdentifiers(true);
+                model.TidyIdentifiers(identityService, true);
                 model.WorkflowJobs = new List<WorkflowJob>();
                 try
                 {
