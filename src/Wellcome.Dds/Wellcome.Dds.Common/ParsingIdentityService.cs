@@ -65,7 +65,7 @@ public class ParsingIdentityService(
             }
             source = Source.Sierra; // For now
             hasBNumber = true;
-            packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], false)!;
+            packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], true)!;
             value = rawString.ReplaceFirst(parts[0], packageIdentifier).ToLowerInvariant();
             packageIdentifierPathElementSafe = packageIdentifier;
             pathElementSafe = value; // e.g., b19974760_020_024

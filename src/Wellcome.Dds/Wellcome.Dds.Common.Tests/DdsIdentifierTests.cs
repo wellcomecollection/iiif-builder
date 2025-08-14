@@ -10,14 +10,15 @@ namespace Wellcome.Dds.Common.Tests
 {
     public class DdsIdentifierTests
     {
-        private const string BNumber = "b99977766";
-        private const string Volume = "b99977766_0003";
-        private const string Issue = "b99977766_0002_0005";
-        private const string BNumberSequence = "b99977766/123";
+        private const string BNumber = "b13248169";
+        private const string BNumberWithOutCheckDigit = "b1324816";
+        private const string Volume = "b13248169_0003";
+        private const string Issue = "b13248169_0002_0005";
+        private const string BNumberSequence = "b13248169/123";
         private const string MsForm = "MS.126";
         private const string ArchiveFormWithSlashes = "PPCRI/D/4/5A";
         private const string ArchiveFormNoSlashes = "PPCRI_D_4_5A";
-        private const string NotBNumberButHasParts = "2b99977766_0002_0005";
+        private const string NotBNumberButHasParts = "2b13248169_0002_0005";
         private const string MixedSlashesAndUnderscores = "PPCRI_2/b12312345/_a";
 
         private IIdentityService identityService;
@@ -55,7 +56,6 @@ namespace Wellcome.Dds.Common.Tests
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
             identifier.PathElementSafe.Should().Be(BNumber);
             identifier.Value.Should().Be(BNumber);
-            identifier.PackageIdentifier.Should().Be("b99977766");
             identifier.VolumePart.Should().BeNull();
             identifier.IssuePart.Should().BeNull();
         }
@@ -75,8 +75,8 @@ namespace Wellcome.Dds.Common.Tests
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
             identifier.PathElementSafe.Should().Be(Volume);
             identifier.Value.Should().Be(Volume);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_0003");
+            identifier.PackageIdentifier.Should().Be("b13248169");
+            identifier.VolumePart.Should().Be("b13248169_0003");
             identifier.IssuePart.Should().BeNull();
         }
         
@@ -98,7 +98,7 @@ namespace Wellcome.Dds.Common.Tests
             var identifier = identityService.GetIdentity(Issue);
             
             // Assert
-            BNumber.Should().Be("b99977766");
+            BNumber.Should().Be("b13248169");
             identifier.Generator.Should().Be(Generator.Goobi);
             identifier.Source.Should().Be(Source.Sierra);
             identifier.StorageSpace.Should().Be(StorageSpace.Digitised);
@@ -107,9 +107,9 @@ namespace Wellcome.Dds.Common.Tests
             identifier.PackageIdentifierPathElementSafe.Should().Be(BNumber);
             identifier.PathElementSafe.Should().Be(Issue);
             identifier.Value.Should().Be(Issue);
-            identifier.PackageIdentifier.Should().Be("b99977766");
-            identifier.VolumePart.Should().Be("b99977766_0002");
-            identifier.IssuePart.Should().Be("b99977766_0002_0005");
+            identifier.PackageIdentifier.Should().Be("b13248169");
+            identifier.VolumePart.Should().Be("b13248169_0002");
+            identifier.IssuePart.Should().Be("b13248169_0002_0005");
         }
         
         [Fact]
@@ -157,7 +157,7 @@ namespace Wellcome.Dds.Common.Tests
         
         
         [Theory]
-        [InlineData(NotBNumberButHasParts, "2b99977766/0002/0005")]
+        [InlineData(NotBNumberButHasParts, "2b13248169/0002/0005")]
         [InlineData(ArchiveFormNoSlashes, "PPCRI/D/4/5A")]
         [InlineData(MixedSlashesAndUnderscores, "PPCRI/2/b12312345//a")] // yes really
         public void ToString_ReturnsCanonicalValue_ForUnSafeForms(string value, string expected)
@@ -173,6 +173,7 @@ namespace Wellcome.Dds.Common.Tests
 
         [Theory]
         [InlineData(BNumber)]
+        [InlineData(BNumberWithOutCheckDigit)]
         [InlineData(Volume)]
         [InlineData(Issue)]
         public void BNumber_Forms_Yield_BNumber(string value)
@@ -188,6 +189,7 @@ namespace Wellcome.Dds.Common.Tests
         
         [Theory]
         [InlineData(BNumber)]
+        [InlineData(BNumberWithOutCheckDigit)]
         [InlineData(Volume)]
         [InlineData(Issue)]
         public void BNumber_Forms_Yield_BNumber_PackageIdentifier(string value)

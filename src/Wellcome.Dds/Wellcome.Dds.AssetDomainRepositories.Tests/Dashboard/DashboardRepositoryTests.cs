@@ -93,18 +93,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
 
             // Assert
             (await action.Should().ThrowAsync<ArgumentException>()).And
-                .Message.Should().Be(
-                    "Cannot get a digital resource from METS for identifier b1231231 (Parameter 'identifier')");
+                .Message.Should().Be(                         // note the extra check digit ↓
+                    "Cannot get a digital resource from METS for identifier b12312319 (Parameter 'identifier')");
         }
 
         [Fact]
         public async Task GetDigitalResource_HandlesIManifestation_WithoutPdf()
         {
             // Arrange
-            var idString = "b1231231"; // This can be anything in this test
-            var identifier = identityService.GetIdentity(idString); 
             var manifestId = identityService.GetIdentity("manifest-id"); 
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(manifestId))
                 .Returns(new TestManifestation
                 {
                     Identifier = "manifest-id",
@@ -116,7 +114,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetImagesForString3("manifest-id", ctx)).Returns(images);
 
             // Act
-            var result = (DigitalManifestation)await sut.GetDigitalObject(idString, ctx);
+            var result = (DigitalManifestation)await sut.GetDigitalObject("manifest-id", ctx);
 
             // Assert
             result.Identifier.Should().Be(manifestId);
@@ -129,10 +127,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public async Task GetDigitalResource_HandlesIManifestation_WithPdf()
         {
             // Arrange
-            var idString = "b1231231"; // This can be anything in this test
-            var identifier = identityService.GetIdentity(idString); 
             var testIdentity = identityService.GetIdentity("manifest-id"); 
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(testIdentity))
                 .Returns(new TestManifestation
                 {
                     Identifier = "manifest-id",
@@ -147,7 +143,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetPdfDetails("manifest-id")).Returns(pdf);
 
             // Act
-            var result = (DigitalManifestation)await sut.GetDigitalObject(idString, ctx, true);
+            var result = (DigitalManifestation)await sut.GetDigitalObject("manifest-id", ctx, true);
 
             // Assert
             result.Identifier.Should().Be(testIdentity);
@@ -161,9 +157,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
-            var idString = "b1231231"; // This can be anything in this test
-            var identifier = identityService.GetIdentity(idString); 
-            var theMainOne = identityService.GetIdentity("the-main-one"); 
+            var idString = "the-main-one"; // This can be anything in this test
+            var theMainOne = identityService.GetIdentity(idString); 
             var coll1 = identityService.GetIdentity("coll-1"); 
             var coll1Man1 = identityService.GetIdentity("coll-1-man-1"); 
             var coll2 = identityService.GetIdentity("coll-2"); 
@@ -191,7 +186,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
 
             var ctx = new DlcsCallContext("[test]", "[id]");
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(theMainOne))
                 .Returns(testCollection);
             A.CallTo(() => dlcs.GetImagesForString3(A<string>._, ctx))
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
@@ -218,9 +213,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
-            var idString = "b1231231"; // This can be anything in this test
-            var identifier = identityService.GetIdentity(idString); 
-            var theMainOne = identityService.GetIdentity("the-main-one"); 
+            var idString = "the-main-one"; // This can be anything in this test
+            var theMainOne = identityService.GetIdentity(idString); 
             var coll1 = identityService.GetIdentity("coll-1"); 
             var coll1Man1 = identityService.GetIdentity("coll-1-man-1"); 
             var coll2 = identityService.GetIdentity("coll-2"); 
@@ -248,7 +242,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
 
             var ctx = new DlcsCallContext("[test]", "[id]");
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(theMainOne))
                 .Returns(testCollection);
             A.CallTo(() => dlcs.GetImagesForString3(A<string>._, ctx))
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
