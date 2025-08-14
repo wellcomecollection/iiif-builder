@@ -28,7 +28,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
         
         public ArchiveStorageServiceWorkStore(
             string storageSpace,
-            DdsIdentity identifier,
+            string packageIdentifier,
             WellcomeBagAwareArchiveStorageMap archiveStorageMap,
             StorageServiceClient storageServiceClient,
             Dictionary<string, XElement> elementCache,
@@ -41,25 +41,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             }
 
             xmlElementCache = elementCache;
-            Identifier = identifier;            
+            PackageIdentifier = packageIdentifier;            
             StorageSpace = storageSpace;
             this.storageServiceClient = storageServiceClient;
             ArchiveStorageMap = archiveStorageMap;
             this.storageServiceS3 = storageServiceS3;
         }
 
-        public DdsIdentity Identifier { get; }        
+        public string PackageIdentifier { get; }        
         public string StorageSpace { get; }
 
         public string GetAwsKey(string relativePath)
         {            
-            var minRelativePath = relativePath.Replace(Identifier.Value, "#");
+            var minRelativePath = relativePath.Replace(PackageIdentifier, "#");
             foreach (var versionSet in ArchiveStorageMap.VersionSets)
             {
                 // version keys are in descending order of the number of files at that version
                 if (versionSet.Value.Contains(minRelativePath))
                 {
-                    return $"{StorageSpace}/{Identifier}/{versionSet.Key}/data/{relativePath}";
+                    return $"{StorageSpace}/{PackageIdentifier}/{versionSet.Key}/data/{relativePath}";
                 }
             }
             throw new FileNotFoundException("File not present in storage map: " + relativePath, relativePath);
@@ -158,6 +158,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             return $"{ArchiveStorageMap.Identifier}.xml";
         }
 
-        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageSpace, Identifier.Value);
+        public Task<JObject> GetStorageManifest() => storageServiceClient.GetStorageManifest(StorageSpace, PackageIdentifier);
     }
 }

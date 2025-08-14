@@ -195,10 +195,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 PhysicalFileIds = new List<string>()
             };
             
-            var bdm = new BornDigitalManifestation(workStore.Identifier.Value)
+            var bdm = new BornDigitalManifestation(workStore.PackageIdentifier)
             {
                 // Many props still to be assigned 
-                Label = workStore.Identifier.Value, // we have no descriptive metadata!
+                Label = workStore.PackageIdentifier, // we have no descriptive metadata!
                 Type = "Born Digital",
                 Order = 0,
                 Sequence = new List<IPhysicalFile>(),

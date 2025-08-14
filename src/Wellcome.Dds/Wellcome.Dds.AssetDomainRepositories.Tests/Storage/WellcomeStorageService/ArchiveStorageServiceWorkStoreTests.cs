@@ -29,7 +29,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageServ
                 WellcomeBagAwareArchiveStorageMap.FromJObject(SampleHelpers.GetJson("multi_version.json"), identifier.Value);
             s3Client = A.Fake<IAmazonS3>();
 
-            sut = new ArchiveStorageServiceWorkStore("digital", identifier, storageMap, null, xmlElementCache, s3Client);
+            sut = new ArchiveStorageServiceWorkStore("digital", identifier.PackageIdentifier, storageMap, null, xmlElementCache, s3Client);
         }
         
         [Fact]

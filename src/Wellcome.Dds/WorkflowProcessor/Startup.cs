@@ -70,6 +70,7 @@ namespace WorkflowProcessor
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
+            services.AddSingleton<IIdentityService, ParsingIdentityService>();
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();

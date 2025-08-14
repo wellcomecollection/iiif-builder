@@ -54,7 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 throw new InvalidOperationException($"Could not retrieve storage map for {ddsId}");
             }
             return new ArchiveStorageServiceWorkStore(
-                ddsId.StorageSpace!, ddsId,
+                ddsId.StorageSpace!, ddsId.PackageIdentifier,
                 storageMap, storageServiceClient, xmlElementCache, storageServiceS3);
         }
 

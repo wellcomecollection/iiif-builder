@@ -65,6 +65,7 @@ namespace Wellcome.Dds.Server
                 .UseSnakeCaseNamingConvention());
 
             services.AddMemoryCache();
+            services.AddSingleton<IIdentityService, ParsingIdentityService>();
 
             if (!WebHostEnvironment.IsEnvironment("Testing"))
             {
