@@ -107,7 +107,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
 
         // TODO: Making this async needs a code review (compare CloudServicesIngestRegistry and its interface with dds-ecosystem)
         // The following few mthods all need reviewing
-        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentifier identifier)
+        public async IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentity identifier)
         {
             await foreach (var job in RegisterImagesInternal(identifier, false, true))
             {
@@ -115,7 +115,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
         }
 
-        public async Task<DlcsIngestJob[]> RegisterImages(DdsIdentifier identifier, bool useInitialOrigin = false)
+        public async Task<DlcsIngestJob[]> RegisterImages(DdsIdentity identifier, bool useInitialOrigin = false)
         {
             // Can this not return an array? Why does it need to?
             var jobs = new List<DlcsIngestJob>();
@@ -126,7 +126,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             return jobs.ToArray();
         }
 
-        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(DdsIdentifier identifier, bool useInitialOrigin, bool immediateStart)
+        private async IAsyncEnumerable<DlcsIngestJob> RegisterImagesInternal(DdsIdentity identifier, bool useInitialOrigin, bool immediateStart)
         {
             await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(identifier))
             {

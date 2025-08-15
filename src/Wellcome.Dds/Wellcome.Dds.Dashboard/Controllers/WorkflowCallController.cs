@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
@@ -17,37 +18,56 @@ using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
+    public class WorkflowJobWithIdentity
+    {
+        public WorkflowJob WorkflowJob { get; set; }
+        public DdsIdentity DdsIdentity { get; set; }
+    }
+    
     public class WorkflowCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowCallController> logger;
         private readonly DdsOptions ddsOptions;
         private readonly IAmazonSQS sqsClient;
+        private readonly IIdentityService identityService;
 
         public WorkflowCallController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowCallController> logger,
             IOptions<DdsOptions> options,
-            IAmazonSQS sqsClient)
+            IAmazonSQS sqsClient,
+            IIdentityService identityService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
-            this.ddsOptions = options.Value;
+            ddsOptions = options.Value;
             this.sqsClient = sqsClient;
+            this.identityService = identityService;
+        }
+
+        private WorkflowJobWithIdentity GetWorkflowJobWithIdentity(WorkflowJob workflowJob)
+        {
+            var ddsId = identityService.GetIdentity(workflowJob.Identifier);
+            return new WorkflowJobWithIdentity
+            {
+                DdsIdentity = ddsId,
+                WorkflowJob = workflowJob
+            };
         }
 
         public async Task<ActionResult> Recent()
         {
             ViewBag.IsErrorList = false;
             var recent = await workflowCallRepository.GetRecent(1000);
-            return View("WorkflowCallList", recent);
+            return View("WorkflowCallList", recent.Select(GetWorkflowJobWithIdentity).ToList());
         }
         
         public async Task<ActionResult> Errors()
         {
             ViewBag.IsErrorList = true;
             var errors = await workflowCallRepository.GetRecentErrors(500);
-            return View("WorkflowCallList", errors);
+            return View("WorkflowCallList", errors.Select(GetWorkflowJobWithIdentity).ToList());
         }
         
         public async Task<ActionResult> MatchingErrors(string msg)
@@ -65,18 +85,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> WorkflowCall(string id)
         {
-            var ddsId = new DdsIdentifier(id);
-            var job = await workflowCallRepository.GetWorkflowJob(ddsId);
+            var job = await workflowCallRepository.GetWorkflowJob(id);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = ddsId,
+                    Identifier = id,
                     Created = null
                 };
             }
 
-            return View(job);
+            return View(GetWorkflowJobWithIdentity(job));
         }
 
         public async Task<ActionResult> Create(string id)
@@ -107,11 +126,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> PutWorkflowMessageOnQueue(string id)
         {
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = identityService.GetIdentity(id);
             string queueName = ddsId.StorageSpace switch
             {
-                DdsIdentifier.Digitised => ddsOptions.DashboardPushDigitisedQueue,
-                DdsIdentifier.BornDigital => ddsOptions.DashboardPushBornDigitalQueue,
+                StorageSpace.Digitised => ddsOptions.DashboardPushDigitisedQueue,
+                StorageSpace.BornDigital => ddsOptions.DashboardPushBornDigitalQueue,
                 _ => null
             };
 
@@ -127,7 +146,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var message = new WorkflowMessage
                 {
-                    Identifier = ddsId,
+                    Identifier = ddsId.PackageIdentifier,
                     Origin = "dashboard",
                     Space = ddsId.StorageSpace,
                     TimeSent = DateTime.UtcNow
@@ -182,7 +201,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     model.Identifiers = await reader.ReadToEndAsync();
                 }
 
-                model.TidyIdentifiers();
+                model.TidyIdentifiers(identityService);
             }
 
             return View(model);
@@ -194,7 +213,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 Identifiers = identifiers
             };
-            model.TidyIdentifiers(true);
+            model.TidyIdentifiers(identityService, true);
             if (model.DdsIdentifiers.HasItems())
             {
                 return View(model);
@@ -209,7 +228,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (model.RunnerOptions.HasWorkToDo())
             {
                 var options = model.RunnerOptions.ToInt32();
-                model.TidyIdentifiers(true);
+                model.TidyIdentifiers(identityService, true);
                 model.WorkflowJobs = new List<WorkflowJob>();
                 try
                 {
@@ -239,9 +258,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<IActionResult> Delete(string id)
         { 
-            var ddsId = new DdsIdentifier(id);
-            await workflowCallRepository.DeleteJob(ddsId);
-            TempData["job-deleted"] = $"{ddsId} deleted.";
+            await workflowCallRepository.DeleteJob(id);
+            TempData["job-deleted"] = $"{id} deleted.";
             return RedirectToAction("WorkflowCall", new {id});
         }
     }

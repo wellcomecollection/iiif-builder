@@ -13,15 +13,15 @@ public class BulkWorkflowModel
     
     public List<WorkflowJob> WorkflowJobs { get; set; }
 
-    public List<DdsIdentifier> DdsIdentifiers { get; set; }
+    public List<DdsIdentity> DdsIdentifiers { get; set; }
     public string IdentifiersSummary { get; set; }
 
     public string Error { get; set; }
-    public void TidyIdentifiers(bool populateList = false)
+    public void TidyIdentifiers(IIdentityService identityService, bool populateList = false)
     {
         if (Identifiers.IsNullOrWhiteSpace())
         {
-            DdsIdentifiers = new List<DdsIdentifier>();
+            DdsIdentifiers = new List<DdsIdentity>();
             return;
         }
         
@@ -39,9 +39,9 @@ public class BulkWorkflowModel
 
         if (populateList)
         {
-            DdsIdentifiers = lines.Select(s => new DdsIdentifier(s)).ToList();
-            var bCount = DdsIdentifiers.Count(ddsId => ddsId.HasBNumber);
-            IdentifiersSummary = $"{DdsIdentifiers.Count} identifiers of which {bCount} are (or have) B numbers.";
+            DdsIdentifiers = lines.Select(identityService.GetIdentity).ToList();
+            var bCount = DdsIdentifiers.Count(ddsId => ddsId.Source == Source.Sierra);
+            IdentifiersSummary = $"{DdsIdentifiers.Count} identifiers of which {bCount} are from Sierra.";
         }
         Identifiers = string.Join('\n', lines);
     }

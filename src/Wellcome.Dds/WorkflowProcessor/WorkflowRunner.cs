@@ -42,6 +42,7 @@ namespace WorkflowProcessor
         private readonly AltoDerivedAssetBuilder altoBuilder;
         private readonly ICacheInvalidationPathPublisher cacheInvalidationPathPublisher;
         private readonly IMemoryCache memoryCache;
+        private readonly IIdentityService identityService;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -55,7 +56,8 @@ namespace WorkflowProcessor
             BucketWriter bucketWriter,
             AltoDerivedAssetBuilder altoBuilder,
             ICacheInvalidationPathPublisher cacheInvalidationPathPublisher,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache,
+            IIdentityService identityService)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -69,12 +71,13 @@ namespace WorkflowProcessor
             this.altoBuilder = altoBuilder;
             this.cacheInvalidationPathPublisher = cacheInvalidationPathPublisher;
             this.memoryCache = memoryCache;
+            this.identityService = identityService;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
         {
             logger.LogInformation("JQ {ddsId} - ProcessJob. Job is {fullState}", job.Identifier, job.PrintState());
-            var ddsIdentifier = new DdsIdentifier(job.Identifier);
+            var ddsIdentifier = identityService.GetIdentity(job.Identifier);
             job.Taken = DateTime.UtcNow;
             var jobOptions = runnerOptions;
             if (job.WorkflowOptions != null)
@@ -133,7 +136,7 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RefreshFlatManifestations)
                 {
-                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
+                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.Value);
                     if (work != null)
                     {
                         logger.LogInformation("JQ {identifier} RefreshFlatManifestations", ddsIdentifier);
@@ -147,7 +150,7 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildIIIF)
                 {
-                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier);
+                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.Value);
                     if (work != null)
                     {
                         logger.LogInformation("JQ {identifier} RebuildIIIF", ddsIdentifier);
@@ -161,8 +164,8 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
-                    // This criterion could change but for now it's the simplest test; we only have ALTO for b numbers.
-                    if (ddsIdentifier.HasBNumber)
+                    // This criterion could change, but for now it's the simplest test; we only have ALTO for Goobi-processed things.
+                    if (ddsIdentifier.Generator == Generator.Goobi)
                     {
                         logger.LogInformation("JQ {identifier} RebuildAltoDerivedAssets", ddsIdentifier);
                         await altoBuilder.RebuildAltoDerivedAssets(job, jobOptions, cancellationToken);
@@ -212,12 +215,14 @@ namespace WorkflowProcessor
             IManifestation manifestation = null;
             // Just look at the first one for now
             logger.LogInformation("JQ {identifier} - Setting job error message", job.Identifier);
-            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(job.Identifier))
+            var ddsId = identityService.GetIdentity(job.Identifier);
+            await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId))
             {
                 if (manifestationInContext.Manifestation.Partial)
                 {
-                    logger.LogInformation("JQ {identifier} - Error manifestation is partial, getting full", manifestationInContext.Manifestation.Identifier);
-                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationInContext.Manifestation.Identifier);
+                    var manifestationDdsId = identityService.GetIdentity(manifestationInContext.Manifestation.Identifier);
+                    logger.LogInformation("JQ {identifier} - Error manifestation is partial, getting full", manifestationDdsId.Value);
+                    manifestation = (IManifestation) await metsRepository.GetAsync(manifestationDdsId);
                 }
                 else
                 {
@@ -248,11 +253,12 @@ namespace WorkflowProcessor
             // makes new IIIF in S3 for job.Identifier (the WHOLE b number, not vols)
             // Does this from the METS and catalogue info
             var start = DateTime.Now;
-            var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(job.Identifier, work);
+            var ddsId = identityService.GetIdentity(job.Identifier);
+            var iiif3BuildResults = await iiifBuilder.BuildAllManifestations(ddsId, work);
             MultipleBuildResult iiif2BuildResults;
             if (iiif3BuildResults.MayBeConvertedToV2)
             {
-                iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(job.Identifier, iiif3BuildResults);
+                iiif2BuildResults = iiifBuilder.BuildLegacyManifestations(ddsId, iiif3BuildResults);
             }
             else
             {
@@ -286,7 +292,8 @@ namespace WorkflowProcessor
         {
             var state = new ChemistAndDruggistState(null!);
             int counter = 0;
-            await foreach (var mic in metsRepository.GetAllManifestationsInContext(KnownIdentifiers.ChemistAndDruggist))
+            var ddsId = identityService.GetIdentity(KnownIdentifiers.ChemistAndDruggist);
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext(ddsId))
             {
                 logger.LogInformation($"Counter: {++counter}");
                 var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
@@ -294,7 +301,8 @@ namespace WorkflowProcessor
                 {
                     volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
                     state.Volumes.Add(volume);
-                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier) as ICollection;
+                    var volumeDdsId = identityService.GetIdentity(mic.VolumeIdentifier);
+                    var metsVolume = await metsRepository.GetAsync(volumeDdsId) as ICollection;
                     // populate volume fields
                     volume.Volume = metsVolume.SectionMetadata.Number;
                     logger.LogInformation("Will parse date for VOLUME " + metsVolume.SectionMetadata.DisplayDate);

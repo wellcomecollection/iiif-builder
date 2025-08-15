@@ -1,5 +1,4 @@
-﻿@model List<Wellcome.Dds.AssetDomain.Workflow.WorkflowJob>
-@using Wellcome.Dds.Dashboard.Models
+﻿@model List<WorkflowJobWithIdentity>
 
 <table class="table">
     <thead>
@@ -12,17 +11,17 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var workflowJob in Model)
+        @foreach (var job in Model)
         {
             <tr>
-                <td>@Html.ActionLink(workflowJob.Identifier, "WorkflowCall", "WorkflowCall", 
-                        new { id = ((DdsIdentifier)workflowJob.Identifier).PathElementSafe }, new { })</td>
-                <td>@StringUtils.GetFriendlyAge(workflowJob.Created)</td>
-                <td>@StringUtils.GetFriendlyAge(workflowJob.Taken)</td>
-                <td>@workflowJob.GetAltoRate()</td>
-                @if (workflowJob.Error.HasText())
+                <td>@Html.ActionLink(job.DdsIdentity.Value, "WorkflowCall", "WorkflowCall", 
+                        new { id = job.DdsIdentity.PathElementSafe }, new { })</td>
+                <td>@StringUtils.GetFriendlyAge(job.WorkflowJob.Created)</td>
+                <td>@StringUtils.GetFriendlyAge(job.WorkflowJob.Taken)</td>
+                <td>@job.WorkflowJob.GetAltoRate()</td>
+                @if (job.WorkflowJob.Error.HasText())
                 {
-                    <td>@Html.ActionLink(workflowJob.Error, "MatchingErrors", "WorkflowCall", new { msg = workflowJob.Error }, new { })</td>
+                    <td>@Html.ActionLink(job.WorkflowJob.Error, "MatchingErrors", "WorkflowCall", new { msg = job.WorkflowJob.Error }, new { })</td>
                 }
                 else
                 {

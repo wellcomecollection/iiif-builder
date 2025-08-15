@@ -93,6 +93,7 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<S3CacheAwareStorage>(opts, 
                     factory.Get(NamedClient.Dds)));
 
+            services.AddSingleton<IIdentityService, ParsingIdentityService>();
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
             services.AddSingleton<LinkRewriter>();

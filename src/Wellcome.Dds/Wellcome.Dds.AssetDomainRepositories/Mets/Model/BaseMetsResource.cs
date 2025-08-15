@@ -1,13 +1,12 @@
 ﻿using Utils;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
     public abstract class BaseMetsResource : IMetsResource
     {
-        public DdsIdentifier Identifier { get; set; } = null!;
+        public string Identifier { get; set; } = null!;
         public string? Label { get; set; }
         public string? Type { get; set; }
         public int? Order { get; set; }
@@ -56,15 +55,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 label = div.Type;
             }
             return label;
-        }
-
-        /// <summary>
-        /// Always returns the package identifier, e.g., b Number
-        /// </summary>
-        /// <returns></returns>
-        public string GetRootId()
-        {
-            return Identifier!.PackageIdentifier;
         }
     }
 }

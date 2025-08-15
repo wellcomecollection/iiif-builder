@@ -124,7 +124,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 throw new InvalidOperationException("Logical Struct Div for Manifestation must have an ExternalID");
             }
             logicalStructDiv = structDiv;
-            Identifier = new DdsIdentifier(logicalStructDiv.ExternalId);
+            Identifier = logicalStructDiv.ExternalId;
             SectionMetadata = logicalStructDiv.GetSectionMetadata();
             var parentLogicalStructDiv = parentStructDiv;
             if (parentLogicalStructDiv != null)

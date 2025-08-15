@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Common;
@@ -28,6 +29,7 @@ namespace WorkflowProcessor
         private readonly BucketWriter bucketWriter;
         private readonly IMetsRepository metsRepository;
         private readonly ILogger<AltoDerivedAssetBuilder> logger;
+        private readonly IIdentityService identityService;
 
         public AltoDerivedAssetBuilder(
             ILogger<AltoDerivedAssetBuilder> logger,
@@ -36,7 +38,8 @@ namespace WorkflowProcessor
             CachingAltoSearchTextProvider cachingSearchTextProvider,
             IOptions<DdsOptions> ddsOptions,
             IIIIFBuilder iiifBuilder, 
-            BucketWriter bucketWriter)
+            BucketWriter bucketWriter,
+            IIdentityService identityService)
         {
             this.logger = logger;
             this.metsRepository = metsRepository;
@@ -45,6 +48,7 @@ namespace WorkflowProcessor
             this.ddsOptions = ddsOptions.Value;
             this.iiifBuilder = iiifBuilder;
             this.bucketWriter = bucketWriter;
+            this.identityService = identityService;
         }
         
         public async Task RebuildAltoDerivedAssets(WorkflowJob job, RunnerOptions jobOptions, CancellationToken cancellationToken = default)
@@ -67,9 +71,10 @@ namespace WorkflowProcessor
             try
             {
                 DeleteZipFileIfExists(job.Identifier);
+                var jobDdsId = identityService.GetIdentity(job.Identifier);
                 logger.LogInformation("Getting all manifestations in context for rebuilding Alto-derived assets for {identifier}", job.Identifier);
                 await foreach (var manifestationInContext in metsRepository
-                    .GetAllManifestationsInContext(job.Identifier)
+                    .GetAllManifestationsInContext(jobDdsId)
                     .WithCancellation(cancellationToken))
                 {
                     var manifestation = await GetManifestation(manifestationInContext);
@@ -210,7 +215,8 @@ namespace WorkflowProcessor
             if (manifestation.Partial)
             {
                 logger.LogInformation("Manifestation is partial, going to fetch full version for {identifier}", manifestation.Identifier);
-                manifestation = await metsRepository.GetAsync(manifestation.Identifier) as IManifestation;
+                var manifestationDdsId = identityService.GetIdentity(manifestation.Identifier);
+                manifestation = await metsRepository.GetAsync(manifestationDdsId) as IManifestation;
             }
 
             return manifestation;
