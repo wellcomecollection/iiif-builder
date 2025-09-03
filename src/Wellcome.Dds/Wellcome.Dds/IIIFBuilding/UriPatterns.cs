@@ -329,6 +329,7 @@ namespace Wellcome.Dds.IIIFBuilding
         {
             return DlcsService(DlcsRestrictedLoginLogoutServiceV2IdTemplate, dlcsEntryPoint);
         }
+        
         public string DlcsLoginLogoutServiceV2Id(string dlcsEntryPoint)
         {
             return DlcsService(DlcsLoginLogoutServiceV2IdTemplate, dlcsEntryPoint);
