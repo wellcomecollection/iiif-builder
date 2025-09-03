@@ -273,7 +273,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (Request.Form["luckydip"] == "true")
             {
                 var random = dds.AutoComplete("imfeelinglucky").First();
-                return RedirectToAction("Manifestation", new { id = random.Id });
+                var ddsId = identityService.GetIdentity(random.Id);
+                return RedirectToAction("Manifestation", new { id = ddsId.PathElementSafe });
             }
             try
             {
