@@ -144,6 +144,15 @@ namespace Wellcome.Dds.Dashboard
                 .AddDbContextCheck<DdsInstrumentationContext>("DdsInstrumentation-db")
                 .AddDbContextCheck<DdsContext>("Dds-db")
                 .AddUrlGroup(new Uri(dlcsOptions.ApiEntryPoint), "DLCS API");
+
+            services.Configure<ForwardedHeadersOptions>(opts =>
+            {
+                // This maintains the behaviour that was present in
+                // dotnet until .NET 8.0.17 + .NET 9.0.6 release and so avoids breaking changes.
+                opts.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+                opts.KnownNetworks.Clear();
+                opts.KnownProxies.Clear();
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -159,13 +168,8 @@ namespace Wellcome.Dds.Dashboard
                 app.UseDeveloperExceptionPage();
             }
 
-            // This is required for ADAuth on linux containers. When hosting in ECS we are doing ssl termination
-            // at load-balancer, so by default redirect will be http - this ensures https
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
-            {
-                ForwardedHeaders = ForwardedHeaders.XForwardedProto
-            });
-
+            app.UseForwardedHeaders();
+            
             app.UsePathBase("/dash");
             app.UseStaticFiles();
             app.UseRouting();
