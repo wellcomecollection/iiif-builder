@@ -9,6 +9,7 @@ namespace Wellcome.Dds.Common
     {
         public string? Identifier { get; set; }
         public string? Label { get; set; }
+        public string? PathSafeIdentifier { get; set; }
         public DateTime Date { get; set; }
 
         public override string ToString() => $"[DatedIdentifier] {Identifier} {Date:s} {Label}";

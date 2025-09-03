@@ -1532,7 +1532,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
         }
 
-        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
+        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation)
         {
             var accessConditions = metsManifestation.Sequence!
                 .Select(pf => pf.AccessCondition).ToList();

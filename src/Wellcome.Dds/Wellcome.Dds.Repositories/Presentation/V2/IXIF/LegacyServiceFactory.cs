@@ -13,7 +13,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         /// <summary>
         /// Get <see cref="IService"/> for specified <see cref="ExternalResource"/>
         /// </summary>
-        public static IService? GetLegacyService(DdsIdentifier identifier, ExternalResource externalResource) =>
+        public static IService? GetLegacyService(DdsIdentity identifier, ExternalResource externalResource) =>
             externalResource.Profile switch
             {
                 Constants.Profiles.TrackingExtension => new TrackingExtensionsService(identifier,

@@ -48,6 +48,7 @@ namespace DlcsJobProcessor
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
 
+            services.AddSingleton<IIdentityService, ParsingIdentityService>();
             services.AddDlcsClient(Configuration);
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);

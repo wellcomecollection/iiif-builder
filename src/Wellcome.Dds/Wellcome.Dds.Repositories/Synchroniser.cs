@@ -29,6 +29,7 @@ namespace Wellcome.Dds.Repositories
         private readonly DlcsOptions dlcsOptions;
         private readonly UriPatterns uriPatterns;
         private readonly ExternalIIIFReader externalIIIFReader;
+        private readonly IIdentityService identityService;
         
         // Similarly, this is looking to match thumbnails in the Catalogue API, 
         // which at some point will change to iiif.wc.org
@@ -45,7 +46,8 @@ namespace Wellcome.Dds.Repositories
             ICatalogue catalogue,
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
-            ExternalIIIFReader externalIIIFReader)
+            ExternalIIIFReader externalIIIFReader,
+            IIdentityService identityService)
         {
             this.dlcsOptions = dlcsOptions.Value;
             if (this.dlcsOptions.ResourceEntryPoint.IsNullOrWhiteSpace())
@@ -58,6 +60,7 @@ namespace Wellcome.Dds.Repositories
             this.catalogue = catalogue;
             this.uriPatterns = uriPatterns;
             this.externalIIIFReader = externalIIIFReader;
+            this.identityService = identityService;
         }
         
 
@@ -68,7 +71,7 @@ namespace Wellcome.Dds.Repositories
         /// The id of a row is always the METS-derived Manifestation ID, which for a single volume work is a b number,
         /// and for a volume in a multi-volume work will be something like b12121212_0003.
         ///
-        /// This method will always process ALL manifestations, if you give it a b number.
+        /// This method will always process ALL manifestations if you give it a b number.
         ///
         /// This method will re-create the metadata used for IIIF collection aggregations, if you pass a b number.
         /// </summary>
@@ -82,7 +85,7 @@ namespace Wellcome.Dds.Repositories
         /// </param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task RefreshDdsManifestations(DdsIdentifier identifier, Work? work = null)
+        public async Task RefreshDdsManifestations(DdsIdentity identifier, Work? work = null)
         {
             logger.LogInformation("Synchronising {id}", identifier);
             // var shortB = -1;
@@ -122,10 +125,11 @@ namespace Wellcome.Dds.Repositories
             await foreach (var mic in metsRepository.GetAllManifestationsInContext(identifier))
             {
                 IManifestation metsManifestation = mic.Manifestation;
+                var manifestationDdsId = identityService.GetIdentity(metsManifestation.Identifier);
                 if (metsManifestation.Partial)
                 {
                     logger.LogInformation("Getting individual manifestation for synchroniser: {identifier}", metsManifestation.Identifier);
-                    metsManifestation = (IManifestation) (await metsRepository.GetAsync(metsManifestation.Identifier!))!;
+                    metsManifestation = (IManifestation) (await metsRepository.GetAsync(manifestationDdsId))!;
                 }
                 if (identifier.IsPackageLevelIdentifier)
                 {
@@ -133,21 +137,20 @@ namespace Wellcome.Dds.Repositories
                     {
                         containsRestrictedFiles = true;
                     }
-                    manifestationIdsProcessed.Add(metsManifestation.Identifier!);
+                    manifestationIdsProcessed.Add(metsManifestation.Identifier);
                 }
 
-                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier!.ToString());
+                var ddsManifestation = await ddsContext.Manifestations.FindAsync(metsManifestation.Identifier);
                 var assets = metsManifestation.Sequence ?? throw new InvalidOperationException("Manifestation has no Sequence");
                 
-                // (some Change code removed here) - we're not going to implement this for now
                 if (ddsManifestation == null)
                 {
                     logger.LogInformation("No existing record for {identifier}", metsManifestation.Identifier);
                     ddsManifestation = new Manifestation
                     {
                         Id = metsManifestation.Identifier,
-                        PackageIdentifier = metsManifestation.Identifier.PackageIdentifier,
-                        PackageShortBNumber = metsManifestation.Identifier.PackageIdentifier.ToShortBNumber(),
+                        PackageIdentifier = manifestationDdsId.PackageIdentifier,
+                        PackageShortBNumber = manifestationDdsId.Value.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
@@ -292,9 +295,7 @@ namespace Wellcome.Dds.Repositories
                 // extra fields that only the new dash knows about
                 ddsManifestation.DlcsAssetType = metsManifestation.FirstInternetType;
                 ddsManifestation.ManifestationIdentifier = metsManifestation.Identifier;
-                ddsManifestation.VolumeIdentifier = metsManifestation.Identifier.IdentifierType == IdentifierType.Volume
-                    ? metsManifestation.Identifier.VolumePart
-                    : null;
+                ddsManifestation.VolumeIdentifier = manifestationDdsId.VolumePart; // which may be null
                 if (identifier.IsPackageLevelIdentifier)
                 {
                     // we can only set these when processing a b number, not an individual manifestation
@@ -321,7 +322,7 @@ namespace Wellcome.Dds.Repositories
                 else
                 {
                     betterTitle = work.Title;
-                    await RefreshMetadata(identifier, work);
+                    await RefreshMetadata(identifier.Value, work);
                 }
                 
                 // Are there any manifestations in the DB still that we didn't see?
@@ -367,13 +368,13 @@ namespace Wellcome.Dds.Repositories
         }
         
   
-        private async Task CreateErrorManifestation(DdsIdentifier identifier, string message, string dipStatus)
+        private async Task CreateErrorManifestation(DdsIdentity identifier, string message, string dipStatus)
         {
-            DeleteMetadata(identifier);
+            DeleteMetadata(identifier.Value);
             logger.LogWarning(message, identifier);
             var fm = new Manifestation
             {
-                Id = identifier,
+                Id = identifier.Value,
                 PackageIdentifier = identifier.PackageIdentifier,
                 PackageShortBNumber = identifier.PackageIdentifier.ToShortBNumber(),
                 Index = -1,

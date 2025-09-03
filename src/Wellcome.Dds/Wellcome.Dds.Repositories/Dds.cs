@@ -34,23 +34,22 @@ namespace Wellcome.Dds.Repositories
             return ddsContext.GetTotalsByAssetType();
         }
 
-        public async Task RefreshManifestations(DdsIdentifier ddsId, Work? work = null)
+        public async Task RefreshManifestations(DdsIdentity ddsId, Work? work = null)
         {
             await synchroniser.RefreshDdsManifestations(ddsId, work);
         }
 
-        public ManifestationMetadata GetManifestationMetadata(string identifier)
+        public ManifestationMetadata GetManifestationMetadata(DdsIdentity packageIdentity)
         {
-            var resultDdsId = new DdsIdentifier(identifier);
             var result = new ManifestationMetadata
             (
-                identifier: resultDdsId,
+                identifier: packageIdentity,
                 manifestations: ddsContext.Manifestations
-                    .Where(fm => fm.PackageIdentifier == resultDdsId.PackageIdentifier && fm.Index >= 0)
+                    .Where(fm => fm.PackageIdentifier == packageIdentity.PackageIdentifier && fm.Index >= 0)
                     .OrderBy(fm => fm.Index)
                     .ToList(),
                 metadata: ddsContext.Metadata
-                    .Where(m => m.ManifestationId == resultDdsId.PackageIdentifier)
+                    .Where(m => m.ManifestationId == packageIdentity.PackageIdentifier)
                     .ToList()
             );
             return result;

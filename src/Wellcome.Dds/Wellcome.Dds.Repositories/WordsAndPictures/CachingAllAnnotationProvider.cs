@@ -8,6 +8,7 @@ using Utils.Caching;
 using Utils.Storage;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.WordsAndPictures.SimpleAltoServices;
 
 namespace Wellcome.Dds.Repositories.WordsAndPictures
@@ -20,16 +21,19 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         private readonly IBinaryObjectCache<AnnotationPageList> cache; // needs options allAnnotationCache, "annopages_", 0
         private readonly IWorkStorageFactory workStorageFactory;
         private readonly ILogger<CachingAllAnnotationProvider> logger;
+        private readonly IIdentityService identityService;
 
         public CachingAllAnnotationProvider(
             
             IBinaryObjectCache<AnnotationPageList> cache,
             IWorkStorageFactory workStorageFactory,
-            ILogger<CachingAllAnnotationProvider> logger)
+            ILogger<CachingAllAnnotationProvider> logger,
+            IIdentityService identityService)
         {
             this.workStorageFactory = workStorageFactory;
             this.cache = cache;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         public Task<AnnotationPageList?> GetPages(
@@ -52,7 +56,8 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             logger.LogInformation($"Building Annotation Pages for {identifier}");
             var altoProvider = new SimpleAltoProvider(logger);
             var pages = new AnnotationPageList();
-            var workStore = await workStorageFactory.GetWorkStore(identifier);
+            var ddsId = identityService.GetIdentity(identifier);
+            var workStore = await workStorageFactory.GetWorkStore(ddsId);
             foreach (var physicalFile in physicalFiles)
             {
                 if (physicalFile.RelativeAltoPath.HasText())
