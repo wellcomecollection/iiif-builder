@@ -38,7 +38,7 @@ namespace DlcsJobProcessor
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
-                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation"))
+                .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation")!)
                 .UseSnakeCaseNamingConvention());
             
             services.Configure<JobProcessorOptions>(Configuration.GetSection("JobProcessor"));

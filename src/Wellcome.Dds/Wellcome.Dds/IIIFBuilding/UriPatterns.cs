@@ -83,17 +83,19 @@ namespace Wellcome.Dds.IIIFBuilding
         private const string DlcsFileTemplate         = "{dlcsEntryPoint}file/{assetIdentifier}";
         
         // Auth
-        private const string DlcsProbeServiceV2Template               = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
-        private const string DlcsClickthroughLoginServiceIdTemplate   = "{dlcsEntryPoint}auth/clickthrough";
-        private const string DlcsClickthroughLoginServiceV2IdTemplate = "{dlcsEntryPoint}auth/v2/access/clickthrough";
-        private const string DlcsClinicalLoginServiceIdTemplate       = "{dlcsEntryPoint}auth/clinicalLogin";
-        private const string DlcsLoginServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/access/login";
-        private const string DlcsRestrictedLoginServiceIdTemplate     = "{dlcsEntryPoint}auth/restrictedlogin";
-        private const string DlcsRestrictedLoginServiceV2IdTemplate   = "{dlcsEntryPoint}auth/v2/access/restrictedlogin";
-        private const string DlcsTokenServiceIdTemplate               = "{dlcsEntryPoint}auth/token";
-        private const string DlcsTokenServiceV2IdTemplate             = "{dlcsEntryPoint}auth/v2/access/token";
-        private const string DlcsLogoutServiceIdTemplate              = "{dlcsEntryPoint}auth/logout";
-        private const string DlcsLogoutServiceV2IdTemplate            = "{dlcsEntryPoint}auth/v2/access/logout";
+        private const string DlcsClickthroughLoginServiceIdTemplate       = "{dlcsEntryPoint}auth/clickthrough";
+        private const string DlcsClinicalLoginServiceIdTemplate           = "{dlcsEntryPoint}auth/clinicalLogin";
+        private const string DlcsRestrictedLoginServiceIdTemplate         = "{dlcsEntryPoint}auth/restrictedlogin";
+        private const string DlcsTokenServiceIdTemplate                   = "{dlcsEntryPoint}auth/token";
+        private const string DlcsLogoutServiceIdTemplate                  = "{dlcsEntryPoint}auth/logout";
+        private const string DlcsProbeServiceV2Template                   = "{dlcsEntryPoint}auth/v2/probe/{assetIdentifier}";
+        private const string DlcsClickthroughLoginServiceV2IdTemplate     = "{dlcsEntryPoint}auth/v2/access/clickthrough";
+        private const string DlcsClickthroughLogoutServiceV2IdTemplate    = "{dlcsEntryPoint}auth/v2/access/clickthrough/logout";
+        private const string DlcsLoginServiceV2IdTemplate                 = "{dlcsEntryPoint}auth/v2/access/login";
+        private const string DlcsLoginLogoutServiceV2IdTemplate           = "{dlcsEntryPoint}auth/v2/access/login/logout";
+        private const string DlcsRestrictedLoginServiceV2IdTemplate       = "{dlcsEntryPoint}auth/v2/access/restrictedlogin";
+        private const string DlcsRestrictedLoginLogoutServiceV2IdTemplate = "{dlcsEntryPoint}auth/v2/access/restrictedlogin/logout";
+        private const string DlcsTokenServiceV2IdTemplate                 = "{dlcsEntryPoint}auth/v2/access/token";
 
         public UriPatterns(IOptions<DdsOptions> ddsOptions)
         {
@@ -318,9 +320,19 @@ namespace Wellcome.Dds.IIIFBuilding
             return DlcsService(DlcsLogoutServiceIdTemplate, dlcsEntryPoint);
         }
 
-        public string DlcsLogoutServiceV2Id(string dlcsEntryPoint)
+        public string DlcsClickthroughLogoutServiceV2Id(string dlcsEntryPoint)
         {
-            return DlcsService(DlcsLogoutServiceV2IdTemplate, dlcsEntryPoint);
+            return DlcsService(DlcsClickthroughLogoutServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsRestrictedLoginLogoutServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsRestrictedLoginLogoutServiceV2IdTemplate, dlcsEntryPoint);
+        }
+        
+        public string DlcsLoginLogoutServiceV2Id(string dlcsEntryPoint)
+        {
+            return DlcsService(DlcsLoginLogoutServiceV2IdTemplate, dlcsEntryPoint);
         }
 
         private string DlcsIdentifier(string template, string dlcsEntryPointToken, string? assetIdentifier)
