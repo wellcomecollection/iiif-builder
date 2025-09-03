@@ -69,6 +69,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 
         public IService GetAcceptTermsAuthServicesV2()
         {
+            var logoutService = uriPatterns.DlcsClickthroughLogoutServiceV2Id(dlcsEntryPoint);
             return new AuthAccessService2
             {
                 Id = uriPatterns.DlcsClickthroughLoginServiceV2Id(dlcsEntryPoint),
@@ -77,7 +78,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
                 Heading = new LanguageMap("en", ClickthroughHeader),
                 Note = new LanguageMap("en", ClickthroughLoginDescription),
                 ConfirmLabel = new LanguageMap("en", ClickthroughConfirmlabel),
-                Service = GetCommonChildAuthServicesV2()
+                Service = GetCommonChildAuthServicesV2(logoutService)
             };
         }
         
@@ -97,6 +98,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 
         public IService GetLoginServicesV2()
         {
+            var logoutService = uriPatterns.DlcsLoginLogoutServiceV2Id(dlcsEntryPoint);
             return new AuthAccessService2
             {
                 Id = uriPatterns.DlcsLoginServiceV2Id(dlcsEntryPoint),
@@ -105,7 +107,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
                 Heading = new LanguageMap("en", ClinicalHeader),
                 Note = new LanguageMap("en", ClinicalLoginDescription),
                 ConfirmLabel = new LanguageMap("en", "LOGIN"),
-                Service = GetCommonChildAuthServicesV2()
+                Service = GetCommonChildAuthServicesV2(logoutService)
             };
         }
         
@@ -124,6 +126,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
 
         public IService GetRestrictedLoginServicesV2()
         {
+            var logoutService = uriPatterns.DlcsRestrictedLoginLogoutServiceV2Id(dlcsEntryPoint);
             return new AuthAccessService2
             {
                 Id = uriPatterns.DlcsRestrictedLoginServiceV2Id(dlcsEntryPoint),
@@ -131,7 +134,7 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
                 Label = new LanguageMap("en", RestrictedHeader),
                 Heading = new LanguageMap("en", RestrictedHeader),
                 Note = new LanguageMap("en", RestrictedFailureDescription),
-                Service = GetCommonChildAuthServicesV2()
+                Service = GetCommonChildAuthServicesV2(logoutService)
             };
         }
 
@@ -167,34 +170,34 @@ namespace Wellcome.Dds.Repositories.Presentation.AuthServices
         
         private List<IService> GetCommonChildAuthServicesV1()
         {
-            return new List<IService>
-            {
+            return
+            [
                 new AuthTokenService
                 {
                     Id = uriPatterns.DlcsTokenServiceId(dlcsEntryPoint)
-                },           
+                },
                 new AuthLogoutService
                 {
                     Id = uriPatterns.DlcsLogoutServiceId(dlcsEntryPoint),
                     Label = new MetaDataValue(LogoutLabel)
                 }
-            };
+            ];
         }
 
-        private List<IService> GetCommonChildAuthServicesV2()
+        private List<IService> GetCommonChildAuthServicesV2(string logoutService)
         {
-            return new List<IService>
-            {
+            return
+            [
                 new AuthAccessTokenService2
                 {
                     Id = uriPatterns.DlcsTokenServiceV2Id(dlcsEntryPoint)
                 },
                 new AuthLogoutService2
                 {
-                    Id = uriPatterns.DlcsLogoutServiceV2Id(dlcsEntryPoint),
+                    Id = logoutService,
                     Label = new LanguageMap("en", LogoutLabel)
                 }
-            };
+            ];
         }
     }
 }
