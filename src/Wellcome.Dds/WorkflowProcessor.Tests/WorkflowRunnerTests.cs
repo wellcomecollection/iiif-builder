@@ -31,7 +31,7 @@ namespace WorkflowProcessor.Tests
             var ddsOptionsInst = Options.Create(ddsOptions);
             
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
-            var identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            var identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new WorkflowRunner(
                 ingestJobRegistry, 
                 runnerOptionsInst, 

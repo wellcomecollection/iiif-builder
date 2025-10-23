@@ -29,7 +29,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                 WellcomeCollectionApi = "(unused in this test)",
                 ApiWorkTemplate = "(unused in this test)"
             });
-            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new PresentationConverter(new UriPatterns(options), NullLogger.Instance, identityService);
         }
         

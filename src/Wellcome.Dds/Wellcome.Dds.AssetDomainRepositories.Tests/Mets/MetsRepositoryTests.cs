@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain;
@@ -28,7 +26,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         {
             var fixtures = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FileSystemMetsFixtures");
             workStorageFactory = new FileSystemWorkStorageFactory(fixtures);
-            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
         }
 
         [Fact]

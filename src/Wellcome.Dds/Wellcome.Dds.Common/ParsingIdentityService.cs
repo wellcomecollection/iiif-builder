@@ -1,22 +1,24 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Utils;
 
 namespace Wellcome.Dds.Common;
 
 public class ParsingIdentityService(
-    ILogger<ParsingIdentityService> logger,
     IMemoryCache memoryCache)
     : IIdentityService
 {
     private const char Underscore = '_';
     private const char Slash = '/';
     private static readonly char[] Separators = [Underscore, Slash];
-    
+
     public DdsIdentity GetIdentity(string s)
+    {
+        return GetIdentity(s, null);
+    }
+    
+    public DdsIdentity GetIdentity(string s, string? generator)
     {
         if (s.IsNullOrWhiteSpace())
         {
@@ -37,21 +39,8 @@ public class ParsingIdentityService(
         }
         return ddsIdentity;
     }
-    
-    // public Task<DdsIdentity> GetIdentityAsync(string s)
-    // {
-    //     // use the same memory cache as above but with
-    //     // var ddsIdentity = await ParseAsync(s);
-    //     throw new NotImplementedException();
-    // }
 
-    private Task<DdsIdentity> ParseAsync(string s)
-    {
-        // This version will parse as below but ALSO consult some sort of lookup
-        throw new NotImplementedException();
-    }
-
-    private static DdsIdentity Parse(string rawString)
+    public static DdsIdentity Parse(string rawString)
     {
         var parts = rawString.Split(Separators);
         var hasBNumber = false;
@@ -83,14 +72,19 @@ public class ParsingIdentityService(
             packageIdentifierPathElementSafe = packageIdentifier.Replace(Slash, Underscore);
             pathElementSafe = packageIdentifierPathElementSafe;
         }
-        var identity = new DdsIdentity
+        var identity = new DdsIdentity(value)
         {
-            Value = value,
             PackageIdentifier = packageIdentifier,
             PackageIdentifierPathElementSafe = packageIdentifierPathElementSafe,
             PathElementSafe = pathElementSafe,
             Source = source,
-            IsPackageLevelIdentifier = true
+            IsPackageLevelIdentifier = true,
+            Level = IdentifierLevel.Package,
+            FromGenerator = false,
+            StorageSpaceValidated = false,
+            SourceValidated = false,
+            Created = DateTime.UtcNow,
+            Updated = DateTime.UtcNow
         };
         if (hasBNumber)
         {
@@ -105,10 +99,13 @@ public class ParsingIdentityService(
             {
                 identity.VolumePart = packageIdentifier + Underscore + parts[1];
                 identity.IsPackageLevelIdentifier = false;
+                identity.Level = IdentifierLevel.Volume;
             }
             if (parts.Length > 2)
             {
+                // Only true for Chemist and Druggist, so far
                 identity.IssuePart = packageIdentifier + Underscore + parts[1] + Underscore + parts[2];
+                identity.Level = IdentifierLevel.Issue;
             }
         }
         else

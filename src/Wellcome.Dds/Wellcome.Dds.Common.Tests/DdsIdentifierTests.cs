@@ -1,9 +1,6 @@
 using System;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Wellcome.Dds.Common.Tests
@@ -25,7 +22,7 @@ namespace Wellcome.Dds.Common.Tests
         
         public DdsIdentifierTests()
         {
-            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
         }
 
         [Theory]

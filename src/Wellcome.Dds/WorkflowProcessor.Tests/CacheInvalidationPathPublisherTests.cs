@@ -8,7 +8,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -40,7 +39,7 @@ namespace WorkflowProcessor.Tests
             });
             var uriPatterns = new UriPatterns(ddsOptions);
             
-            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new CacheInvalidationPathPublisher(sns, uriPatterns,
                 Options.Create(invalidationOptions), NullLogger<CacheInvalidationPathPublisher>.Instance, identityService);
         }

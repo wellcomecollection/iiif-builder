@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Utils;
 using Utils.Database;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories
 {
@@ -20,6 +21,7 @@ namespace Wellcome.Dds.Repositories
 
         public DbSet<Manifestation> Manifestations => Set<Manifestation>();
         public DbSet<Metadata> Metadata => Set<Metadata>();
+        public DbSet<DdsIdentity> Identities => Set<DdsIdentity>();
 
         public List<Manifestation> GetByAssetType(string type)
         {

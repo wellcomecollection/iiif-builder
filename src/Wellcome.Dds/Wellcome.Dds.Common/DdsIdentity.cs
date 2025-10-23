@@ -1,10 +1,19 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+// ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 
 namespace Wellcome.Dds.Common;
 
-public class DdsIdentity
+[Index(nameof(PackageIdentifier), IsUnique = false)]
+[Index(nameof(PathElementSafe), IsUnique = true)]
+public class DdsIdentity(string value)
 {
-    public required string Value;
+    public readonly string Value = value;
+
+    [Key]
+    public readonly string LowerCaseValue = value.ToLowerInvariant();
     
     /// <summary>
     /// The identifier for the stored digital object of which this ID might be whole or part.
@@ -60,6 +69,32 @@ public class DdsIdentity
     
     public bool IsPackageLevelIdentifier { get; set; }
     
+    public required string Level { get; set; }
+    
+    public DateTime Created { get; set; }
+    
+    public DateTime Updated { get; set; }
+    
+    /// <summary>
+    /// Whether the Identity information was deduced from explicit knowledge of the generator, or was simply parsed.
+    ///
+    /// If true, the record creation or update was instigated by the system that makes the METS file - the generator.
+    /// (you could force a reset by setting this to false)
+    /// </summary>
+    public bool FromGenerator { get; set; }
+
+    /// <summary>
+    /// Has the storage space been checked by attempting to load a Storage Manifest from it for this identifier?
+    /// (Package level only)
+    /// </summary>
+    public bool StorageSpaceValidated { get; set; }
+
+    /// <summary>
+    /// Has the Catalogue source been validated?
+    /// (Always false for now)
+    /// </summary>
+    public bool SourceValidated { get; set; }
+
     public static bool operator ==(DdsIdentity? d1, DdsIdentity? d2)
     {
         if (d1 is null)
@@ -98,21 +133,40 @@ public static class StorageSpace
 {
     public const string Digitised = "digitised";
     public const string BornDigital = "born-digital";
+    
+    public static bool IsKnown(string? storageSpace)
+    {
+        return storageSpace is Digitised or BornDigital;
+    }
+
+    public static List<string> All => [Digitised, BornDigital];
 }
 
 public static class Generator
 {
     public const string Goobi = "goobi";
     public const string Archivematica = "archivematica";
+
+    public static bool IsKnown(string generator)
+    {
+        return generator is Goobi or Archivematica;
+    }
 }
 
 public static class Source
 {
     public const string Sierra = "sierra"; // b numbers
     public const string Calm = "calm";
-
-    private const string CatalogueApi = "catalogueapi";
-    // other sources may follow, make this public later...
     
-    public static readonly List<string> AllSources = [Sierra, Calm, CatalogueApi];
+    public static bool IsKnown(string source)
+    {
+        return source is Sierra or Calm;
+    }
+}
+
+public static class IdentifierLevel
+{
+    public const string Package = "package";
+    public const string Volume = "volume";
+    public const string Issue = "issue";
 }

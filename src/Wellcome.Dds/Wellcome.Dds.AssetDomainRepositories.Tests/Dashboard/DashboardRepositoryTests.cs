@@ -67,7 +67,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var options = Options.Create(ddsOptions);
             var uriPatterns = new UriPatterns(options);
             
-            identityService = new ParsingIdentityService(new NullLogger<ParsingIdentityService>(), new MemoryCache(new MemoryCacheOptions()));
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new DigitalObjectRepository(new NullLogger<DigitalObjectRepository>(), uriPatterns, dlcs, metsRepository,
                 ddsInstrumentationContext, options, identityService);
         }

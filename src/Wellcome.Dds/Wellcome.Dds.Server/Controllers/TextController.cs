@@ -35,6 +35,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="options">DDS Options</param>
         /// <param name="metsRepository"></param>
         /// <param name="logger"></param>
+        /// <param name="identityService"></param>
         public TextController(
             IStorage storage,
             IOptions<DdsOptions> options,
