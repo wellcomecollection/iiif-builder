@@ -6,8 +6,10 @@ public class IdentityHelper
 {
     public static DdsIdentity GetSimpleTestBNumber(string bNumber)
     {
-        return new DdsIdentity(bNumber)
+        return new DdsIdentity
         {
+            Value = bNumber,
+            LowerCaseValue = bNumber.ToLowerInvariant(),
             PackageIdentifier = bNumber,
             Source = Source.Sierra,
             PackageIdentifierPathElementSafe = bNumber,

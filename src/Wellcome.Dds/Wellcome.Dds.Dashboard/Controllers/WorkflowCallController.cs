@@ -18,12 +18,6 @@ using Wellcome.Dds.Dashboard.Models;
 
 namespace Wellcome.Dds.Dashboard.Controllers
 {
-    public class WorkflowJobWithIdentity
-    {
-        public WorkflowJob WorkflowJob { get; set; }
-        public DdsIdentity DdsIdentity { get; set; }
-    }
-    
     public class WorkflowCallController : Controller
     {
         private readonly IWorkflowCallRepository workflowCallRepository;

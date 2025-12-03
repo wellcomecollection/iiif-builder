@@ -22,6 +22,7 @@ using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 
 namespace DlcsJobProcessor
@@ -48,7 +49,7 @@ namespace DlcsJobProcessor
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
 
-            services.AddSingleton<IIdentityService, ParsingIdentityService>();
+            services.AddScoped<IIdentityService, PersistedIdentityService>();
             services.AddDlcsClient(Configuration);
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);

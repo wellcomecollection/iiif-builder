@@ -93,7 +93,7 @@ namespace Wellcome.Dds.Dashboard
                 ActivatorUtilities.CreateInstance<S3CacheAwareStorage>(opts, 
                     factory.Get(NamedClient.Dds)));
 
-            services.AddSingleton<IIdentityService, ParsingIdentityService>();
+            services.AddScoped<IIdentityService, PersistedIdentityService>();
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
             services.AddSingleton<LinkRewriter>();
@@ -126,7 +126,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddScoped<ManifestationModelBuilder>(opts =>
                 ActivatorUtilities.CreateInstance<ManifestationModelBuilder>(opts, factory.Get(NamedClient.Dds)));
 
-            services.AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
+            services.AddScoped<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>();
 
             services.AddHttpClient<ExternalIIIFReader>();
             // These are non-working impls atm

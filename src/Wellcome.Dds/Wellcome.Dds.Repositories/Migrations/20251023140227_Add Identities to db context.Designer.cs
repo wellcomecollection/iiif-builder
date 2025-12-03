@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wellcome.Dds.Repositories;
@@ -11,9 +12,10 @@ using Wellcome.Dds.Repositories;
 namespace Wellcome.Dds.Repositories.Migrations
 {
     [DbContext(typeof(DdsContext))]
-    partial class DdsContextModelSnapshot : ModelSnapshot
+    [Migration("20251023140227_Add Identities to db context")]
+    partial class AddIdentitiestodbcontext
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

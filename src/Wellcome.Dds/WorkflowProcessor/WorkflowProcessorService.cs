@@ -642,6 +642,7 @@ namespace WorkflowProcessor
                             var workflowMessage = body.ToObject<WorkflowMessage>();
                             if (workflowMessage != null)
                             {
+                                logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
                                     await dbContext.PutJob(workflowMessage.Identifier, 

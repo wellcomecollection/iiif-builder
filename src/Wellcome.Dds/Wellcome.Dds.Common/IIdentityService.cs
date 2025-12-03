@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace Wellcome.Dds.Common;
 
 public interface IIdentityService

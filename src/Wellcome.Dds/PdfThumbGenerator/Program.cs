@@ -20,6 +20,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories;
 
 namespace PdfThumbGenerator
 {
@@ -35,7 +36,7 @@ namespace PdfThumbGenerator
                     services
                         .AddMemoryCache()
                         .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                        .AddSingleton<IIdentityService, ParsingIdentityService>()
+                        .AddScoped<IIdentityService, PersistedIdentityService>()
                         .AddSingleton<IMetsRepository, MetsRepository>()
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()

@@ -13,15 +13,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow;
 
 public class WorkflowCallRepository : IWorkflowCallRepository
 {
+    private readonly IIdentityService identityService;
     private readonly DdsInstrumentationContext ddsInstrumentationContext;
     private readonly ILogger<WorkflowCallRepository> logger;
 
     public WorkflowCallRepository(
         DdsInstrumentationContext ddsInstrumentationContext, 
-        ILogger<WorkflowCallRepository> logger)
+        ILogger<WorkflowCallRepository> logger,
+        IIdentityService identityService)
     {
         this.ddsInstrumentationContext = ddsInstrumentationContext;
         this.logger = logger;
+        this.identityService = identityService;
     }
 
     private const int RecentSampleHours = 2;
@@ -72,11 +75,13 @@ public class WorkflowCallRepository : IWorkflowCallRepository
             .Where(j => j.Finished)
             .OrderByDescending(j => j.Taken)
             .Take(10)
+            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
             
         // was: select * from WorkflowJobs where Taken is not null and Finished=0
         result.TakenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
             .Where(j => j.Taken != null && !j.Finished)
+            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
 
         await PopulateStats(start, end, result);

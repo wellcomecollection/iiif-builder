@@ -18,7 +18,7 @@ public class ParsingIdentityService(
         return GetIdentity(s, null);
     }
     
-    public DdsIdentity GetIdentity(string s, string? generator)
+    public DdsIdentity GetIdentity(string s, string? generators)
     {
         if (s.IsNullOrWhiteSpace())
         {
@@ -72,8 +72,10 @@ public class ParsingIdentityService(
             packageIdentifierPathElementSafe = packageIdentifier.Replace(Slash, Underscore);
             pathElementSafe = packageIdentifierPathElementSafe;
         }
-        var identity = new DdsIdentity(value)
+        var identity = new DdsIdentity
         {
+            Value = value,
+            LowerCaseValue = value.ToLowerInvariant(),
             PackageIdentifier = packageIdentifier,
             PackageIdentifierPathElementSafe = packageIdentifierPathElementSafe,
             PathElementSafe = pathElementSafe,

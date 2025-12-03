@@ -70,7 +70,7 @@ namespace WorkflowProcessor
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);
 
-            services.AddSingleton<IIdentityService, ParsingIdentityService>();
+            services.AddScoped<IIdentityService, PersistedIdentityService>();
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
             services.AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>();
             services.AddSingleton<UriPatterns>();
@@ -106,7 +106,7 @@ namespace WorkflowProcessor
                 .AddScoped<AltoDerivedAssetBuilder>()
                 .AddScoped<WorkflowRunner>()
                 .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                .AddSingleton<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>()
+                .AddScoped<ICacheInvalidationPathPublisher, CacheInvalidationPathPublisher>()
                 .AddScoped<IStatusProvider, DatabaseStatusProvider>()
                 .AddHostedService<WorkflowProcessorService>();
             

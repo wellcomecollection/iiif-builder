@@ -8,12 +8,12 @@ namespace Wellcome.Dds.Common;
 
 [Index(nameof(PackageIdentifier), IsUnique = false)]
 [Index(nameof(PathElementSafe), IsUnique = true)]
-public class DdsIdentity(string value)
+public class DdsIdentity
 {
-    public readonly string Value = value;
+    public required string Value { get; set; }
 
     [Key]
-    public readonly string LowerCaseValue = value.ToLowerInvariant();
+    public required string LowerCaseValue { get; set; }
     
     /// <summary>
     /// The identifier for the stored digital object of which this ID might be whole or part.
