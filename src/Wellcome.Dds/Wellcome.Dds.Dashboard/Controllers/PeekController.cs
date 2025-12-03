@@ -57,13 +57,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<ContentResult> IIIFRaw(string id, bool all = false)
+        public async Task<ContentResult> IIIFRaw(string id, bool all = false, bool skipDlcsSizeCheck = false)
         {
             var ddsId = new DdsIdentifier(id); // full manifestation id, e.g., b19974760_233_0024
-            var build = await BuildResult(ddsId, all);
+            var build = await BuildResult(ddsId, all, skipDlcsSizeCheck);
             build.IIIFResource?.EnsurePresentation3Context();
             return IIIFContent(build.IIIFResource?.AsJson());
         }
+        
         
         [AllowAnonymous]
         public async Task<ContentResult> IIIF2Raw(string id, bool all = false)
@@ -223,9 +224,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Code", model);
         }
         
-        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all)
+        private async Task<BuildResult> BuildResult(DdsIdentifier ddsId, bool all, bool skipDlcsSizeCheck = false)
         {
-            var results = await BuildIIIF(ddsId, all);
+            var results = await BuildIIIF(ddsId, all, skipDlcsSizeCheck);
             var build = results[ddsId];
             if (build is { RequiresMultipleBuild: true } && all == false)
             {
@@ -239,7 +240,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return build;
         }
         
-        private async Task<MultipleBuildResult> BuildIIIF(DdsIdentifier ddsId, bool all)
+        private async Task<MultipleBuildResult> BuildIIIF(DdsIdentifier ddsId, bool all, bool skipDlcsSizeCheck = false)
         {
             var work = await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
             await dds.RefreshManifestations(ddsId.PackageIdentifier, work);
@@ -247,7 +248,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 return await iiifBuilder.BuildAllManifestations(ddsId);
             }
-            return await iiifBuilder.Build(ddsId, work);
+            return await iiifBuilder.Build(ddsId, work, skipDlcsSizeCheck);
         }
     }
 }

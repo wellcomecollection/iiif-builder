@@ -26,8 +26,9 @@ namespace Wellcome.Dds.IIIFBuilding
         /// </summary>
         /// <param name="ddsId">e.g., b12345678, b87654321_0001</param>
         /// <param name="work">If you already have a work, the class will use it, otherwise it will acquire it from the catalogue</param>
+        /// <param name="skipDlcsSizeCheck"></param>
         /// <returns></returns>
-        public Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null);
+        public Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null, bool skipDlcsSizeCheck = false);
 
         /// <summary>
         /// Builds ALL Manifests and Collections for the given bNumber.

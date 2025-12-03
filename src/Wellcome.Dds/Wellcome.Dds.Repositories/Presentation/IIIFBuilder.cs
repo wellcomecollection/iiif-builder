@@ -208,7 +208,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null)
+        public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null, bool skipDlcsSizeCheck = false)
         {
             // only this identifier, not all for the b number.
             var buildResults = new MultipleBuildResult(ddsId);
@@ -248,7 +248,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 // The dash preview can choose to handle this, for multicopy and AV, but not for C&D.
                 // (dash preview can go back and rebuild all, then pick out the one asked for, 
                 // or redirect to a single AV manifest).
-                buildResults.Add(BuildInternal(work, metsResource, partOf, manifestationMetadata, null));
+                buildResults.Add(BuildInternal(work, metsResource, partOf, manifestationMetadata, null, skipDlcsSizeCheck));
             }
             catch (Exception e)
             {
@@ -261,14 +261,14 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private BuildResult BuildInternal(Work work, IMetsResource metsResource, 
             ICollection? partOfCollection,
-            ManifestationMetadata manifestationMetadata, State? state)
+            ManifestationMetadata manifestationMetadata, State? state, bool skipDlcsSizeCheck = false)
         {
             var result = new BuildResult(metsResource.Identifier!, Version.V3);
             try
             {
                 // build the Presentation 3 version from the source materials
                 var iiifPresentation3Resource = MakePresentation3Resource(
-                    metsResource, partOfCollection, work, manifestationMetadata, state, result);
+                    metsResource, partOfCollection, work, manifestationMetadata, state, result, skipDlcsSizeCheck);
                 result.IIIFResource = iiifPresentation3Resource;
                 result.Outcome = BuildOutcome.Success;
             }
@@ -290,7 +290,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             ICollection? partOfCollection,
             Work work,
             ManifestationMetadata manifestationMetadata,
-            State? state, BuildResult buildResult)
+            State? state, BuildResult buildResult,
+            bool skipDlcsSizeCheck = false)
         {
             switch (metsResource)
             {
@@ -322,7 +323,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         };
                     }
                     AddCommonMetadata(manifest, work, manifestationMetadata);
-                    BuildManifest(manifest, metsManifestation, manifestationMetadata, state, buildResult);
+                    BuildManifest(manifest, metsManifestation, manifestationMetadata, state, buildResult, skipDlcsSizeCheck);
                     return manifest;
             }
             throw new NotSupportedException("Unhandled type of Digitised Resource");
@@ -419,7 +420,8 @@ namespace Wellcome.Dds.Repositories.Presentation
         private void BuildManifest(Manifest manifest,
             IManifestation metsManifestation,
             ManifestationMetadata manifestationMetadata,
-            State? state, BuildResult buildResult)
+            State? state, BuildResult buildResult,
+            bool skipDlcsSizeCheck = false)
         {
             manifest.Thumbnail = manifestationMetadata.Manifestations.GetThumbnail(metsManifestation.Identifier!);
             build.RequiredStatement(manifest, metsManifestation, manifestationMetadata, ddsOptions.UseRequiredStatement);
@@ -436,7 +438,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
             build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
 
-            if (ddsOptions.UseDlcsForThumbSizes)
+            if (ddsOptions.UseDlcsForThumbSizes && !skipDlcsSizeCheck)
             {
                 // As it's calling the DLCS with httpClient, we're suddenly introducing an async operation
                 // into our previously synchronous IIIF Building.
