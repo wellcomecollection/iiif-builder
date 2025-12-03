@@ -644,6 +644,7 @@ namespace WorkflowProcessor
                             {
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
+                                    logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                     await dbContext.PutJob(workflowMessage.Identifier, 
                                         true, false, null, false, true);
                                     await dbContext.SaveChangesAsync(cancellationToken);
