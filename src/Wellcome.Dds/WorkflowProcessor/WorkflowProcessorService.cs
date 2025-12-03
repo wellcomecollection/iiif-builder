@@ -410,6 +410,7 @@ namespace WorkflowProcessor
                     else
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
+                        var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
 
                         var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
                         if (jobId == null)
@@ -424,7 +425,7 @@ namespace WorkflowProcessor
                                 {
                                     waitMs = 2;
                                 }
-                                await PollQueues(queues, dbContext, cancellationToken);
+                                await PollQueues(queues, dbContext, identityService, cancellationToken);
                             }
                             continue;
                         }
@@ -450,7 +451,7 @@ namespace WorkflowProcessor
                         {
                             // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
                             await UpdateIngestJobs(dbContext, cancellationToken);
-                            await PollQueues(queues, dbContext, cancellationToken);
+                            await PollQueues(queues, dbContext, identityService, cancellationToken);
                             iterationsSinceQueuesPolled = 0;
                         }
                     }
@@ -598,7 +599,7 @@ namespace WorkflowProcessor
             return atLeastOneJobChangedState;
         }
 
-        private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, IIdentityService identityService, CancellationToken cancellationToken)
         {
             if (queues.Keys.Count == 0)
             {
@@ -645,6 +646,12 @@ namespace WorkflowProcessor
                                 logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
+                                    // Now we can tell the identity service something authoritative
+                                    var identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
+                                    logger.LogInformation("Received Identity: {identity}", identity.ToString());
+                                    // The workflow processor will need access to everything to validate the fromGenerator identity
+                                    // TODO: log everything about the identity here.
+                                    
                                     await dbContext.PutJob(workflowMessage.Identifier, 
                                         true, false, null, false, true);
                                     await dbContext.SaveChangesAsync(cancellationToken);

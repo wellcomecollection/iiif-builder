@@ -23,6 +23,10 @@ public class PersistedIdentityService(
 
     private bool CanReturnStoredIdentity(DdsIdentity identity, string? incomingGenerator)
     {
+        if (incomingGenerator.HasText() && Generator.IsIgnored(incomingGenerator))
+        {
+            return true;
+        }
         if (incomingGenerator.HasText() && !identity.FromGenerator)
         {
             // We are being given new authoritative information
@@ -69,7 +73,10 @@ public class PersistedIdentityService(
         // Either way, the generator must be one of our known set.
         if (generator.HasText() && !Generator.IsKnown(generator))
         {
-            throw new InvalidEnumArgumentException($"Generator '{generator}' is unknown");
+            if (!Generator.IsIgnored(generator))
+            {
+                throw new InvalidEnumArgumentException($"Generator '{generator}' is unknown");
+            }
         }
 
         if (dbIdentity != null && generator.IsNullOrWhiteSpace())

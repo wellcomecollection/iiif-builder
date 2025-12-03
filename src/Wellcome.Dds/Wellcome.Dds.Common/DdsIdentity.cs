@@ -146,10 +146,16 @@ public static class Generator
 {
     public const string Goobi = "goobi";
     public const string Archivematica = "archivematica";
+    public const string Dashboard = "dashboard";
 
     public static bool IsKnown(string generator)
     {
         return generator is Goobi or Archivematica;
+    }
+    
+    public static bool IsIgnored(string generator)
+    {
+        return generator is Dashboard;
     }
 }
 

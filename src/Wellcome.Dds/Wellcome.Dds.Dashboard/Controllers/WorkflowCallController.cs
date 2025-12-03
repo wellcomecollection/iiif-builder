@@ -141,7 +141,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var message = new WorkflowMessage
                 {
                     Identifier = ddsId.PackageIdentifier,
-                    Origin = "dashboard",
+                    Origin = Generator.Dashboard, // identity service will not treat this as authoritative 
                     Space = ddsId.StorageSpace,
                     TimeSent = DateTime.UtcNow
                 };
