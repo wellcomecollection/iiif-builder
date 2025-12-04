@@ -29,19 +29,16 @@ namespace DlcsWebClient.Dlcs
         private readonly HttpClient httpClient;
         private readonly DlcsOptions options;
         private readonly JsonSerializerSettings jsonSerializerSettings;
-        private readonly IIdentityService identityService;
 
 
         public Dlcs(
             ILogger<Dlcs> logger,
             IOptions<DlcsOptions> options,
-            HttpClient httpClient,
-            IIdentityService identityService)
+            HttpClient httpClient)
         {
             this.logger = logger;
             this.httpClient = httpClient;
             this.options = options.Value;
-            this.identityService = identityService;
             
             jsonSerializerSettings = new JsonSerializerSettings
             {
@@ -360,20 +357,19 @@ namespace DlcsWebClient.Dlcs
             return sb.ToString();
         }
 
-        public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier, DlcsCallContext dlcsCallContext)
+        public Task<IEnumerable<Image>> GetImagesForIdentifier(DdsIdentity ddsId, DlcsCallContext dlcsCallContext)
         {
-            var ddsId = identityService.GetIdentity(identifier);
-            if (ddsId.Source != Source.Sierra) throw new NotSupportedException("Unknown identifier: " + identifier);
+            if (ddsId.Source != Source.Sierra) throw new NotSupportedException("Unknown identifier: " + ddsId.Value);
             if (ddsId.IssuePart.HasText())
             {
-                return GetImagesForIssue(identifier, dlcsCallContext);
+                return GetImagesForIssue(ddsId.Value, dlcsCallContext);
             }
             if (ddsId.VolumePart.HasText())
             {
-                return GetImagesForVolume(identifier, dlcsCallContext);
+                return GetImagesForVolume(ddsId.Value, dlcsCallContext);
             }
 
-            return GetImagesForBNumber(identifier, dlcsCallContext);
+            return GetImagesForBNumber(ddsId.Value, dlcsCallContext);
 
         }
 

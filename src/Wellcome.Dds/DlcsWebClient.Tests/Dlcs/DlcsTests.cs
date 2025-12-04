@@ -43,8 +43,7 @@ namespace DlcsWebClient.Tests.Dlcs
             var httpClient = new HttpClient(httpHandler);
             var options = Options.Create(dlcsOptions);
             
-            var identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
-            sut = new DlcsWebClient.Dlcs.Dlcs(new NullLogger<DlcsWebClient.Dlcs.Dlcs>(), options, httpClient, identityService);
+            sut = new DlcsWebClient.Dlcs.Dlcs(new NullLogger<DlcsWebClient.Dlcs.Dlcs>(), options, httpClient);
             
             // NOTE - not verifying what is sent - just ensuring serialization is correct
             serializer = new JsonSerializerSettings

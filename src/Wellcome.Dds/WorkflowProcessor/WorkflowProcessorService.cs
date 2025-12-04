@@ -606,7 +606,6 @@ namespace WorkflowProcessor
                 logger.LogInformation("No queues configured to poll");
                 return;
             }
-
             foreach (var queue in queues)
             {
                 if (queue.Value.IsNullOrWhiteSpace())
