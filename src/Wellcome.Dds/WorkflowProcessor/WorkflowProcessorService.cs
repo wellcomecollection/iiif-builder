@@ -434,7 +434,7 @@ namespace WorkflowProcessor
                         
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
-                        var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
+                        var job = await dbContext.WorkflowJobs.FindAsync(jobId, cancellationToken)!;
                         await runner.ProcessJob(job, cancellationToken);
                         try
                         {
@@ -646,15 +646,21 @@ namespace WorkflowProcessor
                                 logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
-                                    // Now we can tell the identity service something authoritative
-                                    var identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
-                                    logger.LogInformation("Received Identity: {identity}", identity.ToString());
-                                    // The workflow processor will need access to everything to validate the fromGenerator identity
-                                    // TODO: log everything about the identity here.
-                                    
-                                    await dbContext.PutJob(workflowMessage.Identifier, 
-                                        true, false, null, false, true);
-                                    await dbContext.SaveChangesAsync(cancellationToken);
+                                    try
+                                    {
+                                        // Now we can tell the identity service something authoritative
+                                        var identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
+                                        logger.LogInformation("Received Identity: {identity}", identity);
+                                        logger.LogInformation(identity.GetVerbose());
+                                        
+                                        await dbContext.PutJob(workflowMessage.Identifier, 
+                                            true, false, null, false, true);
+                                        await dbContext.SaveChangesAsync(cancellationToken);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}", workflowMessage.Identifier);
+                                    }
                                 }
                                 else
                                 {

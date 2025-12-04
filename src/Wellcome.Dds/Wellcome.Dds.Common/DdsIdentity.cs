@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 
@@ -10,7 +12,7 @@ namespace Wellcome.Dds.Common;
 [Index(nameof(PathElementSafe), IsUnique = true)]
 public class DdsIdentity
 {
-    public required string Value { get; set; }
+    public required string Value { get; init; }
 
     [Key]
     public required string LowerCaseValue { get; set; }
@@ -24,18 +26,18 @@ public class DdsIdentity
     /// But for multiple manifestations, different identifiers belong to the same package:
     /// b19974760_10 and b19974760_10_10 have the same PackageIdentifier, b19974760.
     /// </summary>
-    public required string PackageIdentifier { get; set; }
+    public required string PackageIdentifier { get; init; }
         
     /// <summary>
     /// A version of the PackageIdentifier that would only be one path element in a URL or file name
     /// </summary>
-    public required string PackageIdentifierPathElementSafe { get; set; }
+    public required string PackageIdentifierPathElementSafe { get; init; }
         
     /// <summary>
     /// Sometimes a caller doesn't know whether the identfier is a package identifier or a sub part,
     /// but wants a path-safe form anyway.
     /// </summary>
-    public required string PathElementSafe { get; set; }
+    public required string PathElementSafe { get; init; }
         
     /// <summary>
     /// What prefix in the storage service API is required to locate this object's files
@@ -71,7 +73,7 @@ public class DdsIdentity
     
     public required string Level { get; set; }
     
-    public DateTime Created { get; set; }
+    public DateTime Created { get; init; }
     
     public DateTime Updated { get; set; }
     
@@ -126,6 +128,36 @@ public class DdsIdentity
     }
     
     public override string ToString() => Value;
+
+    public string GetVerbose()
+    {
+        var sb = new StringBuilder();
+        sb.Append("Identity: ");
+        sb.AppendLine(Value);
+        sb.Append("Generator: ");
+        sb.AppendLine(Generator);
+        sb.Append("FromGenerator: ");
+        sb.AppendLine(FromGenerator.ToString());
+        sb.Append("PackageIdentifier: ");
+        sb.AppendLine(PackageIdentifier);
+        sb.Append("PackageIdentifierPathElementSafe: ");
+        sb.AppendLine(PackageIdentifierPathElementSafe);
+        sb.Append("PathElementSafe: ");
+        sb.AppendLine(PathElementSafe);
+        sb.Append("StorageSpace: ");
+        sb.AppendLine(StorageSpace);
+        sb.Append("StorageSpaceValidated: ");
+        sb.AppendLine(StorageSpaceValidated.ToString());
+        sb.Append("Source: ");
+        sb.AppendLine(Source);
+        sb.Append("SourceValidated: ");
+        sb.AppendLine(SourceValidated.ToString());
+        sb.Append("Created: ");
+        sb.AppendLine(Created.ToString(CultureInfo.InvariantCulture));
+        sb.Append("Updated: ");
+        sb.AppendLine(Updated.ToString(CultureInfo.InvariantCulture));
+        return sb.ToString();
+    }
 }
 
 
