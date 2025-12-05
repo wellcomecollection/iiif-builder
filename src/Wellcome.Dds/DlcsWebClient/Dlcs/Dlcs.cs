@@ -114,8 +114,8 @@ namespace DlcsWebClient.Dlcs
                 operation.ResponseStatus = response.StatusCode;
                 operation.ResponseJson = await response.Content.ReadAsStringAsync();
 
-                logger.LogDebug("Response received for correlationId {correlationId}, callContext {callContext}",
-                    correlationId, dlcsCallContext);
+                //logger.LogDebug("Response received for correlationId {correlationId}, callContext {callContext}",
+                //    correlationId, dlcsCallContext);
 
                 if (response.IsSuccessStatusCode)
                 {

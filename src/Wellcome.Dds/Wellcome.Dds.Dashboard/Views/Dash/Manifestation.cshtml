@@ -274,6 +274,7 @@
                             <li><span style="color:red;">Work page</span> <small>(no catalogue api)</small></li>
                         }
                         <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
+                        <li><a href="@Url.Action("Get", "Identity", new { id= Model.DdsIdentifier.Value })">Identity</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">
