@@ -1,5 +1,4 @@
-﻿using System;
-using DlcsWebClient.Config;
+﻿using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +39,9 @@ namespace DlcsJobProcessor
         {
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation")!)
+                .UseSnakeCaseNamingConvention());
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds")!)
                 .UseSnakeCaseNamingConvention());
             
             services.Configure<JobProcessorOptions>(Configuration.GetSection("JobProcessor"));

@@ -434,7 +434,7 @@ namespace WorkflowProcessor
                         
                         waitMs = 2;
                         var runner = GetWorkflowRunner(scope);
-                        var job = await dbContext.WorkflowJobs.FindAsync(jobId, cancellationToken)!;
+                        var job = await dbContext.WorkflowJobs.FindAsync(jobId)!;
                         await runner.ProcessJob(job, cancellationToken);
                         try
                         {
