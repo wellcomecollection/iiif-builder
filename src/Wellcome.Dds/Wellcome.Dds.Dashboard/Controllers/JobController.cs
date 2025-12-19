@@ -112,7 +112,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 TempData["no-work-synchronisation"] = ae.Message;
             }
-            return RedirectToAction("Manifestation", "Dash", new { id });
+            return RedirectToAction("Manifestation", "Dash", new { ddsId.PathElementSafe });
         }
     }
 }

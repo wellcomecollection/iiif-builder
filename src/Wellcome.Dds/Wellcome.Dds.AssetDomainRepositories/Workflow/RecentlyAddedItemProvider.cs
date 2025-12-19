@@ -72,7 +72,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
             
             foreach (var di in displayList)
             {
-                if (di.Identifier!.ToAlphanumeric() != di.Identifier)
+                if (di.Identifier!.ToAlphanumeric() == di.Identifier)
                 {
                     // This is an optimisation that is only really an optimisation when identityService.GetIdentity is 
                     // expensive. And need to keep an eye on whether it remains valid.
@@ -80,7 +80,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
                 }
                 else
                 {
-                    di.PathSafeIdentifier = identityService.GetIdentity(di.Identifier).PackageIdentifierPathElementSafe;
+                    di.PathSafeIdentifier = identityService.GetIdentity(di.Identifier!).PackageIdentifierPathElementSafe;
                 }
             }
             return displayList;

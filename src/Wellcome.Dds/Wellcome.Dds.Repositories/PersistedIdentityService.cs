@@ -47,6 +47,14 @@ public class PersistedIdentityService(
             throw new FormatException("Identifier has no content");
         }
         var lowered = s.Trim().ToLowerInvariant();
+        
+        // I'm not going to generally unencode this, but it's worth catching any unintended `/` encoding:
+        if (lowered.Contains("%2f"))
+        {
+            s = s.Replace("%2f", "/",  StringComparison.InvariantCultureIgnoreCase);
+            lowered = s.Trim().ToLowerInvariant();
+        }
+        
         // This lowered form is not the fully normalised form; we might cache under different keys
         
         // First try the MemoryCache

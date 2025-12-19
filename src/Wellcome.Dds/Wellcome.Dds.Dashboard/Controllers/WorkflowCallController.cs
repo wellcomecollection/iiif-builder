@@ -79,12 +79,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> WorkflowCall(string id)
         {
-            var job = await workflowCallRepository.GetWorkflowJob(id);
+            var ddsId = identityService.GetIdentity(id);
+            var job = await workflowCallRepository.GetWorkflowJob(ddsId.Value);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = id,
+                    Identifier = ddsId.Value,
                     Created = null
                 };
             }
@@ -94,6 +95,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> Create(string id)
         {
+            var ddsId = identityService.GetIdentity(id);
             var opts = Request.Query["options"].ToString();
             int? workflowOptions = null;
             if (opts.HasText())
@@ -105,15 +107,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             try
             {
-                var workflowJob = await workflowCallRepository.CreateWorkflowJob(id, workflowOptions);
+                var workflowJob = await workflowCallRepository.CreateWorkflowJob(ddsId.Value, workflowOptions);
                 TempData["new-workflow-job"] = $"Job Created: {workflowJob.Created}";
-                return RedirectToAction("WorkflowCall", new {id});
+                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error simulating workflow call for '{id}'", id);
+                logger.LogError(e, "Error simulating workflow call for '{id}'", ddsId.Value);
                 TempData["new-workflow-job-error"] = e.Message;
-                return RedirectToAction("WorkflowCall", new {id});
+                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
         }
 
@@ -133,7 +135,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var errorMessage = $"No queue specified for workflow; could not notify for '{ddsId}'";
                 logger.LogError(errorMessage);
                 TempData["new-workflow-notification-error"] = errorMessage;
-                return RedirectToAction("WorkflowCall", new {id});
+                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
 
             try
@@ -163,14 +165,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     response.HttpStatusCode, ddsId, response.MessageId);
                 
                 TempData["new-workflow-notification"] = $"Workflow notification sent for '{ddsId}'";
-                return RedirectToAction("WorkflowCall", new {id});
+                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
 
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error making workflow queue call for '{id}'", id);
+                logger.LogError(e, "Error making workflow queue call for '{id}'", ddsId.Value);
                 TempData["new-workflow-notification-error"] = e.Message;
-                return RedirectToAction("WorkflowCall", new {id});
+                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
         }
 
@@ -252,9 +254,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public async Task<IActionResult> Delete(string id)
         { 
-            await workflowCallRepository.DeleteJob(id);
-            TempData["job-deleted"] = $"{id} deleted.";
-            return RedirectToAction("WorkflowCall", new {id});
+            var ddsId = identityService.GetIdentity(id);
+            await workflowCallRepository.DeleteJob(ddsId.Value);
+            TempData["job-deleted"] = $"{ddsId.Value} deleted.";
+            return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
         }
     }
 }

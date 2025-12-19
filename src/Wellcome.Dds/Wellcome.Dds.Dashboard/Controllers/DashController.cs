@@ -178,7 +178,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error getting manifestation for '{id}'", id);
+                logger.LogError(ex, "Error getting manifestation for '{id}'", ddsId?.Value ?? id);
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
@@ -353,7 +353,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id, int version)
         {
-            var manifest = uriPatterns.Manifest(id);
+            var ddsId = identityService.GetIdentity(id);
+            var manifest = uriPatterns.Manifest(ddsId.Value);
             if (version == 2)
             {
                 manifest = manifest.Replace("/presentation/", "/presentation/v2/");
@@ -363,15 +364,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public ActionResult UVPreview(string id, int version, string origin)
         {
+            var ddsId = identityService.GetIdentity(id);
             var action = version == 2 ? "IIIF2Raw" : "IIIFRaw";
-            var previewUri = $"{origin}{Url.Action(action, "Peek", new { id })}";
+            var previewUri = $"{origin}{Url.Action(action, "Peek", new { ddsId.PathElementSafe })}";
             return Redirect("https://universalviewer.io/examples/#?manifest=" + previewUri);
         }
         
         public IActionResult Mirador(string id)
         {
-            var manifests = new List<string>{ uriPatterns.Manifest(id) };
             var ddsId = identityService.GetIdentity(id);
+            var manifests = new List<string>{ uriPatterns.Manifest(ddsId.Value) };
             if (ddsId.StorageSpace == StorageSpace.Digitised)
             {
                 // This isn't the criteria for IIIF v2, but it will suffice here
@@ -382,20 +384,21 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public IActionResult MiradorPreview(string id, string origin)
         {
-            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { id })}" };
             var ddsId = identityService.GetIdentity(id);
+            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { ddsId.PathElementSafe })}" };
             if (ddsId.StorageSpace == "digitised")
             {
-                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { id })}");
+                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { ddsId.PathElementSafe })}");
             }
             return View("Mirador", manifests);
         }
 
         public IActionResult Validator(string id)
         {
+            var ddsId = identityService.GetIdentity(id);
             // no point trying to validate a Wellcome V2 manifest
             var validator = "http://iiif.io/api/presentation/validator/service/validate?format=json&version=3.0&url=";
-            return Redirect(validator + uriPatterns.Manifest(id));
+            return Redirect(validator + uriPatterns.Manifest(ddsId.Value));
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
@@ -454,10 +457,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeleteOrphans(string id)
         {
+            var ddsId = identityService.GetIdentity(id);
             digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
-            int removed = await digitalObjectRepository.DeleteOrphans(id, new DlcsCallContext("DashController::DeleteOrphans", id));
+            int removed = await digitalObjectRepository.DeleteOrphans(ddsId.Value, new DlcsCallContext("DashController::DeleteOrphans", id));
             TempData["orphans-deleted"] = removed;
-            return RedirectToAction("Manifestation", new { id });
+            return RedirectToAction("Manifestation", new { ddsId.PathElementSafe });
         }
 
         public JsonResult AutoComplete(string id)

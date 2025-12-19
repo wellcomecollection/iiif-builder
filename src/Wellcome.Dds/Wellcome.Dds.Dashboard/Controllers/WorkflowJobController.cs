@@ -72,6 +72,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private ActionResult RedirectToManifestation(string id, string tempDataType, bool success, string message)
         {
+            var ddsId = identityService.GetIdentity(id);
             var deleteResult = new DeleteResult
             {
                 Success = success,
@@ -79,7 +80,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             };
             TempData[tempDataType] = JsonConvert.SerializeObject(deleteResult);
 
-            return RedirectToAction("Manifestation", "Dash", new {id});
+            return RedirectToAction("Manifestation", "Dash", new {ddsId.PathElementSafe});
         }
 
         /// <summary>
@@ -90,10 +91,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
         [HttpPost]
         public async Task<IActionResult> ClearCaches(string id, [FromForm] bool hasText = false)
         {
+            var ddsId = identityService.GetIdentity(id);
             string[] errors;
             try
             {
-                errors = await invalidationPathPublisher.PublishInvalidation(id, hasText);
+                errors = await invalidationPathPublisher.PublishInvalidation(ddsId.Value, hasText);
             }
             catch (Exception ex)
             {
