@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
@@ -115,8 +116,10 @@ namespace Wellcome.Dds.Dashboard.Models
                         grandparent = null;
                     }
 
-                    var skeletonPreview = string.Format(
-                        dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
+                    var namedQueryManifestUri = string.Format(
+                        dlcsOptions.SkeletonNamedQueryTemplate!, 
+                        dlcsOptions.CustomerDefaultSpace, 
+                        WebUtility.UrlEncode(identifier.Value));
 
                     var model = new ManifestationModel
                     {
@@ -128,7 +131,7 @@ namespace Wellcome.Dds.Dashboard.Models
                         GrandParent = grandparent,
                         SyncOperation = syncOperation,
                         DlcsOptions = dlcsOptions,
-                        DlcsSkeletonManifest = skeletonPreview,
+                        DlcsSkeletonManifest = namedQueryManifestUri,
                         Work = work,
                         ManifestUrl = uriPatterns.Manifest(identifier.Value)
                     };
