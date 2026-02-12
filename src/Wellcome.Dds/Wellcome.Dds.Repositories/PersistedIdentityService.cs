@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories;
@@ -14,7 +15,8 @@ public class PersistedIdentityService(
     ILogger<PersistedIdentityService> logger,
     IMemoryCache memoryCache,
     DdsContext ddsContext,
-    StorageServiceClient storageServiceClient) : IIdentityService
+    StorageServiceClient storageServiceClient,
+    ICatalogue catalogue) : IIdentityService
 {
     public DdsIdentity GetIdentity(string s)
     {
@@ -93,12 +95,14 @@ public class PersistedIdentityService(
             // if no generator supplied we should have returned dbIdentity already.
             throw new InvalidOperationException("Unhandled DBIdentity");
         }
-        
+
+        bool isNew = false;
         if (dbIdentity == null)
         {
             // Going to lean on our existing parsing implementation, and then overrule it with more knowledge.
             // The parsed Identity embodies our default assumptions.
             dbIdentity = ParsingIdentityService.Parse(s);
+            isNew = true;
             ddsContext.Identities.Add(dbIdentity);
         }
 
@@ -107,9 +111,12 @@ public class PersistedIdentityService(
         {
             if (generator.HasText())
             {
+                logger.LogInformation("{operation} authoritative package level record for {packageIdentifier} from {generator}",
+                    isNew ? "Creating" : "Updating", dbIdentity.PackageIdentifier, generator);
                 dbIdentity.Generator = generator;
                 ValidateStorageSpace(dbIdentity);
                 ValidateSource(dbIdentity);
+                SetCatalogueId(dbIdentity);
                 dbIdentity.FromGenerator = true;
                 dbIdentity.Updated = DateTime.UtcNow;
                 updateVolumesAndIssues = true;
@@ -129,9 +136,10 @@ public class PersistedIdentityService(
                 // The package level identifier doesn't exist yet.
                 // Should we create it? Its values will be provisional, only from parsing, until this code is called
                 // for the package level identifier with a generator.
-                
+                logger.LogInformation("Volume or issue identity {value} resolved where no package-level identity exists",
+                    dbIdentity.Value);
                 // For anything existing this will only apply to Goobi/digitised/Sierra, which is what we parse.
-                // Leave dbIdentity with its parsed values
+                // Leave dbIdentity with its parsed 
             }
             else
             {
@@ -142,6 +150,7 @@ public class PersistedIdentityService(
                 dbIdentity.FromGenerator = packageIdentity.FromGenerator;
                 dbIdentity.SourceValidated = packageIdentity.SourceValidated;
                 dbIdentity.StorageSpaceValidated = packageIdentity.StorageSpaceValidated;
+                dbIdentity.CatalogueId = packageIdentity.CatalogueId;
                 dbIdentity.Updated = DateTime.UtcNow;
             }
         }
@@ -159,10 +168,13 @@ public class PersistedIdentityService(
                  source={dbIdentity.Source}, 
                  from_generator={dbIdentity.FromGenerator}, 
                  source_validated={dbIdentity.SourceValidated}, 
-                 storage_space_validated={dbIdentity.StorageSpaceValidated}, 
+                 storage_space_validated={dbIdentity.StorageSpaceValidated},
+                 catalogue_id={dbIdentity.CatalogueId},
                  updated={dbIdentity.Updated} 
                  WHERE package_identifier={dbIdentity.PackageIdentifier} AND NOT is_package_level_identifier
                  """);
+            logger.LogInformation("Updated {rows} volume and issue rows for {packageIdentifier}", 
+                rows, dbIdentity.PackageIdentifier);
         }
         
         return dbIdentity;
@@ -174,6 +186,27 @@ public class PersistedIdentityService(
         foreach(var key in possibleCacheKeys)
         {
             memoryCache.Set(key, dbIdentity);
+        }
+    }
+
+    private void SetCatalogueId(DdsIdentity identity)
+    {
+        try
+        {
+            var work = catalogue.GetWorkByOtherIdentifier(identity.PackageIdentifier).Result;
+            if (work != null && work.Id.HasText())
+            {
+                if (identity.CatalogueId.HasText() && identity.CatalogueId != work.Id)
+                {
+                    logger.LogWarning("Change of Catalogue ID for {packageIdentifier}. Was {oldCatalogueId}, is now {newCatalogueId}", 
+                        identity.PackageIdentifier, identity.CatalogueId, work.Id);
+                }
+                identity.CatalogueId = work.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unable to set catalogue id for package {packageIdentifier}", identity.PackageIdentifier);
         }
     }
 
