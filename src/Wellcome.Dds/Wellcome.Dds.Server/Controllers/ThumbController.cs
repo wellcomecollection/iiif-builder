@@ -27,17 +27,20 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly DdsContext ddsContext;
         private readonly PdfThumbnailUtil pdfThumbnailUtil;
         private readonly ILogger<ThumbController> logger;
+        private readonly IIdentityService identityService;
 
         public ThumbController(
             IMetsRepository metsRepository,
             DdsContext ddsContext,
             PdfThumbnailUtil pdfThumbnailUtil,
-            ILogger<ThumbController> logger)
+            ILogger<ThumbController> logger,
+            IIdentityService identityService)
         {
             this.metsRepository = metsRepository;
             this.ddsContext = ddsContext;
             this.pdfThumbnailUtil = pdfThumbnailUtil;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -54,8 +57,8 @@ namespace Wellcome.Dds.Server.Controllers
                 return BadRequest($"Requested width exceeds maximum of {MaxWidth}");
             }
             
-            var ddsId = new DdsIdentifier(id);
-            var manifestations = await GetManifestation(id, ddsId);
+            var ddsId = identityService.GetIdentity(id);
+            var manifestations = await GetManifestation(ddsId);
             if (!manifestations.Any())
             {
                 return NotFound($"No thumbnail for {id}");
@@ -73,25 +76,25 @@ namespace Wellcome.Dds.Server.Controllers
                 return NotFound($"No thumbnail for {id}");
             }
 
-            IMetsResource resource = await metsRepository.GetAsync(id);
+            IMetsResource resource = await metsRepository.GetAsync(ddsId);
             if (manifestations.Exists(m => m.AssetType.StartsWith("audio") || m.AssetType.StartsWith("video")))
             {
                 // handle AV request
-                return await HandleAvThumbRequest(id, resource, width ?? 600);
+                return await HandleAvThumbRequest(ddsId, resource, width ?? 600);
             }
             if (manifestations.Exists(m => m.AssetType == "application/pdf"))
             {
                 // Born digital PDF...
-                return await HandlePdfThumbRequest(id, width ?? 200);
+                return await HandlePdfThumbRequest(ddsId.Value, width ?? 200);
             }
             
             return NotFound($"No thumbnail for {id}");
         }
 
         // Try to get the specific manifestation, but if that fails, get all for the b number.
-        private async Task<List<Manifestation>>GetManifestation(string id, DdsIdentifier ddsId)
+        private async Task<List<Manifestation>>GetManifestation(DdsIdentity ddsId)
         {
-            var manifestation = await ddsContext.Manifestations.FindAsync(id);
+            var manifestation = await ddsContext.Manifestations.FindAsync(ddsId.Value);
 
             // this will also work for plain b number
             if (manifestation == null)
@@ -104,7 +107,7 @@ namespace Wellcome.Dds.Server.Controllers
             return new List<Manifestation>{ manifestation };
         }
 
-        private async Task<IActionResult> HandlePdfThumbRequest(DdsIdentifier identifier, int width)
+        private async Task<IActionResult> HandlePdfThumbRequest(string identifier, int width)
         {
             Stream thumbnailStream = null;
             try
@@ -131,7 +134,7 @@ namespace Wellcome.Dds.Server.Controllers
             }
         }
 
-        private async Task<IActionResult> HandleAvThumbRequest(DdsIdentifier identifier, IMetsResource resource,
+        private async Task<IActionResult> HandleAvThumbRequest(DdsIdentity identifier, IMetsResource resource,
             int width)
         {
             if (resource is ICollection multipleManifestation)
@@ -148,7 +151,8 @@ namespace Wellcome.Dds.Server.Controllers
             Response.CacheForDays(1);
             if (avManifestation.Partial)
             {
-                avManifestation = (IManifestation) await metsRepository.GetAsync(avManifestation.Identifier);
+                var manifestationDdsId = identityService.GetIdentity(avManifestation.Identifier);
+                avManifestation = (IManifestation) await metsRepository.GetAsync(manifestationDdsId);
             }
 
             var poster = avManifestation.PosterImage;

@@ -7,9 +7,11 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using FakeItEasy;
 using FluentAssertions;
+using Test.Helpers;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.AssetDomainRepositories.Tests.Samples;
+using Wellcome.Dds.Common;
 using Xunit;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageService
@@ -22,12 +24,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Storage.WellcomeStorageServ
         
         public ArchiveStorageServiceWorkStoreTests()
         {
-            const string identifier = "b12345678";
+            var identifier = IdentityHelper.GetSimpleTestBNumber("b12345678");
             var storageMap =
-                WellcomeBagAwareArchiveStorageMap.FromJObject(SampleHelpers.GetJson("multi_version.json"), identifier);
+                WellcomeBagAwareArchiveStorageMap.FromJObject(SampleHelpers.GetJson("multi_version.json"), identifier.Value);
             s3Client = A.Fake<IAmazonS3>();
 
-            sut = new ArchiveStorageServiceWorkStore("digital", identifier, storageMap, null, xmlElementCache, s3Client);
+            sut = new ArchiveStorageServiceWorkStore("digital", identifier.PackageIdentifier, storageMap, null, xmlElementCache, s3Client);
         }
         
         [Fact]

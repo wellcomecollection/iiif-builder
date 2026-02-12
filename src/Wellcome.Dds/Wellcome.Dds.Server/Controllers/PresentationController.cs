@@ -44,6 +44,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly ICatalogue catalogue;
         private readonly LinkRewriter linkRewriter;
         private readonly ILogger<PresentationController> logger;
+        private readonly IIdentityService identityService;
 
         public PresentationController(
             ILogger<PresentationController> logger,
@@ -53,7 +54,8 @@ namespace Wellcome.Dds.Server.Controllers
             DdsContext ddsContext,
             IIIIFBuilder iiifBuilder,
             ICatalogue catalogue,
-            LinkRewriter linkRewriter
+            LinkRewriter linkRewriter,
+            IIdentityService identityService
             )
         {
             this.logger = logger;
@@ -64,6 +66,7 @@ namespace Wellcome.Dds.Server.Controllers
             this.iiifBuilder = iiifBuilder;
             this.catalogue = catalogue;
             this.linkRewriter = linkRewriter;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -78,7 +81,7 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Index(string id)
         {
             logger.LogDebug("IIIF Resource request for {id}", id);
-            var ddsId = new DdsIdentifier(id);
+            var ddsId = identityService.GetIdentity(id);
             var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
@@ -95,7 +98,7 @@ namespace Wellcome.Dds.Server.Controllers
                     return await HandleMissingPresentationResource(ddsId);
                 }
             }
-            return iiifVersion == Version.V2 ? await V2(ddsId) : await V3(ddsId);
+            return iiifVersion == Version.V2 ? await V2(ddsId.Value) : await V3(ddsId.Value);
         }
 
         /// <summary>
@@ -103,7 +106,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="ddsId"></param>
         /// <returns></returns>
-        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentifier ddsId)
+        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentity ddsId)
         {
             var id = ddsId.ToString();
             // The requested identifier does not exist in storage (e.g., in S3 bucket).
@@ -352,13 +355,13 @@ namespace Wellcome.Dds.Server.Controllers
                 if (work.HasIIIFDigitalLocation())
                 {
                     logger.LogDebug("{referenceNumber} has digital location", referenceNumber);
-                    var refAsDdsId = new DdsIdentifier(referenceNumber);
+                    var refAsDdsId = identityService.GetIdentity(referenceNumber);
                     // Should we instead get the work from the Manifestations table at this point?
                     var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
                     if (bNumber.HasText())
                     {
                         logger.LogDebug("Found bNumber for {referenceNumber}: {bNumber}", referenceNumber, bNumber);
-                        var bNumberAsDdsId = new DdsIdentifier(bNumber);
+                        var bNumberAsDdsId = identityService.GetIdentity(bNumber);
                         // There's a slim chance of a circular redirect without checking this;
                         // don't redirect if it's already a b-number. It shouldn't be! 
                         if (refAsDdsId != bNumberAsDdsId)
@@ -873,9 +876,9 @@ namespace Wellcome.Dds.Server.Controllers
 
         }
         
-        private string RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
+        private string RequiredRedirect(DdsIdentity ddsId, string requestedForm, Func<string, string> transformer)
         {
-            if (ddsId.HasBNumber)
+            if (ddsId.PackageIdentifier.IsBNumber())
             {
                 // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
                 if (requestedForm.Contains('_'))

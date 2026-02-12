@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Amazon.S3;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -41,6 +39,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly IStorage storage;
         private readonly DdsOptions ddsOptions;
+        private readonly IIdentityService identityService;
         
         public DashController(
             IDigitalObjectRepository digitalObjectRepository,
@@ -55,7 +54,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             ManifestationModelBuilder modelBuilder,
             IWorkflowCallRepository workflowCallRepository,
             IStorage storage,
-            IOptions<DdsOptions> options
+            IOptions<DdsOptions> options,
+            IIdentityService identityService
         )
         {
             // TODO - we need a review of all these dependencies!
@@ -72,6 +72,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             this.modelBuilder = modelBuilder;
             this.workflowCallRepository = workflowCallRepository;
             this.storage = storage;
+            this.identityService = identityService;
             ddsOptions = options.Value;
         }
 
@@ -98,13 +99,26 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
 
             var recentActions = digitalObjectRepository.GetRecentActions(200);
+
+            var jobs = problemJobs!.ToArray();
             var model = new HomeModel
             {
-                ProblemJobs = new JobsModel {Jobs = problemJobs.ToArray()},
+                ProblemJobs = new JobsModel
+                {
+                    Jobs = jobs,
+                    ManifestationIdentifiers = GetManifestationIdentifierDict(jobs)
+                },
                 ErrorsByMetadataPage = errorsByMetadataPage,
                 IngestActions = GetIngestActionDictionary(recentActions)
             };
             return View(model);
+        }
+
+        private Dictionary<int, DdsIdentity> GetManifestationIdentifierDict(DlcsIngestJob[] jobs)
+        {
+            return jobs.ToDictionary(
+                j => j.Id, 
+                j => identityService.GetIdentity(j.GetManifestationIdentifier()));
         }
 
         private Dictionary<string, IngestAction> GetIngestActionDictionary(IEnumerable<IngestAction> recentActions)
@@ -136,15 +150,15 @@ namespace Wellcome.Dds.Dashboard.Controllers
         // GET: Dash
         public async Task<ActionResult> Manifestation(string id)
         {
-            DdsIdentifier ddsId = null;
-            logger.LogDebug("Generating Manifestation Page for {identifier}", id);
+            DdsIdentity ddsId = null;
+            logger.LogDebug("Generating Manifestation Page for {identifier}", id.LogSafe());
             try
             {
-                ddsId = new DdsIdentifier(id);
+                ddsId = identityService.GetIdentity(id);
                 ViewBag.DdsId = ddsId;
                 var result = await modelBuilder.Build(ddsId, Url);
 
-                // if we have a model render it
+                // if we have a model, render it
                 if (result.Model != null)
                 {
                     ViewBag.Log = LoggingEvent.FromTuples(modelBuilder.GetLoggingEvents());
@@ -164,7 +178,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error getting manifestation for '{id}'", id);
+                logger.LogError(ex, "Error getting manifestation for '{id}'", ddsId?.Value.LogSafe() ?? id.LogSafe());
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {
@@ -172,7 +186,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 }
             }
             
-            // At this point we need to return the error page. See if there's a workflow job for this identifier:
+            // At this point, we need to return the error page. See if there's a workflow job for this identifier:
             if (ddsId != null)
             {
                 ViewBag.WorkflowJob = await workflowCallRepository.GetWorkflowJob(ddsId.PackageIdentifier);
@@ -185,13 +199,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var json = AskedForJson();
             IDigitalCollection collection = null;
-            DdsIdentifier ddsId = null;
+            DdsIdentity ddsId = null;
             bool showError = false;
             try
             {
                 var dlcsCallContext = new DlcsCallContext("DashController::Collection", id);
                 logger.LogDebug("Starting DlcsCallContext: {callContext}", dlcsCallContext);
-                ddsId = new DdsIdentifier(id);
+                ddsId = identityService.GetIdentity(id);
                 ViewBag.DdsId = ddsId;
                 collection = await digitalObjectRepository.GetDigitalObject(
                     id, dlcsCallContext) as IDigitalCollection;
@@ -259,26 +273,24 @@ namespace Wellcome.Dds.Dashboard.Controllers
             if (Request.Form["luckydip"] == "true")
             {
                 var random = dds.AutoComplete("imfeelinglucky").First();
-                return RedirectToAction("Manifestation", new { id = random.Id });
+                var ddsId = identityService.GetIdentity(random.Id);
+                return RedirectToAction("Manifestation", new { id = ddsId.PathElementSafe });
             }
             try
             {
                 q = q.Split(' ')[0];
-                DdsIdentifier ddsId = new DdsIdentifier(q);
-                if (ddsId.IdentifierType == IdentifierType.Volume || ddsId.IdentifierType == IdentifierType.Issue)
+                var ddsId = identityService.GetIdentity(q);
+                if (ddsId.VolumePart.HasText() || ddsId.IssuePart.HasText())
                 {
-                    return RedirectToAction("Manifestation", new { id = ddsId.ToString() });
+                    return RedirectToAction("Manifestation", new { id = ddsId.Value });
                 }
 
-                if (ddsId.HasBNumber)
+                if (ddsId.Source == Source.Sierra)
                 {
-                    var bnumber = WellcomeLibraryIdentifiers.GetNormalisedBNumber(q, false);
-                    return RedirectToAction("Manifestation", new { id = bnumber });
+                    return RedirectToAction("Manifestation", new { id = ddsId.PackageIdentifier });
                 }
-                else
-                {
-                    return RedirectToAction("Manifestation", new { id = ddsId.PackageIdentifierPathElementSafe });
-                }
+
+                return RedirectToAction("Manifestation", new { id = ddsId.PackageIdentifierPathElementSafe });
             }
             catch (Exception)
             {
@@ -289,7 +301,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Queue()
         {
             var queue = await jobRegistry.GetQueue(statusProvider.EarliestJobToTake);
-            var model = new JobsModel { Jobs = queue.ToArray() };
+            var queueArray = queue.ToArray();
+            var model = new JobsModel
+            {
+                Jobs = queueArray,
+                ManifestationIdentifiers = GetManifestationIdentifierDict(queueArray)
+            };
             return View(model);
         }
 
@@ -300,8 +317,16 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 Type = type,
                 FlatManifestations = dds.GetByAssetType(type),
-                TotalsByAssetType = dds.GetTotalsByAssetType()
+                TotalsByAssetType = dds.GetTotalsByAssetType(),
+                IdAndLabels = new Dictionary<string, IdAndLabel>()
             };
+            foreach (var fm in model.FlatManifestations)
+            {
+                var displayId = fm.ManifestationIdentifier ?? fm.PackageIdentifier;
+                var ddsId = identityService.GetIdentity(displayId!);
+                var pathId = ddsId.Source == Source.Sierra ? displayId : ddsId.PackageIdentifierPathElementSafe;
+                model.IdAndLabels[fm.Id] = new IdAndLabel{ id = pathId, label = pathId };
+            }
             if (type == "application/pdf")
             {
                 const string prefix = "_pdf_thumbs/";
@@ -328,8 +353,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public ActionResult UV(string id, int version)
         {
-            var ddsId = new DdsIdentifier(id);
-            var manifest = uriPatterns.Manifest(ddsId);
+            var ddsId = identityService.GetIdentity(id);
+            var manifest = uriPatterns.Manifest(ddsId.Value);
             if (version == 2)
             {
                 manifest = manifest.Replace("/presentation/", "/presentation/v2/");
@@ -339,18 +364,19 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public ActionResult UVPreview(string id, int version, string origin)
         {
+            var ddsId = identityService.GetIdentity(id);
             var action = version == 2 ? "IIIF2Raw" : "IIIFRaw";
-            var previewUri = $"{origin}{Url.Action(action, "Peek", new { id })}";
+            var previewUri = $"{origin}{Url.Action(action, "Peek", new { ddsId.PathElementSafe })}";
             return Redirect("https://universalviewer.io/examples/#?manifest=" + previewUri);
         }
         
         public IActionResult Mirador(string id)
         {
-            var ddsId = new DdsIdentifier(id);
-            var manifests = new List<string>{ uriPatterns.Manifest(ddsId) };
-            if (ddsId.StorageSpace == "digitised")
+            var ddsId = identityService.GetIdentity(id);
+            var manifests = new List<string>{ uriPatterns.Manifest(ddsId.Value) };
+            if (ddsId.StorageSpace == StorageSpace.Digitised)
             {
-                // This isn't actually the criteria for IIIF v2 but it will suffice here
+                // This isn't the criteria for IIIF v2, but it will suffice here
                 manifests.Add(manifests[0].Replace("/presentation/", "/presentation/v2/"));
             }
             return View("Mirador", manifests);
@@ -358,26 +384,28 @@ namespace Wellcome.Dds.Dashboard.Controllers
         
         public IActionResult MiradorPreview(string id, string origin)
         {
-            var ddsId = new DdsIdentifier(id);
-            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { id })}" };
+            var ddsId = identityService.GetIdentity(id);
+            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { ddsId.PathElementSafe })}" };
             if (ddsId.StorageSpace == "digitised")
             {
-                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { id })}");
+                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { ddsId.PathElementSafe })}");
             }
             return View("Mirador", manifests);
         }
 
         public IActionResult Validator(string id)
         {
+            var ddsId = identityService.GetIdentity(id);
             // no point trying to validate a Wellcome V2 manifest
             var validator = "http://iiif.io/api/presentation/validator/service/validate?format=json&version=3.0&url=";
-            return Redirect(validator + uriPatterns.Manifest(id));
+            return Redirect(validator + uriPatterns.Manifest(ddsId.Value));
         }
 
         public async Task<ActionResult> StorageMap(string id, string resolveRelativePath = null)
         {
-            // NOTE - is this leaky if it knows underlying implementation? If it needs to would GetWorkStore<T> work?
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(id);
+            // NOTE - is this leaky if it knows the underlying implementation? If it needs to would GetWorkStore<T> work?
+            var ddsId = identityService.GetIdentity(id);
+            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
             if (!resolveRelativePath.HasText())
             {
                 resolveRelativePath = id + ".xml";
@@ -429,16 +457,17 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         public async Task<ActionResult> DeleteOrphans(string id)
         {
+            var ddsId = identityService.GetIdentity(id);
             digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
-            int removed = await digitalObjectRepository.DeleteOrphans(id, new DlcsCallContext("DashController::DeleteOrphans", id));
+            int removed = await digitalObjectRepository.DeleteOrphans(ddsId.Value, new DlcsCallContext("DashController::DeleteOrphans", id));
             TempData["orphans-deleted"] = removed;
-            return RedirectToAction("Manifestation", new { id });
+            return RedirectToAction("Manifestation", new { ddsId.PathElementSafe });
         }
 
         public JsonResult AutoComplete(string id)
         {
             var suggestions = dds.AutoComplete(id);
-                return Json(suggestions.Select(fm => new AutoCompleteSuggestion
+                return Json(suggestions.Select(fm => new IdAndLabel
                 {
                     id = fm.PackageIdentifier,
                     label = fm.PackageLabel
@@ -482,10 +511,9 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
     }
 
-    public class AutoCompleteSuggestion
+    public class IdAndLabel
     {
         public string id { get; set; }
-
         public string label { get; set; }
     }
 
@@ -495,8 +523,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public string Type { get; set; }
         public List<Manifestation> FlatManifestations { get; set; }
         public Dictionary<string, long> TotalsByAssetType { get; set; }
-        
         public Dictionary<string, ISimpleStoredFileInfo> Thumbnails { get; set; }
+        public Dictionary<string, IdAndLabel> IdAndLabels { get; set; }
     }
 
     /// <summary>

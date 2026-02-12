@@ -4,10 +4,10 @@ using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
 using FakeItEasy;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
-using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.AssetDomainRepositories.Workflow;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -19,6 +19,7 @@ namespace WorkflowProcessor.Tests
     {
         private readonly CacheInvalidationPathPublisher sut;
         private readonly IAmazonSimpleNotificationService sns;
+        private readonly IIdentityService identityService;
         
         public CacheInvalidationPathPublisherTests()
         {
@@ -37,8 +38,10 @@ namespace WorkflowProcessor.Tests
                 ApiWorkTemplate = "(unused in this test)"
             });
             var uriPatterns = new UriPatterns(ddsOptions);
+            
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new CacheInvalidationPathPublisher(sns, uriPatterns,
-                Options.Create(invalidationOptions), NullLogger<CacheInvalidationPathPublisher>.Instance);
+                Options.Create(invalidationOptions), NullLogger<CacheInvalidationPathPublisher>.Instance, identityService);
         }
 
         [Theory]

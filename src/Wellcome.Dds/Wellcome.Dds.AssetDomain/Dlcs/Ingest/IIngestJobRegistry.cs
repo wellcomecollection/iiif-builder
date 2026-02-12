@@ -14,7 +14,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// <param name="identifier"></param>
         /// <param name="useInitialOrigin"></param>
         /// <returns>List of job IDs</returns>
-        Task<DlcsIngestJob[]> RegisterImages(DdsIdentifier identifier, bool useInitialOrigin = false);
+        Task<DlcsIngestJob[]> RegisterImages(DdsIdentity identifier, bool useInitialOrigin = false);
 
         /// <summary>
         /// Registers a job or jobs (for MMs) with the "startProcessed" already set, so that
@@ -25,7 +25,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Ingest
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
-        IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentifier identifier);
+        IAsyncEnumerable<DlcsIngestJob> RegisterImagesForImmediateStart(DdsIdentity identifier);
 
         Task<IEnumerable<DlcsIngestJob>> GetRecentJobs(int number);
         

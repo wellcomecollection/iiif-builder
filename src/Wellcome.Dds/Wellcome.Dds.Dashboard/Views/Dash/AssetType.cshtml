@@ -35,11 +35,9 @@
             @foreach (var fm in Model.FlatManifestations)
             {
                 {
-                    var dispId = fm.ManifestationIdentifier ?? fm.PackageIdentifier;
-                    var ddsId = new DdsIdentifier(dispId);
-                    var pathId = ddsId.HasBNumber ? dispId : ddsId.PackageIdentifierPathElementSafe;
+                    var idAndLabel = Model.IdAndLabels[fm.Id];
                     <tr>
-                        <td>@Html.ActionLink(dispId, "Manifestation", "Dash", new { id = pathId }, new { })</td>
+                        <td>@Html.ActionLink(idAndLabel.label, "Manifestation", "Dash", new { idAndLabel.id }, new { })</td>
                         <td width="165">@fm.Processed</td>
                         <td>@fm.Label
                         @if (Model.Type == "application/pdf")

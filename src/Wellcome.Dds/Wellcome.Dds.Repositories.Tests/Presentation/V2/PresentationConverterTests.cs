@@ -4,6 +4,7 @@ using FluentAssertions;
 using IIIF;
 using IIIF.Presentation;
 using IIIF.Search.V2;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.Common;
@@ -18,6 +19,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
     public class PresentationConverterTests
     {
         private readonly PresentationConverter sut;
+        private readonly IIdentityService identityService;
 
         public PresentationConverterTests()
         {
@@ -27,14 +29,15 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
                 WellcomeCollectionApi = "(unused in this test)",
                 ApiWorkTemplate = "(unused in this test)"
             });
-            sut = new PresentationConverter(new UriPatterns(options), NullLogger.Instance);
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
+            sut = new PresentationConverter(new UriPatterns(options), NullLogger.Instance, identityService);
         }
         
         [Fact]
         public void Convert_Throws_IfPassedNull()
         {
             // Arrange
-            Action action = () => sut.Convert(null!, "b10727000");
+            Action action = () => sut.Convert(null!,  identityService.GetIdentity("b10727000"));
 
             // Assert
             action.Should().Throw<ArgumentNullException>();
@@ -44,7 +47,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
         public void Convert_Throws_IfNonManifestOrCollection()
         {
             // Arrange
-            Action action = () => sut.Convert(new Presi3.Canvas(), "b10727000");
+            Action action = () => sut.Convert(new Presi3.Canvas(), identityService.GetIdentity("b10727000"));
 
             // Assert
             action.Should().Throw<ArgumentException>();
@@ -62,7 +65,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             manifest.EnsureContext(Context.Presentation3Context);
 
             // Act
-            var result = sut.Convert(manifest, "b10727000");
+            var result = sut.Convert(manifest, identityService.GetIdentity("b10727000"));
             
             // Assert
             result.Context.Should().BeOfType<List<string>>().Which.Should().Contain(Context.Presentation2Context);
@@ -87,7 +90,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             collection.EnsureContext(Context.Presentation3Context);
 
             // Act
-            var result = sut.Convert(collection, "b10727000");
+            var result = sut.Convert(collection, identityService.GetIdentity("b10727000"));
             
             // Assert
             result.Context.Should().BeOfType<string>().Which.Should().Be(Context.Presentation2Context);
@@ -106,7 +109,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             };
 
             // Act
-            var result = sut.Convert(manifest, "b10727000");
+            var result = sut.Convert(manifest, identityService.GetIdentity("b10727000"));
             var p2Manifest = result as Presi2.Manifest;
             
             // Assert
@@ -128,7 +131,7 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.V2
             };
 
             // Act
-            var result = sut.Convert(manifest, "b10727000");
+            var result = sut.Convert(manifest, identityService.GetIdentity("b10727000"));
             var p2Manifest = result as Presi2.Manifest;
             
             // Assert

@@ -3,7 +3,7 @@ using Utils;
 
 namespace Wellcome.Dds.Common
 {
-    public class DdsIdentifier
+    public class DdsIdentifierX
     {
         private const char Underscore = '_';
         private const char Slash = '/';
@@ -43,11 +43,15 @@ namespace Wellcome.Dds.Common
         
         /// <summary>
         /// Whether this identifier starts with a BNumber
+        ///
+        /// ** Becomes source == Sierra
         /// </summary>
         public bool HasBNumber { get; }
 
         /// <summary>
         /// If the identifier starts with a b number, the value of that b number.
+        ///
+        /// ** use PackageIdentifier when source == Sierra
         /// </summary>
         public string? BNumber { get; }
 
@@ -106,12 +110,8 @@ namespace Wellcome.Dds.Common
         /// If not provided, it will be determined from the format of the string.
         /// 
         /// </param>
-        public DdsIdentifier(string value, string? storageSpace = null)
+        public DdsIdentifierX(string value)
         {
-            if (!string.IsNullOrWhiteSpace(storageSpace))
-            {
-                StorageSpace = storageSpace;
-            }
             IdentifierType = IdentifierType.NonBNumber;
             this.value = value;
             parts = value.Split(Separators);
@@ -173,7 +173,7 @@ namespace Wellcome.Dds.Common
             throw new FormatException("Could not parse identifier");
         }
 
-        public static bool operator ==(DdsIdentifier? d1, DdsIdentifier? d2)
+        public static bool operator ==(DdsIdentifierX? d1, DdsIdentifierX? d2)
         {
             if (d1 is null)
             {
@@ -188,14 +188,14 @@ namespace Wellcome.Dds.Common
             return d2 != null && d1.value == d2.value;
         }
 
-        public static bool operator !=(DdsIdentifier? d1, DdsIdentifier? d2)
+        public static bool operator !=(DdsIdentifierX? d1, DdsIdentifierX? d2)
         {
             return !(d1 == d2);
         }
 
         public override bool Equals(object? obj)
         {
-            return obj is DdsIdentifier identifier && this == identifier;
+            return obj is DdsIdentifierX identifier && this == identifier;
         }
 
         public override int GetHashCode()
@@ -203,9 +203,11 @@ namespace Wellcome.Dds.Common
             return value.GetHashCode();
         }
 
-        public static implicit operator string(DdsIdentifier di) => di.ToString();
+        [Obsolete]
+        public static implicit operator string(DdsIdentifierX di) => di.ToString();
 
-        public static implicit operator DdsIdentifier(string di) => new(di);
+        [Obsolete]
+        public static implicit operator DdsIdentifierX(string di) => new(di);
 
         public override string ToString() => value;
 
@@ -215,10 +217,10 @@ namespace Wellcome.Dds.Common
 
     public enum IdentifierType
     {
-        BNumber,
-        Volume,
-        Issue,
-        BNumberAndSequenceIndex,
-        NonBNumber
+        BNumber,                 // => Package
+        Volume,                  // => keep for now
+        Issue,                   // => keep for now
+        BNumberAndSequenceIndex, // => delete
+        NonBNumber               // => delete
     }
 }

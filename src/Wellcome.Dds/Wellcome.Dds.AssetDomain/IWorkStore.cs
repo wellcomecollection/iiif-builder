@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain
 {
@@ -10,7 +11,7 @@ namespace Wellcome.Dds.AssetDomain
     /// </summary>
     public interface IWorkStore
     {
-        string Identifier { get; }
+        string PackageIdentifier { get; }
         Task<XmlSource> LoadXmlForPath(string relativePath);
         Task<XmlSource> LoadXmlForPath(string relativePath, bool useCache);
         Task<XmlSource> LoadXmlForIdentifier(string identifier);

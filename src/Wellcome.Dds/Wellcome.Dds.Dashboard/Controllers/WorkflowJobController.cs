@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,15 +14,18 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly IWorkflowCallRepository workflowCallRepository;
         private readonly ILogger<WorkflowJobController> logger;
         private readonly ICacheInvalidationPathPublisher invalidationPathPublisher;
+        private readonly IIdentityService identityService;
 
         public WorkflowJobController(
             IWorkflowCallRepository workflowCallRepository,
             ILogger<WorkflowJobController> logger,
-            ICacheInvalidationPathPublisher invalidationPathPublisher)
+            ICacheInvalidationPathPublisher invalidationPathPublisher,
+            IIdentityService identityService)
         {
             this.workflowCallRepository = workflowCallRepository;
             this.logger = logger;
             this.invalidationPathPublisher = invalidationPathPublisher;
+            this.identityService = identityService;
         }
         
         /// <summary>
@@ -55,8 +57,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
             
             try
             {
-                var bNumber = new DdsIdentifier(id).PackageIdentifier;
-                await workflowCallRepository.CreateExpeditedWorkflowJob(bNumber, iiifOnly ? 6 : null, true);
+                var ddsId = identityService.GetIdentity(id);
+                await workflowCallRepository.CreateExpeditedWorkflowJob(ddsId.PackageIdentifier, iiifOnly ? 6 : null, true);
             }
             catch (Exception ex)
             {
@@ -70,6 +72,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private ActionResult RedirectToManifestation(string id, string tempDataType, bool success, string message)
         {
+            var ddsId = identityService.GetIdentity(id);
             var deleteResult = new DeleteResult
             {
                 Success = success,
@@ -77,7 +80,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             };
             TempData[tempDataType] = JsonConvert.SerializeObject(deleteResult);
 
-            return RedirectToAction("Manifestation", "Dash", new {id});
+            return RedirectToAction("Manifestation", "Dash", new {ddsId.PathElementSafe});
         }
 
         /// <summary>
@@ -88,10 +91,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
         [HttpPost]
         public async Task<IActionResult> ClearCaches(string id, [FromForm] bool hasText = false)
         {
+            var ddsId = identityService.GetIdentity(id);
             string[] errors;
             try
             {
-                errors = await invalidationPathPublisher.PublishInvalidation(id, hasText);
+                errors = await invalidationPathPublisher.PublishInvalidation(ddsId.Value, hasText);
             }
             catch (Exception ex)
             {

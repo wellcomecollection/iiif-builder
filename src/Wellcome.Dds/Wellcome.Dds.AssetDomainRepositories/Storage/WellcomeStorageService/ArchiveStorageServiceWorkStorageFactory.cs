@@ -40,9 +40,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             this.storageServiceS3 = storageServiceS3.Get(NamedClient.Storage);
         }
 
-        public async Task<IWorkStore> GetWorkStore(DdsIdentifier ddsId)
+        public async Task<IWorkStore> GetWorkStore(DdsIdentity ddsId)
         {
-            Task<WellcomeBagAwareArchiveStorageMap?> GetFromSource() => BuildStorageMap(ddsId.StorageSpace, ddsId.PackageIdentifier);
+            Task<WellcomeBagAwareArchiveStorageMap?> GetFromSource() => BuildStorageMap(ddsId.StorageSpace!, ddsId.PackageIdentifier);
 
             logger.LogInformation("JQ {identifier} - Getting IWorkStore for ", ddsId);
             
@@ -54,7 +54,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
                 throw new InvalidOperationException($"Could not retrieve storage map for {ddsId}");
             }
             return new ArchiveStorageServiceWorkStore(
-                ddsId.StorageSpace, ddsId.PackageIdentifier,
+                ddsId.StorageSpace!, ddsId.PackageIdentifier,
                 storageMap, storageServiceClient, xmlElementCache, storageServiceS3);
         }
 

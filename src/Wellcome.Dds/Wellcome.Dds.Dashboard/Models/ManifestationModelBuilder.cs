@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Amazon.S3;
 using DlcsWebClient.Config;
@@ -35,6 +36,7 @@ namespace Wellcome.Dds.Dashboard.Models
         private readonly DlcsOptions dlcsOptions;
         private readonly SmallJobLogger jobLogger;
         private readonly IMetsRepository metsRepository;
+        private readonly IIdentityService identityService;
 
         private const string CacheKeyPrefix = "manifestModelBuilder_";
         private const int CacheSeconds = 5;
@@ -48,7 +50,8 @@ namespace Wellcome.Dds.Dashboard.Models
             IDigitalObjectRepository digitalObjectRepository,
             ISimpleCache cache,
             UriPatterns uriPatterns,
-            IMetsRepository metsRepository
+            IMetsRepository metsRepository,
+            IIdentityService identityService
         )
         {
             this.ddsOptions = ddsOptions.Value;
@@ -60,10 +63,11 @@ namespace Wellcome.Dds.Dashboard.Models
             this.uriPatterns = uriPatterns;
             this.dlcsOptions = dlcsOptions.Value;
             this.metsRepository = metsRepository;
+            this.identityService = identityService;
             jobLogger = new SmallJobLogger(string.Empty, null);
         }
 
-        public async Task<OverallResult> Build(DdsIdentifier identifier, IUrlHelper url)
+        public async Task<OverallResult> Build(DdsIdentity identifier, IUrlHelper url)
         {
             try
             {
@@ -71,9 +75,10 @@ namespace Wellcome.Dds.Dashboard.Models
                 jobLogger.Log(
                     "Start parallel dashboardRepository.GetDigitisedResource(id), catalogue.GetWorkByOtherIdentifier(ddsId.BNumber)");
                 var workTask = catalogue.GetWorkByOtherIdentifier(identifier.PackageIdentifier);
-                var dlcsCallContext = new DlcsCallContext("ManifestationModelBuilder::Build", identifier);
+                var dlcsCallContext = new DlcsCallContext("ManifestationModelBuilder::Build", identifier.Value);
                 logger.LogDebug("Starting DlcsCallContext {callContext}", dlcsCallContext);
-                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier, dlcsCallContext, identifier.HasBNumber);
+                var includePdfDetails = identifier.Generator == Generator.Goobi;
+                var ddsTask = digitalObjectRepository.GetDigitalObject(identifier.Value, dlcsCallContext, includePdfDetails);
                 await Task.WhenAll(new List<Task> {ddsTask, workTask});
                 var dgResource = ddsTask.Result;
                 var work = workTask.Result;
@@ -93,31 +98,28 @@ namespace Wellcome.Dds.Dashboard.Models
 
                     ICollection parent;
                     ICollection grandparent;
-                    // We need to show the manifestation with information about its parents, it it has any.
-                    // this allows navigation through multiple manifs
-                    switch (identifier.IdentifierType)
+                    // We need to show the manifestation with information about its parents if it has any.
+                    // This allows navigation through multiple manifestations.
+                    if (identifier.IssuePart.HasText())
                     {
-                        case IdentifierType.BNumber:
-                        case IdentifierType.NonBNumber:
-                            parent = null;
-                            grandparent = null;
-                            break;
-                        case IdentifierType.Volume:
-                            parent = await GetCachedCollectionAsync(identifier.BNumber);
-                            grandparent = null;
-                            break;
-                        case IdentifierType.Issue:
-                            parent = await GetCachedCollectionAsync(identifier.VolumePart);
-                            grandparent = await GetCachedCollectionAsync(identifier.BNumber);
-                            break;
-                        case IdentifierType.BNumberAndSequenceIndex:
-                            throw new ArgumentException("id", $"Can't use an index-based ID here: {identifier}");
-                        default:
-                            throw new ArgumentException("id", $"Could not get resource for identifier {identifier}");
+                        parent = await GetCachedCollectionAsync(identifier.VolumePart);
+                        grandparent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
+                    }
+                    else if (identifier.VolumePart.HasText())
+                    {
+                        parent = await GetCachedCollectionAsync(identifier.PackageIdentifier);
+                        grandparent = null;
+                    }
+                    else
+                    {
+                        parent = null;
+                        grandparent = null;
                     }
 
-                    var skeletonPreview = string.Format(
-                        dlcsOptions.SkeletonNamedQueryTemplate!, dlcsOptions.CustomerDefaultSpace, identifier);
+                    var namedQueryManifestUri = string.Format(
+                        dlcsOptions.SkeletonNamedQueryTemplate!, 
+                        dlcsOptions.CustomerDefaultSpace, 
+                        WebUtility.UrlEncode(identifier.Value));
 
                     var model = new ManifestationModel
                     {
@@ -129,9 +131,9 @@ namespace Wellcome.Dds.Dashboard.Models
                         GrandParent = grandparent,
                         SyncOperation = syncOperation,
                         DlcsOptions = dlcsOptions,
-                        DlcsSkeletonManifest = skeletonPreview,
+                        DlcsSkeletonManifest = namedQueryManifestUri,
                         Work = work,
-                        ManifestUrl = uriPatterns.Manifest(identifier)
+                        ManifestUrl = uriPatterns.Manifest(identifier.Value)
                     };
                     if (work != null)
                     {
@@ -149,7 +151,7 @@ namespace Wellcome.Dds.Dashboard.Models
                             digitalObjectRepository.GetDeliveredFiles(file);
                     }
                     
-                    model.MakeManifestationNavData();
+                    model.MakeManifestationNavData(identityService);
                     jobLogger.Log("Start dashboardRepository.GetRationalisedJobActivity(syncOperation)");
                     var jobActivity = await digitalObjectRepository.GetRationalisedJobActivity(syncOperation, dlcsCallContext);
                     jobLogger.Log("Finished dashboardRepository.GetRationalisedJobActivity(syncOperation)");
@@ -225,7 +227,7 @@ namespace Wellcome.Dds.Dashboard.Models
                     }
                     
                     // a periodical, I think - but go to volume controller for this.
-                    redirectId = dgCollection.MetsCollection.GetRootId();
+                    redirectId = identityService.GetIdentity(dgCollection.MetsCollection.Identifier).PackageIdentifier;
                     return new OverallResult
                     {
                         RedirectToCollection = true,
@@ -260,10 +262,11 @@ namespace Wellcome.Dds.Dashboard.Models
         
         private async Task<ICollection> GetCachedCollectionAsync(string identifier)
         {
+            var ddsId = identityService.GetIdentity(identifier);
             var coll = await cache.GetCached(
                 CacheSeconds,
                 CacheKeyPrefix + identifier,
-                async () => await metsRepository.GetAsync(identifier));
+                async () => await metsRepository.GetAsync(ddsId));
             return (ICollection)coll;
         }
 

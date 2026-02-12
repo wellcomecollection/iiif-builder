@@ -19,17 +19,20 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
         private readonly UriPatterns uriPatterns;
         private readonly IOptions<CacheInvalidationOptions> options;
         private readonly ILogger<CacheInvalidationPathPublisher> logger;
+        private readonly IIdentityService identityService;
 
         public CacheInvalidationPathPublisher(
             IAmazonSimpleNotificationService simpleNotificationService,
             UriPatterns uriPatterns,
             IOptions<CacheInvalidationOptions> options,
-            ILogger<CacheInvalidationPathPublisher> logger)
+            ILogger<CacheInvalidationPathPublisher> logger,
+            IIdentityService identityService)
         {
             this.simpleNotificationService = simpleNotificationService;
             this.uriPatterns = uriPatterns;
             this.options = options;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         public async Task<string[]> PublishInvalidation(string identifier, bool includeTextResources)
@@ -40,7 +43,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
             var messages = new List<string>();
 
             // api.wc.org cache is only invalidated if text has been rebuilt 
-            if (includeTextResources && new DdsIdentifier(identifier).HasBNumber)
+            var ddsId = identityService.GetIdentity(identifier);
+            if (includeTextResources && ddsId.Generator == Generator.Goobi)
             {
                 if (cacheInvalidationOptions.InvalidateApiTopicArn.IsNullOrWhiteSpace())
                 {

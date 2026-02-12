@@ -13,26 +13,29 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow;
 
 public class WorkflowCallRepository : IWorkflowCallRepository
 {
+    private readonly IIdentityService identityService;
     private readonly DdsInstrumentationContext ddsInstrumentationContext;
     private readonly ILogger<WorkflowCallRepository> logger;
 
     public WorkflowCallRepository(
         DdsInstrumentationContext ddsInstrumentationContext, 
-        ILogger<WorkflowCallRepository> logger)
+        ILogger<WorkflowCallRepository> logger,
+        IIdentityService identityService)
     {
         this.ddsInstrumentationContext = ddsInstrumentationContext;
         this.logger = logger;
+        this.identityService = identityService;
     }
 
     private const int RecentSampleHours = 2;
 
-    public async Task<WorkflowJob> CreateWorkflowJob(DdsIdentifier ddsId, int? workflowOptions)
+    public async Task<WorkflowJob> CreateWorkflowJob(string ddsId, int? workflowOptions)
     {
         var workflowJob = await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, false, false);
         return workflowJob;
     }
 
-    public async Task<WorkflowJob> CreateExpeditedWorkflowJob(DdsIdentifier ddsId, int? workflowOptions, bool invalidateCache)
+    public async Task<WorkflowJob> CreateExpeditedWorkflowJob(string ddsId, int? workflowOptions, bool invalidateCache)
     {
         var workflowJob =
             await ddsInstrumentationContext.PutJob(ddsId, true, false, workflowOptions, true, invalidateCache);
@@ -72,11 +75,13 @@ public class WorkflowCallRepository : IWorkflowCallRepository
             .Where(j => j.Finished)
             .OrderByDescending(j => j.Taken)
             .Take(10)
+            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
             
         // was: select * from WorkflowJobs where Taken is not null and Finished=0
         result.TakenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
             .Where(j => j.Taken != null && !j.Finished)
+            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
 
         await PopulateStats(start, end, result);
@@ -170,9 +175,9 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
         return Task.FromResult(count);
     }
 
-    public async Task DeleteJob(DdsIdentifier ddsId)
+    public async Task DeleteJob(string ddsId)
     {
-        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
+        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId);
         if (job != null)
         {
             ddsInstrumentationContext.WorkflowJobs.Remove(job);

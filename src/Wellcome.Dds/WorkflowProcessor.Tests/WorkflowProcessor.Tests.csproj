@@ -25,6 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Test.Helpers\Test.Helpers.csproj" />
       <ProjectReference Include="..\WorkflowProcessor\WorkflowProcessor.csproj" />
     </ItemGroup>
 

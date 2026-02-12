@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using IIIF;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +28,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly DdsOptions ddsOptions;
+        private readonly IIdentityService identityService;
 
         public int DefaultSpace { get; }
         public int DefaultCustomer { get; }
@@ -39,7 +39,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             IDlcs dlcs,
             IMetsRepository metsRepository,
             DdsInstrumentationContext ddsInstrumentationContext,
-            IOptions<DdsOptions> ddsOptions)
+            IOptions<DdsOptions> ddsOptions,
+            IIdentityService identityService)
         {
             this.logger = logger;
             this.uriPatterns = uriPatterns;
@@ -49,6 +50,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             this.metsRepository = metsRepository;
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.ddsOptions = ddsOptions.Value;
+            this.identityService = identityService;
         }
 
         // make all the things, then hand back to DashboardCloudServicesJobProcessor process job.
@@ -63,13 +65,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         /// <param name="includePdfDetails">If true, includes details of PDF with result. This is expensive, so avoid calling this if you don't need that information.</param>
         /// <returns></returns>
         public async Task<IDigitalObject> GetDigitalObject(
-            DdsIdentifier identifier,
+            string identifier,
             DlcsCallContext dlcsCallContext,
             bool includePdfDetails = false)
         {
+            var ddsId = identityService.GetIdentity(identifier);
             logger.LogInformation("GetDigitalObject (mets+dlcs) for {identifier}", identifier);
             IDigitalObject digObject;
-            var metsResource = await metsRepository.GetAsync(identifier);
+            var metsResource = await metsRepository.GetAsync(ddsId);
             if (metsResource is IManifestation resource)
             {
                 logger.LogDebug("{identifier} resolved to a Manifestation from METS", identifier);
@@ -85,8 +88,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 throw new ArgumentException($"Cannot get a digital resource from METS for identifier {identifier}",
                     nameof(identifier));
             }
-
-            digObject.Identifier = metsResource.Identifier;
+            
+            var metsResourceId = identityService.GetIdentity(metsResource.Identifier);
+            if (metsResourceId != ddsId)
+            {
+                throw new InvalidOperationException($"DdsIdentity added exception: {metsResourceId} does not match {ddsId}");
+            }
+            digObject.Identifier = ddsId;
             digObject.Partial = metsResource.Partial;
 
             //// DEBUG step - force evaluation of DLCS query
@@ -162,8 +170,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         {
             logger.LogDebug("Will construct a SyncOperation for context: {callContext}", dlcsCallContext.Id);
             var metsManifestation = digitisedManifestation.MetsManifestation;
+            var manifestationDdsId = identityService.GetIdentity(metsManifestation.Identifier);
             var imagesAlreadyOnDlcs = digitisedManifestation.DlcsImages!.ToList();
-            var missingAccessConditions = metsManifestation!.SynchronisableFiles.AnyItems()
+            var missingAccessConditions = metsManifestation.SynchronisableFiles.AnyItems()
                 .Where(sf => sf.PhysicalFile!.AccessCondition == AccessCondition.Missing).ToList();
             logger.LogDebug(
                 "There are {alreadyCount} images already on the DLCS for {identifier}, callContext: {callContext}",
@@ -210,7 +219,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // Get the manifestation level metadata that each image is going to need
             // NB This returns -1 for a Chemist and Druggist issue
-            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(metsManifestation.Identifier);
+            syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(manifestationDdsId);
 
             // This sets the default maxUnauthorised, before we know what the roles are. 
             // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
@@ -243,7 +252,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
                 if (!AccessCondition.IsValid(storedFile.PhysicalFile!.AccessCondition))
                 {
-                    // This does not have an access condition that we can sync wth the DLCS
+                    // This does not have an access condition that we can sync with the DLCS
                     syncOperation.HasInvalidAccessCondition = true;
                     syncOperation.Message = "Sync operation found at least one invalid access condition";
                     logger.LogDebug("Asset {identifier} has an invalid access condition {accessCondition}",
@@ -251,7 +260,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                     continue;
                 }
 
-                var newDlcsImage = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                var newDlcsImage = MakeDlcsImage(storedFile, manifestationDdsId,
                     syncOperation.LegacySequenceIndex, maxUnauthorised);
                 syncOperation.ImagesThatShouldBeOnDlcs[storedFile.StorageIdentifier!] = newDlcsImage;
                 var existingDlcsImage = syncOperation.ImagesCurrentlyOnDlcs[storedFile.StorageIdentifier!];
@@ -274,7 +283,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         // for the new information display in the dashboard. 
                         // Make a new candidate image for patch diff; we only want this to get patchMismatchReasons here, 
                         // we won't use newDlcsImageForPatchTest for anything else.
-                        var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, metsManifestation.Identifier,
+                        var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, manifestationDdsId,
                             syncOperation.LegacySequenceIndex, maxUnauthorised);
                         var patchDiffImage = GetPatchImage(newDlcsImageForPatchTest, existingDlcsImage, out var patchMismatchReasons);
                         if (patchDiffImage != null)
@@ -322,7 +331,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var dc = new DigitalCollection
             {
                 MetsCollection = metsCollection,
-                Identifier = metsCollection.Identifier
+                Identifier = identityService.GetIdentity(metsCollection.Identifier)
             };
 
             // There are currently 0 instances of an item with both collection + manifestation here.
@@ -353,14 +362,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             bool includePdf,
             DlcsCallContext dlcsCallContext)
         {
-            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier, dlcsCallContext);
-            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier) : Task.FromResult<IPdf?>(null);
+            var getDlcsImages = dlcs.GetImagesForString3(metsManifestation.Identifier.ToString(), dlcsCallContext);
+            var getPdf = includePdf ? dlcs.GetPdfDetails(metsManifestation.Identifier.ToString()) : Task.FromResult<IPdf?>(null);
 
             await Task.WhenAll(getDlcsImages, getPdf);
 
             return new DigitalManifestation(metsManifestation)
             {
-                Identifier = metsManifestation.Identifier,
+                Identifier = identityService.GetIdentity(metsManifestation.Identifier),
                 DlcsImages = getDlcsImages.Result,
                 PdfControlFile = getPdf.Result
             };
@@ -827,7 +836,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private Image MakeDlcsImage(
             IStoredFile asset,
-            DdsIdentifier ddsId,
+            DdsIdentity ddsId,
             int sequenceIndex,
             int maxUnauthorised)
         {
@@ -851,27 +860,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 imageRegistration.TextType = "alto"; // also need a string to identify this as ALTO
             }
 
-            switch (ddsId.IdentifierType)
+            if (ddsId.IssuePart.HasText())
             {
-                case IdentifierType.BNumber:
-                case IdentifierType.NonBNumber: // for Archivematica, always (at present) a single manifestation
-                    imageRegistration.String2 = ddsId.PackageIdentifier;
-                    imageRegistration.String3 = ddsId.PackageIdentifier;
-                    break;
-                case IdentifierType.Volume:
-                    imageRegistration.String2 = ddsId.VolumePart;
-                    imageRegistration.String3 = ddsId.VolumePart;
-                    break;
-                case IdentifierType.Issue:
-                    imageRegistration.String2 = ddsId.VolumePart;
-                    imageRegistration.String3 = ddsId.IssuePart;
-                    break;
-                case IdentifierType.BNumberAndSequenceIndex:
-                    // we should not get any like this
-                    imageRegistration.Number1 = ddsId.SequenceIndex;
-                    break;
+                imageRegistration.String2 = ddsId.VolumePart;
+                imageRegistration.String3 = ddsId.IssuePart;
             }
-
+            else if (ddsId.VolumePart.HasText())
+            {
+                imageRegistration.String2 = ddsId.VolumePart;
+                imageRegistration.String3 = ddsId.VolumePart;
+            }
+            else
+            {
+                imageRegistration.String2 = ddsId.PackageIdentifier;
+                imageRegistration.String3 = ddsId.PackageIdentifier;
+            }
+            
             var roles = GetRoles(asset.PhysicalFile);
             imageRegistration.Roles = roles;
             if (asset.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
@@ -995,34 +999,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             return jobs;
         }
 
-        private IQueryable<DlcsIngestJob>? GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
+        private IQueryable<DlcsIngestJob> GetJobQuery(string identifier) // , int legacySequenceIndex = -1)
         {
-            var ddsId = new DdsIdentifier(identifier);
-            IQueryable<DlcsIngestJob>? jobQuery = null;
-            switch (ddsId.IdentifierType)
+            var ddsId = identityService.GetIdentity(identifier);
+            if (ddsId.IssuePart.HasText())
             {
-                case IdentifierType.Volume:
-                    //int sequenceIndex = metsRepository.FindSequenceIndex(identifier);
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => (j.VolumePart != null && j.VolumePart == identifier));
-                    // || (j.VolumePart == null && j.Identifier == ddsId.BNumber && j.SequenceIndex == legacySequenceIndex));
-                    break;
-                case IdentifierType.BNumberAndSequenceIndex:
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == ddsId.PackageIdentifier && j.SequenceIndex == ddsId.SequenceIndex);
-                    break;
-                case IdentifierType.Issue:
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.IssuePart == identifier);
-                    break;
-                default:
-                    // case IdentifierType.BNumber and Archival identifiers
-                    jobQuery = ddsInstrumentationContext.DlcsIngestJobs
-                        .Where(j => j.Identifier == identifier);
-                    break;
+                return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.IssuePart == identifier);
             }
-
-            return jobQuery;
+            if (ddsId.VolumePart.HasText())
+            {
+                return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.VolumePart != null && j.VolumePart == identifier);
+            }
+            return ddsInstrumentationContext.DlcsIngestJobs.Where(j => j.Identifier == identifier);
         }
 
 
@@ -1095,7 +1083,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         ///// <returns></returns>
         public async Task<int> FindSequenceIndex(string identifier)
         {
-            return await metsRepository.FindSequenceIndex(identifier);
+            var ddsId = identityService.GetIdentity(identifier);
+            return await metsRepository.FindSequenceIndex(ddsId);
         }
 
         public Task<bool> DeletePdf(string identifier) => dlcs.DeletePdf(identifier);

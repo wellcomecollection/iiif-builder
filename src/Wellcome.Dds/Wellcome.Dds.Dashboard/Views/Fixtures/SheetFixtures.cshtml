@@ -34,14 +34,16 @@
         else if(dict["Level"] == "Item")
         {
             var altForm = dict["PublicRef"].ReplaceFirst("/", "");
-            var identifier = new DdsIdentifier(altForm);
+            // bypass the identity service for these one-off pages
+            var packageIdentifier = altForm.Split('/', '_')[0];
+            var pathElementSafe = packageIdentifier.Replace('/', '_');
             <tr>
-                <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+                <td>@Html.ActionLink(packageIdentifier, "Manifestation", "Dash", new { id = pathElementSafe }, new { })</td>
                 <td>@dict["Extent"]</td>
                 <td>@if(dict.ContainsKey("Ingest completed?")){@dict["Ingest completed?"]}</td>
-                <td>@Html.ActionLink("METS", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-                <td>@Html.ActionLink("Storage", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-                <td>@Html.ActionLink("Workflow", "WorkflowCall", "WorkflowCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+                <td>@Html.ActionLink("METS", "XmlView", "Peek", new { id = pathElementSafe }, new { })</td>
+                <td>@Html.ActionLink("Storage", "StorageManifest", "Peek", new { id = pathElementSafe }, new { })</td>
+                <td>@Html.ActionLink("Workflow", "WorkflowCall", "WorkflowCall", new { id = pathElementSafe }, new { })</td>
             </tr>
             
         }

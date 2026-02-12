@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
-using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
 {
@@ -14,7 +13,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 throw new InvalidOperationException("A Collection logical struct div must have an External ID");
             }
-            Identifier = new DdsIdentifier(structDiv.ExternalId);
+            Identifier = structDiv.ExternalId;
             SectionMetadata = structDiv.GetSectionMetadata();
             Label = GetLabel(structDiv, SectionMetadata);
             Type = structDiv.Type;

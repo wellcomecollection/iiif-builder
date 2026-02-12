@@ -34,6 +34,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Wellcome.Dds.AssetDomainRepositories\Wellcome.Dds.AssetDomainRepositories.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.AssetDomain\Wellcome.Dds.AssetDomain.csproj" />
+      <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
     </ItemGroup>
 
     <ItemGroup>

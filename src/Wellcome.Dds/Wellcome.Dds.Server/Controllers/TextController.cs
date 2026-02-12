@@ -26,6 +26,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly DdsOptions ddsOptions;
         private readonly IMetsRepository metsRepository;
         private readonly ILogger<TextController> logger;
+        private readonly IIdentityService identityService;
 
         /// <summary>
         /// ctor
@@ -34,17 +35,20 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="options">DDS Options</param>
         /// <param name="metsRepository"></param>
         /// <param name="logger"></param>
+        /// <param name="identityService"></param>
         public TextController(
             IStorage storage,
             IOptions<DdsOptions> options,
             IMetsRepository metsRepository,
-            ILogger<TextController> logger
+            ILogger<TextController> logger,
+            IIdentityService identityService
         )
         {
             this.storage = storage;
             ddsOptions = options.Value;
             this.metsRepository = metsRepository;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -91,7 +95,8 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("alto/{manifestationIdentifier}/{assetIdentifier}")]
         public async Task<IActionResult> Alto(string manifestationIdentifier, string assetIdentifier)
         {
-            var metsManifestation = await metsRepository.GetAsync(manifestationIdentifier) as IManifestation;
+            var ddsId = identityService.GetIdentity(manifestationIdentifier);
+            var metsManifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
             var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
             if (asset != null && asset.RelativeAltoPath.HasText())
             {

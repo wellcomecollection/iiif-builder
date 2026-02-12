@@ -1,5 +1,4 @@
-﻿using System;
-using DlcsWebClient.Config;
+﻿using DlcsWebClient.Config;
 using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +21,7 @@ using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
+using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 
 namespace DlcsJobProcessor
@@ -40,6 +40,9 @@ namespace DlcsJobProcessor
             services.AddDbContext<DdsInstrumentationContext>(options => options
                 .UseNpgsql(Configuration.GetConnectionString("DdsInstrumentation")!)
                 .UseSnakeCaseNamingConvention());
+            services.AddDbContext<DdsContext>(options => options
+                .UseNpgsql(Configuration.GetConnectionString("Dds")!)
+                .UseSnakeCaseNamingConvention());
             
             services.Configure<JobProcessorOptions>(Configuration.GetSection("JobProcessor"));
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
@@ -48,6 +51,7 @@ namespace DlcsJobProcessor
             services.Configure<BinaryObjectCacheOptionsByType>(Configuration.GetSection("BinaryObjectCache"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
 
+            services.AddScoped<IIdentityService, PersistedIdentityService>();
             services.AddDlcsClient(Configuration);
             
             var factory = services.AddNamedS3Clients(Configuration, NamedClient.All);

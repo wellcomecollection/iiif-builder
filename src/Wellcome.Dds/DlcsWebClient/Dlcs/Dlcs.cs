@@ -114,8 +114,8 @@ namespace DlcsWebClient.Dlcs
                 operation.ResponseStatus = response.StatusCode;
                 operation.ResponseJson = await response.Content.ReadAsStringAsync();
 
-                logger.LogDebug("Response received for correlationId {correlationId}, callContext {callContext}",
-                    correlationId, dlcsCallContext);
+                //logger.LogDebug("Response received for correlationId {correlationId}, callContext {callContext}",
+                //    correlationId, dlcsCallContext);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -357,23 +357,20 @@ namespace DlcsWebClient.Dlcs
             return sb.ToString();
         }
 
-        public Task<IEnumerable<Image>> GetImagesForIdentifier(string identifier, DlcsCallContext dlcsCallContext)
+        public Task<IEnumerable<Image>> GetImagesForIdentifier(DdsIdentity ddsId, DlcsCallContext dlcsCallContext)
         {
-            var ddsId = new DdsIdentifier(identifier);
-            if(ddsId.IdentifierType == IdentifierType.BNumberAndSequenceIndex)
+            if (ddsId.Source != Source.Sierra) throw new NotSupportedException("Unknown identifier: " + ddsId.Value);
+            if (ddsId.IssuePart.HasText())
             {
-                throw new NotSupportedException("No more sequence index");
+                return GetImagesForIssue(ddsId.Value, dlcsCallContext);
             }
-            return ddsId.IdentifierType switch
+            if (ddsId.VolumePart.HasText())
             {
-                IdentifierType.BNumber => GetImagesForBNumber(identifier, dlcsCallContext),
-                IdentifierType.Volume => GetImagesForVolume(identifier, dlcsCallContext),
-                IdentifierType.BNumberAndSequenceIndex => GetImagesBySequenceIndex(ddsId.BNumber!, ddsId.SequenceIndex, dlcsCallContext),
-                IdentifierType.Issue => GetImagesForIssue(identifier, dlcsCallContext),
-                // TODO - Archival
-                IdentifierType.NonBNumber => throw new NotSupportedException("Unknown identifier"),
-                _ => throw new NotSupportedException("Unknown identifier")
-            };
+                return GetImagesForVolume(ddsId.Value, dlcsCallContext);
+            }
+
+            return GetImagesForBNumber(ddsId.Value, dlcsCallContext);
+
         }
 
         /// <summary>
