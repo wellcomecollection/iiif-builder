@@ -137,7 +137,7 @@ public class PersistedIdentityService(
                 // Should we create it? Its values will be provisional, only from parsing, until this code is called
                 // for the package level identifier with a generator.
                 logger.LogInformation("Volume or issue identity {value} resolved where no package-level identity exists",
-                    dbIdentity.Value);
+                    dbIdentity.Value.LogSafe());
                 // For anything existing this will only apply to Goobi/digitised/Sierra, which is what we parse.
                 // Leave dbIdentity with its parsed 
             }

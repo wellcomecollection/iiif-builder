@@ -151,7 +151,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> Manifestation(string id)
         {
             DdsIdentity ddsId = null;
-            logger.LogDebug("Generating Manifestation Page for {identifier}", id);
+            logger.LogDebug("Generating Manifestation Page for {identifier}", id.LogSafe());
             try
             {
                 ddsId = identityService.GetIdentity(id);
@@ -178,7 +178,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error getting manifestation for '{id}'", ddsId?.Value ?? id);
+                logger.LogError(ex, "Error getting manifestation for '{id}'", ddsId?.Value.LogSafe() ?? id.LogSafe());
                 ViewBag.Message = $"No digitised resource found for identifier {id}. {ex.Message}";
                 if (ddsId != null)
                 {

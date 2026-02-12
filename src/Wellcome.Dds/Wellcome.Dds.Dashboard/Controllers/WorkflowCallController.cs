@@ -113,7 +113,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error simulating workflow call for '{id}'", ddsId.Value);
+                logger.LogError(e, "Error simulating workflow call for '{id}'", ddsId.Value.LogSafe());
                 TempData["new-workflow-job-error"] = e.Message;
                 return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
@@ -148,7 +148,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     TimeSent = DateTime.UtcNow
                 };
             
-                logger.LogDebug("Simulating workflow SQS call from dashboard for {Identifier}", ddsId);
+                logger.LogDebug("Simulating workflow SQS call from dashboard for {Identifier}", ddsId.LogSafe());
                 var serialiserSettings = new JsonSerializerSettings
                 {
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
@@ -162,7 +162,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var response = await sqsClient.SendMessageAsync(request);
                 logger.LogDebug(
                     "Received statusCode {StatusCode} for sending SQS for {Identifier} - {MessageId}",
-                    response.HttpStatusCode, ddsId, response.MessageId);
+                    response.HttpStatusCode, ddsId.LogSafe(), response.MessageId);
                 
                 TempData["new-workflow-notification"] = $"Workflow notification sent for '{ddsId}'";
                 return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
@@ -170,7 +170,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error making workflow queue call for '{id}'", ddsId.Value);
+                logger.LogError(e, "Error making workflow queue call for '{id}'", ddsId.Value.LogSafe());
                 TempData["new-workflow-notification-error"] = e.Message;
                 return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
             }
