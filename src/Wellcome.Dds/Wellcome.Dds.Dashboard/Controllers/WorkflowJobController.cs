@@ -80,7 +80,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             };
             TempData[tempDataType] = JsonConvert.SerializeObject(deleteResult);
 
-            return RedirectToAction("Manifestation", "Dash", new {ddsId.PathElementSafe});
+            return RedirectToAction("Manifestation", "Dash", new {id = ddsId.PathElementSafe});
         }
 
         /// <summary>

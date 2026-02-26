@@ -109,13 +109,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var workflowJob = await workflowCallRepository.CreateWorkflowJob(ddsId.Value, workflowOptions);
                 TempData["new-workflow-job"] = $"Job Created: {workflowJob.Created}";
-                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+                return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Error simulating workflow call for '{id}'", ddsId.Value.LogSafe());
                 TempData["new-workflow-job-error"] = e.Message;
-                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+                return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
             }
         }
 
@@ -135,7 +135,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 var errorMessage = $"No queue specified for workflow; could not notify for '{ddsId}'";
                 logger.LogError(errorMessage);
                 TempData["new-workflow-notification-error"] = errorMessage;
-                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+                return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
             }
 
             try
@@ -165,14 +165,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     response.HttpStatusCode, ddsId.LogSafe(), response.MessageId);
                 
                 TempData["new-workflow-notification"] = $"Workflow notification sent for '{ddsId}'";
-                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+                return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
 
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Error making workflow queue call for '{id}'", ddsId.Value.LogSafe());
                 TempData["new-workflow-notification-error"] = e.Message;
-                return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+                return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
             }
         }
 
@@ -257,7 +257,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var ddsId = identityService.GetIdentity(id);
             await workflowCallRepository.DeleteJob(ddsId.Value);
             TempData["job-deleted"] = $"{ddsId.Value} deleted.";
-            return RedirectToAction("WorkflowCall", new {ddsId.PathElementSafe});
+            return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
         }
     }
 }

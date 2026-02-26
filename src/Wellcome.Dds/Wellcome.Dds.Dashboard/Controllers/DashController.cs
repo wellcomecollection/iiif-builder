@@ -366,7 +366,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         {
             var ddsId = identityService.GetIdentity(id);
             var action = version == 2 ? "IIIF2Raw" : "IIIFRaw";
-            var previewUri = $"{origin}{Url.Action(action, "Peek", new { ddsId.PathElementSafe })}";
+            var previewUri = $"{origin}{Url.Action(action, "Peek", new { id = ddsId.PathElementSafe })}";
             return Redirect("https://universalviewer.io/examples/#?manifest=" + previewUri);
         }
         
@@ -385,10 +385,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public IActionResult MiradorPreview(string id, string origin)
         {
             var ddsId = identityService.GetIdentity(id);
-            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { ddsId.PathElementSafe })}" };
+            var manifests = new List<string>{ $"{origin}{Url.Action("IIIFRaw", "Peek", new { id = ddsId.PathElementSafe })}" };
             if (ddsId.StorageSpace == "digitised")
             {
-                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { ddsId.PathElementSafe })}");
+                manifests.Add($"{origin}{Url.Action("IIIF2Raw", "Peek", new { id = ddsId.PathElementSafe })}");
             }
             return View("Mirador", manifests);
         }
@@ -461,7 +461,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             digitalObjectRepository.LogAction(id, null, User.Identity.Name, "Delete Orphans");
             int removed = await digitalObjectRepository.DeleteOrphans(ddsId.Value, new DlcsCallContext("DashController::DeleteOrphans", id));
             TempData["orphans-deleted"] = removed;
-            return RedirectToAction("Manifestation", new { ddsId.PathElementSafe });
+            return RedirectToAction("Manifestation", new { id = ddsId.PathElementSafe });
         }
 
         public JsonResult AutoComplete(string id)
