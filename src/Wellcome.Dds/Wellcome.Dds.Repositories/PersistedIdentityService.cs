@@ -68,8 +68,25 @@ public class PersistedIdentityService(
             }
         }
         
-        // Now try the database
-        var dbIdentity = ddsContext.Identities.Find(lowered);
+        // Parse up front to obtain the CANONICAL key. The stored primary key (LowerCaseValue) is the
+        // normalised form, NOT the raw input (e.g. CALM "PPCRI_A_1" normalises to "ppcri/a/1", and a
+        // check-digit-less b-number gains its check digit). Looking up by the raw input misses the
+        // existing row and previously caused a duplicate-key insert, so we key on the canonical form.
+        var parsed = ParsingIdentityService.Parse(s);
+        var canonicalKey = parsed.LowerCaseValue;
+
+        // The canonical form may differ from the raw input; try the cache again under it.
+        if (canonicalKey != lowered
+            && memoryCache.TryGetValue(canonicalKey, out DdsIdentity canonicalCached))
+        {
+            if (CanReturnStoredIdentity(canonicalCached, generator))
+            {
+                return canonicalCached;
+            }
+        }
+
+        // Now the database, keyed by the canonical value.
+        var dbIdentity = ddsContext.Identities.Find(canonicalKey);
         if (dbIdentity != null)
         {
             if (CanReturnStoredIdentity(dbIdentity, generator))
@@ -79,86 +96,57 @@ public class PersistedIdentityService(
             }
         }
 
-        // We either need to create a new Identity record, or we need to update its generator.
-        // Either way, the generator must be one of our known set.
-        if (generator.HasText() && !Generator.IsKnown(generator))
+        // READ PATH: no authoritative generator supplied. Reads must NOT write to the database.
+        // Return the stored record if we have one, otherwise the provisional parsed identity
+        // (enriched in-memory from its package-level record for volumes/issues). Nothing is persisted.
+        if (generator.IsNullOrWhiteSpace())
         {
-            if (!Generator.IsIgnored(generator))
+            var result = dbIdentity ?? parsed;
+            if (dbIdentity == null && !parsed.IsPackageLevelIdentifier)
             {
-                throw new InvalidEnumArgumentException($"Generator '{generator}' is unknown");
+                EnrichFromPackage(parsed);
             }
+            CacheIdentity(result, lowered);
+            return result;
         }
 
-        if (dbIdentity != null && generator.IsNullOrWhiteSpace())
+        // WRITE PATH: an authoritative generator was supplied. Create or update the record.
+        // The generator must be one of our known set (ignored generators, e.g. dashboard, are handled
+        // by the CanReturnStoredIdentity rules above when a record already exists).
+        if (!Generator.IsKnown(generator) && !Generator.IsIgnored(generator))
         {
-            // At this point, dbIdentity must be null,
-            // if no generator supplied we should have returned dbIdentity already.
-            throw new InvalidOperationException("Unhandled DBIdentity");
+            throw new InvalidEnumArgumentException($"Generator '{generator}' is unknown");
         }
 
-        bool isNew = false;
+        // A generator can only be asserted on package-level identifiers.
+        if (!parsed.IsPackageLevelIdentifier)
+        {
+            throw new InvalidEnumArgumentException(
+                $"Generator '{generator}' can only be asserted on package level identifiers");
+        }
+
+        var isNew = false;
         if (dbIdentity == null)
         {
-            // Going to lean on our existing parsing implementation, and then overrule it with more knowledge.
-            // The parsed Identity embodies our default assumptions.
-            dbIdentity = ParsingIdentityService.Parse(s);
+            // Lean on the parsed identity for our default assumptions, then overrule with more knowledge.
+            dbIdentity = parsed;
             isNew = true;
             ddsContext.Identities.Add(dbIdentity);
         }
 
-        var updateVolumesAndIssues = false;
-        if (dbIdentity.IsPackageLevelIdentifier)
-        {
-            if (generator.HasText())
-            {
-                logger.LogInformation("{operation} authoritative package level record for {packageIdentifier} from {generator}",
-                    isNew ? "Creating" : "Updating", dbIdentity.PackageIdentifier, generator);
-                dbIdentity.Generator = generator;
-                ValidateStorageSpace(dbIdentity);
-                ValidateSource(dbIdentity);
-                SetCatalogueId(dbIdentity);
-                dbIdentity.FromGenerator = true;
-                dbIdentity.Updated = DateTime.UtcNow;
-                updateVolumesAndIssues = true;
-            }
-        }
-        else
-        {
-            // The requested identity was a volume or issue, not a package
-            if (generator.HasText())
-            {
-                throw new InvalidEnumArgumentException(
-                    $"Generator '{generator}' can only be asserted on package level identifiers");
-            }
-            var packageIdentity = ddsContext.Identities.Find(dbIdentity.PackageIdentifier.ToLowerInvariant());
-            if (packageIdentity == null)
-            {
-                // The package level identifier doesn't exist yet.
-                // Should we create it? Its values will be provisional, only from parsing, until this code is called
-                // for the package level identifier with a generator.
-                logger.LogInformation("Volume or issue identity {value} resolved where no package-level identity exists",
-                    dbIdentity.Value.LogSafe());
-                // For anything existing this will only apply to Goobi/digitised/Sierra, which is what we parse.
-                // Leave dbIdentity with its parsed 
-            }
-            else
-            {
-                // update dbIdentity with the latest values from the PackageIdentifier
-                dbIdentity.Generator = packageIdentity.Generator;
-                dbIdentity.StorageSpace = packageIdentity.StorageSpace;
-                dbIdentity.Source = packageIdentity.Source;
-                dbIdentity.FromGenerator = packageIdentity.FromGenerator;
-                dbIdentity.SourceValidated = packageIdentity.SourceValidated;
-                dbIdentity.StorageSpaceValidated = packageIdentity.StorageSpaceValidated;
-                dbIdentity.CatalogueId = packageIdentity.CatalogueId;
-                dbIdentity.Updated = DateTime.UtcNow;
-            }
-        }
-        
+        logger.LogInformation("{operation} authoritative package level record for {packageIdentifier} from {generator}",
+            isNew ? "Creating" : "Updating", dbIdentity.PackageIdentifier, generator);
+        dbIdentity.Generator = generator;
+        ValidateStorageSpace(dbIdentity);
+        ValidateSource(dbIdentity);
+        SetCatalogueId(dbIdentity);
+        dbIdentity.FromGenerator = true;
+        dbIdentity.Updated = DateTime.UtcNow;
+
         ddsContext.SaveChanges();
         CacheIdentity(dbIdentity, lowered);
         
-        if (updateVolumesAndIssues)
+        // Propagate the authoritative values to any volume/issue rows for this package.
         {
             var rows = ddsContext.Database.ExecuteSqlInterpolated(
                 $"""
@@ -178,6 +166,31 @@ public class PersistedIdentityService(
         }
         
         return dbIdentity;
+    }
+
+    private void EnrichFromPackage(DdsIdentity identity)
+    {
+        // Inherit authoritative values from the package-level record if one exists, WITHOUT persisting
+        // anything (reads must not write). Only relevant for volume/issue identifiers.
+        var packageKey = identity.PackageIdentifier.ToLowerInvariant();
+        var package = memoryCache.TryGetValue(packageKey, out DdsIdentity cachedPackage)
+            ? cachedPackage
+            : ddsContext.Identities.Find(packageKey);
+        if (package == null)
+        {
+            // The package-level identifier doesn't exist yet; leave the provisional parsed values.
+            // For anything existing this only applies to Goobi/digitised/Sierra, which is what we parse.
+            logger.LogInformation("Volume or issue identity {value} resolved where no package-level identity exists",
+                identity.Value.LogSafe());
+            return;
+        }
+        identity.Generator = package.Generator;
+        identity.StorageSpace = package.StorageSpace;
+        identity.Source = package.Source;
+        identity.FromGenerator = package.FromGenerator;
+        identity.SourceValidated = package.SourceValidated;
+        identity.StorageSpaceValidated = package.StorageSpaceValidated;
+        identity.CatalogueId = package.CatalogueId;
     }
 
     private void CacheIdentity(DdsIdentity dbIdentity, string lowered)
