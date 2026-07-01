@@ -95,7 +95,15 @@ namespace Wellcome.Dds.Server.Controllers
         [HttpGet("alto/{manifestationIdentifier}/{assetIdentifier}")]
         public async Task<IActionResult> Alto(string manifestationIdentifier, string assetIdentifier)
         {
-            var ddsId = identityService.GetIdentity(manifestationIdentifier);
+            DdsIdentity ddsId;
+            try
+            {
+                ddsId = identityService.GetIdentity(manifestationIdentifier);
+            }
+            catch (FormatException)
+            {
+                return NotFound($"No text resource found for {manifestationIdentifier}");
+            }
             var metsManifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
             var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
             if (asset != null && asset.RelativeAltoPath.HasText())

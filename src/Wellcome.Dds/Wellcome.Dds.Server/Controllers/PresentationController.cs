@@ -81,7 +81,15 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Index(string id)
         {
             logger.LogDebug("IIIF Resource request for {id}", id);
-            var ddsId = identityService.GetIdentity(id);
+            DdsIdentity ddsId;
+            try
+            {
+                ddsId = identityService.GetIdentity(id);
+            }
+            catch (FormatException)
+            {
+                return NotFound($"Not a valid identifier: {id}");
+            }
             var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {

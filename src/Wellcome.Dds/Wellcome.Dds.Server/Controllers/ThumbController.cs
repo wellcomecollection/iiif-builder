@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -57,7 +58,15 @@ namespace Wellcome.Dds.Server.Controllers
                 return BadRequest($"Requested width exceeds maximum of {MaxWidth}");
             }
             
-            var ddsId = identityService.GetIdentity(id);
+            DdsIdentity ddsId;
+            try
+            {
+                ddsId = identityService.GetIdentity(id);
+            }
+            catch (FormatException)
+            {
+                return NotFound($"No thumbnail for {id}");
+            }
             var manifestations = await GetManifestation(ddsId);
             if (!manifestations.Any())
             {
