@@ -54,7 +54,10 @@ public class ParsingIdentityService(
             }
             source = Source.Sierra; // For now
             hasBNumber = true;
-            packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], true)!;
+            // Be lenient on the read path: a wrong (or absent) check digit self-corrects to the
+            // canonical b-number rather than throwing, matching the controller's redirect behaviour.
+            packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], false)
+                ?? throw new FormatException($"'{parts[0]}' looks like a b number but could not be normalised");
             value = rawString.ReplaceFirst(parts[0], packageIdentifier).ToLowerInvariant();
             packageIdentifierPathElementSafe = packageIdentifier;
             pathElementSafe = value; // e.g., b19974760_020_024

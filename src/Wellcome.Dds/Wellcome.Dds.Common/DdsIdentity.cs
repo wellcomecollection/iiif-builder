@@ -62,8 +62,6 @@ public class DdsIdentity
     /// </summary>
     public string? CatalogueId { get; set; }
 
-    public Dictionary<string, string> AllIdentities = new();
-
     // How do we retain the notion of volume and issue... keep as is? We have lots of MMs.
     
     public string? VolumePart { get; set; }

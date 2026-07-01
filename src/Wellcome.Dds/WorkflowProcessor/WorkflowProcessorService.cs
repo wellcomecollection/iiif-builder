@@ -658,7 +658,12 @@ namespace WorkflowProcessor
                                     }
                                     catch (Exception ex)
                                     {
-                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}", workflowMessage.Identifier);
+                                        // Do NOT fall through to DeleteMessage: leave the message on the
+                                        // queue so SQS redelivers it (and moves it to the DLQ after the
+                                        // redrive policy's maxReceiveCount) rather than silently dropping
+                                        // an authoritative identity update on a transient failure.
+                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
+                                        continue;
                                     }
                                 }
                                 else

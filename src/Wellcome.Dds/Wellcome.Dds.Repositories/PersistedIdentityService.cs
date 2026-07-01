@@ -96,10 +96,11 @@ public class PersistedIdentityService(
             }
         }
 
-        // READ PATH: no authoritative generator supplied. Reads must NOT write to the database.
-        // Return the stored record if we have one, otherwise the provisional parsed identity
-        // (enriched in-memory from its package-level record for volumes/issues). Nothing is persisted.
-        if (generator.IsNullOrWhiteSpace())
+        // READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
+        // explicitly non-authoritative). Reads must NOT write to the database. Return the stored record
+        // if we have one, otherwise the provisional parsed identity (enriched in-memory from its
+        // package-level record for volumes/issues). Nothing is persisted.
+        if (generator.IsNullOrWhiteSpace() || Generator.IsIgnored(generator))
         {
             var result = dbIdentity ?? parsed;
             if (dbIdentity == null && !parsed.IsPackageLevelIdentifier)
@@ -254,8 +255,8 @@ public class PersistedIdentityService(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning("Storage space for package {packageIdentifier} is not the attempted {storageSpace}: " + ex.Message, 
-                        identity.PackageIdentifier, identity.StorageSpace);
+                    logger.LogWarning("Storage space for package {packageIdentifier} is not the attempted {storageSpace}: " + ex.Message,
+                        identity.PackageIdentifier, storageSpace);
                 }
             }
         }
