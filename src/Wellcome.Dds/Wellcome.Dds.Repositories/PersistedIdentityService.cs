@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
@@ -14,7 +16,7 @@ namespace Wellcome.Dds.Repositories;
 public class PersistedIdentityService(
     ILogger<PersistedIdentityService> logger,
     IMemoryCache memoryCache,
-    DdsContext ddsContext,
+    IServiceScopeFactory scopeFactory,
     StorageServiceClient storageServiceClient,
     ICatalogue catalogue) : IIdentityService
 {
@@ -85,8 +87,15 @@ public class PersistedIdentityService(
             }
         }
 
+        // A DbContext is not thread-safe, and this service is called concurrently (e.g. the recursive
+        // Task.WhenAll manifestation fan-out in DigitalObjectRepository). Resolve against a short-lived
+        // context of our own rather than the caller's shared scoped context. This is only reached on a
+        // cache miss - cache hits above return without creating a scope or touching the database.
+        using var scope = scopeFactory.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<DdsContext>();
+
         // Now the database, keyed by the canonical value.
-        var dbIdentity = ddsContext.Identities.Find(canonicalKey);
+        var dbIdentity = ctx.Identities.Find(canonicalKey);
         if (dbIdentity != null)
         {
             if (CanReturnStoredIdentity(dbIdentity, generator))
@@ -105,7 +114,7 @@ public class PersistedIdentityService(
             var result = dbIdentity ?? parsed;
             if (dbIdentity == null && !parsed.IsPackageLevelIdentifier)
             {
-                EnrichFromPackage(parsed);
+                EnrichFromPackage(parsed, ctx);
             }
             CacheIdentity(result, lowered);
             return result;
@@ -132,7 +141,7 @@ public class PersistedIdentityService(
             // Lean on the parsed identity for our default assumptions, then overrule with more knowledge.
             dbIdentity = parsed;
             isNew = true;
-            ddsContext.Identities.Add(dbIdentity);
+            ctx.Identities.Add(dbIdentity);
         }
 
         logger.LogInformation("{operation} authoritative package level record for {packageIdentifier} from {generator}",
@@ -144,12 +153,13 @@ public class PersistedIdentityService(
         dbIdentity.FromGenerator = true;
         dbIdentity.Updated = DateTime.UtcNow;
 
-        ddsContext.SaveChanges();
-        CacheIdentity(dbIdentity, lowered);
-        
-        // Propagate the authoritative values to any volume/issue rows for this package.
+        // Persist the package row and propagate the authoritative values to its volume/issue rows in a
+        // single transaction, so a partial failure can't leave the children out of step with the package.
+        int rows;
+        using (var tx = ctx.Database.BeginTransaction())
         {
-            var rows = ddsContext.Database.ExecuteSqlInterpolated(
+            ctx.SaveChanges();
+            rows = ctx.Database.ExecuteSqlInterpolated(
                 $"""
                  UPDATE identities set 
                  generator={dbIdentity.Generator}, 
@@ -162,21 +172,27 @@ public class PersistedIdentityService(
                  updated={dbIdentity.Updated} 
                  WHERE package_identifier={dbIdentity.PackageIdentifier} AND NOT is_package_level_identifier
                  """);
-            logger.LogInformation("Updated {rows} volume and issue rows for {packageIdentifier}", 
-                rows, dbIdentity.PackageIdentifier);
+            tx.Commit();
         }
-        
+        logger.LogInformation("Updated {rows} volume and issue rows for {packageIdentifier}",
+            rows, dbIdentity.PackageIdentifier);
+
+        CacheIdentity(dbIdentity, lowered);
+        // The bulk UPDATE bypassed EF and the cache; drop any cached (provisional) child entries so
+        // the next read re-resolves them with the new authoritative values.
+        InvalidateChildCache(ctx, dbIdentity.PackageIdentifier);
+
         return dbIdentity;
     }
 
-    private void EnrichFromPackage(DdsIdentity identity)
+    private void EnrichFromPackage(DdsIdentity identity, DdsContext ctx)
     {
         // Inherit authoritative values from the package-level record if one exists, WITHOUT persisting
         // anything (reads must not write). Only relevant for volume/issue identifiers.
         var packageKey = identity.PackageIdentifier.ToLowerInvariant();
         var package = memoryCache.TryGetValue(packageKey, out DdsIdentity cachedPackage)
             ? cachedPackage
-            : ddsContext.Identities.Find(packageKey);
+            : ctx.Identities.Find(packageKey);
         if (package == null)
         {
             // The package-level identifier doesn't exist yet; leave the provisional parsed values.
@@ -200,6 +216,22 @@ public class PersistedIdentityService(
         foreach(var key in possibleCacheKeys)
         {
             memoryCache.Set(key, dbIdentity);
+        }
+    }
+
+    private void InvalidateChildCache(DdsContext ctx, string packageIdentifier)
+    {
+        // Evict any cached volume/issue entries for this package so a subsequent read re-resolves them
+        // from the just-updated database rows rather than serving a stale provisional copy.
+        var children = ctx.Identities
+            .Where(i => i.PackageIdentifier == packageIdentifier && !i.IsPackageLevelIdentifier)
+            .ToList();
+        foreach (var child in children)
+        {
+            foreach (var key in GetCacheKeys(child, child.LowerCaseValue))
+            {
+                memoryCache.Remove(key);
+            }
         }
     }
 
