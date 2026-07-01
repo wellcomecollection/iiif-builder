@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Catalogue;
@@ -18,7 +19,8 @@ public class PersistedIdentityService(
     IMemoryCache memoryCache,
     IServiceScopeFactory scopeFactory,
     StorageServiceClient storageServiceClient,
-    ICatalogue catalogue) : IIdentityService
+    ICatalogue catalogue,
+    IOptions<DdsOptions> ddsOptions) : IIdentityService
 {
     public DdsIdentity GetIdentity(string s)
     {
@@ -100,7 +102,7 @@ public class PersistedIdentityService(
         {
             if (CanReturnStoredIdentity(dbIdentity, generator))
             {
-                CacheIdentity(dbIdentity, lowered);
+                CacheIdentity(dbIdentity, lowered, provisional: false);
                 return dbIdentity;
             }
         }
@@ -116,7 +118,7 @@ public class PersistedIdentityService(
             {
                 EnrichFromPackage(parsed, ctx);
             }
-            CacheIdentity(result, lowered);
+            CacheIdentity(result, lowered, provisional: true);
             return result;
         }
 
@@ -177,7 +179,7 @@ public class PersistedIdentityService(
         logger.LogInformation("Updated {rows} volume and issue rows for {packageIdentifier}",
             rows, dbIdentity.PackageIdentifier);
 
-        CacheIdentity(dbIdentity, lowered);
+        CacheIdentity(dbIdentity, lowered, provisional: false);
         // The bulk UPDATE bypassed EF and the cache; drop any cached (provisional) child entries so
         // the next read re-resolves them with the new authoritative values.
         InvalidateChildCache(ctx, dbIdentity.PackageIdentifier);
@@ -210,12 +212,22 @@ public class PersistedIdentityService(
         identity.CatalogueId = package.CatalogueId;
     }
 
-    private void CacheIdentity(DdsIdentity dbIdentity, string lowered)
+    private void CacheIdentity(DdsIdentity dbIdentity, string lowered, bool provisional)
     {
+        // Provisional (parse-only) entries get a shorter lifetime than authoritative ones, so a record
+        // that is later confirmed by a generator on another instance is picked up sooner. Expiry also
+        // bounds the cache size (there is no global SizeLimit - the cache is shared with other users).
+        var minutes = provisional
+            ? ddsOptions.Value.ProvisionalIdentityCacheMinutes
+            : ddsOptions.Value.IdentityCacheMinutes;
+        var entryOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(minutes)
+        };
         var possibleCacheKeys= GetCacheKeys(dbIdentity, lowered);
         foreach(var key in possibleCacheKeys)
         {
-            memoryCache.Set(key, dbIdentity);
+            memoryCache.Set(key, dbIdentity, entryOptions);
         }
     }
 

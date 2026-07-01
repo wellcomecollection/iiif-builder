@@ -78,6 +78,19 @@
         
         public int PlaceholderCanvasCacheTimeDays { get; set; }
 
+        /// <summary>
+        /// How long (minutes) to cache an authoritative identity - one confirmed by a generator and
+        /// backed by a database record. Longer, because it is the source of truth and rarely changes.
+        /// </summary>
+        public int IdentityCacheMinutes { get; set; } = 60;
+
+        /// <summary>
+        /// How long (minutes) to cache a provisional identity - one derived only from parsing, not yet
+        /// confirmed by a generator. Shorter, because it may be superseded by an authoritative record
+        /// created on another instance.
+        /// </summary>
+        public int ProvisionalIdentityCacheMinutes { get; set; } = 5;
+
         public bool ArchivematicaStrictDirectoryOrder { get; set; } = false;
 
         public int IIIFCollectionAggregationMaxManifests { get; set; } = 100;
