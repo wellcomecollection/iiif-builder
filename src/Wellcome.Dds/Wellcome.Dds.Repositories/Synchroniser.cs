@@ -150,7 +150,7 @@ namespace Wellcome.Dds.Repositories
                     {
                         Id = metsManifestation.Identifier,
                         PackageIdentifier = manifestationDdsId.PackageIdentifier,
-                        PackageShortBNumber = manifestationDdsId.Value.ToShortBNumber(),
+                        PackageShortBNumber = manifestationDdsId.PackageIdentifier.ToShortBNumber(),
                         Index = mic.SequenceIndex
                     };
                     if (packageMetsResource != null)
