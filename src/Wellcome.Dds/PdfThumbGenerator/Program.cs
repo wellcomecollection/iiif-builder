@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CsvHelper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,8 +20,10 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Catalogue;
 
 namespace PdfThumbGenerator
 {
@@ -51,7 +54,13 @@ namespace PdfThumbGenerator
                                 file));
 
                     services.AddHttpClient<OAuth2ApiConsumer>();
-                    
+                    services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+
+                    // PersistedIdentityService needs a DdsContext (resolved per call from its own scope)
+                    services.AddDbContext<DdsContext>(options => options
+                        .UseNpgsql(context.Configuration.GetConnectionString("Dds"))
+                        .UseSnakeCaseNamingConvention());
+
                     var configuration = context.Configuration;
                     var awsOptions = configuration.GetAWSOptions("Dds-AWS");
                     services.AddDefaultAWSOptions(awsOptions);
