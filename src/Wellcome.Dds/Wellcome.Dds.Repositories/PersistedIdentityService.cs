@@ -108,18 +108,43 @@ public class PersistedIdentityService(
         }
 
         // READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
-        // explicitly non-authoritative). Reads must NOT write to the database. Return the stored record
-        // if we have one, otherwise the provisional parsed identity (enriched in-memory from its
-        // package-level record for volumes/issues). Nothing is persisted.
+        // explicitly non-authoritative). Return the stored record if we have one, otherwise the parsed
+        // identity, enriched from its package-level record for volumes/issues. Reads do not create
+        // package records; the one exception is a volume/issue whose package is already authoritative,
+        // which is persisted as an authoritative child row (volumes/issues only exist for b numbers,
+        // which are fully normalised, so this carries no CALM case risk).
         if (generator.IsNullOrWhiteSpace() || Generator.IsIgnored(generator))
         {
-            var result = dbIdentity ?? parsed;
-            if (dbIdentity == null && !parsed.IsPackageLevelIdentifier)
+            if (dbIdentity != null)
+            {
+                CacheIdentity(dbIdentity, lowered, provisional: !dbIdentity.FromGenerator);
+                return dbIdentity;
+            }
+            if (!parsed.IsPackageLevelIdentifier)
             {
                 EnrichFromPackage(parsed, ctx);
+                if (parsed.FromGenerator)
+                {
+                    ctx.Identities.Add(parsed);
+                    try
+                    {
+                        ctx.SaveChanges();
+                    }
+                    catch (DbUpdateException)
+                    {
+                        // A concurrent request inserted the same child row first; use the stored one.
+                        ctx.Entry(parsed).State = EntityState.Detached;
+                        var existing = ctx.Identities.Find(canonicalKey);
+                        if (existing != null)
+                        {
+                            CacheIdentity(existing, lowered, provisional: !existing.FromGenerator);
+                            return existing;
+                        }
+                    }
+                }
             }
-            CacheIdentity(result, lowered, provisional: true);
-            return result;
+            CacheIdentity(parsed, lowered, provisional: !parsed.FromGenerator);
+            return parsed;
         }
 
         // WRITE PATH: an authoritative generator was supplied. Create or update the record.
