@@ -424,11 +424,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations!)
                         {
+                            // Store canonical identifier forms, not raw METS strings, so that
+                            // downstream comparisons against resolved identities match.
                             yield return new ManifestationInContext(manifestation, identifier.PackageIdentifier)
                             {
                                 SequenceIndex = sequenceIndex++,
-                                VolumeIdentifier = volume.Identifier.ToString(),
-                                IssueIdentifier = manifestation.Identifier.ToString()
+                                VolumeIdentifier = volumeId.Value,
+                                IssueIdentifier = identityService.GetIdentity(manifestation.Identifier).Value
                             };
                         }
                     }
@@ -442,7 +444,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         yield return new ManifestationInContext(manifestation, identifier.PackageIdentifier)
                         {
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = manifestation.Identifier.ToString(),
+                            VolumeIdentifier = identityService.GetIdentity(manifestation.Identifier).Value,
                             IssueIdentifier = null
                         };
                     }
@@ -465,7 +467,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 if (anchor == null) return -1;
                 foreach (var manifestation in anchor.Manifestations!)
                 {
-                    if (manifestation.Identifier == identifier.Value)
+                    // manifestation.Identifier is the raw METS ExternalId; identifier.Value is normalised
+                    if (string.Equals(manifestation.Identifier, identifier.Value, StringComparison.OrdinalIgnoreCase))
                     {
                         return sequenceIndex;
                     }

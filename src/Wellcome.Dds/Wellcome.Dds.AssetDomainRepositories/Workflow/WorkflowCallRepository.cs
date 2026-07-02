@@ -45,7 +45,18 @@ public class WorkflowCallRepository : IWorkflowCallRepository
     public async Task<WorkflowJob> CreateWorkflowJob(WorkflowMessage message, bool expedite = false)
     {
         logger.LogInformation("Creating workflow job from message: {Message}", message);
-        var workflowJob = await ddsInstrumentationContext.PutJob(message.Identifier!, true, false, -1, false, false);
+        // WorkflowJobs are keyed by the package identifier; fall back to the raw
+        // message identifier if it can't be parsed, as the job is still worth recording.
+        string jobIdentifier;
+        try
+        {
+            jobIdentifier = identityService.GetIdentity(message.Identifier!).PackageIdentifier;
+        }
+        catch (FormatException)
+        {
+            jobIdentifier = message.Identifier!;
+        }
+        var workflowJob = await ddsInstrumentationContext.PutJob(jobIdentifier, true, false, -1, false, false);
         return workflowJob;
     }
 
@@ -71,22 +82,39 @@ public class WorkflowCallRepository : IWorkflowCallRepository
         var result = new WorkflowCallStats { RecentSampleHours = RecentSampleHours };
             
         // was: select top 10 * from WorkflowJobs where Finished=1 order by Taken desc
-        result.RecentlyTaken = await ddsInstrumentationContext.WorkflowJobs
+        var recentlyTaken = await ddsInstrumentationContext.WorkflowJobs
             .Where(j => j.Finished)
             .OrderByDescending(j => j.Taken)
             .Take(10)
-            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
-            
+        result.RecentlyTaken = recentlyTaken.Select(WithIdentity).ToList();
+
         // was: select * from WorkflowJobs where Taken is not null and Finished=0
-        result.TakenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
+        var takenAndUnfinished = await ddsInstrumentationContext.WorkflowJobs
             .Where(j => j.Taken != null && !j.Finished)
-            .Select(wfj => new WorkflowJobWithIdentity { WorkflowJob = wfj, DdsIdentity = identityService.GetIdentity(wfj.Identifier)})
             .ToListAsync();
+        result.TakenAndUnfinished = takenAndUnfinished.Select(WithIdentity).ToList();
 
         await PopulateStats(start, end, result);
 
         return result;
+    }
+
+    private WorkflowJobWithIdentity WithIdentity(WorkflowJob workflowJob)
+    {
+        try
+        {
+            return new WorkflowJobWithIdentity
+            {
+                WorkflowJob = workflowJob,
+                DdsIdentity = identityService.GetIdentity(workflowJob.Identifier)
+            };
+        }
+        catch (FormatException)
+        {
+            // A historical job identifier may no longer be parseable; still include the job.
+            return new WorkflowJobWithIdentity { WorkflowJob = workflowJob };
+        }
     }
 
     private async Task PopulateStats(DateTime start, DateTime end, WorkflowCallStats result)
@@ -175,9 +203,10 @@ SELECT (COUNT(1)::int) FROM workflow_jobs WHERE error is not null;
         return Task.FromResult(count);
     }
 
-    public async Task DeleteJob(string ddsId)
+    public async Task DeleteJob(DdsIdentity ddsId)
     {
-        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId);
+        // WorkflowJobs are keyed by the package identifier
+        var job = await ddsInstrumentationContext.WorkflowJobs.FindAsync(ddsId.PackageIdentifier);
         if (job != null)
         {
             ddsInstrumentationContext.WorkflowJobs.Remove(job);

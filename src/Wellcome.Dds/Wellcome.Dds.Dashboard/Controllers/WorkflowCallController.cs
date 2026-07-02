@@ -42,12 +42,22 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private WorkflowJobWithIdentity GetWorkflowJobWithIdentity(WorkflowJob workflowJob)
         {
-            var ddsId = identityService.GetIdentity(workflowJob.Identifier);
-            return new WorkflowJobWithIdentity
+            try
             {
-                DdsIdentity = ddsId,
-                WorkflowJob = workflowJob
-            };
+                var ddsId = identityService.GetIdentity(workflowJob.Identifier);
+                return new WorkflowJobWithIdentity
+                {
+                    DdsIdentity = ddsId,
+                    WorkflowJob = workflowJob
+                };
+            }
+            catch (FormatException)
+            {
+                // A historical job may have an identifier in a form no longer parseable
+                // (e.g. legacy bNumber/sequenceIndex); list it without identity links
+                // rather than failing the whole page.
+                return new WorkflowJobWithIdentity { WorkflowJob = workflowJob };
+            }
         }
 
         public async Task<ActionResult> Recent()
@@ -80,12 +90,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<ActionResult> WorkflowCall(string id)
         {
             var ddsId = identityService.GetIdentity(id);
-            var job = await workflowCallRepository.GetWorkflowJob(ddsId.Value);
+            // WorkflowJobs are keyed by the package identifier
+            var job = await workflowCallRepository.GetWorkflowJob(ddsId.PackageIdentifier);
             if (job == null)
             {
                 job = new WorkflowJob
                 {
-                    Identifier = ddsId.Value,
+                    Identifier = ddsId.PackageIdentifier,
                     Created = null
                 };
             }
@@ -107,7 +118,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
             }
             try
             {
-                var workflowJob = await workflowCallRepository.CreateWorkflowJob(ddsId.Value, workflowOptions);
+                var workflowJob = await workflowCallRepository.CreateWorkflowJob(ddsId.PackageIdentifier, workflowOptions);
                 TempData["new-workflow-job"] = $"Job Created: {workflowJob.Created}";
                 return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
             }
@@ -255,8 +266,8 @@ namespace Wellcome.Dds.Dashboard.Controllers
         public async Task<IActionResult> Delete(string id)
         { 
             var ddsId = identityService.GetIdentity(id);
-            await workflowCallRepository.DeleteJob(ddsId.Value);
-            TempData["job-deleted"] = $"{ddsId.Value} deleted.";
+            await workflowCallRepository.DeleteJob(ddsId);
+            TempData["job-deleted"] = $"{ddsId.PackageIdentifier} deleted.";
             return RedirectToAction("WorkflowCall", new {id = ddsId.PathElementSafe});
         }
     }

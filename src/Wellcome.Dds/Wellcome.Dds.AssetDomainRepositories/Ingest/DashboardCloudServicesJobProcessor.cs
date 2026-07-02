@@ -349,7 +349,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
         
         private bool JobExactMatchForManifestation(IDigitalManifestation digitalManifestation, DlcsIngestJob job)
         {
-            if (job.Identifier != digitalManifestation.Identifier!.PackageIdentifier)
+            // Job identifier fields are stored in canonical form for new rows, but legacy rows may
+            // predate normalisation - compare case-insensitively.
+            if (!SameIdentifier(job.Identifier, digitalManifestation.Identifier!.PackageIdentifier))
             {
                 //Log.ErrorFormat("BNumber for job {0} does not match manifestation GetRootId() {1}",
                 //    job.Identifier, MetsManifestation.GetRootId());
@@ -364,7 +366,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
                     //    job.IssuePart, job.VolumePart);
                     return false;
                 }
-                if (job.IssuePart != digitalManifestation.Identifier.Value)
+                if (!SameIdentifier(job.IssuePart, digitalManifestation.Identifier.Value))
                 {
                     //Log.ErrorFormat("Job has issuePart {0} that does not match manifestation ID {1}",
                     //    job.IssuePart, MetsManifestation.Id);
@@ -375,7 +377,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             else if (job.VolumePart.HasText())
             {
                 // a multiple manifestation volume
-                if (job.VolumePart != digitalManifestation.Identifier.Value)
+                if (!SameIdentifier(job.VolumePart, digitalManifestation.Identifier.Value))
                 {
                     //Log.ErrorFormat("Job has VolumePart {0} that does not match manifestation ID {1}",
                     //    job.VolumePart, MetsManifestation.Id);
@@ -385,7 +387,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             else
             {
                 // a single manifestation
-                if (job.Identifier != digitalManifestation.Identifier.Value)
+                if (!SameIdentifier(job.Identifier, digitalManifestation.Identifier.Value))
                 {
                     //Log.ErrorFormat("Job has Identifier {0} that does not match manifestation ID {1}",
                     //    job.Identifier, MetsManifestation.Id);
@@ -394,6 +396,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
             return true;
         }
+
+        private static bool SameIdentifier(string? a, string? b) =>
+            string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
         private bool JobCanBeProcessedNow(DlcsIngestJob job, IManifestation manifestation, out string? reason)
         {

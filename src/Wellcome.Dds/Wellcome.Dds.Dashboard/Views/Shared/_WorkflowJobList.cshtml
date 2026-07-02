@@ -14,8 +14,15 @@
         @foreach (var job in Model)
         {
             <tr>
-                <td>@Html.ActionLink(job.DdsIdentity.Value, "WorkflowCall", "WorkflowCall", 
-                        new { id = job.DdsIdentity.PathElementSafe }, new { })</td>
+                @if (job.DdsIdentity != null)
+                {
+                    <td>@Html.ActionLink(job.DdsIdentity.Value, "WorkflowCall", "WorkflowCall",
+                            new { id = job.DdsIdentity.PathElementSafe }, new { })</td>
+                }
+                else
+                {
+                    <td>@job.WorkflowJob.Identifier</td>
+                }
                 <td>@StringUtils.GetFriendlyAge(job.WorkflowJob.Created)</td>
                 <td>@StringUtils.GetFriendlyAge(job.WorkflowJob.Taken)</td>
                 <td>@job.WorkflowJob.GetAltoRate()</td>
