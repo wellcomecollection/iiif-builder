@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -645,24 +646,43 @@ namespace WorkflowProcessor
                                 logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
+                                    DdsIdentity? identity = null;
                                     try
                                     {
                                         // Now we can tell the identity service something authoritative
-                                        var identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
+                                        identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
                                         logger.LogInformation("Received Identity: {identity}", identity);
                                         logger.LogInformation(identity.GetVerbose());
-                                        
-                                        await dbContext.PutJob(workflowMessage.Identifier, 
+                                    }
+                                    catch (Exception ex) when (ex is FormatException or InvalidEnumArgumentException)
+                                    {
+                                        // Permanent: an unparseable identifier, unknown origin, or a
+                                        // generator asserted on a volume/issue. Redelivery can never
+                                        // succeed, so still record the workflow job below (visible in
+                                        // the dashboard) and let the message be deleted.
+                                        logger.LogWarning(ex,
+                                            "Identity service permanently rejected {identifier} from origin {origin}; recording job without identity",
+                                            workflowMessage.Identifier, workflowMessage.Origin);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // Transient (e.g. DB unavailable): do NOT fall through to
+                                        // DeleteMessage - leave the message on the queue so SQS
+                                        // redelivers it (DLQ after the redrive policy's maxReceiveCount).
+                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
+                                        continue;
+                                    }
+
+                                    try
+                                    {
+                                        await dbContext.PutJob(identity?.PackageIdentifier ?? workflowMessage.Identifier,
                                             true, false, null, false, true);
                                         await dbContext.SaveChangesAsync(cancellationToken);
                                     }
                                     catch (Exception ex)
                                     {
-                                        // Do NOT fall through to DeleteMessage: leave the message on the
-                                        // queue so SQS redelivers it (and moves it to the DLQ after the
-                                        // redrive policy's maxReceiveCount) rather than silently dropping
-                                        // an authoritative identity update on a transient failure.
-                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
+                                        // Transient: leave the message for redelivery rather than losing the job.
+                                        logger.LogError(ex, "Unable to record workflow job for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
                                         continue;
                                     }
                                 }

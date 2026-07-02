@@ -54,10 +54,19 @@ public class ParsingIdentityService(
             }
             source = Source.Sierra; // For now
             hasBNumber = true;
-            // Be lenient on the read path: a wrong (or absent) check digit self-corrects to the
-            // canonical b-number rather than throwing, matching the controller's redirect behaviour.
-            packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], false)
-                ?? throw new FormatException($"'{parts[0]}' looks like a b number but could not be normalised");
+            // A missing check digit or the 'a' placeholder self-corrects to the canonical b number,
+            // but a WRONG check digit is not a valid identifier: throw FormatException so callers
+            // treat it as not-found (the documented behaviour) rather than serving the corrected
+            // manifest at a misspelled URL.
+            try
+            {
+                packageIdentifier = WellcomeLibraryIdentifiers.GetNormalisedBNumber(parts[0], true)
+                    ?? throw new FormatException($"'{parts[0]}' looks like a b number but could not be normalised");
+            }
+            catch (ArgumentException ex)
+            {
+                throw new FormatException(ex.Message);
+            }
             value = rawString.ReplaceFirst(parts[0], packageIdentifier).ToLowerInvariant();
             packageIdentifierPathElementSafe = packageIdentifier;
             pathElementSafe = value; // e.g., b19974760_020_024
