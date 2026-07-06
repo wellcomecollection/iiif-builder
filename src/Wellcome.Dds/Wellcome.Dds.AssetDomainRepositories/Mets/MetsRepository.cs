@@ -419,7 +419,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     foreach (var partialVolume in rootCollection.Collections!)
                     {
-                        var volumeId = identityService.GetIdentity(partialVolume.Identifier);
+                        // These volumes and issues are enumerated from the package's METS, so they
+                        // are known to exist - register them with the identity service (a plain
+                        // GetIdentity never persists a volume/issue, as it can't know it's real).
+                        var volumeId = identityService.RegisterAuthoritativeChild(partialVolume.Identifier);
                         var volume = await GetAsync(volumeId) as ICollection;
                         Debug.Assert(volume != null, "volume != null");
                         foreach (var manifestation in volume.Manifestations!)
@@ -430,7 +433,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                             {
                                 SequenceIndex = sequenceIndex++,
                                 VolumeIdentifier = volumeId.Value,
-                                IssueIdentifier = identityService.GetIdentity(manifestation.Identifier).Value
+                                IssueIdentifier = identityService.RegisterAuthoritativeChild(manifestation.Identifier).Value
                             };
                         }
                     }
@@ -444,7 +447,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                         yield return new ManifestationInContext(manifestation, identifier.PackageIdentifier)
                         {
                             SequenceIndex = sequenceIndex++,
-                            VolumeIdentifier = identityService.GetIdentity(manifestation.Identifier).Value,
+                            // Enumerated from the anchor METS, so known to exist
+                            VolumeIdentifier = identityService.RegisterAuthoritativeChild(manifestation.Identifier).Value,
                             IssueIdentifier = null
                         };
                     }

@@ -40,6 +40,12 @@ public class ParsingIdentityService(
         return ddsIdentity;
     }
 
+    public DdsIdentity RegisterAuthoritativeChild(string s)
+    {
+        // Nothing to persist in a parse-only implementation.
+        return GetIdentity(s);
+    }
+
     public static DdsIdentity Parse(string rawString)
     {
         var parts = rawString.Split(Separators);

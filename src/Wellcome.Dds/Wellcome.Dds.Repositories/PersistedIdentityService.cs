@@ -109,10 +109,11 @@ public class PersistedIdentityService(
 
         // READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
         // explicitly non-authoritative). Return the stored record if we have one, otherwise the parsed
-        // identity, enriched from its package-level record for volumes/issues. Reads do not create
-        // package records; the one exception is a volume/issue whose package is already authoritative,
-        // which is persisted as an authoritative child row (volumes/issues only exist for b numbers,
-        // which are fully normalised, so this carries no CALM case risk).
+        // identity, enriched from its package-level record for volumes/issues. Reads never create
+        // records: this service can't know whether a volume or issue really exists, and any requested
+        // URL can name one that doesn't, so persisting here would let arbitrary requests fill the
+        // table. Volume/issue rows are created only via RegisterAuthoritativeChild, whose callers
+        // have enumerated the child from the package's METS.
         if (generator.IsNullOrWhiteSpace() || Generator.IsIgnored(generator))
         {
             if (dbIdentity != null)
@@ -123,25 +124,6 @@ public class PersistedIdentityService(
             if (!parsed.IsPackageLevelIdentifier)
             {
                 EnrichFromPackage(parsed, ctx);
-                if (parsed.FromGenerator)
-                {
-                    ctx.Identities.Add(parsed);
-                    try
-                    {
-                        ctx.SaveChanges();
-                    }
-                    catch (DbUpdateException)
-                    {
-                        // A concurrent request inserted the same child row first; use the stored one.
-                        ctx.Entry(parsed).State = EntityState.Detached;
-                        var existing = ctx.Identities.Find(canonicalKey);
-                        if (existing != null)
-                        {
-                            CacheIdentity(existing, lowered, provisional: !existing.FromGenerator);
-                            return existing;
-                        }
-                    }
-                }
             }
             CacheIdentity(parsed, lowered, provisional: !parsed.FromGenerator);
             return parsed;
@@ -210,6 +192,39 @@ public class PersistedIdentityService(
         InvalidateChildCache(ctx, dbIdentity.PackageIdentifier);
 
         return dbIdentity;
+    }
+
+    public DdsIdentity RegisterAuthoritativeChild(string s)
+    {
+        // The caller is asserting that this volume/issue really exists - it has been enumerated
+        // from its package's METS. This is the only path that persists child identities; plain
+        // reads never do. Volumes/issues only exist for b numbers, which are fully normalised,
+        // so this carries no CALM case risk.
+        var identity = GetIdentity(s);
+        if (identity.IsPackageLevelIdentifier || !identity.FromGenerator)
+        {
+            // Not a child, or its package is not (yet) authoritative: nothing worth persisting.
+            return identity;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<DdsContext>();
+        if (ctx.Identities.Find(identity.LowerCaseValue) != null)
+        {
+            return identity;
+        }
+        ctx.Identities.Add(identity);
+        try
+        {
+            ctx.SaveChanges();
+            logger.LogInformation("Persisted volume/issue identity {value} for package {packageIdentifier}",
+                identity.Value.LogSafe(), identity.PackageIdentifier);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request inserted the same child row first; it holds the same values.
+        }
+        return identity;
     }
 
     private void EnrichFromPackage(DdsIdentity identity, DdsContext ctx)
