@@ -7,6 +7,7 @@ using DlcsWebClient.Dlcs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,6 +84,17 @@ namespace Wellcome.Dds.Server
                 options.IdleTimeout = TimeSpan.FromSeconds(3600);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+            });
+
+            services.AddResponseCompression(options =>
+            {
+                // TLS terminates upstream so requests arrive as HTTP, but keep this
+                // in case forwarded-headers handling is ever added.
+                options.EnableForHttps = true;
+                options.Providers.Add<BrotliCompressionProvider>();
+                options.Providers.Add<GzipCompressionProvider>();
+                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+                    new[] { "application/ld+json" });
             });
 
             services.AddSwagger();
@@ -181,6 +193,7 @@ namespace Wellcome.Dds.Server
             }
 
             app.UseCors("CorsPolicy");
+            app.UseResponseCompression();
             app.SetupSwagger();
             app.UseStaticFiles();
             app.UseRouting();
