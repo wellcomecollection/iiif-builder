@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -27,23 +28,16 @@ public class PersistedIdentityService(
         return GetIdentity(s, null);
     }
 
-    private bool CanReturnStoredIdentity(DdsIdentity identity, string? incomingGenerator)
+    /// <summary>
+    /// A request with no generator, or an explicitly non-authoritative one (e.g. dashboard), reads
+    /// existing knowledge. A known generator means the object has just been (re)processed, so those
+    /// requests always take the write path - even when the stored record already carries the same
+    /// generator - so that storage space is re-validated and the CatalogueId refreshed (a catalogue
+    /// merge can change the work id), and the results propagated to the volume/issue rows.
+    /// </summary>
+    private static bool IsReadRequest([NotNullWhen(false)] string? generator)
     {
-        if (incomingGenerator.HasText() && Generator.IsIgnored(incomingGenerator))
-        {
-            return true;
-        }
-        if (incomingGenerator.HasText() && !identity.FromGenerator)
-        {
-            // We are being given new authoritative information
-            return false;
-        }
-        if (incomingGenerator.IsNullOrWhiteSpace() || incomingGenerator == identity.Generator)
-        {
-            // No change in generator, can return stored version
-            return true;
-        }
-        return false;
+        return generator.IsNullOrWhiteSpace() || Generator.IsIgnored(generator);
     }
 
     public DdsIdentity GetIdentity(string s, string? generator)
@@ -64,12 +58,9 @@ public class PersistedIdentityService(
         // This lowered form is not the fully normalised form; we might cache under different keys
         
         // First try the MemoryCache
-        if (memoryCache.TryGetValue(lowered, out DdsIdentity cachedIdentity))
+        if (IsReadRequest(generator) && memoryCache.TryGetValue(lowered, out DdsIdentity cachedIdentity))
         {
-            if (CanReturnStoredIdentity(cachedIdentity, generator))
-            {
-                return cachedIdentity;
-            }
+            return cachedIdentity;
         }
         
         // Parse up front to obtain the CANONICAL key. The stored primary key (LowerCaseValue) is the
@@ -80,13 +71,11 @@ public class PersistedIdentityService(
         var canonicalKey = parsed.LowerCaseValue;
 
         // The canonical form may differ from the raw input; try the cache again under it.
-        if (canonicalKey != lowered
+        if (IsReadRequest(generator)
+            && canonicalKey != lowered
             && memoryCache.TryGetValue(canonicalKey, out DdsIdentity canonicalCached))
         {
-            if (CanReturnStoredIdentity(canonicalCached, generator))
-            {
-                return canonicalCached;
-            }
+            return canonicalCached;
         }
 
         // A DbContext is not thread-safe, and this service is called concurrently (e.g. the recursive
@@ -98,14 +87,6 @@ public class PersistedIdentityService(
 
         // Now the database, keyed by the canonical value.
         var dbIdentity = ctx.Identities.Find(canonicalKey);
-        if (dbIdentity != null)
-        {
-            if (CanReturnStoredIdentity(dbIdentity, generator))
-            {
-                CacheIdentity(dbIdentity, lowered, provisional: false);
-                return dbIdentity;
-            }
-        }
 
         // READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
         // explicitly non-authoritative). Return the stored record if we have one, otherwise the parsed
@@ -114,7 +95,7 @@ public class PersistedIdentityService(
         // URL can name one that doesn't, so persisting here would let arbitrary requests fill the
         // table. Volume/issue rows are created only via RegisterAuthoritativeChild, whose callers
         // have enumerated the child from the package's METS.
-        if (generator.IsNullOrWhiteSpace() || Generator.IsIgnored(generator))
+        if (IsReadRequest(generator))
         {
             if (dbIdentity != null)
             {
@@ -129,10 +110,11 @@ public class PersistedIdentityService(
             return parsed;
         }
 
-        // WRITE PATH: an authoritative generator was supplied. Create or update the record.
-        // The generator must be one of our known set (ignored generators, e.g. dashboard, are handled
-        // by the CanReturnStoredIdentity rules above when a record already exists).
-        if (!Generator.IsKnown(generator) && !Generator.IsIgnored(generator))
+        // WRITE PATH: an authoritative generator was supplied - the object has just been (re)processed.
+        // Create the record, or refresh it even when the generator is unchanged, so that repeat messages
+        // re-validate the storage space and pick up CatalogueId changes. Ignored generators (e.g.
+        // dashboard) took the read path above.
+        if (!Generator.IsKnown(generator))
         {
             throw new InvalidEnumArgumentException($"Generator '{generator}' is unknown");
         }
