@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Utils;
@@ -39,9 +40,26 @@ public class BulkWorkflowModel
 
         if (populateList)
         {
-            DdsIdentifiers = lines.Select(identityService.GetIdentity).ToList();
+            DdsIdentifiers = new List<DdsIdentity>();
+            var invalidLines = new List<string>();
+            foreach (var line in lines)
+            {
+                try
+                {
+                    DdsIdentifiers.Add(identityService.GetIdentity(line));
+                }
+                catch (FormatException)
+                {
+                    invalidLines.Add(line);
+                }
+            }
             var bCount = DdsIdentifiers.Count(ddsId => ddsId.Source == Source.Sierra);
             IdentifiersSummary = $"{DdsIdentifiers.Count} identifiers of which {bCount} are from Sierra.";
+            if (invalidLines.HasItems())
+            {
+                IdentifiersSummary += $" {invalidLines.Count} invalid identifier(s) ignored.";
+                Error = $"Not valid identifiers, ignored: {string.Join(", ", invalidLines)}";
+            }
         }
         Identifiers = string.Join('\n', lines);
     }

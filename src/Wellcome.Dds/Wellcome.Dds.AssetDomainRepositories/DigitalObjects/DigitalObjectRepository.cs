@@ -92,7 +92,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             var metsResourceId = identityService.GetIdentity(metsResource.Identifier);
             if (metsResourceId != ddsId)
             {
-                throw new InvalidOperationException($"DdsIdentity added exception: {metsResourceId} does not match {ddsId}");
+                logger.LogWarning("Identity {metsResourceId} resolved from METS does not match requested identity {ddsId}",
+                    metsResourceId, ddsId);
             }
             digObject.Identifier = ddsId;
             digObject.Partial = metsResource.Partial;

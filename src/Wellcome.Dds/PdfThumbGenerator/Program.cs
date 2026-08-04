@@ -39,7 +39,10 @@ namespace PdfThumbGenerator
                     services
                         .AddMemoryCache()
                         .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
-                        .AddScoped<IIdentityService, PersistedIdentityService>()
+                        // Singleton here, unlike the web apps: it is consumed by the singleton
+                        // IMetsRepository and resolved from the root provider below, and it creates
+                        // its own DbContext scopes per call anyway.
+                        .AddSingleton<IIdentityService, PersistedIdentityService>()
                         .AddSingleton<IMetsRepository, MetsRepository>()
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()

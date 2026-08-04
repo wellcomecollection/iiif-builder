@@ -116,9 +116,20 @@ namespace Wellcome.Dds.Dashboard.Controllers
 
         private Dictionary<int, DdsIdentity> GetManifestationIdentifierDict(DlcsIngestJob[] jobs)
         {
-            return jobs.ToDictionary(
-                j => j.Id, 
-                j => identityService.GetIdentity(j.GetManifestationIdentifier()));
+            var dict = new Dictionary<int, DdsIdentity>();
+            foreach (var job in jobs)
+            {
+                try
+                {
+                    dict[job.Id] = identityService.GetIdentity(job.GetManifestationIdentifier());
+                }
+                catch (FormatException)
+                {
+                    // A historical job identifier may no longer be parseable; still include the job.
+                    dict[job.Id] = null;
+                }
+            }
+            return dict;
         }
 
         private Dictionary<string, IngestAction> GetIngestActionDictionary(IEnumerable<IngestAction> recentActions)

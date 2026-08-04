@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Wellcome.Dds.Common;
@@ -12,12 +13,19 @@ public class IdentityController : Controller
     {
         this.identityService = identityService;
     }
-    
-    
+
+
     public ActionResult Get(string id)
     {
-        var ddsId = identityService.GetIdentity(id);
-        return View("GetIdentity", ddsId);
+        try
+        {
+            var ddsId = identityService.GetIdentity(id);
+            return View("GetIdentity", ddsId);
+        }
+        catch (FormatException ex)
+        {
+            return NotFound($"'{id}' is not a valid identifier. {ex.Message}");
+        }
     }
-    
+
 }

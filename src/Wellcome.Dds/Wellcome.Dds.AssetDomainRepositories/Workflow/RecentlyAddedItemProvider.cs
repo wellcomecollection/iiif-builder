@@ -80,7 +80,15 @@ namespace Wellcome.Dds.AssetDomainRepositories.Workflow
                 }
                 else
                 {
-                    di.PathSafeIdentifier = identityService.GetIdentity(di.Identifier!).PackageIdentifierPathElementSafe;
+                    try
+                    {
+                        di.PathSafeIdentifier = identityService.GetIdentity(di.Identifier!).PackageIdentifierPathElementSafe;
+                    }
+                    catch (FormatException)
+                    {
+                        // A historical job identifier may no longer be parseable; show it as-is.
+                        di.PathSafeIdentifier = di.Identifier;
+                    }
                 }
             }
             return displayList;

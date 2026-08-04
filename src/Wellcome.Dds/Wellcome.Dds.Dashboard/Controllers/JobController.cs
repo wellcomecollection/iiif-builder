@@ -69,15 +69,13 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new JobsModel
             {
                 Jobs = new[] { job },
-                ManifestationIdentifiers = new Dictionary<int, DdsIdentity>()
+                ManifestationIdentifiers = job == null
+                    ? new Dictionary<int, DdsIdentity>()
+                    : GetManifestationIdentifierDict(new[] { job })
             };
-            if (job != null)
-            {
-                model.ManifestationIdentifiers[job.Id] = identityService.GetIdentity(job.GetManifestationIdentifier());
-            }
             return View(model);
         }
-        
+
         public async Task<ActionResult> Recent()
         {
             var recents = await jobRegistry.GetRecentJobs(500);
@@ -85,11 +83,27 @@ namespace Wellcome.Dds.Dashboard.Controllers
             var model = new JobsModel
             {
                 Jobs = jobs,
-                ManifestationIdentifiers = jobs.ToDictionary(
-                    j => j.Id, 
-                    j => identityService.GetIdentity(j.GetManifestationIdentifier()))
+                ManifestationIdentifiers = GetManifestationIdentifierDict(jobs)
             };
             return View(model);
+        }
+
+        private Dictionary<int, DdsIdentity> GetManifestationIdentifierDict(DlcsIngestJob[] jobs)
+        {
+            var dict = new Dictionary<int, DdsIdentity>();
+            foreach (var job in jobs)
+            {
+                try
+                {
+                    dict[job.Id] = identityService.GetIdentity(job.GetManifestationIdentifier());
+                }
+                catch (FormatException)
+                {
+                    // A historical job identifier may no longer be parseable; still include the job.
+                    dict[job.Id] = null;
+                }
+            }
+            return dict;
         }
         
         private async Task<ActionResult> CreateAndProcessJobs(string id, bool includeIngestingImages, bool forceReingest, string action)
