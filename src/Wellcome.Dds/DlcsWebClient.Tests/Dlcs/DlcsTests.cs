@@ -3,11 +3,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DlcsWebClient.Config;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -42,7 +42,7 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler = new ControllableHttpMessageHandler();
             var httpClient = new HttpClient(httpHandler);
             var options = Options.Create(dlcsOptions);
-
+            
             sut = new DlcsWebClient.Dlcs.Dlcs(new NullLogger<DlcsWebClient.Dlcs.Dlcs>(), options, httpClient);
             
             // NOTE - not verifying what is sent - just ensuring serialization is correct

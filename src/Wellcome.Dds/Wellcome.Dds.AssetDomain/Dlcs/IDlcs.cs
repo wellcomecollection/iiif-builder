@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
 using Wellcome.Dds.AssetDomain.Dlcs.RestOperations;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomain.Dlcs
 {
@@ -54,7 +55,7 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         // these methods give us our images back for checking
 
         // any identifier - delegate to any of the FOUR following by same logic as metsrepository
-        Task<IEnumerable<Image>> GetImagesForIdentifier(string anyIdentifier, DlcsCallContext dlcsCallContext);
+        Task<IEnumerable<Image>> GetImagesForIdentifier(DdsIdentity anyIdentifier, DlcsCallContext dlcsCallContext);
         
         // string 3
         Task<IEnumerable<Image>> GetImagesForIssue(string issueIdentifier, DlcsCallContext dlcsCallContext);

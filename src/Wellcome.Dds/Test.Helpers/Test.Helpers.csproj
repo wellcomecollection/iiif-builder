@@ -5,4 +5,8 @@
         <LangVersion>latestmajor</LangVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Wellcome.Dds.Common\Wellcome.Dds.Common.csproj" />
+    </ItemGroup>
+
 </Project>

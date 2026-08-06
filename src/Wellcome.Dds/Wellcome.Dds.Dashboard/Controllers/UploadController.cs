@@ -12,26 +12,30 @@ namespace Wellcome.Dds.Dashboard.Controllers;
 
 public class UploadController : Controller
 {
-    // In theory this would be abstracted behind IStorage like our other operations. 
+    // In theory, this would be abstracted behind IStorage like our other operations. 
     // But... this is a short term fix, and I'd rather not add write-capability to the IStorage interface.
     private readonly INamedAmazonS3ClientFactory s3ClientFactory;
     private readonly IMetsRepository metsRepository;
     private readonly DdsOptions ddsOptions;
+    private readonly IIdentityService identityService;
 
     public UploadController(
         INamedAmazonS3ClientFactory s3ClientFactory,
         IMetsRepository metsRepository,
-        IOptions<DdsOptions> ddsOptions)
+        IOptions<DdsOptions> ddsOptions,
+        IIdentityService identityService)
     {
         this.s3ClientFactory = s3ClientFactory;
         this.metsRepository = metsRepository;
         this.ddsOptions = ddsOptions.Value;
+        this.identityService = identityService;
     }
 
     public async Task<ActionResult> PdfThumb(string id)
     {
         // for safety's sake validate that this is actually a PDF
-        var metsResource = await metsRepository.GetAsync(id);
+        var ddsId = identityService.GetIdentity(id);
+        var metsResource = await metsRepository.GetAsync(ddsId);
         if (metsResource is IManifestation && metsResource.Type == "Monograph")
         {
             ViewBag.Error = $"{id} is not a valid identifier for pdf thumbnail upload";

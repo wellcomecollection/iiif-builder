@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,7 +23,7 @@ namespace Wellcome.Dds.Dashboard.Models
         const string GlyphTemplate = "<span class=\"glyphicon glyphicon-{0}\"></span>";
 
         private static readonly char[] SlashSeparator = new[] { '/' };
-        public DdsIdentifier DdsIdentifier { get; set; }
+        public DdsIdentity DdsIdentifier { get; set; }
         public IDigitalManifestation DigitisedManifestation { get; set; }
         public ICollection Parent { get; set; }
         public ICollection GrandParent { get; set; }
@@ -52,6 +51,7 @@ namespace Wellcome.Dds.Dashboard.Models
         public string PreviousLink { get; set; }
         public string NextLink { get; set; }
         public List<IManifestation> Siblings { get; set; }
+        public Dictionary<string, string> SiblingLinks { get; set; }
         public int Index { get; set; }
         public int DefaultSpace { get; set; }
         public List<DlcsIngestJob> IngestJobs { get; set; }
@@ -184,26 +184,34 @@ namespace Wellcome.Dds.Dashboard.Models
             return string.Format(DlcsOptions.PortalBatchTemplate, batch.Id.Split(SlashSeparator).Last());
         }
 
-        public void MakeManifestationNavData()
+        public void MakeManifestationNavData(IIdentityService identityService)
         {
             if (Parent != null) // && GrandParent == null)
             {
                 IsStandardMultipleManifestation = true;
-                Siblings = Parent.Manifestations.ToList();
+                Siblings = Parent.Manifestations!.ToList();
+                SiblingLinks = new Dictionary<string, string>();
                 PreviousLink = "#";
                 NextLink = "#";
                 for (int i = 0; i < Siblings.Count; i++)
                 {
-                    if (Siblings[i].Identifier == DdsIdentifier)
+                    var siblingDdsId = identityService.GetIdentity(Siblings[i].Identifier);
+                    var siblingLink = Url.Action("Manifestation", "Dash", new {  id = siblingDdsId.PathElementSafe });
+                    SiblingLinks[Siblings[i].Identifier] = siblingLink;
+                    
+                    // The identity service will cache these, it's not inefficient
+                    if (Siblings[i].Identifier == DdsIdentifier.Value)
                     {
                         Index = i + 1;
                         if (i > 0)
                         {
-                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i - 1].Identifier.PathElementSafe });
+                            var prevDdsId = identityService.GetIdentity(Siblings[i - 1].Identifier);
+                            PreviousLink = Url.Action("Manifestation", "Dash", new { id = prevDdsId.PathElementSafe });
                         }
                         if (i < Siblings.Count - 1)
                         {
-                            NextLink = Url.Action("Manifestation", "Dash", new { id = Siblings[i + 1].Identifier.PathElementSafe });
+                            var nextDdsId = identityService.GetIdentity(Siblings[i + 1].Identifier);
+                            NextLink = Url.Action("Manifestation", "Dash", new { id = nextDdsId.PathElementSafe });
                         }
                     }
                 }
@@ -212,7 +220,7 @@ namespace Wellcome.Dds.Dashboard.Models
 
         public string GetDropDownClass(IManifestation manifestation)
         {
-            if (manifestation.Identifier == DigitisedManifestation.Identifier)
+            if (manifestation.Identifier == DigitisedManifestation.Identifier!.Value)
             {
                 return "disabled";
             }

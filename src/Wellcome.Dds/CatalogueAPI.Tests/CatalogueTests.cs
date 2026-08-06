@@ -99,10 +99,10 @@ namespace CatalogueAPI.Tests
 
             // Assert
             work.Subjects.Should().NotBeEmpty();
-            work.Subjects.Should().ContainSingle(s => s.Id == "zp2kkmjt");
-            var lcshChemistry = work.Subjects.Single(s => s.Id == "zp2kkmjt");
+            work.Subjects.Should().ContainSingle(s => s.Id == "kjyqhufw");
+            var lcshChemistry = work.Subjects.Single(s => s.Id == "kjyqhufw");
             lcshChemistry.Identifiers.Should().ContainSingle(i => i.Value == "sh85022996");
-            lcshChemistry.Label.Should().Be("Chemistry - Experiments.");
+            lcshChemistry.Label.Should().Be("Chemistry - Experiments");
             lcshChemistry.Concepts.Should().ContainSingle(c => c.Label == "Chemistry");
             
             work.Genres.Should().NotBeEmpty();

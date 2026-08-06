@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Utils;
@@ -13,15 +14,15 @@ public class BulkWorkflowModel
     
     public List<WorkflowJob> WorkflowJobs { get; set; }
 
-    public List<DdsIdentifier> DdsIdentifiers { get; set; }
+    public List<DdsIdentity> DdsIdentifiers { get; set; }
     public string IdentifiersSummary { get; set; }
 
     public string Error { get; set; }
-    public void TidyIdentifiers(bool populateList = false)
+    public void TidyIdentifiers(IIdentityService identityService, bool populateList = false)
     {
         if (Identifiers.IsNullOrWhiteSpace())
         {
-            DdsIdentifiers = new List<DdsIdentifier>();
+            DdsIdentifiers = new List<DdsIdentity>();
             return;
         }
         
@@ -39,9 +40,26 @@ public class BulkWorkflowModel
 
         if (populateList)
         {
-            DdsIdentifiers = lines.Select(s => new DdsIdentifier(s)).ToList();
-            var bCount = DdsIdentifiers.Count(ddsId => ddsId.HasBNumber);
-            IdentifiersSummary = $"{DdsIdentifiers.Count} identifiers of which {bCount} are (or have) B numbers.";
+            DdsIdentifiers = new List<DdsIdentity>();
+            var invalidLines = new List<string>();
+            foreach (var line in lines)
+            {
+                try
+                {
+                    DdsIdentifiers.Add(identityService.GetIdentity(line));
+                }
+                catch (FormatException)
+                {
+                    invalidLines.Add(line);
+                }
+            }
+            var bCount = DdsIdentifiers.Count(ddsId => ddsId.Source == Source.Sierra);
+            IdentifiersSummary = $"{DdsIdentifiers.Count} identifiers of which {bCount} are from Sierra.";
+            if (invalidLines.HasItems())
+            {
+                IdentifiersSummary += $" {invalidLines.Count} invalid identifier(s) ignored.";
+                Error = $"Not valid identifiers, ignored: {string.Join(", ", invalidLines)}";
+            }
         }
         Identifiers = string.Join('\n', lines);
     }

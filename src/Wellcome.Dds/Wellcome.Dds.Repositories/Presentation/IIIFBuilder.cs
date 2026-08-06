@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Amazon.Runtime.Internal;
 using DlcsWebClient.Config;
 using IIIF.Presentation;
 using IIIF.Presentation.V2.Annotation;
@@ -50,6 +49,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly IIIFBuilderParts build;
         private readonly PresentationConverter presentation2Converter;
         private readonly ThumbnailSizeDecorator thumbnailSizeDecorator;
+        private readonly IIdentityService identityService;
 
         public IIIFBuilder(
             IDds dds,
@@ -60,7 +60,8 @@ namespace Wellcome.Dds.Repositories.Presentation
             IOptions<DlcsOptions> dlcsOptions,
             UriPatterns uriPatterns,
             ILogger<IIIFBuilder> logger,
-            ThumbnailSizeDecorator thumbnailSizeDecorator)
+            ThumbnailSizeDecorator thumbnailSizeDecorator,
+            IIdentityService identityService)
         {
             this.dds = dds;
             this.metsRepository = metsRepository;
@@ -70,6 +71,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             this.uriPatterns = uriPatterns;
             this.logger = logger;
             this.thumbnailSizeDecorator = thumbnailSizeDecorator;
+            this.identityService = identityService;
 
             if (dlcsOptions.Value.ResourceEntryPoint.IsNullOrWhiteSpace())
             {
@@ -82,10 +84,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                 ddsOptions.Value.ReferenceV0SearchService,
                 ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(',')
                 );
-            presentation2Converter = new PresentationConverter(uriPatterns, logger);
+            presentation2Converter = new PresentationConverter(uriPatterns, logger, identityService);
         }
 
-        public async Task<MultipleBuildResult> BuildAllManifestations(DdsIdentifier ddsId, Work? work = null)
+        public async Task<MultipleBuildResult> BuildAllManifestations(DdsIdentity ddsId, Work? work = null)
         {
             var state = new State();
             if (ddsId.PackageIdentifier == KnownIdentifiers.ChemistAndDruggist)
@@ -93,7 +95,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                 state.ChemistAndDruggistState = new ChemistAndDruggistState(uriPatterns);
             }
             var buildResults = new MultipleBuildResult(ddsId.PackageIdentifier);
-            DdsIdentifier manifestationId = "start";
+            DdsIdentity? manifestationId = null;
+            DdsIdentity packageId = identityService.GetIdentity(ddsId.PackageIdentifier);
             try
             {
                 work ??= await catalogue.GetWorkByOtherIdentifier(ddsId.PackageIdentifier);
@@ -101,9 +104,9 @@ namespace Wellcome.Dds.Repositories.Presentation
                 {
                     throw new InvalidOperationException("Can't build a Manifest without a Work from the Catalogue API");
                 }
-                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
+                var manifestationMetadata = dds.GetManifestationMetadata(packageId);
                 logger.LogInformation("Build all Manifestations getting Mets Resource for {identifier}", ddsId);
-                var resource = await metsRepository.GetAsync(ddsId.PackageIdentifier);
+                var resource = await metsRepository.GetAsync(packageId);
                 if (resource == null)
                 {
                     throw new InvalidOperationException("Can't build a Manifest without a Digital object from METS");
@@ -112,20 +115,20 @@ namespace Wellcome.Dds.Repositories.Presentation
                 buildResults.Add(BuildInternal(work, resource, null, manifestationMetadata, state));
                 if (resource is ICollection parentCollection)
                 {
-                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(ddsId.PackageIdentifier))
+                    await foreach (var manifestationInContext in metsRepository.GetAllManifestationsInContext(packageId))
                     {
                         var manifestation = manifestationInContext.Manifestation;
-                        manifestationId = manifestation.Identifier!;
+                        manifestationId = identityService.GetIdentity(manifestation.Identifier);
                         logger.LogInformation("Build all Manifestations looping through manifestations: {identifier}", manifestationId);
                         var metsManifestation = await metsRepository.GetAsync(manifestationId);
-                        logger.LogInformation("Will now build " + metsManifestation!.Identifier!);
+                        logger.LogInformation("Will now build " + metsManifestation!.Identifier);
                         buildResults.Add(BuildInternal(work, metsManifestation, parentCollection, manifestationMetadata, state));
                     }
                 }
             }
             catch (Exception e)
             {
-                buildResults.Message = $"Failed at {manifestationId}, {e.Message}";
+                buildResults.Message = $"Failed at {manifestationId?.Value ?? "start"}, {e.Message}";
                 buildResults.Outcome = BuildOutcome.Failure;
                 return buildResults;
             }
@@ -134,7 +137,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             return buildResults;
         }
 
-        public MultipleBuildResult BuildLegacyManifestations(DdsIdentifier ddsId, IEnumerable<BuildResult> buildResults)
+        public MultipleBuildResult BuildLegacyManifestations(DdsIdentity ddsId, IEnumerable<BuildResult> buildResults)
             => presentation2Converter.ConvertAll(ddsId.PackageIdentifier, buildResults);
 
         private async Task CheckAndProcessState(MultipleBuildResult buildResults, State state)
@@ -167,14 +170,16 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private async Task PopulateChemistAndDruggistState(ChemistAndDruggistState state)
         {
-            await foreach (var mic in metsRepository.GetAllManifestationsInContext(KnownIdentifiers.ChemistAndDruggist))
+            var ddsId = identityService.GetIdentity(KnownIdentifiers.ChemistAndDruggist);
+            await foreach (var mic in metsRepository.GetAllManifestationsInContext(ddsId))
             {
                 var volume = state.Volumes.SingleOrDefault(v => v.Identifier == mic.VolumeIdentifier);
                 if (volume == null)
                 {
                     volume = new ChemistAndDruggistVolume(mic.VolumeIdentifier);
                     state.Volumes.Add(volume);
-                    var metsVolume = await metsRepository.GetAsync(mic.VolumeIdentifier!) as ICollection;
+                    var volumeDdsId = identityService.GetIdentity(mic.VolumeIdentifier!);
+                    var metsVolume = await metsRepository.GetAsync(volumeDdsId) as ICollection;
                     // populate volume fields
                     volume.Volume = metsVolume!.SectionMetadata!.Number;
                     volume.DisplayDate = metsVolume.SectionMetadata.DisplayDate;
@@ -208,10 +213,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             }
         }
 
-        public async Task<MultipleBuildResult> Build(DdsIdentifier ddsId, Work? work = null)
+        public async Task<MultipleBuildResult> Build(DdsIdentity ddsId, Work? work = null)
         {
             // only this identifier, not all for the b number.
-            var buildResults = new MultipleBuildResult(ddsId);
+            var buildResults = new MultipleBuildResult(ddsId.Value);
             try
             {
                 logger.LogInformation($"Build a single manifestation {ddsId}", ddsId);
@@ -226,19 +231,20 @@ namespace Wellcome.Dds.Repositories.Presentation
                     throw new InvalidOperationException("Can't build a Manifest without a Work from the Catalogue API");
                 }
                 
-                var manifestationMetadata = dds.GetManifestationMetadata(ddsId.PackageIdentifier);
+                var packageDdsId = identityService.GetIdentity(ddsId.PackageIdentifier);
+                var manifestationMetadata = dds.GetManifestationMetadata(packageDdsId);
                 ICollection? partOf = null;
-                if (ddsId.IdentifierType is IdentifierType.Volume or IdentifierType.BNumberAndSequenceIndex)
+                if (ddsId.VolumePart.HasText())
                 {
                     logger.LogInformation("Getting parent METS resource {identifier}", ddsId.PackageIdentifier);
-                    partOf = await metsRepository.GetAsync(ddsId.PackageIdentifier) as ICollection;
+                    partOf = await metsRepository.GetAsync(packageDdsId) as ICollection;
                 }
 
                 if (metsResource is ICollection collection)
                 {
                     if (collection.Manifestations!.Any(m => m.IsMultiPart()))
                     {
-                        buildResults.Add(new BuildResult(ddsId, Version.V3) {RequiresMultipleBuild = true});
+                        buildResults.Add(new BuildResult(ddsId.Value, Version.V3) {RequiresMultipleBuild = true});
                         return buildResults;
                     }
                 }
@@ -434,7 +440,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             build.ImprovePagingSequence(manifest);
             build.CheckForCopyAndVolumeStructure(metsManifestation, state);
             build.ManifestLevelAnnotations(manifest, metsManifestation, ddsOptions.BuildWholeManifestLineAnnotations);
-            build.AddAccessHint(manifest, metsManifestation, manifestationMetadata.Identifier);
+            build.AddAccessHint(manifest, metsManifestation);
 
             if (ddsOptions.UseDlcsForThumbSizes)
             {

@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
 using Wellcome.Dds.WordsAndPictures;
 using Image = Wellcome.Dds.WordsAndPictures.Image;
 
@@ -19,13 +20,16 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
         private readonly IMetsRepository metsRepository;
         private readonly ILogger<AltoSearchTextProvider> logger;
         private static readonly XNamespace Ns = "http://www.loc.gov/standards/alto/ns-v2#";
+        IIdentityService identityService;
 
         public AltoSearchTextProvider(
             IMetsRepository metsRepository,
-            ILogger<AltoSearchTextProvider> logger)
+            ILogger<AltoSearchTextProvider> logger,
+            IIdentityService identityService)
         {
             this.metsRepository = metsRepository;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         public async Task<Text?> GetSearchText(string identifier)
@@ -33,12 +37,8 @@ namespace Wellcome.Dds.Repositories.WordsAndPictures
             var sw = new Stopwatch();
             sw.Start();
             logger.LogInformation("Getting search text from ALTO files for {Identifier}", identifier);
-            //string bNumberHomeDirectory;
-            //MetsBibNumberProvider.GetBNumberFilePath(bNumber, out bNumberHomeDirectory);
-            //Log.InfoFormat("METS Home directory for {0} is {1}", bNumber, bNumberHomeDirectory);
-            //var dip = dipProvider.GetDiPackage(bNumber);
-            //var manifestation = dip.Manifestations[manifestationIndex];
-            var manifestation = await metsRepository.GetAsync(identifier) as IManifestation;
+            var ddsId = identityService.GetIdentity(identifier);
+            var manifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
             if (manifestation == null)
             {
                 return null;

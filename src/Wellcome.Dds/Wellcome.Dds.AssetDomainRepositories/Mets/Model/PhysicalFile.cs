@@ -46,7 +46,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.AccessCondition = accessConditionFromRights ?? 
                                            throw new InvalidOperationException("No Access Condition available from Rights statement");
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
-            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
+            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.PackageIdentifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); 
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
                 
@@ -232,9 +232,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 storageIdentifier = PathStringUtils.GetSimpleNameFromPath(fullPath);
             }
-            if (storageIdentifier != null && !storageIdentifier.StartsWith(workStore.Identifier, StringComparison.InvariantCultureIgnoreCase))
+            if (storageIdentifier != null && !storageIdentifier.StartsWith(workStore.PackageIdentifier, StringComparison.InvariantCultureIgnoreCase))
             {
-                storageIdentifier = $"{workStore.Identifier}_{storageIdentifier}";
+                storageIdentifier = $"{workStore.PackageIdentifier}_{storageIdentifier}";
             }
             return storageIdentifier;
         }

@@ -17,9 +17,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
             this.rootDirectory = rootDirectory;
         }
         
-        public Task<IWorkStore> GetWorkStore(DdsIdentifier identifier)
+        public Task<IWorkStore> GetWorkStore(DdsIdentity identifier)
         {
-            return Task.FromResult<IWorkStore>(new FileSystemWorkStore(rootDirectory, identifier));
+            return Task.FromResult<IWorkStore>(new FileSystemWorkStore(rootDirectory, identifier.PackageIdentifier));
         }
     }
 }

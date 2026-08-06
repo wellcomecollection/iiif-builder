@@ -31,11 +31,16 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
     {
         private readonly UriPatterns uriPatterns;
         private readonly ILogger logger;
+        private readonly IIdentityService identityService;
 
-        public PresentationConverter(UriPatterns uriPatterns, ILogger logger)
+        public PresentationConverter(
+            UriPatterns uriPatterns,
+            ILogger logger,
+            IIdentityService identityService)
         {
             this.uriPatterns = uriPatterns;
             this.logger = logger;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -56,7 +61,8 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     var result = new BuildResult(buildResult.Id, IIIF.Presentation.Version.V2);
                     try
                     {
-                        var iiif2 = Convert(iiif3, buildResult.Id, count);
+                        var ddsId = identityService.GetIdentity(buildResult.Id);
+                        var iiif2 = Convert(iiif3, ddsId, count);
                         result.IIIFResource = iiif2;
                         result.Outcome = BuildOutcome.Success;
                         
@@ -89,7 +95,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
         /// <param name="presentation">Collection or Manifest to convert.</param>
         /// <param name="identifier">BNumber of collection/manifest</param>
         /// <param name="sequence">Index of this particular manifest in a sequence</param>
-        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentifier identifier, int sequence = 0)
+        public ResourceBase Convert(Presi3.StructureBase presentation, DdsIdentity identifier, int sequence = 0)
         {
             presentation.ThrowIfNull(nameof(presentation));
             identifier.ThrowIfNull(nameof(identifier));
@@ -115,7 +121,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
         }
 
-        private Collection ConvertCollection(Presi3.Collection p3Collection, DdsIdentifier identifier)
+        private Collection ConvertCollection(Presi3.Collection p3Collection, DdsIdentity identifier)
         {
             if (p3Collection.Items.IsNullOrEmpty())
             {
@@ -138,13 +144,13 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return collection;
         }
 
-        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource,
+        private Manifest ConvertManifest(Presi3.Manifest p3Manifest, DdsIdentity identifier, bool rootResource,
             int? sequence = 0)
             => Presi3.ManifestX.ContainsAV(p3Manifest) || ConverterHelpers.IsBornDigital(p3Manifest)
                 ? ConvertManifest<MediaManifest>(p3Manifest, identifier, rootResource, sequence)
                 : ConvertManifest<Manifest>(p3Manifest, identifier, rootResource, sequence);
 
-        private T ConvertManifest<T>(Presi3.Manifest p3Manifest, DdsIdentifier identifier, bool rootResource, int? sequence = 0)
+        private T ConvertManifest<T>(Presi3.Manifest p3Manifest, DdsIdentity identifier, bool rootResource, int? sequence = 0)
             where T : Manifest, new()
         {
             if (rootResource && p3Manifest.Items.IsNullOrEmpty())
@@ -244,7 +250,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return manifest;
         }
 
-        private void SetMediaSequences(Presi3.Manifest p3Manifest, DdsIdentifier identifier,
+        private void SetMediaSequences(Presi3.Manifest p3Manifest, DdsIdentity identifier,
             WellcomeAuthServiceManager authServiceManager, MediaManifest manifest)
         {
             // add a single Sequence as this is set in stone
@@ -265,7 +271,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                     Label = manifest.Label,
                     Thumbnail = new List<Thumbnail>
                     {
-                        new() {Id = uriPatterns.PdfThumbnail(identifier), Type = null}
+                        new() {Id = uriPatterns.PdfThumbnail(identifier.Value), Type = null}
                     }
                 };
 
@@ -339,7 +345,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
                                 Type = "foaf:Document",
                                 Format = extBody.Format,
                                 Label = manifest.Label,
-                                Thumbnail = uriPatterns.PdfThumbnail(identifier)
+                                Thumbnail = uriPatterns.PdfThumbnail(identifier.Value)
                             };
                             annotation.Resource = resource;
                             elements.Resources.Add(annotation);
@@ -361,7 +367,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             }
         }
 
-        private void SetImageSequences(Presi3.Manifest p3Manifest, DdsIdentifier identifier, int? sequence,
+        private void SetImageSequences(Presi3.Manifest p3Manifest, DdsIdentity identifier, int? sequence,
             WellcomeAuthServiceManager authServiceManager, Manifest manifest)
         {
             // NOTE - there will only ever be 1 sequence
@@ -425,7 +431,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             };
         }
 
-        private WellcomeAccessControlHintService GetWellcomeAuthService(DdsIdentifier identifier, ResourceBase authResourceBase)
+        private WellcomeAccessControlHintService GetWellcomeAuthService(DdsIdentity identifier, ResourceBase authResourceBase)
         {
             var copiedService = ObjectCopier.DeepCopy(authResourceBase, svc =>
             {
@@ -470,31 +476,31 @@ namespace Wellcome.Dds.Repositories.Presentation.V2
             return wellcomeAuthService;
         }
 
-        private string GetSequenceId(DdsIdentifier identifier, string sequenceIdentifier)
+        private string GetSequenceId(DdsIdentity identifier, string sequenceIdentifier)
         {
             const string sequenceIdentifierToken = "{sequenceIdentifier}";
             const string sequenceFormat = "/presentation/v2/{identifier}/sequences/{sequenceIdentifier}";
 
-            return uriPatterns.GetPath(sequenceFormat, identifier, (sequenceIdentifierToken, sequenceIdentifier));
+            return uriPatterns.GetPath(sequenceFormat, identifier.Value, (sequenceIdentifierToken, sequenceIdentifier));
         } 
         
-        private string GetAccessControlHintServiceId(DdsIdentifier identifier)
+        private string GetAccessControlHintServiceId(DdsIdentity identifier)
         {
             const string idFormat = "/iiif/{identifier}-0/access-control-hints-service";
-            return uriPatterns.GetPath(idFormat, identifier);
+            return uriPatterns.GetPath(idFormat, identifier.Value);
         }
         
-        private string GetAccessControlHintServiceProfile(DdsIdentifier identifier)
+        private string GetAccessControlHintServiceProfile(DdsIdentity identifier)
         {
             const string profileFormat = "/ld/iiif-ext/access-control-hints";
-            return uriPatterns.GetPath(profileFormat, identifier);
+            return uriPatterns.GetPath(profileFormat, identifier.Value);
         }
         
-        private string GetMediaSequenceIdProfile(DdsIdentifier identifier, string sequenceIdentifier)
+        private string GetMediaSequenceIdProfile(DdsIdentity identifier, string sequenceIdentifier)
         {
             const string sequenceIdentifierToken = "{sequenceIdentifier}";
             const string mediaSequenceFormat = "/iiif/{identifier}/xsequence/{sequenceIdentifier}";
-            return uriPatterns.GetPath(mediaSequenceFormat, identifier, (sequenceIdentifierToken, sequenceIdentifier));
+            return uriPatterns.GetPath(mediaSequenceFormat, identifier.Value, (sequenceIdentifierToken, sequenceIdentifier));
         }
     }
 }
