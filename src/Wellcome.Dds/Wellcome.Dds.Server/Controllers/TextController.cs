@@ -104,7 +104,20 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 return NotFound($"No text resource found for {manifestationIdentifier}");
             }
-            var metsManifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
+            IManifestation metsManifestation;
+            try
+            {
+                metsManifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
+            {
+                // MetsRepository throws rather than returning null when a well-formed identifier
+                // has no corresponding METS resource - no package in storage, or no METS file
+                // for the volume part.
+                logger.LogInformation(ex, "No METS resource for ALTO request: {manifestationIdentifier}/{assetIdentifier}",
+                    manifestationIdentifier, assetIdentifier);
+                return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
+            }
             var asset = metsManifestation?.Sequence.SingleOrDefault(pf => pf.StorageIdentifier == assetIdentifier);
             if (asset != null && asset.RelativeAltoPath.HasText())
             {
