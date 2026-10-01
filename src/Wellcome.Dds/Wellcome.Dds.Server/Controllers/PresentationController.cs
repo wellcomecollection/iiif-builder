@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
@@ -36,6 +37,17 @@ namespace Wellcome.Dds.Server.Controllers
     [ApiController]
     public class PresentationController : ControllerBase
     {
+        /// <summary>
+        /// Canvases (and their annotation pages/annotations) and ranges are minted below a manifest's id but
+        /// are never served on their own. Crawlers that blindly follow every JSON-LD id would otherwise send
+        /// each one through identity resolution, storage and the database before getting a 404.
+        /// The manifest part may contain slashes (born-digital ids do), but the asset, annotation and range
+        /// ids may not, and the tail must match exactly what UriPatterns mints.
+        /// </summary>
+        private static readonly Regex NonDereferenceableResource = new(
+            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/[^/]+)$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         private readonly DdsOptions ddsOptions;
         private readonly Helpers helpers;
         private readonly UriPatterns uriPatterns;
@@ -81,6 +93,12 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Index(string id)
         {
             logger.LogDebug("IIIF Resource request for {id}", id);
+            if (NonDereferenceableResource.IsMatch(id))
+            {
+                // This will never change, so let the CDN absorb repeat crawls
+                Response.CacheForDays(30);
+                return NotFound($"Not a dereferenceable resource: {id}");
+            }
             DdsIdentity ddsId;
             try
             {
