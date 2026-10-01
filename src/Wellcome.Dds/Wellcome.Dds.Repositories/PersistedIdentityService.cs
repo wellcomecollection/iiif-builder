@@ -85,30 +85,13 @@ public class PersistedIdentityService(
         using var scope = scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<DdsContext>();
 
-        // Now the database, keyed by the canonical value.
-        var dbIdentity = ctx.Identities.Find(canonicalKey);
-
-        // READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
-        // explicitly non-authoritative). Return the stored record if we have one, otherwise the parsed
-        // identity, enriched from its package-level record for volumes/issues. Reads never create
-        // records: this service can't know whether a volume or issue really exists, and any requested
-        // URL can name one that doesn't, so persisting here would let arbitrary requests fill the
-        // table. Volume/issue rows are created only via RegisterAuthoritativeChild, whose callers
-        // have enumerated the child from the package's METS.
         if (IsReadRequest(generator))
         {
-            if (dbIdentity != null)
-            {
-                CacheIdentity(dbIdentity, lowered, provisional: !dbIdentity.FromGenerator);
-                return dbIdentity;
-            }
-            if (!parsed.IsPackageLevelIdentifier)
-            {
-                EnrichFromPackage(parsed, ctx);
-            }
-            CacheIdentity(parsed, lowered, provisional: !parsed.FromGenerator);
-            return parsed;
+            return ReadIdentity(parsed, lowered, ctx);
         }
+
+        // Now the database, keyed by the canonical value.
+        var dbIdentity = ctx.Identities.Find(canonicalKey);
 
         // WRITE PATH: an authoritative generator was supplied - the object has just been (re)processed.
         // Create the record, or refresh it even when the generator is unchanged, so that repeat messages
@@ -207,6 +190,53 @@ public class PersistedIdentityService(
             // A concurrent request inserted the same child row first; it holds the same values.
         }
         return identity;
+    }
+
+    /// <summary>
+    /// READ PATH: no authoritative generator supplied (or an ignored one, e.g. dashboard, which is
+    /// explicitly non-authoritative). Return the stored record if we have one, otherwise the parsed
+    /// identity, enriched from its package-level record for volumes/issues. Reads never create
+    /// records: this service can't know whether a volume or issue really exists, and any requested
+    /// URL can name one that doesn't, so persisting here would let arbitrary requests fill the
+    /// table. Volume/issue rows are created only via RegisterAuthoritativeChild, whose callers
+    /// have enumerated the child from the package's METS.
+    /// </summary>
+    private DdsIdentity ReadIdentity(DdsIdentity parsed, string lowered, DdsContext ctx)
+    {
+        try
+        {
+            var dbIdentity = ctx.Identities.Find(parsed.LowerCaseValue);
+            if (dbIdentity != null)
+            {
+                CacheIdentity(dbIdentity, lowered, provisional: !dbIdentity.FromGenerator);
+                return dbIdentity;
+            }
+            if (!parsed.IsPackageLevelIdentifier)
+            {
+                EnrichFromPackage(parsed, ctx);
+            }
+        }
+        catch (Exception ex)
+        {
+            // The database is unavailable. The parsed identity is what we served before identities
+            // were persisted, so degrade to it rather than failing the request. Not cached, so the
+            // stored record is picked up as soon as the database is back.
+            logger.LogError(ex, "Unable to read identity {value} from the database; using the parsed identity",
+                parsed.Value.LogSafe());
+            return parsed;
+        }
+
+        if (parsed.Source == Source.Calm)
+        {
+            // CALM identifiers can't be case-normalised, so a parsed one carries the casing of whatever
+            // was requested. The cache is keyed by the lowercased form: caching it would hand that
+            // casing to every other request for the same identifier, and a correctly-cased request
+            // would then be redirected to the wrong-cased URL, which doesn't exist in storage.
+            // Only a stored record (from a generator) knows the true casing.
+            return parsed;
+        }
+        CacheIdentity(parsed, lowered, provisional: !parsed.FromGenerator);
+        return parsed;
     }
 
     private void EnrichFromPackage(DdsIdentity identity, DdsContext ctx)
