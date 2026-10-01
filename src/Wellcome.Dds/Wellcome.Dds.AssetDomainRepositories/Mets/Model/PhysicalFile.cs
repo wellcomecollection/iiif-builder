@@ -26,8 +26,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             var fileId = (string?)fileElement.Attribute("ID") ?? 
                          throw new InvalidOperationException("Physical File Element must have ID attribute");
-            var relativePath = GetLinkRef(fileElement) ?? 
-                         throw new InvalidOperationException("No relative path obtainable from physical file element");     
+            var relativePath = DecodeBornDigitalLinkRef(GetLinkRef(fileElement)) ??
+                         throw new InvalidOperationException("No relative path obtainable from physical file element");
             var physicalFile = new PhysicalFile(workStore, fileId)
             {
                 Files        = new List<IStoredFile>(),
@@ -194,7 +194,19 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 linkHref = null;
             return linkHref;
         }
-        
+
+        /// <summary>
+        /// Archivematica percent-encodes parentheses in the xlink:href of the files in the "original" fileGrp,
+        /// because it treats the href as a URI for schema validation - but the files are stored, and named
+        /// everywhere else in the METS, with literal parentheses (JIRA WSUPP-45).
+        /// Nothing else in the href is encoded (spaces stay literal), so only these are decoded; a general
+        /// unescape could misread a literal % in a file name.
+        /// </summary>
+        private static string? DecodeBornDigitalLinkRef(string? linkHref)
+        {
+            return linkHref?.Replace("%28", "(").Replace("%29", ")");
+        }
+
         
         private static string GetSafeStorageIdentifierForBornDigital(string identifier, string relativePath)
         {
