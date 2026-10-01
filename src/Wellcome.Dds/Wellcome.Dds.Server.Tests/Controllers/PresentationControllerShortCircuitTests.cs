@@ -63,6 +63,10 @@ namespace Wellcome.Dds.Server.Tests.Controllers
                 yield return new object[] { UriPatterns.CanvasClassifyingAnnotation(manifest, asset, "a1") };
                 yield return new object[] { UriPatterns.Range(manifest, "LOG_0001") };
             }
+            // Born-digital range ids are folder paths, so they can contain slashes
+            yield return new object[] { UriPatterns.Range("PPFDN/E/2", "objects") };
+            yield return new object[] { UriPatterns.Range("PPFDN/E/2", "FD_PHOTOS_ON_CD") };
+            yield return new object[] { UriPatterns.Range("PPFDN/E/2", "FD_PHOTOS_ON_CD/sub/deeper") };
         }
 
         [Theory]
@@ -87,7 +91,7 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         [InlineData("b13248169/canvases/a/b")]
         [InlineData("b13248169/canvases/a.jp2/painting/other")]
         [InlineData("b13248169/ranges")]
-        [InlineData("b13248169/ranges/r1/r2")]
+        [InlineData("b13248169/ranges/")]
         public async Task Index_ResolvesIdentity_ForOtherPaths(string id)
         {
             await sut.Index(id);

@@ -41,11 +41,12 @@ namespace Wellcome.Dds.Server.Controllers
         /// Canvases (and their annotation pages/annotations) and ranges are minted below a manifest's id but
         /// are never served on their own. Crawlers that blindly follow every JSON-LD id would otherwise send
         /// each one through identity resolution, storage and the database before getting a 404.
-        /// The manifest part may contain slashes (born-digital ids do), but the asset, annotation and range
-        /// ids may not, and the tail must match exactly what UriPatterns mints.
+        /// The manifest part may contain slashes (born-digital ids do), and so may range ids (born-digital
+        /// ranges are folder paths), but asset and annotation ids may not, and the canvas tail must match
+        /// exactly what UriPatterns mints.
         /// </summary>
         private static readonly Regex NonDereferenceableResource = new(
-            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/[^/]+)$",
+            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/.+)$",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private readonly DdsOptions ddsOptions;
