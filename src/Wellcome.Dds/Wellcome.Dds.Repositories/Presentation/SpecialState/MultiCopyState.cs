@@ -108,7 +108,12 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     {
                         var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
                         var manifest = (Manifest?) manifestResult.IIIFResource;
-                        manifest!.Label!.Values.First().Add($"Copy {copy}");
+                        // A copy may still be one volume of a set even when it's the only volume
+                        // we have, e.g. b29325705_0002 (JIRA WSUPP-4)
+                        var label = copyAndVolume.VolumeNumber > 0
+                            ? $"Copy {copy}, Volume {copyAndVolume.VolumeNumber}"
+                            : $"Copy {copy}";
+                        manifest!.Label!.Values.First().Add(label);
                         newItems.Add(new Manifest
                         {
                             Id = manifest.Id,

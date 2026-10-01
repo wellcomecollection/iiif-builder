@@ -1352,6 +1352,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                         VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
                     };
             }
+
+            // Without state this manifestation is being built on its own, with no parent collection to label
+            if (metsManifestation.SectionMetadata.VolumeNumber > 0 && state != null)
+            {
+                state.MultiVolumeState ??= new MultiVolumeState();
+                state.MultiVolumeState.VolumeNumbers[metsManifestation.Identifier] =
+                    metsManifestation.SectionMetadata.VolumeNumber;
+            }
         }
 
         public void ProcessAVState(MultipleBuildResult buildResults, State state)

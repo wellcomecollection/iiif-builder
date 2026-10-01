@@ -23,6 +23,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
     public class State : IState
     {
         public MultiCopyState? MultiCopyState { get; set; }
+        public MultiVolumeState? MultiVolumeState { get; set; }
         public AVState? AVState { get; set; }
         public FileState? FileState { get; set; }
         public ChemistAndDruggistState? ChemistAndDruggistState { get; set; }
@@ -31,7 +32,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
         // which one of these to use...
         public bool NeedsInfoFromChildren { get; set; }
 
-        public bool HasState => MultiCopyState != null || AVState != null || ChemistAndDruggistState != null ||
-                                RightsState != null;
+        public bool HasState => MultiCopyState != null || MultiVolumeState != null || AVState != null ||
+                                ChemistAndDruggistState != null || RightsState != null;
     }
 }

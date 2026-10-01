@@ -161,6 +161,10 @@ namespace Wellcome.Dds.Repositories.Presentation
                 await PopulateChemistAndDruggistState(state.ChemistAndDruggistState);
                 state.ChemistAndDruggistState.ProcessState(buildResults);
             }
+            else if (state.MultiVolumeState != null)
+            {
+                MultiVolumeState.ProcessState(buildResults, state);
+            }
             
             if (state.RightsState != null)
             {
@@ -398,6 +402,8 @@ namespace Wellcome.Dds.Repositories.Presentation
                         order = counter;
                     }
 
+                    // The anchor METS doesn't usually carry MODS for its volumes, so this is normally
+                    // the order; MultiVolumeState relabels from each volume's own MODS once they're built.
                     int? volumeOrder = order.Value;
                     int? modsVol = metsManifestation.SectionMetadata?.VolumeNumber;
                     if (modsVol.HasValue && modsVol > 0)
