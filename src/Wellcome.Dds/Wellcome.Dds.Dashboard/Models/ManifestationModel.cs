@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using DlcsWebClient.Config;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -356,9 +357,9 @@ namespace Wellcome.Dds.Dashboard.Models
         {
             // this used to be a GUID
             // but now it might be a filename
-            // either way it needs to be URL-safe
-            var safeId = storageIdentifier.Replace("-", "");
-            safeId = safeId.Replace(".", "");
+            // either way it needs to be URL-safe, and usable unescaped in a jQuery selector
+            // (born-digital file names can contain parentheses)
+            var safeId = Regex.Replace(storageIdentifier, "[^A-Za-z0-9_]", "");
             return string.Format("tb{0}", safeId);
         }
 

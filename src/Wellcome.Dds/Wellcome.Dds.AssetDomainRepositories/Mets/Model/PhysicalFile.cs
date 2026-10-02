@@ -196,15 +196,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         }
 
         /// <summary>
-        /// Archivematica percent-encodes parentheses in the xlink:href of the files in the "original" fileGrp,
-        /// because it treats the href as a URI for schema validation - but the files are stored, and named
-        /// everywhere else in the METS, with literal parentheses (JIRA WSUPP-45).
-        /// Nothing else in the href is encoded (spaces stay literal), so only these are decoded; a general
-        /// unescape could misread a literal % in a file name.
+        /// Archivematica percent-encodes the xlink:href of each file, as a URI - but the files are stored, and
+        /// named everywhere else in the METS, unencoded (JIRA WSUPP-45). Archivematica has already sanitised the
+        /// file names, so in practice only parentheses are encoded, e.g. %28DRAFT%29; anything else that is
+        /// encoded, including a literal % in a name (as %25), is recovered by a full unescape.
         /// </summary>
         private static string? DecodeBornDigitalLinkRef(string? linkHref)
         {
-            return linkHref?.Replace("%28", "(").Replace("%29", ")");
+            return linkHref == null ? null : Uri.UnescapeDataString(linkHref);
         }
 
         

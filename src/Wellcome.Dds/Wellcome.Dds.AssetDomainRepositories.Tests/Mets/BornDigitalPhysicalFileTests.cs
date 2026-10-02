@@ -48,13 +48,23 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
         }
 
         [Fact]
-        public void Other_Characters_Are_Left_Alone()
+        public void Percent_Encoded_Parentheses_In_Folder_Are_Decoded()
         {
-            var physicalFile = FromHref("objects/Sub folder/100%2C_not_an_escape %41.doc");
+            var physicalFile = FromHref("objects/Folder_%281%29/report_%28v2%29.doc");
 
-            physicalFile.RelativePath.Should().Be("objects/Sub folder/100%2C_not_an_escape %41.doc");
+            physicalFile.RelativePath.Should().Be("objects/Folder_(1)/report_(v2).doc");
             physicalFile.StorageIdentifier.Should()
-                .Be("PPHTH_B_2_89_8_11---Sub_folder---100%2C_not_an_escape_%41.doc");
+                .Be("PPHTH_B_2_89_8_11---Folder_(1)---report_(v2).doc");
+        }
+
+        [Fact]
+        public void Encoded_Percent_Is_Decoded_Once()
+        {
+            // A file actually named 100%28.doc
+            var physicalFile = FromHref("objects/100%2528.doc");
+
+            physicalFile.RelativePath.Should().Be("objects/100%28.doc");
+            physicalFile.StorageIdentifier.Should().Be("PPHTH_B_2_89_8_11---100%28.doc");
         }
     }
 }
