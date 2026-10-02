@@ -106,6 +106,20 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.SpecialState
             action.Should().NotThrow();
         }
 
+        [Fact]
+        public void MultiVolume_Does_Not_Relabel_Title_Starting_With_Volume()
+        {
+            var results = MakeBuildResults("b1", ("b1_0001", 1));
+            var item = ((Collection) results.First().IIIFResource!).Items!.OfType<Manifest>().Single();
+            item.Label = new LanguageMap { ["en"] = new() { "Volume of tracts", "Volume 1" } };
+            var state = new State { MultiVolumeState = new MultiVolumeState() };
+            state.MultiVolumeState.VolumeNumbers["b1_0001"] = 4;
+
+            MultiVolumeState.ProcessState(results, state);
+
+            item.Label["en"].Should().Equal("Volume of tracts", "Volume 4");
+        }
+
         private static State MultiCopy(params (string id, int copy, int volume)[] items)
         {
             var state = new State { MultiCopyState = new MultiCopyState() };
@@ -162,6 +176,35 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation.SpecialState
             copyCollections.SelectMany(c => c.Items!.Cast<Manifest>())
                 .Select(m => m.Label!["en"].Last())
                 .Should().Equal("Copy 1, Volume 1", "Copy 1, Volume 2", "Copy 2, Volume 1");
+        }
+
+        [Fact]
+        public void MultiCopy_Volume_In_Two_Parts_Lists_Each_Part_Once()
+        {
+            var results = MakeBuildResults("b1", ("b1_0001", 1), ("b1_0002", 2), ("b1_0003", 3));
+            var state = MultiCopy(("b1_0001", 1, 8), ("b1_0002", 1, 8), ("b1_0003", 2, 8));
+
+            MultiCopyState.ProcessState(results, state);
+
+            var copyCollections = ((Collection) results.First().IIIFResource!).Items!.Cast<Collection>().ToList();
+            var manifests = copyCollections.SelectMany(c => c.Items!.Cast<Manifest>()).ToList();
+            manifests.Select(m => m.Id!.Split('/').Last()).Should().Equal("b1_0001", "b1_0002", "b1_0003");
+            manifests.Select(m => string.Join(" | ", m.Label!["en"])).Should().Equal(
+                "Title | Copy 1, Volume 8", "Title | Copy 1, Volume 8", "Title | Copy 2, Volume 8");
+        }
+
+        [Fact]
+        public void MultiCopy_Nested_Copy_Without_Volume_Shows_Copy_Only()
+        {
+            var results = MakeBuildResults("b1", ("b1_0001", 1), ("b1_0002", 2), ("b1_0003", 3));
+            var state = MultiCopy(("b1_0001", 1, 1), ("b1_0002", 1, 2), ("b1_0003", 2, -1));
+
+            MultiCopyState.ProcessState(results, state);
+
+            var copyCollections = ((Collection) results.First().IIIFResource!).Items!.Cast<Collection>().ToList();
+            copyCollections.SelectMany(c => c.Items!.Cast<Manifest>())
+                .Select(m => m.Label!["en"].Last())
+                .Should().Equal("Copy 1, Volume 1", "Copy 1, Volume 2", "Copy 2");
         }
     }
 }

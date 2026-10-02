@@ -63,6 +63,9 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                     .Where(cv => cv.CopyNumber == copy)
                     .Select(cv => cv.VolumeNumber)
                     .ToList();
+                // A volume can be in more than one part, e.g. b30529189 (JIRA WSUPP-8); each part is
+                // picked up by identifiersForVolume below, so only visit each volume number once
+                var distinctVolumesForCopy = volumesForCopy.Distinct();
                 if (volumesForCopy.Count > 1 || atLeastOneCopyHasMultipleVolumes)
                 {
                     // This volume is a collection child of the root;
@@ -74,7 +77,7 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                         Items = new List<ICollectionItem>()
                     };
                     newItems.Add(copyCollection);
-                    foreach (int volume in volumesForCopy)
+                    foreach (int volume in distinctVolumesForCopy)
                     {
                         var identifiersForVolume =
                             state.MultiCopyState.CopyAndVolumes.Values
@@ -83,7 +86,10 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                         {
                             var manifestResult = buildResults.Single(br => br.Id == copyAndVolume.Id);
                             var manifest = (Manifest?) manifestResult.IIIFResource;
-                            manifest!.Label!.Values.First().Add($"Copy {copy}, Volume {volume}");
+                            var label = volume > 0
+                                ? $"Copy {copy}, Volume {volume}"
+                                : $"Copy {copy}";
+                            manifest!.Label!.Values.First().Add(label);
                             copyCollection.Items.Add(new Manifest
                             {
                                 Id = manifest.Id,

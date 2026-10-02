@@ -41,7 +41,8 @@ namespace Wellcome.Dds.Repositories.Presentation.SpecialState
                 }
                 foreach (var values in collectionItem.Label.Values)
                 {
-                    var index = values.FindIndex(v => v.StartsWith("Volume "));
+                    // The volume label comes after the work title, which might also start with "Volume "
+                    var index = values.FindLastIndex(v => v.StartsWith("Volume "));
                     if (index >= 0)
                     {
                         values[index] = $"Volume {volumeNumber}";
