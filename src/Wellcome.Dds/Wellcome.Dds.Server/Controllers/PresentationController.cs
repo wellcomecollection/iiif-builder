@@ -43,11 +43,12 @@ namespace Wellcome.Dds.Server.Controllers
         /// each one through identity resolution, storage and the database before getting a 404.
         /// The manifest part may contain slashes (born-digital ids do), and so may range ids (born-digital
         /// ranges are folder paths), but asset and annotation ids may not, and the canvas tail must match
-        /// exactly what UriPatterns mints.
+        /// exactly what UriPatterns mints. Case and a trailing slash are ignored, as identity resolution
+        /// ignores them too.
         /// </summary>
         private static readonly Regex NonDereferenceableResource = new(
-            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/.+)$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/.+)/?$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private readonly DdsOptions ddsOptions;
         private readonly Helpers helpers;
@@ -94,10 +95,10 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Index(string id)
         {
             logger.LogDebug("IIIF Resource request for {id}", id);
-            if (NonDereferenceableResource.IsMatch(id))
+            if (id != null && NonDereferenceableResource.IsMatch(id))
             {
-                // This will never change, so let the CDN absorb repeat crawls
-                Response.CacheForDays(30);
+                // Let the CDN absorb repeat crawls; CDN-only, so a rebuild's invalidation clears it everywhere
+                Response.CdnCacheForDays(30);
                 return NotFound($"Not a dereferenceable resource: {id}");
             }
             DdsIdentity ddsId;

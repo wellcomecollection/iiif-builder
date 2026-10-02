@@ -67,6 +67,9 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             yield return new object[] { UriPatterns.Range("PPFDN/E/2", "objects") };
             yield return new object[] { UriPatterns.Range("PPFDN/E/2", "FD_PHOTOS_ON_CD") };
             yield return new object[] { UriPatterns.Range("PPFDN/E/2", "FD_PHOTOS_ON_CD/sub/deeper") };
+            // Variants that identity resolution would treat as the same resource
+            yield return new object[] { UriPatterns.Canvas("b13248169", "b13248169_0001.jp2") + "/" };
+            yield return new object[] { UriPatterns.Canvas("b13248169", "b13248169_0001.jp2").Replace("canvases", "Canvases") };
         }
 
         [Theory]
@@ -78,11 +81,12 @@ namespace Wellcome.Dds.Server.Tests.Controllers
             var result = await sut.Index(id);
 
             result.Should().BeOfType<NotFoundObjectResult>();
-            sut.Response.Headers.CacheControl.ToString().Should().Be("public, s-maxage=2592000, max-age=2592000");
+            sut.Response.Headers.CacheControl.ToString().Should().Be("public, s-maxage=2592000");
             A.CallTo(() => identityService.GetIdentity(A<string>._)).MustNotHaveHappened();
         }
 
         [Theory]
+        [InlineData(null)]
         [InlineData("b13248169")]
         [InlineData("b19974760_233_0001")]
         [InlineData("PPCRI/A/1")]
