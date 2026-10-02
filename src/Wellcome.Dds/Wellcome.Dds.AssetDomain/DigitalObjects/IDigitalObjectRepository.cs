@@ -10,7 +10,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 {
     public interface IDigitalObjectRepository
     {
-        Task<IDigitalObject> GetDigitalObject(DdsIdentifier identifier, DlcsCallContext dlcsCallContext, bool includePdfDetails = false);
+        Task<IDigitalObject> GetDigitalObject(string identifier, DlcsCallContext dlcsCallContext, bool includePdfDetails = false);
         Task<SyncOperation> GetDlcsSyncOperation(
             IDigitalManifestation digitisedManifestation,
             bool reIngestErrorImages,

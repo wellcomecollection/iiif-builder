@@ -14,7 +14,6 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// based on string3
         /// </summary>
         IEnumerable<Image>? DlcsImages { get; set; }
-        bool JobExactMatchForManifestation(DlcsIngestJob job);
 
         /// <summary>
         /// TODO: This doesn't belong here! Only here for PDF link to work and be same as in IIIF manifest

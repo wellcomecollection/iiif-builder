@@ -31,8 +31,7 @@ pipeline {
   }
   stage('Install') {
      steps {
-      sh "apt-get update"
-      sh "apt install -y python3-pip"
+      sh "command -v pip3 || (apt-get update && apt install -y python3-pip)"
       sh "pip3 install awscli"
      }
     }

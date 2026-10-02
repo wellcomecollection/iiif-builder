@@ -1084,6 +1084,16 @@ namespace Wellcome.Dds.Repositories.Presentation
                 var topRanges = wdlRoot.Items.Where(r => r is Range).ToList();
                 if (topRanges.HasItems())
                 {
+                    if (metsManifestation.Type == "Born Digital" && wdlRoot.Items.Any(r => r is Canvas))
+                    {
+                        // A born-digital root is the "objects" directory, and it can hold files alongside its
+                        // folders. Keeping only the folders would drop those files from the structure
+                        // (JIRA WSUPP-44), so here the root is kept as the single top-level Range.
+                        // Folder Range ids are paths relative to the root, which has no id of its own.
+                        wdlRoot.Id = uriPatterns.Range(metsManifestation.Identifier!, "objects");
+                        manifest.Structures = new List<Range> { wdlRoot };
+                        return;
+                    }
                     // These should all be ranges. I think. It's an error if they aren't?
                     // TEST TEST TEST...
                     manifest.Structures = topRanges.Cast<Range>().ToList();
@@ -1352,6 +1362,14 @@ namespace Wellcome.Dds.Repositories.Presentation
                         VolumeNumber = metsManifestation.SectionMetadata.VolumeNumber
                     };
             }
+
+            // Without state this manifestation is being built on its own, with no parent collection to label
+            if (metsManifestation.SectionMetadata.VolumeNumber > 0 && state != null)
+            {
+                state.MultiVolumeState ??= new MultiVolumeState();
+                state.MultiVolumeState.VolumeNumbers[metsManifestation.Identifier] =
+                    metsManifestation.SectionMetadata.VolumeNumber;
+            }
         }
 
         public void ProcessAVState(MultipleBuildResult buildResults, State state)
@@ -1532,7 +1550,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                 });
         }
 
-        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation, string identifier)
+        public void AddAccessHint(Manifest manifest, IManifestation metsManifestation)
         {
             var accessConditions = metsManifestation.Sequence!
                 .Select(pf => pf.AccessCondition).ToList();

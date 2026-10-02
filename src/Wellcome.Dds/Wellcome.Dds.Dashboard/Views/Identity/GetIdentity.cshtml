@@ -1,0 +1,95 @@
+@model DdsIdentity
+
+@{
+    ViewBag.Title = "Identity " + Model;
+}
+
+
+<h1>@ViewBag.Title</h1>
+
+
+<div class="row">
+<div class="col-md-12">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Value</td>
+            <td>@Model.Value (@(Model.IsPackageLevelIdentifier ? "package" : "part"))</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Created</td>
+            <td>@StringUtils.GetFriendlyAge(Model.Created)</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Updated</td>
+            <td>@StringUtils.GetFriendlyAge(Model.Updated)</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Lower case value</td>
+            <td>@Model.LowerCaseValue</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Package Identifier</td>
+            <td>@Model.PackageIdentifier</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Package Identifier Path Element Safe</td>
+            <td>@Model.PackageIdentifierPathElementSafe</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Path Element Safe</td>
+            <td>@Model.PathElementSafe</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Generator</td>
+            <td>@Model.Generator</td>
+            <td>@(Model.FromGenerator ? "authoritative" : "assumed")</td>
+        </tr>
+        <tr>
+            <td>Storage Space</td>
+            <td>@Model.StorageSpace</td>
+            <td>@(Model.StorageSpaceValidated ? "validated" : "assumed")</td>
+        </tr>
+        <tr>
+            <td>Source</td>
+            <td>@Model.Source</td>
+            <td>@(Model.SourceValidated ? "validated" : "assumed")</td>
+        </tr>
+        <tr>
+            <td>Catalogue Id</td>
+            <td>@Model.CatalogueId</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Level</td>
+            <td>@Model.Level</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Volume Part</td>
+            <td>@Model.VolumePart</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Issue Part</td>
+            <td>@Model.IssuePart</td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</div>

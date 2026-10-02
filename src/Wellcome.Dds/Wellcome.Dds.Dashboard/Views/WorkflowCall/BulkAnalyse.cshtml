@@ -18,16 +18,18 @@
         <tr>
             <th>Identifier</th>
             <th>Storage space</th>
-            <th>Has BNumber</th>
+            <th>Source</th>
+            <th>Generator</th>
         </tr>
         </thead>
         <tbody>
-        @foreach (DdsIdentifier ddsId in Model.DdsIdentifiers)
+        @foreach (DdsIdentity ddsId in Model.DdsIdentifiers)
         {
             <tr>
                 <td>@Html.ActionLink(ddsId.PackageIdentifier, "Manifestation", "Dash", new { id = ddsId.PackageIdentifierPathElementSafe })</td>
                 <td>@ddsId.StorageSpace</td>
-                <td>@ddsId.HasBNumber</td>
+                <td>@ddsId.Source</td>
+                <td>@ddsId.Generator</td>
             </tr>
         }
         </tbody>

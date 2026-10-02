@@ -5,20 +5,22 @@ using System.Xml.Linq;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
+using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Storage.FileSystem
 {
     public class FileSystemWorkStore : IWorkStore
     {
-        private string rootDirectory;
+        private readonly string rootDirectory;
         
-        public FileSystemWorkStore(string rootDirectory, string identifier)
+        public FileSystemWorkStore(string rootDirectory, string packageIdentifier)
         {
-            Identifier = identifier;
+            PackageIdentifier = packageIdentifier;
             this.rootDirectory = rootDirectory;
         }
 
-        public string Identifier { get; set; }
+        public string PackageIdentifier { get; set; }
+        
         private string FileUri(string relativePath)
         {
             return Path.Combine(rootDirectory, relativePath);

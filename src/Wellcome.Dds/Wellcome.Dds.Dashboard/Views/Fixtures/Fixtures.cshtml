@@ -8,7 +8,7 @@
 
 
 <div class="col-md-12">
-    <h3 style="margin: 25px 0 20px 0">@Html.Raw(((DdsIdentifier)Model.First().Item1).HasBNumber ? "Digitised" : "Born Digital") Identifiers</h3>
+    <h3 style="margin: 25px 0 20px 0">@Html.Raw(Model.First().Item1.Contains('/') ? "Digitised" : "Born Digital") Identifiers</h3>
 </div>
 
 <table class="table">
@@ -24,14 +24,15 @@
     <tbody>
     @foreach (var pair in Model)
     {
-        var identifier = new DdsIdentifier(pair.Item1);
         var label = pair.Item2;
+        // bypass the identity service for these one-off pages
+        var pathSafe = pair.Item1.Replace('/', '_');
         <tr>
-            <td>@Html.ActionLink(identifier.PackageIdentifier, "Manifestation", "Dash", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink(pair.Item1, "Manifestation", "Dash", new { id = pathSafe }, new { })</td>
             <td>@label</td>
-            <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-            <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
-            <td>@Html.ActionLink("Workflow call", "WorkflowCall", "WorkflowCall", new { id = identifier.PackageIdentifierPathElementSafe }, new { })</td>
+            <td>@Html.ActionLink("METS Root", "XmlView", "Peek", new { id = pathSafe }, new { })</td>
+            <td>@Html.ActionLink("Storage manifest", "StorageManifest", "Peek", new { id = pathSafe }, new { })</td>
+            <td>@Html.ActionLink("Workflow call", "WorkflowCall", "WorkflowCall", new { id = pathSafe }, new { })</td>
         </tr>
     }
     </tbody>

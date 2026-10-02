@@ -17,10 +17,103 @@ namespace Wellcome.Dds.Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.6")
+                .HasAnnotation("ProductVersion", "6.0.35")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Wellcome.Dds.Common.DdsIdentity", b =>
+                {
+                    b.Property<string>("LowerCaseValue")
+                        .HasColumnType("text")
+                        .HasColumnName("lower_case_value");
+
+                    b.Property<string>("CatalogueId")
+                        .HasColumnType("text")
+                        .HasColumnName("catalogue_id");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created");
+
+                    b.Property<bool>("FromGenerator")
+                        .HasColumnType("boolean")
+                        .HasColumnName("from_generator");
+
+                    b.Property<string>("Generator")
+                        .HasColumnType("text")
+                        .HasColumnName("generator");
+
+                    b.Property<bool>("IsPackageLevelIdentifier")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_package_level_identifier");
+
+                    b.Property<string>("IssuePart")
+                        .HasColumnType("text")
+                        .HasColumnName("issue_part");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("level");
+
+                    b.Property<string>("PackageIdentifier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("package_identifier");
+
+                    b.Property<string>("PackageIdentifierPathElementSafe")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("package_identifier_path_element_safe");
+
+                    b.Property<string>("PathElementSafe")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("path_element_safe");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<bool>("SourceValidated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("source_validated");
+
+                    b.Property<string>("StorageSpace")
+                        .HasColumnType("text")
+                        .HasColumnName("storage_space");
+
+                    b.Property<bool>("StorageSpaceValidated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("storage_space_validated");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("value");
+
+                    b.Property<string>("VolumePart")
+                        .HasColumnType("text")
+                        .HasColumnName("volume_part");
+
+                    b.HasKey("LowerCaseValue")
+                        .HasName("pk_identities");
+
+                    b.HasIndex("PackageIdentifier")
+                        .HasDatabaseName("ix_identities_package_identifier");
+
+                    b.HasIndex("PathElementSafe")
+                        .IsUnique()
+                        .HasDatabaseName("ix_identities_path_element_safe");
+
+                    b.ToTable("identities", (string)null);
+                });
 
             modelBuilder.Entity("Wellcome.Dds.Manifestation", b =>
                 {

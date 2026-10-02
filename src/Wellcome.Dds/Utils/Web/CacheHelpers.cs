@@ -34,5 +34,14 @@ namespace Utils.Web
             const string template = "public, s-maxage={0}, max-age={0}";
             response.Headers.Append("Cache-Control", String.Format(template, seconds));
         }
+
+        /// <summary>
+        /// Cache in shared caches (the CDN) only, so that a CDN invalidation reaches every client
+        /// </summary>
+        public static void CdnCacheForDays(this HttpResponse response, int days)
+        {
+            const string template = "public, s-maxage={0}";
+            response.Headers.Append("Cache-Control", String.Format(template, days * 86400));
+        }
     }
 }

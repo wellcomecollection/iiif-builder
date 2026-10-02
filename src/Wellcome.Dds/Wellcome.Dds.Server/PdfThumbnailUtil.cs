@@ -32,7 +32,7 @@ namespace Wellcome.Dds.Server
         /// </summary>
         /// <param name="identifier">BNumber of </param>
         /// <returns>Stream if found, else null.</returns>
-        public async Task<Stream> GetPdfThumbnail(DdsIdentifier identifier)
+        public async Task<Stream> GetPdfThumbnail(string identifier)
         {
             var key = $"_pdf_thumbs/{identifier}.jpg";
 

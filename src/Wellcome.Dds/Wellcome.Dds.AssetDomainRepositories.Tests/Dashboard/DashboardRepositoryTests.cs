@@ -7,6 +7,7 @@ using FakeItEasy;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain;
@@ -32,6 +33,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         private readonly IMetsRepository metsRepository;
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly DigitalObjectRepository sut;
+        private readonly IIdentityService identityService;
         
         public DashboardRepositoryTests()
         {
@@ -64,9 +66,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
             var options = Options.Create(ddsOptions);
             var uriPatterns = new UriPatterns(options);
-
+            
+            identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new DigitalObjectRepository(new NullLogger<DigitalObjectRepository>(), uriPatterns, dlcs, metsRepository,
-                ddsInstrumentationContext, options);
+                ddsInstrumentationContext, options, identityService);
         }
 
         [Fact]
@@ -84,22 +87,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public async Task GetDigitalResource_ThrowsArgumentException_IfMetsRepositoryReturnsNull()
         {
             // Arrange
-            const string identifier = "b1231231";
+            var identifier = identityService.GetIdentity("b1231231");
             A.CallTo(() => metsRepository.GetAsync(identifier)).Returns<IMetsResource>(null);
-            Func<Task> action = () => sut.GetDigitalObject(identifier, new DlcsCallContext("[test]", "[id]"));
+            Func<Task> action = () => sut.GetDigitalObject(identifier.PackageIdentifier, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
             (await action.Should().ThrowAsync<ArgumentException>()).And
-                .Message.Should().Be(
-                    "Cannot get a digital resource from METS for identifier b1231231 (Parameter 'identifier')");
+                .Message.Should().Be(                         // note the extra check digit ↓
+                    "Cannot get a digital resource from METS for identifier b12312319 (Parameter 'identifier')");
         }
 
         [Fact]
         public async Task GetDigitalResource_HandlesIManifestation_WithoutPdf()
         {
             // Arrange
-            const string identifier = "b1231231";
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            var manifestId = identityService.GetIdentity("manifest-id"); 
+            A.CallTo(() => metsRepository.GetAsync(manifestId))
                 .Returns(new TestManifestation
                 {
                     Identifier = "manifest-id",
@@ -111,10 +114,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetImagesForString3("manifest-id", ctx)).Returns(images);
 
             // Act
-            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier, ctx);
+            var result = (DigitalManifestation)await sut.GetDigitalObject("manifest-id", ctx);
 
             // Assert
-            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
+            result.Identifier.Should().Be(manifestId);
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
@@ -124,8 +127,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public async Task GetDigitalResource_HandlesIManifestation_WithPdf()
         {
             // Arrange
-            const string identifier = "b1231231";
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            var testIdentity = identityService.GetIdentity("manifest-id"); 
+            A.CallTo(() => metsRepository.GetAsync(testIdentity))
                 .Returns(new TestManifestation
                 {
                     Identifier = "manifest-id",
@@ -140,10 +143,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             A.CallTo(() => dlcs.GetPdfDetails("manifest-id")).Returns(pdf);
 
             // Act
-            var result = (DigitalManifestation)await sut.GetDigitalObject(identifier, ctx, true);
+            var result = (DigitalManifestation)await sut.GetDigitalObject("manifest-id", ctx, true);
 
             // Assert
-            result.Identifier.Should().Be((DdsIdentifier)"manifest-id");
+            result.Identifier.Should().Be(testIdentity);
             result.Partial.Should().BeTrue();
             result.DlcsImages.Should().BeEquivalentTo(images);
             result.PdfControlFile.Should().Be(pdf);
@@ -154,7 +157,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
-            const string identifier = "b1231231";
+            var idString = "the-main-one"; // This can be anything in this test
+            var theMainOne = identityService.GetIdentity(idString); 
+            var coll1 = identityService.GetIdentity("coll-1"); 
+            var coll1Man1 = identityService.GetIdentity("coll-1-man-1"); 
+            var coll2 = identityService.GetIdentity("coll-2"); 
+            var man1 = identityService.GetIdentity("man-1"); 
             var testCollection = new TestCollection
             {
                 Identifier = "the-main-one",
@@ -178,24 +186,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
 
             var ctx = new DlcsCallContext("[test]", "[id]");
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(theMainOne))
                 .Returns(testCollection);
             A.CallTo(() => dlcs.GetImagesForString3(A<string>._, ctx))
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitalCollection)await sut.GetDigitalObject(identifier, ctx);
+            var result = (DigitalCollection)await sut.GetDigitalObject(idString, ctx);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
+            result.Identifier.Should().Be(theMainOne);
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == coll1 || m.Identifier == coll2);
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == man1);
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == coll1Man1);
             
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustNotHaveHappened();
         }
@@ -205,7 +213,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             // NOTE: These aren't exhaustive but verify format of return value
             // Arrange
-            const string identifier = "b1231231";
+            var idString = "the-main-one"; // This can be anything in this test
+            var theMainOne = identityService.GetIdentity(idString); 
+            var coll1 = identityService.GetIdentity("coll-1"); 
+            var coll1Man1 = identityService.GetIdentity("coll-1-man-1"); 
+            var coll2 = identityService.GetIdentity("coll-2"); 
+            var man1 = identityService.GetIdentity("man-1"); 
             var testCollection = new TestCollection
             {
                 Identifier = "the-main-one",
@@ -229,24 +242,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             };
 
             var ctx = new DlcsCallContext("[test]", "[id]");
-            A.CallTo(() => metsRepository.GetAsync(identifier))
+            A.CallTo(() => metsRepository.GetAsync(theMainOne))
                 .Returns(testCollection);
             A.CallTo(() => dlcs.GetImagesForString3(A<string>._, ctx))
                 .Returns(Builder<Image>.CreateListOfSize(2).Build().ToArray());
 
             // Act
-            var result = (DigitalCollection)await sut.GetDigitalObject(identifier, ctx,true);
+            var result = (DigitalCollection)await sut.GetDigitalObject(idString, ctx,true);
 
             // Assert
             result.MetsCollection.Should().Be(testCollection);
-            result.Identifier.Should().Be((DdsIdentifier)"the-main-one");
+            result.Identifier.Should().Be(theMainOne);
             result.Partial.Should().BeTrue();
-            result.Collections.Should().OnlyContain(m => m.Identifier == "coll-1" || m.Identifier == "coll-2");
-            result.Manifestations.Should().OnlyContain(m => m.Identifier == "man-1");
+            result.Collections.Should().OnlyContain(m => m.Identifier == coll1 || m.Identifier == coll2);
+            result.Manifestations.Should().OnlyContain(m => m.Identifier == man1);
             
             var nestedColl = result.Collections.First();
             nestedColl.Collections.Should().BeNullOrEmpty();
-            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == "coll-1-man-1");
+            nestedColl.Manifestations.Should().OnlyContain(m => m.Identifier == coll1Man1);
 
             A.CallTo(() => dlcs.GetPdfDetails(A<string>._)).MustHaveHappened(2, Times.Exactly);
         }
@@ -346,15 +359,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestManifestation : IManifestation
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public DdsIdentifier Identifier { get; set; }
+            public string Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; set; }
             public ISectionMetadata SectionMetadata { get; set; }
             public ISectionMetadata ParentSectionMetadata { get; set; }
             public bool Partial { get; set; }
-            public string GetRootId() => "b12398761";
-
             public List<IPhysicalFile> Sequence { get; set; }
             public List<IPhysicalFile> SignificantSequence { get; }
             public IStructRange RootStructRange { get; set; }
@@ -370,14 +381,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         public class TestCollection : ICollection
         {
             public IArchiveStorageStoredFileInfo SourceFile { get; set; }
-            public DdsIdentifier Identifier { get; set; }
+            public string Identifier { get; set; }
             public string Label { get; set; }
             public string Type { get; set; }
             public int? Order { get; }
             public ISectionMetadata SectionMetadata { get; }
             public ISectionMetadata ParentSectionMetadata { get; }
             public bool Partial { get; set; }
-            public string GetRootId() => "b12398761";
 
             public List<ICollection> Collections { get; set; }
             public List<IManifestation> Manifestations { get; set; }

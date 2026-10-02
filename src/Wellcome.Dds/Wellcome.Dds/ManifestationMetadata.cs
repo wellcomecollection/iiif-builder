@@ -6,7 +6,7 @@ namespace Wellcome.Dds
     public class ManifestationMetadata
     {
         public ManifestationMetadata(
-            DdsIdentifier identifier, 
+            DdsIdentity identifier, 
             List<Manifestation> manifestations, 
             List<Metadata> metadata)
         {
@@ -15,7 +15,7 @@ namespace Wellcome.Dds
             Metadata = metadata;
         }
 
-        public DdsIdentifier Identifier { get; set; }
+        public DdsIdentity Identifier { get; set; }
         public List<Manifestation> Manifestations { get; set; }
         public List<Metadata> Metadata { get; set; }
     }

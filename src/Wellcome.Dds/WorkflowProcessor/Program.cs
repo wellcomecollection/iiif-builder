@@ -19,6 +19,8 @@ namespace WorkflowProcessor
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.StackTrace);
+                Console.WriteLine(ex.Message);
                 Log.Fatal(ex, "Application start-up failed");
             }
             finally

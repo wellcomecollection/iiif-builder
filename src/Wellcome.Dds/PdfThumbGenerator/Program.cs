@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CsvHelper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,7 +20,10 @@ using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Catalogue;
 
 namespace PdfThumbGenerator
 {
@@ -35,6 +39,10 @@ namespace PdfThumbGenerator
                     services
                         .AddMemoryCache()
                         .AddSingleton<ISimpleCache, ConcurrentSimpleMemoryCache>()
+                        // Singleton here, unlike the web apps: it is consumed by the singleton
+                        // IMetsRepository and resolved from the root provider below, and it creates
+                        // its own DbContext scopes per call anyway.
+                        .AddSingleton<IIdentityService, PersistedIdentityService>()
                         .AddSingleton<IMetsRepository, MetsRepository>()
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
@@ -45,10 +53,17 @@ namespace PdfThumbGenerator
                                 provider.GetService<ILogger<PdfGenerator>>()!,
                                 provider.GetService<IMetsRepository>()!,
                                 provider.GetService<PdfThumbnailUtil>()!,
+                                provider.GetService<IIdentityService>()!,
                                 file));
 
                     services.AddHttpClient<OAuth2ApiConsumer>();
-                    
+                    services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+
+                    // PersistedIdentityService needs a DdsContext (resolved per call from its own scope)
+                    services.AddDbContext<DdsContext>(options => options
+                        .UseNpgsql(context.Configuration.GetConnectionString("Dds"))
+                        .UseSnakeCaseNamingConvention());
+
                     var configuration = context.Configuration;
                     var awsOptions = configuration.GetAWSOptions("Dds-AWS");
                     services.AddDefaultAWSOptions(awsOptions);
@@ -72,15 +87,17 @@ namespace PdfThumbGenerator
         private readonly IMetsRepository metsRepository;
         private readonly PdfThumbnailUtil pdfThumbnailUtil;
         private readonly string file;
+        private readonly IIdentityService identityService;
 
 
         public PdfGenerator(ILogger<PdfGenerator> logger, IMetsRepository metsRepository,
-            PdfThumbnailUtil pdfThumbnailUtil, string file)
+            PdfThumbnailUtil pdfThumbnailUtil, IIdentityService identityService, string file)
         {
             this.logger = logger;
             this.metsRepository = metsRepository;
             this.pdfThumbnailUtil = pdfThumbnailUtil;
             this.file = file;
+            this.identityService = identityService;
         }
 
 
@@ -114,7 +131,8 @@ namespace PdfThumbGenerator
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
-                IMetsResource? resource = await metsRepository.GetAsync(pdf.Identifier!);
+                var identity = identityService.GetIdentity(pdf.Identifier!);
+                IMetsResource? resource = await metsRepository.GetAsync(identity);
                 if (resource is ICollection)
                 {
                     throw new InvalidOperationException(

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -31,7 +32,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
         {
             var ddsOptions = new DdsOptions
             {
-                EarliestJobDateTime = earliestJob?.ToString(),
+                EarliestJobDateTime = earliestJob.ToString(),
                 MinimumJobAgeMinutes = minimumJobAge ?? 0
             };
 
@@ -52,7 +53,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             var sut = GetSut(date);
             
             // Assert
-            sut.EarliestJobToTake.Should().Be(date);
+            sut.EarliestJobToTake.Should().Be(date.ToUniversalTime());
         }
         
         [Fact]

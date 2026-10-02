@@ -18,7 +18,7 @@ namespace Wellcome.Dds.Repositories.Presentation.V2.IXIF
         [JsonProperty(Order = 5, PropertyName = "trackingLabel")]
         public string TrackingLabel { get; }
 
-        public TrackingExtensionsService(DdsIdentifier identifier, LanguageMap trackingLabel)
+        public TrackingExtensionsService(DdsIdentity identifier, LanguageMap trackingLabel)
         {
             TrackingLabel = trackingLabel.ToString();
             Id = $"{IdTemplate}{identifier}";

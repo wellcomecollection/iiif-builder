@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using IIIF.Presentation;
 using IIIF.Presentation.V2;
@@ -36,6 +37,19 @@ namespace Wellcome.Dds.Server.Controllers
     [ApiController]
     public class PresentationController : ControllerBase
     {
+        /// <summary>
+        /// Canvases (and their annotation pages/annotations) and ranges are minted below a manifest's id but
+        /// are never served on their own. Crawlers that blindly follow every JSON-LD id would otherwise send
+        /// each one through identity resolution, storage and the database before getting a 404.
+        /// The manifest part may contain slashes (born-digital ids do), and so may range ids (born-digital
+        /// ranges are folder paths), but asset and annotation ids may not, and the canvas tail must match
+        /// exactly what UriPatterns mints. Case and a trailing slash are ignored, as identity resolution
+        /// ignores them too.
+        /// </summary>
+        private static readonly Regex NonDereferenceableResource = new(
+            @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/.+)/?$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private readonly DdsOptions ddsOptions;
         private readonly Helpers helpers;
         private readonly UriPatterns uriPatterns;
@@ -44,6 +58,7 @@ namespace Wellcome.Dds.Server.Controllers
         private readonly ICatalogue catalogue;
         private readonly LinkRewriter linkRewriter;
         private readonly ILogger<PresentationController> logger;
+        private readonly IIdentityService identityService;
 
         public PresentationController(
             ILogger<PresentationController> logger,
@@ -53,7 +68,8 @@ namespace Wellcome.Dds.Server.Controllers
             DdsContext ddsContext,
             IIIIFBuilder iiifBuilder,
             ICatalogue catalogue,
-            LinkRewriter linkRewriter
+            LinkRewriter linkRewriter,
+            IIdentityService identityService
             )
         {
             this.logger = logger;
@@ -64,6 +80,7 @@ namespace Wellcome.Dds.Server.Controllers
             this.iiifBuilder = iiifBuilder;
             this.catalogue = catalogue;
             this.linkRewriter = linkRewriter;
+            this.identityService = identityService;
         }
 
         /// <summary>
@@ -78,7 +95,21 @@ namespace Wellcome.Dds.Server.Controllers
         public async Task<IActionResult> Index(string id)
         {
             logger.LogDebug("IIIF Resource request for {id}", id);
-            var ddsId = new DdsIdentifier(id);
+            if (id != null && NonDereferenceableResource.IsMatch(id))
+            {
+                // Let the CDN absorb repeat crawls; CDN-only, so a rebuild's invalidation clears it everywhere
+                Response.CdnCacheForDays(30);
+                return NotFound($"Not a dereferenceable resource: {id}");
+            }
+            DdsIdentity ddsId;
+            try
+            {
+                ddsId = identityService.GetIdentity(id);
+            }
+            catch (FormatException)
+            {
+                return NotFound($"Not a valid identifier: {id}");
+            }
             var redirect = RequiredRedirect(ddsId, id, ManifestTransformer);
             if (redirect != null)
             {
@@ -95,7 +126,7 @@ namespace Wellcome.Dds.Server.Controllers
                     return await HandleMissingPresentationResource(ddsId);
                 }
             }
-            return iiifVersion == Version.V2 ? await V2(ddsId) : await V3(ddsId);
+            return iiifVersion == Version.V2 ? await V2(ddsId.Value) : await V3(ddsId.Value);
         }
 
         /// <summary>
@@ -103,7 +134,7 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         /// <param name="ddsId"></param>
         /// <returns></returns>
-        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentifier ddsId)
+        private async Task<IActionResult> HandleMissingPresentationResource(DdsIdentity ddsId)
         {
             var id = ddsId.ToString();
             // The requested identifier does not exist in storage (e.g., in S3 bucket).
@@ -352,13 +383,13 @@ namespace Wellcome.Dds.Server.Controllers
                 if (work.HasIIIFDigitalLocation())
                 {
                     logger.LogDebug("{referenceNumber} has digital location", referenceNumber);
-                    var refAsDdsId = new DdsIdentifier(referenceNumber);
+                    var refAsDdsId = identityService.GetIdentity(referenceNumber);
                     // Should we instead get the work from the Manifestations table at this point?
                     var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
                     if (bNumber.HasText())
                     {
                         logger.LogDebug("Found bNumber for {referenceNumber}: {bNumber}", referenceNumber, bNumber);
-                        var bNumberAsDdsId = new DdsIdentifier(bNumber);
+                        var bNumberAsDdsId = identityService.GetIdentity(bNumber);
                         // There's a slim chance of a circular redirect without checking this;
                         // don't redirect if it's already a b-number. It shouldn't be! 
                         if (refAsDdsId != bNumberAsDdsId)
@@ -873,9 +904,9 @@ namespace Wellcome.Dds.Server.Controllers
 
         }
         
-        private string RequiredRedirect(DdsIdentifier ddsId, string requestedForm, Func<string, string> transformer)
+        private string RequiredRedirect(DdsIdentity ddsId, string requestedForm, Func<string, string> transformer)
         {
-            if (ddsId.HasBNumber)
+            if (ddsId.PackageIdentifier.IsBNumber())
             {
                 // Don't call NormaliseBNumber without some lightweight new-DDS-specific checks first
                 if (requestedForm.Contains('_'))

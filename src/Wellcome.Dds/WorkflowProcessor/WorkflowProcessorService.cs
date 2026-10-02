@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -410,6 +411,7 @@ namespace WorkflowProcessor
                     else
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<DdsInstrumentationContext>();
+                        var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
 
                         var jobId = dbContext.MarkFirstJobAsTaken(ddsOptions.MinimumJobAgeMinutes);
                         if (jobId == null)
@@ -424,7 +426,7 @@ namespace WorkflowProcessor
                                 {
                                     waitMs = 2;
                                 }
-                                await PollQueues(queues, dbContext, cancellationToken);
+                                await PollQueues(queues, dbContext, identityService, cancellationToken);
                             }
                             continue;
                         }
@@ -450,7 +452,7 @@ namespace WorkflowProcessor
                         {
                             // Haven't looked at queues for a while, even if we are getting jobs from DB, still look at queues
                             await UpdateIngestJobs(dbContext, cancellationToken);
-                            await PollQueues(queues, dbContext, cancellationToken);
+                            await PollQueues(queues, dbContext, identityService, cancellationToken);
                             iterationsSinceQueuesPolled = 0;
                         }
                     }
@@ -598,14 +600,13 @@ namespace WorkflowProcessor
             return atLeastOneJobChangedState;
         }
 
-        private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, CancellationToken cancellationToken)
+        private async Task PollQueues(Dictionary<string, string> queues, DdsInstrumentationContext dbContext, IIdentityService identityService, CancellationToken cancellationToken)
         {
             if (queues.Keys.Count == 0)
             {
                 logger.LogInformation("No queues configured to poll");
                 return;
             }
-
             foreach (var queue in queues)
             {
                 if (queue.Value.IsNullOrWhiteSpace())
@@ -642,12 +643,48 @@ namespace WorkflowProcessor
                             var workflowMessage = body.ToObject<WorkflowMessage>();
                             if (workflowMessage != null)
                             {
+                                logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
-                                    logger.LogInformation("Received Workflow Message: {message}", workflowMessage.ToString());
-                                    await dbContext.PutJob(workflowMessage.Identifier, 
-                                        true, false, null, false, true);
-                                    await dbContext.SaveChangesAsync(cancellationToken);
+                                    DdsIdentity? identity = null;
+                                    try
+                                    {
+                                        // Now we can tell the identity service something authoritative
+                                        identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
+                                        logger.LogInformation("Received Identity: {identity}", identity);
+                                        logger.LogInformation(identity.GetVerbose());
+                                    }
+                                    catch (Exception ex) when (ex is FormatException or InvalidEnumArgumentException)
+                                    {
+                                        // Permanent: an unparseable identifier, unknown origin, or a
+                                        // generator asserted on a volume/issue. Redelivery can never
+                                        // succeed, so still record the workflow job below (visible in
+                                        // the dashboard) and let the message be deleted.
+                                        logger.LogWarning(ex,
+                                            "Identity service permanently rejected {identifier} from origin {origin}; recording job without identity",
+                                            workflowMessage.Identifier, workflowMessage.Origin);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // Transient (e.g. DB unavailable): do NOT fall through to
+                                        // DeleteMessage - leave the message on the queue so SQS
+                                        // redelivers it (DLQ after the redrive policy's maxReceiveCount).
+                                        logger.LogError(ex, "Unable to get identity from identityService for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
+                                        continue;
+                                    }
+
+                                    try
+                                    {
+                                        await dbContext.PutJob(identity?.PackageIdentifier ?? workflowMessage.Identifier,
+                                            true, false, null, false, true);
+                                        await dbContext.SaveChangesAsync(cancellationToken);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // Transient: leave the message for redelivery rather than losing the job.
+                                        logger.LogError(ex, "Unable to record workflow job for {identifier}; leaving SQS message for redelivery", workflowMessage.Identifier);
+                                        continue;
+                                    }
                                 }
                                 else
                                 {

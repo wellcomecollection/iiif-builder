@@ -26,8 +26,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         {
             var fileId = (string?)fileElement.Attribute("ID") ?? 
                          throw new InvalidOperationException("Physical File Element must have ID attribute");
-            var relativePath = GetLinkRef(fileElement) ?? 
-                         throw new InvalidOperationException("No relative path obtainable from physical file element");     
+            var relativePath = DecodeBornDigitalLinkRef(GetLinkRef(fileElement)) ??
+                         throw new InvalidOperationException("No relative path obtainable from physical file element");
             var physicalFile = new PhysicalFile(workStore, fileId)
             {
                 Files        = new List<IStoredFile>(),
@@ -46,7 +46,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             physicalFile.AccessCondition = accessConditionFromRights ?? 
                                            throw new InvalidOperationException("No Access Condition available from Rights statement");
             physicalFile.OriginalName = physicalFile.AssetMetadata.GetOriginalName();
-            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.Identifier, physicalFile.RelativePath);
+            physicalFile.StorageIdentifier = GetSafeStorageIdentifierForBornDigital(workStore.PackageIdentifier, physicalFile.RelativePath);
             physicalFile.MimeType = physicalFile.AssetMetadata.GetMimeType(); 
             physicalFile.CreatedDate = physicalFile.AssetMetadata.GetCreatedDate();
                 
@@ -194,7 +194,18 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                 linkHref = null;
             return linkHref;
         }
-        
+
+        /// <summary>
+        /// Archivematica percent-encodes the xlink:href of each file, as a URI - but the files are stored, and
+        /// named everywhere else in the METS, unencoded (JIRA WSUPP-45). Archivematica has already sanitised the
+        /// file names, so in practice only parentheses are encoded, e.g. %28DRAFT%29; anything else that is
+        /// encoded, including a literal % in a name (as %25), is recovered by a full unescape.
+        /// </summary>
+        private static string? DecodeBornDigitalLinkRef(string? linkHref)
+        {
+            return linkHref == null ? null : Uri.UnescapeDataString(linkHref);
+        }
+
         
         private static string GetSafeStorageIdentifierForBornDigital(string identifier, string relativePath)
         {
@@ -232,9 +243,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
             {
                 storageIdentifier = PathStringUtils.GetSimpleNameFromPath(fullPath);
             }
-            if (storageIdentifier != null && !storageIdentifier.StartsWith(workStore.Identifier, StringComparison.InvariantCultureIgnoreCase))
+            if (storageIdentifier != null && !storageIdentifier.StartsWith(workStore.PackageIdentifier, StringComparison.InvariantCultureIgnoreCase))
             {
-                storageIdentifier = $"{workStore.Identifier}_{storageIdentifier}";
+                storageIdentifier = $"{workStore.PackageIdentifier}_{storageIdentifier}";
             }
             return storageIdentifier;
         }
