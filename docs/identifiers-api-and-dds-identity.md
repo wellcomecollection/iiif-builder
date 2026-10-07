@@ -233,6 +233,12 @@ they exist at all" on the page.
   the stated assumption that an Archivematica record identifier "will already be a lowercase UUID".
   For born-digital METS the record identifier is the CALM ref, so that assumption fails and the ref
   is lowercased as collateral damage. Consequences:
+  - The reverse lookup is case-insensitive on the value (`by-source/mets/ArTCoo%2Fb%2F15`,
+    `ARTCOO%2FB%2F15` and `artcoo%2Fb%2F15` all return the same row), consistent with a
+    case-insensitive MySQL collation on the `(OntologyType, SourceSystem, SourceId)` key. The
+    response echoes the stored casing, not the requested one: the `mets` row comes back as
+    `artcoo/b/15`, the `calm-ref-no` row as `ARTCOO/B/15`. Canonical ids are the exception: the
+    gateway regex rejects upper case with a 400 before the Lambda is reached.
   - The registry can *identify* a preserved object from a `mets` row but cannot *locate* it: for
     any CALM ref the value is not a valid storage key. b numbers and HRIDs are lowercase by nature
     and unaffected.
