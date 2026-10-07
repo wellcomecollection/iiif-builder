@@ -37,7 +37,9 @@ using Wellcome.Dds.Dashboard.Controllers;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Identifiers;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Identifiers;
 using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Dashboard
@@ -108,6 +110,10 @@ namespace Wellcome.Dds.Dashboard
             // We need this even though dashboard doesn't use it, because this is the startup for Database Migrations
             // DdsContext is in Wellcome.Dds.Repositories
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+
+            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService
+            services.Configure<IdentifiersApiOptions>(Configuration.GetSection("IdentifiersApi"));
+            services.AddHttpClient<IIdentifiersApi, WellcomeCollectionIdentifiersApi>();
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()

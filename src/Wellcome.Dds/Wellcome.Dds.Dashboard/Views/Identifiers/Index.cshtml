@@ -1,0 +1,202 @@
+@using Wellcome.Dds.Identifiers
+@using Wellcome.Dds.IIIFBuilding
+@inject UriPatterns UriPatterns
+@model IdentifiersModel
+
+@{
+    ViewBag.Title = "Identifiers API";
+}
+
+<h1>Identifiers API</h1>
+
+<p>
+    Queries the catalogue's <a href="https://github.com/wellcomecollection/docs/tree/main/rfcs/089-identifiers-api">Identifiers API</a>
+    (RFC 089) at <code>@Model.BaseUrl</code>, which maps canonical catalogue ids to their source identifiers and back.
+    This is not the DDS's own identity service, which is at <code>/dash/Identity/Get/{id}</code>.
+</p>
+
+@if (!Model.HasApiKey)
+{
+    <div class="alert alert-danger" role="alert">
+        No API key is configured (<code>IdentifiersApi:ApiKey</code>); requests will be rejected by the API gateway.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Resolve anything</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("ResolveForm", "Identifiers")">
+                    <p class="help-block">A b number, CALM ref, GUID, Miro number, FOLIO HRID or canonical id. The source systems whose identifier shape matches are each tried.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="id" value="@Model.ResolveInput" placeholder="b14658197" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Resolve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Canonical id &rarr; source identifiers</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("Index", "Identifiers")">
+                    <p class="help-block">Forward lookup. Returns the full identifier set.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="canonicalId" value="@Model.CanonicalId" placeholder="vsyg427x" pattern="@CanonicalIdentifier.Pattern" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Look up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Source identifier &rarr; canonical id</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("Index", "Identifiers")">
+                    <p class="help-block">Reverse lookup on the (type, sourceSystem, value) key.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="sourceSystem" list="sourceSystems" value="@Model.SourceSystem" placeholder="sierra-system-number" />
+                        <datalist id="sourceSystems">
+                            @foreach (var ss in Model.KnownSourceSystems)
+                            {
+                                <option value="@ss"></option>
+                            }
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="value" value="@Model.Value" placeholder="b14658197" />
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" name="type">
+                            @foreach (var t in Model.Types)
+                            {
+                                <option value="@t" selected="@(t == Model.Type)">@t</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" name="siblings" value="true" checked="@Model.IncludeSiblings" /> Include siblings</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Look up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ErrorMessage.HasText())
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.HasQuery)
+{
+    <p><small>API request: <code>@Model.ApiUrl</code></small></p>
+
+    if (Model.NotFound)
+    {
+        <div class="alert alert-warning" role="alert">404 &mdash; no mapping found.</div>
+    }
+    if (Model.CanonicalIdRef != null)
+    {
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                Canonical id:
+                <a href="@Url.Action("Index", "Identifiers", new { canonicalId = Model.CanonicalIdRef.CanonicalId })">@Model.CanonicalIdRef.CanonicalId</a>
+            </div>
+            <div class="panel-body">
+                <pre>@IdentifiersModel.ToJson(Model.CanonicalIdRef)</pre>
+            </div>
+        </div>
+    }
+    if (Model.IdentifierSet != null)
+    {
+        @await Html.PartialAsync("_IdentifierSet", Model.IdentifierSet)
+    }
+}
+
+@if (Model.Resolution != null)
+{
+    <h2>Resolving <code>@Model.Resolution.Identifier</code></h2>
+    var preservationLookups = Model.Resolution.PreservationIdentifierLookups.ToList();
+    foreach (var p in preservationLookups)
+    {
+        var preservationId = p.IdentifierSet.PreservationIdentifier.Value;
+        var pathSafe = preservationId.Replace('/', '_');
+        <div class="panel panel-primary">
+            <div class="panel-heading">Preservation identifier: <code>@preservationId</code></div>
+            <div class="panel-body">
+                <p>
+                    The <code>mets</code> source identifier is the METS record identifier, which today is the preservation identifier
+                    (RFC 085 / 091): the storage service package name, our package identifier, and the identity in the canonical IIIF Manifest URI.
+                    The registry stores it lowercased, and the storage service is case-sensitive, so for a CALM ref this value
+                    is not usable as a storage key as-is; the Identity link below resolves the DDS's own record, which keeps the true casing.
+                </p>
+                <ul class="list-unstyled">
+                    <li>
+                        METS work canonical id:
+                        <a href="@Url.Action("Index", "Identifiers", new { canonicalId = p.IdentifierSet.CanonicalId })">@p.IdentifierSet.CanonicalId</a>
+                        <small class="text-muted">(not the public work; the catalogue API redirects it to the public work)</small>
+                    </li>
+                    <li><a href="@UriPatterns.CatalogueApi(p.IdentifierSet.CanonicalId)">Catalogue API</a> <small class="text-muted">(follow the redirect to find the public work)</small></li>
+                    <li><a href="@UriPatterns.Manifest(preservationId)">IIIF Manifest</a></li>
+                    <li>
+                        @Html.ActionLink("Manifestation", "Manifestation", "Dash", new { id = pathSafe }, null)
+                        |
+                        @Html.ActionLink("Identity", "Get", "Identity", new { id = pathSafe }, null)
+                    </li>
+                </ul>
+            </div>
+        </div>
+    }
+    if (preservationLookups.Count == 0 && Model.Resolution.AnyFound)
+    {
+        <div class="alert alert-info" role="alert">
+            Mappings were found, but none under <code>mets</code>, so the registry does not give a preservation identifier for this string.
+        </div>
+    }
+    if (Model.Resolution.Lookups.Count == 0)
+    {
+        <div class="alert alert-warning" role="alert">Could not generate any candidate lookups for this string.</div>
+    }
+    else if (!Model.Resolution.AnyFound)
+    {
+        <div class="alert alert-warning" role="alert">None of the @Model.Resolution.Lookups.Count candidate lookups found a mapping.</div>
+    }
+    foreach (var lookup in Model.Resolution.Lookups)
+    {
+        var candidate = lookup.Candidate;
+        var panelClass = lookup.Found ? "panel-success" : (lookup.Error.HasText() ? "panel-danger" : "panel-default");
+        <div class="panel @panelClass">
+            <div class="panel-heading">
+                @if (candidate.IsCanonical)
+                {
+                    <strong>canonical id</strong> <code>@candidate.Value</code>
+                }
+                else
+                {
+                    <strong>@candidate.SourceSystem</strong> <code>@candidate.Value</code> <small>(@candidate.Type)</small>
+                }
+                <small class="text-muted">&mdash; @candidate.Reason</small>
+            </div>
+            <div class="panel-body">
+                <p><small>API request: <code>@lookup.ApiUrl</code></small></p>
+                @if (lookup.Found)
+                {
+                    @await Html.PartialAsync("_IdentifierSet", lookup.IdentifierSet)
+                }
+                else if (lookup.Error.HasText())
+                {
+                    <div class="alert alert-danger" role="alert">@lookup.Error</div>
+                }
+                else
+                {
+                    <p class="text-muted">404 &mdash; no mapping found.</p>
+                }
+            </div>
+        </div>
+    }
+}

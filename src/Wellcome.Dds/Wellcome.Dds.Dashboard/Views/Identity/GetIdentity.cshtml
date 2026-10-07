@@ -7,6 +7,11 @@
 
 <h1>@ViewBag.Title</h1>
 
+<p>
+    This is the DDS's own identity record.
+    <a href="@Url.Action("Resolve", "Identifiers", new { id = Model.PackageIdentifier })">Look up @Model.PackageIdentifier in the catalogue Identifiers API</a>
+</p>
+
 
 <div class="row">
 <div class="col-md-12">
