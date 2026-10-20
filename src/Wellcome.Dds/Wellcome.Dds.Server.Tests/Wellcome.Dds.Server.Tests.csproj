@@ -31,6 +31,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!-- The font the server renders placeholder canvases with, for ImageRenderingTests -->
+      <Content Include="../Wellcome.Dds.Server/Resources/born-digital/wellcome-bold.ttf" Link="Resources/born-digital/wellcome-bold.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="appsettings.Testing.json" />
       <Content Include="appsettings.Testing.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
