@@ -38,6 +38,11 @@ namespace Wellcome.Dds.Dashboard.Models
         // Resolution results
         public IdentifierResolution Resolution { get; set; }
 
+        /// <summary>
+        /// The full navigation for the resolve page: DDS identity, registry, catalogue, storage.
+        /// </summary>
+        public IdentifierNavigation Navigation { get; set; }
+
         public string[] KnownSourceSystems => SourceSystems.Known;
         public string[] Types => OntologyType.All;
 

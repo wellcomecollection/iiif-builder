@@ -114,6 +114,9 @@ namespace Wellcome.Dds.Dashboard
             // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService
             services.Configure<IdentifiersApiOptions>(Configuration.GetSection("IdentifiersApi"));
             services.AddHttpClient<IIdentifiersApi, WellcomeCollectionIdentifiersApi>();
+            // Composes the registry, the catalogue API and the storage service (scoped: StorageServiceClient is)
+            services.AddScoped<IStorageServiceProbe, StorageServiceProbe>();
+            services.AddScoped<IIdentifierNavigator, IdentifierNavigator>();
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()

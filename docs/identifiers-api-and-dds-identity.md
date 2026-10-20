@@ -136,9 +136,15 @@ What it shows:
   (shape-based candidate generation, which RFC 085 asks for by name), `IdentifierResolution`.
 - `Wellcome.Dds.Repositories/Identifiers/WellcomeCollectionIdentifiersApi.cs`: the HTTP client.
   A 404 is `null`; anything else non-2xx throws `IdentifiersApiException` with the API's error body.
-- `/dash/Identifiers`: explicit forward and reverse lookups. `/dash/Identifiers/Resolve/{id}`: tries
-  every candidate tuple for an arbitrary string and leads with the preservation identifier if a `mets`
-  row was found. Linked from the Manifestation and Identity pages.
+- `Wellcome.Dds/Identifiers/IIdentifierNavigator` and `Wellcome.Dds.Repositories/Identifiers/IdentifierNavigator.cs`:
+  the helpers of "API helpers that navigate both services" below, composing the registry client, the
+  catalogue client and a single-shot storage probe (`StorageServiceProbe`). `Navigate(id)` runs every
+  route and keeps them separate so disagreements show. Registered in the dashboard and the workflow
+  processor; nothing on the write path calls it yet.
+- `/dash/Identifiers`: explicit forward and reverse lookups. `/dash/Identifiers/Resolve/{id}` runs
+  `Navigate` and shows the DDS identity, the preservation identifier(s) with recovered casing, the
+  public work by both routes with an agree/disagree flag, the storage probes (naming which storage
+  service was asked), and every registry candidate tried. Linked from the Manifestation and Identity pages.
 - Config section `IdentifiersApi` (`BaseUrl`, `ApiKey`). Only the dashboard registers the client;
   the server and the two processors do not yet. The dev key is in the git-ignored
   `appsettings.Development.json` and is valid on the production host. The staging key

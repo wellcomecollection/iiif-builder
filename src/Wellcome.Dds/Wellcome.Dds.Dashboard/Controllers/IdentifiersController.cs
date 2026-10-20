@@ -15,13 +15,16 @@ namespace Wellcome.Dds.Dashboard.Controllers;
 public class IdentifiersController : Controller
 {
     private readonly IIdentifiersApi identifiersApi;
+    private readonly IIdentifierNavigator navigator;
     private readonly IdentifiersApiOptions options;
 
     public IdentifiersController(
         IIdentifiersApi identifiersApi,
+        IIdentifierNavigator navigator,
         IOptions<IdentifiersApiOptions> options)
     {
         this.identifiersApi = identifiersApi;
+        this.navigator = navigator;
         this.options = options.Value;
     }
 
@@ -78,7 +81,8 @@ public class IdentifiersController : Controller
 
     /// <summary>
     /// Attempt to resolve any identifier string: a canonical id, a b number, a CALM ref, a GUID...
-    /// This is the page to link to from elsewhere in the dashboard.
+    /// through the registry, the catalogue API and the storage service. This is the page to link to
+    /// from elsewhere in the dashboard.
     /// </summary>
     [HttpGet("Resolve/{**id}")]
     public async Task<ActionResult> Resolve(string id)
@@ -87,7 +91,8 @@ public class IdentifiersController : Controller
         model.ResolveInput = id?.Trim();
         if (model.ResolveInput.HasText())
         {
-            model.Resolution = await identifiersApi.Resolve(model.ResolveInput);
+            model.Navigation = await navigator.Navigate(model.ResolveInput);
+            model.Resolution = model.Navigation.Registry;
         }
         return View("Index", model);
     }
