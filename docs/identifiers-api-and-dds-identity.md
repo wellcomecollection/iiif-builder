@@ -63,7 +63,7 @@ Things to hold on to:
 - **The `mets` value is lowercased, and that loses information the storage service needs.** The
   METS transformer lowercases the record identifier
   ([`MetsData.scala`](https://github.com/wellcomecollection/catalogue-pipeline/blob/main/pipeline/transformer/transformer_mets/src/main/scala/weco/pipeline/transformer/mets/transformer/MetsData.scala))
-  because Goobi writes b numbers as `B20442233` while Sierra has `b20442233`; the code comment
+  because Goobi occasionally used to write b numbers as `B20442233` while Sierra has `b20442233`; the code comment
   assumes an Archivematica record identifier "will already be a lowercase UUID", which is not true
   for born-digital METS, where it is the CALM ref. So `ARTCOO/B/15` becomes `mets/artcoo/b/15` as
   collateral damage. The storage service is **case-sensitive**: `bags/born-digital/ARTCOO/B/15` is
@@ -184,11 +184,20 @@ This is where the Identifiers API belongs. Proposed additional step, after the s
 3. A forward lookup of the public work's canonical id says which source system the *record* came
    from (`sierra-system-number`, `calm-record-id`, `folio-instance`, `axiell-guid`). That is what
    `ValidateSource` was waiting for, and it is the first authoritative value `Source` will ever have
-   had. But decide what `Source` means first. Today it means "the system that issued the package
-   identifier", so `b18304175` is `sierra` even though its public work is a CALM record. The registry
-   can validate that meaning (the `sierra-system-number` row exists) or supply the other one (the
-   public work's original row is `calm-record-id`). Either is defensible; the field should not
-   silently change meaning when it starts being populated.
+   had. But `Source` must keep its current meaning, "the system that issued the package identifier",
+   so `b18304175` stays `sierra` even though its public work is a CALM record. Every code path that
+   reads `Source` (`MetsRepository`, `Dlcs.GetImagesForIdentifier`, two `DashController` actions,
+   `PeekController.XmlView`, `BulkWorkflowModel`, and the identity service's own case handling)
+   tests `== Source.Sierra` as a proxy for "this is a b number": Goobi METS structure, a path-safe
+   identifier, a case-normalisable one. None of them means "the catalogue record's source system",
+   and replacing the value with `calm-record-id` for digitised archive material would break volume
+   handling for that whole class. So the registry's role is to *validate* `Source` (the matching
+   `sierra-system-number` / `calm-ref-no` / `folio-instance` row exists for the package identifier),
+   not to supply it. If "which system the public record came from" is ever wanted, it is a new field
+   next to `CatalogueId`, read from the public work's original registry row. Those seven call sites
+   are also the RFC 081 problem in miniature: they branch on `Source` when they mean `Generator`, or
+   `IsBNumber`, or "has a volume suffix convention", and an HRID package (Goobi, volumes, path-safe,
+   not Sierra) will need each of them to ask its real question.
 
 Two things make this additive rather than a replacement:
 
@@ -235,7 +244,7 @@ Per field of `DdsIdentity`:
 | `PackageIdentifier` and its casing | The workflow message (generator) | Nothing. The registry lowercases; the generator's casing stays ours. |
 | `Generator` | Message `origin` on the write path; parsed shape otherwise | Nothing directly. Indirectly, the public work's source system tells you Goobi vs Archivematica is *not* inferable from the catalogue (an Axiell-catalogued item can be either). |
 | `StorageSpace` | Storage service probe (`ValidateStorageSpace`) | Nothing. The registry does not know spaces. Keep probing. |
-| `Source` | Nothing; always unvalidated | **Yes**, once its meaning is pinned down (see the write path, step 3): either validated as "the system that issued the package identifier" or replaced by "the system the public work's record came from". |
+| `Source` | Nothing; always unvalidated | **Validated, not supplied.** It must keep meaning "the system that issued the package identifier" because every reader uses it as a proxy for "is a b number" (write path, step 3). The registry confirms the matching row exists. "The system the public record came from" would be a new field. |
 | `CatalogueId` | Catalogue search by identifier, with heuristics for multiple matches | **Yes.** `mets` row → canonical id → catalogue redirect → public work. One lookup and one redirect, no search heuristics. The search stays as fallback for pipeline lag. |
 | Volume and issue identity | METS enumeration (`RegisterAuthoritativeChild`) | Nothing, by design (RFC 085, "Sub-package identity"). |
 
@@ -304,7 +313,10 @@ they exist at all" on the page.
 
 - **Keys and throttles.** Staging is covered by iiif-builder-infrastructure #84 (stage host only).
   Production needs a key, on the internal plan, before anything but the dashboard uses the client.
-- **The meaning of `Source`** (write path, step 3) needs deciding before the registry populates it.
+- **`Source` readers branch on the wrong thing.** Seven call sites test `Source == Sierra` to mean
+  Goobi structure, path-safety or case handling (write path, step 3). Each needs to ask its real
+  question before an HRID package arrives. Not a registry concern, but found while settling what
+  `Source` means.
 - **Pipeline lag on first ingest** (above). Needs a re-check path for unvalidated rows.
 - **The `mets` value is lowercased, but the storage service is case-sensitive.** Verified
   2026-10-07: `bags/born-digital/ARTCOO/B/15` is 200, `bags/born-digital/artcoo/b/15` and
