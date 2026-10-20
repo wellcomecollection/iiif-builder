@@ -201,6 +201,40 @@ Two things make this additive rather than a replacement:
   identifier. `CatalogueId` is a many-to-one binding and that is fine; the reverse direction (work to
   preservation identifier) is one-to-many and belongs to the catalogue API, not to the DDS table.
 
+### Choosing the work when the identifiers query returns several
+
+`GetWorkByOtherIdentifier` queries `works?identifiers={value}` and, when more than one work comes
+back, picks by a rule its own comment calls "NOT the real implementation yet": the work whose
+`sierra-identifier` is the short form of the requested b number, or whose work type is `k`
+("unlikely to be a Miro item"). On 2026-10-20 every identifier probed, including the `b14658197`
+the comment cites, returned exactly one work, so the rule may rarely fire now; the Miro-sharing
+case it was written for appears to have been resolved by later merge rules. It still needs to be
+right. The real rule, in order of strength:
+
+1. **The work whose `iiif-presentation` location names the requested preservation identifier**
+   (`/presentation/{id}` or `/presentation/v2/{id}`, case-insensitive). That location is the merge
+   outcome saying "this digital object belongs to this work", which is exactly the binding
+   `CatalogueId` records. `WorkExtensions.GetDigitisedBNumbers` already does this for b numbers; it
+   needs the CALM-ref form too.
+2. **Failing that, rank by how the identifier matched.** The query matches any identifier type, so a
+   work can match through an incidental one. Prefer the work on which the requested value is its
+   `mets`, then `sierra-system-number`, then `calm-ref-no`, then `calm-altref-no`, then anything
+   else. This generalises the short-form rule and drops the `k` guess.
+3. **Cross-check with the registry.** `by-source/mets/{id}`, then the catalogue redirect on the
+   METS work's canonical id, gives the public work by a route that does not depend on search
+   ranking. When both routes answer they should agree; on disagreement log loudly and prefer the
+   redirect, which is the merger's own statement. When the registry has no row yet (pipeline lag),
+   the search answer stands alone.
+4. **If still ambiguous, return null and log** rather than throw, as the current code does. Callers
+   already treat null as "no catalogue work", and a job without a `CatalogueId` is recovered on the
+   next reprocess; an exception stops the workflow.
+
+Keep refetching the chosen work by id with the full `include` list, as now, because the search
+response is a cut-down work. The legitimately many-to-one cases need no rule: one work aggregating
+several storage objects resolves correctly per preservation identifier, and one preservation
+identifier on several works should not survive a merge, so if it appears it is lag or a pipeline
+fault and null-and-log is the right response.
+
 ### What reads `Source`
 
 `DdsIdentity.Source` is `sierra` or `calm`. Outside the identity service and display-only views
@@ -285,7 +319,7 @@ each other. The dashboard resolve page is the first consumer; the identity write
 | `ResolvePreservationIdentifier(string any)` | Candidates for the string; returns the `mets` row(s) found, with the METS work canonical id. | Identifiers API |
 | `GetPublicWork(string canonicalId)` | Follows the catalogue redirect; returns the public work and whether a redirect happened. | Catalogue API |
 | `GetPreservationIdentifiersForWork(string workId)` | The preservation identifiers of every storage object merged into the work, read from its items' `iiif-presentation` locations (reliable), with `mets` identifiers as corroboration (present only on some works). The one-to-many direction. | Catalogue API |
-| `FindWorkByAnyIdentifier(string any)` | The catalogue's `identifiers=` query, which the DDS already uses as `GetWorkByOtherIdentifier`. The only route for identifiers the registry never mints, such as a CALM `AltRefNo`. | Catalogue API |
+| `FindWorkByAnyIdentifier(string any)` | The catalogue's `identifiers=` query, which the DDS already uses as `GetWorkByOtherIdentifier`, with the selection rule in [Choosing the work](#choosing-the-work-when-the-identifiers-query-returns-several). The only route for identifiers the registry never mints, such as a CALM `AltRefNo`. | Catalogue API, Identifiers API for the cross-check |
 | `FindPredecessorPreservationIdentifier(string folioId)` | RFC 091's predecessor lookup, returning the b number or `null`. | Identifiers API |
 | `LocatePreservedFiles(string any)` | The algorithm below. | All three |
 
