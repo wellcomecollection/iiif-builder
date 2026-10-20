@@ -4,8 +4,8 @@ How and when the DDS should use the catalogue's Identifiers API (RFC 089), how t
 to the DDS's own identity service (RFC 081), whether it can make our service more authoritative, and
 how to get from any identifier to the preserved files in the storage service.
 
-**Status:** design notes, 2026-10-07. The client (`IIdentifiersApi`) and the dashboard page
-(`/dash/Identifiers`) exist; nothing in the DDS's own identity service calls the API yet.
+**Status:** design notes, 2026-10-07, revised 2026-10-20. The client (`IIdentifiersApi`) and the
+dashboard page (`/dash/Identifiers`) exist; nothing in the DDS's own identity service calls the API yet.
 
 **Read first:** [RFC 085](https://github.com/wellcomecollection/docs/blob/main/rfcs/085-IIIF-Identities-and-Migration/README.md)
 is the key document for the DDS. [RFC 091](https://github.com/wellcomecollection/docs/blob/main/rfcs/091-digitisation-ingest-identifiers/README.md)
@@ -39,7 +39,8 @@ Everything below is a live observation made on 2026-10-07 against `api.wellcomec
 | Registry row for the catalogue record | `sierra-system-number/b14658197` → `nydjbrr7` | `calm-record-id/{guid}` → `vaqg68j6` (alias `axiell-guid`) |
 | Other registry rows with their own canonical ids | — | `calm-ref-no/ARTCOO/B/15` → `m2fe2wrv`, `sierra-system-number/b30175860` → `q5mnbdna` |
 | Catalogue API behaviour | `/works/f22jwsw5` 302 → `/works/nydjbrr7` | `/works/q8fhz52m` and `/works/q5mnbdna` 302 → `/works/vaqg68j6`; `/works/m2fe2wrv` 404 |
-| Public work `identifiers` list carries the preservation identifier | `sierra-system-number b14658197` (no `mets` entry on this one, worth noting) | `mets artcoo/b/15`, `calm-ref-no ARTCOO/B/15`, `calm-altref-no ART/COO/B/15`, `sierra-system-number b30175860`, `axiell-guid …` |
+| Public work's IIIF location carries the preservation identifier | `/presentation/v2/b14658197` | `/presentation/ARTCOO/B/15` |
+| Public work's `identifiers` list | `sierra-system-number b14658197`, no `mets` entry at all | `mets artcoo/b/15`, `calm-ref-no ARTCOO/B/15`, `calm-altref-no ART/COO/B/15`, `sierra-system-number b30175860`, `axiell-guid …` |
 
 Things to hold on to:
 
@@ -50,6 +51,12 @@ Things to hold on to:
 - **The METS work always has its own canonical id**, never the public work's (RFC 091, "METS works
   keep their own id"). So the registry can take you from a preservation identifier to *a* canonical id,
   but only the catalogue API's redirect takes you on to the public work.
+- **From a public work, the IIIF location is the reliable way back to the preservation identifier.**
+  A `mets` entry in the work's `identifiers` is present on some merged works (`vaqg68j6`, `a9jwm2jc`)
+  and absent on others (`nydjbrr7`, which still has `/presentation/v2/b14658197` as its IIIF
+  location). RFC 085 says it directly: "the catalogue API's digital locations carry the real
+  Manifest URI, so links are followed rather than constructed". Read the location, not the
+  identifier list.
 - **Not every registry canonical id is a work.** `calm-ref-no/ARTCOO/B/15` has a canonical id because
   the Minter mints one for every identifier on a record, but it is not a work and the catalogue API
   404s on it. The resolve page should treat such hits as corroboration, not as a destination.
@@ -74,6 +81,55 @@ Things to hold on to:
   already normalises every message through the identity service and keys the job on the package
   identifier. Nothing in the RFCs changes the message (RFC 085, "The workflow message").
 
+### Worked example: an archive item digitised under a b number
+
+`b18304175` is the "historical overlap" class that RFC 085 and RFC 091 both call out: archive
+material digitised through Goobi before the migration was given a Sierra b number, so it is preserved
+at `digitised/b18304175` and served at `/presentation/b18304175`, but its public work is the CALM
+record (RFC 092: digitised archive material merges into a CALM, later Axiell, target). The work is
+[`a9jwm2jc`](https://wellcomecollection.org/works/a9jwm2jc), reference number `SA/MAC/J.3/32`.
+Observed 2026-10-20:
+
+| Source tuple | Registry canonical id | Catalogue API on that id |
+| --- | --- | --- |
+| `sierra-system-number` / `b18304175` | `er85sbxs` | 302 to `a9jwm2jc` |
+| `mets` / `b18304175` | `af7bkze4` | 302 to `a9jwm2jc` |
+| `calm-ref-no` / `SAMAC/J/3/32` | `rascg44w` | 404 |
+| `calm-record-id` / GUID, alias `axiell-guid` | `a9jwm2jc` | 200, the public work |
+| `calm-altref-no` / `SA/MAC/J.3/32` | not minted | |
+
+The public work's `identifiers` carry every one of these, including `mets: b18304175`, and its
+IIIF location is `/presentation/v2/b18304175`. The DDS already redirects `/presentation/SA/MAC/J.3/32`,
+`/presentation/SAMAC/J/3/32` and `/presentation/a9jwm2jc` to `/presentation/b18304175`.
+
+What it shows:
+
+- **The registry cannot take you from the b number to the CALM ref, or back.** The four canonical
+  ids are not linked to each other. The registry links source identifiers only through predecessor
+  relationships, which say "this is the same record in a new system". The Sierra bib and the CALM
+  record are two different records whose union is a merge, computed downstream from mutable
+  metadata, and RFC 089 and 091 both say the registry does not hold merge outcomes. The only place
+  `b18304175` and `SAMAC/J/3/32` meet is the merged work in the catalogue API, which is what the
+  DDS's `GetWorkByOtherIdentifier` query already reads. This is the designed boundary, not a gap.
+- **From the b number you can still reach the public work**, by following the catalogue API's
+  redirect on either `er85sbxs` or `af7bkze4`. **From the CALM ref you cannot.** `calm-ref-no` is
+  minted as a secondary identifier and `rascg44w` is not a work; the CALM record's own canonical id
+  comes from `calm-record-id`. For CALM refs the registry is a dead end for reaching the work.
+- **`calm-ref-no` and `calm-altref-no` are two CALM fields.** `RefNo` is the hierarchical reference
+  code CALM uses for its tree, one path element per level (`SAMAC/J/3/32`). `AltRefNo` is the
+  alternative reference shown to the public and used in citations (`SA/MAC/J.3/32`), which the
+  catalogue API exposes as `referenceNumber`. Born-digital preservation identifiers use the `RefNo`
+  form (`ARTCOO/B/15`, `SABTS/A/2/10`). In both objects probed so far the registry mints
+  `calm-ref-no` and never `calm-altref-no`, consistent with `calm-ref-no` serving as a merge
+  candidate while `AltRefNo` is only ever a secondary identifier. The exact mechanism is unconfirmed.
+- **For the candidate generator**, two consequences. Nothing built on the registry could suggest
+  `calm-ref-no` from a b number, so the resolve page not doing so is correct. And a
+  `calm-altref-no` candidate would be dead weight on current evidence, so the generator does not
+  try one (removed 2026-10-20); resolving an `AltRefNo` needs the catalogue API.
+- **For "where are its files"** this object is the easy case: the b number is the preservation
+  identifier and both its registry rows confirm it. The CALM forms only get there through the
+  catalogue work's `mets` identifier.
+
 ## What exists now
 
 - `Wellcome.Dds/Identifiers/`: `IIdentifiersApi`, the response models, `IdentifierCandidates`
@@ -83,10 +139,26 @@ Things to hold on to:
 - `/dash/Identifiers`: explicit forward and reverse lookups. `/dash/Identifiers/Resolve/{id}`: tries
   every candidate tuple for an arbitrary string and leads with the preservation identifier if a `mets`
   row was found. Linked from the Manifestation and Identity pages.
-- Config section `IdentifiersApi` (`BaseUrl`, `ApiKey`). Only the dashboard registers the client.
-  The dev key is in the git-ignored `appsettings.Development.json`; production and staging have no key yet.
+- Config section `IdentifiersApi` (`BaseUrl`, `ApiKey`). Only the dashboard registers the client;
+  the server and the two processors do not yet. The dev key is in the git-ignored
+  `appsettings.Development.json` and is valid on the production host. The staging key
+  (`wellcome/identifiers_api/digirati/stage/api_key`) is valid only on
+  `api-stage.wellcomecollection.org`; [iiif-builder-infrastructure #84](https://github.com/wellcomecollection/iiif-builder-infrastructure/pull/84)
+  wires it, with a `BaseUrl` override, into all four staging services. Production has no key.
 
 ## How and when the DDS should use it
+
+### Which process
+
+| Process | Uses the API? | When |
+| --- | --- | --- |
+| Workflow processor | Yes, this is the main consumer | On the identity write path, once per workflow message (below) |
+| Dashboard | Yes | The `/dash/Identifiers` pages, and the same write path when a workflow is started by hand |
+| Server (iiif-builder) | No | Everything it needs is in the identities and manifestations tables by the time a request arrives |
+| Job processor | No | It works from identities the workflow processor has already resolved |
+
+The staging infrastructure gives all four the key so that this can change without another
+infrastructure PR, but only the first two should ever call it.
 
 ### Not on the public request path
 
@@ -109,10 +181,14 @@ This is where the Identifiers API belongs. Proposed additional step, after the s
    registered a bag under this preservation identifier and gives the METS work's canonical id.
 2. Follow the catalogue API redirect for that canonical id (`GetWorkByWorkId` already follows it,
    because `HttpClient` follows 302s) to get the public work. Its `Id` is `CatalogueId`.
-3. The public work's identifiers, or a forward lookup of its canonical id, say which source system
-   the record came from (`sierra-system-number`, `calm-record-id`, `folio-instance`, `axiell-guid`).
-   That is what `ValidateSource` was waiting for, and it is the first authoritative value `Source`
-   will ever have had.
+3. A forward lookup of the public work's canonical id says which source system the *record* came
+   from (`sierra-system-number`, `calm-record-id`, `folio-instance`, `axiell-guid`). That is what
+   `ValidateSource` was waiting for, and it is the first authoritative value `Source` will ever have
+   had. But decide what `Source` means first. Today it means "the system that issued the package
+   identifier", so `b18304175` is `sierra` even though its public work is a CALM record. The registry
+   can validate that meaning (the `sierra-system-number` row exists) or supply the other one (the
+   public work's original row is `calm-record-id`). Either is defensible; the field should not
+   silently change meaning when it starts being populated.
 
 Two things make this additive rather than a replacement:
 
@@ -159,7 +235,7 @@ Per field of `DdsIdentity`:
 | `PackageIdentifier` and its casing | The workflow message (generator) | Nothing. The registry lowercases; the generator's casing stays ours. |
 | `Generator` | Message `origin` on the write path; parsed shape otherwise | Nothing directly. Indirectly, the public work's source system tells you Goobi vs Archivematica is *not* inferable from the catalogue (an Axiell-catalogued item can be either). |
 | `StorageSpace` | Storage service probe (`ValidateStorageSpace`) | Nothing. The registry does not know spaces. Keep probing. |
-| `Source` | Nothing; always unvalidated | **Yes.** The source system of the public work's original row, or of the row that resolved. |
+| `Source` | Nothing; always unvalidated | **Yes**, once its meaning is pinned down (see the write path, step 3): either validated as "the system that issued the package identifier" or replaced by "the system the public work's record came from". |
 | `CatalogueId` | Catalogue search by identifier, with heuristics for multiple matches | **Yes.** `mets` row → canonical id → catalogue redirect → public work. One lookup and one redirect, no search heuristics. The search stays as fallback for pipeline lag. |
 | Volume and issue identity | METS enumeration (`RegisterAuthoritativeChild`) | Nothing, by design (RFC 085, "Sub-package identity"). |
 
@@ -177,7 +253,8 @@ each other. The dashboard resolve page is the first consumer; the identity write
 | --- | --- | --- |
 | `ResolvePreservationIdentifier(string any)` | Candidates for the string; returns the `mets` row(s) found, with the METS work canonical id. | Identifiers API |
 | `GetPublicWork(string canonicalId)` | Follows the catalogue redirect; returns the public work and whether a redirect happened. | Catalogue API |
-| `GetPreservationIdentifiersForWork(string workId)` | The work's `identifiers` of type `mets`, i.e. every storage object merged into it. The one-to-many direction. | Catalogue API |
+| `GetPreservationIdentifiersForWork(string workId)` | The preservation identifiers of every storage object merged into the work, read from its items' `iiif-presentation` locations (reliable), with `mets` identifiers as corroboration (present only on some works). The one-to-many direction. | Catalogue API |
+| `FindWorkByAnyIdentifier(string any)` | The catalogue's `identifiers=` query, which the DDS already uses as `GetWorkByOtherIdentifier`. The only route for identifiers the registry never mints, such as a CALM `AltRefNo`. | Catalogue API |
 | `FindPredecessorPreservationIdentifier(string folioId)` | RFC 091's predecessor lookup, returning the b number or `null`. | Identifiers API |
 | `LocatePreservedFiles(string any)` | The algorithm below. | All three |
 
@@ -196,12 +273,16 @@ question is: find the preservation identifier, then probe. The DDS already does 
    - A b number or CALM ref *is* one. Skip to step 4.
    - A canonical id (8 chars, letters and digits 2 to 9, no o/i/l/1): forward lookup. If the set has
      a `mets` row, that is the preservation identifier. If it does not (it is a public work's id),
-     fetch the work from the catalogue API and read its `mets` identifiers; there may be several or
-     none.
+     fetch the work from the catalogue API and read the preservation identifier out of its items'
+     `iiif-presentation` locations; there may be several, or none if nothing is digitised. Do not
+     rely on the work's `mets` identifiers, which some merged works lack.
    - A source identifier (Folio UUID, Axiell GUID, CALM record id, HRID): reverse lookup with
      siblings to get the canonical id, then as above. For a Folio id prefer the predecessor rule:
      a `sierra-system-number` sibling is the preservation identifier.
-   - Anything else: candidates, and take whichever `mets` row answers.
+   - Anything else: candidates, and take whichever `mets` row answers. If none does, fall back to
+     the catalogue's `identifiers=` query (`GetWorkByOtherIdentifier`), which is the only route for
+     identifiers the registry never mints, such as a CALM `AltRefNo` like `SA/MAC/J.3/32`, and then
+     read the IIIF location as above.
 4. **Recover the casing.** A preservation identifier that came from a `mets` row is lowercased and
    the storage service is case-sensitive. Look the lowercased value up in the DDS identities table
    (its key is the lowercased value, so this is a direct hit if the DDS has ever seen the object);
@@ -221,8 +302,9 @@ they exist at all" on the page.
 
 ## Open points
 
-- **Keys and throttles.** Production and staging need keys on the internal plan before anything but
-  the dashboard uses the client.
+- **Keys and throttles.** Staging is covered by iiif-builder-infrastructure #84 (stage host only).
+  Production needs a key, on the internal plan, before anything but the dashboard uses the client.
+- **The meaning of `Source`** (write path, step 3) needs deciding before the registry populates it.
 - **Pipeline lag on first ingest** (above). Needs a re-check path for unvalidated rows.
 - **The `mets` value is lowercased, but the storage service is case-sensitive.** Verified
   2026-10-07: `bags/born-digital/ARTCOO/B/15` is 200, `bags/born-digital/artcoo/b/15` and
@@ -252,8 +334,15 @@ they exist at all" on the page.
     URI must go through the casing-recovery step (step 4 of "where are its preserved files")
     first. The resolve page's Identity link does this today by resolving the DDS record.
 
-  To do: raise with the pipeline team as a defect in the Archivematica assumption, and ask whether
-  the registry could carry the record identifier's original casing for new rows. Until then, treat
+  Related pipeline work: catalogue-pipeline #3789 and #3790 (platform#6773, October 2026) make the
+  id minter resolve case variants of a source id to the stored canonical id, so a case change can no
+  longer mint a second canonical id. They do not change what is stored: the registry records and
+  returns whichever casing an adapter presented first. For born-digital METS works that is the
+  transformer's lowercased form, so the recovery step above is still needed.
+
+  Raised as [catalogue-pipeline #3796](https://github.com/wellcomecollection/catalogue-pipeline/issues/3796)
+  (2026-10-20), proposing that the transformer lowercase only b-number-shaped record identifiers.
+  Until it is fixed, and for every row minted before it is, treat
   `IdentifierSet.PreservationIdentifier` as an identity, never as a key.
 - **`folio-instance-hrid` rows.** RFC 089 open question 2 says storing the HRID alongside the UUID is
   an optimisation the Minter *could* do. If it doesn't, the HRID is only reachable through Folio.

@@ -94,7 +94,7 @@ public class IdentifierCandidatesTests
         var candidates = IdentifierCandidates.GetCandidates(id);
 
         candidates.Select(c => c.SourceSystem).Should()
-            .Equal(SourceSystems.Mets, SourceSystems.CalmRefNo, SourceSystems.CalmAltRefNo);
+            .Equal(SourceSystems.Mets, SourceSystems.CalmRefNo);
         candidates.Should().OnlyContain(c => c.Value == expectedValue && c.Type == OntologyType.Work);
     }
 

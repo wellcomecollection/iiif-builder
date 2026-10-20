@@ -91,12 +91,13 @@ namespace Wellcome.Dds.Identifiers
                 // A born-digital object's preservation identifier is its CALM ref (lowercased, slashes kept),
                 // and like a digitised b number it is minted under mets with its own canonical id,
                 // e.g. ARTCOO/B/15 -> mets: artcoo/b/15 and calm-ref-no: ARTCOO/B/15. The lookup is case-insensitive.
+                // calm-altref-no (the public AltRefNo form, e.g. SA/MAC/J.3/32) is deliberately not tried:
+                // the registry has not been seen to mint it, so an AltRefNo can only be resolved via the catalogue API.
                 var calmRef = s.Replace('_', '/');
                 const string reason = "no other shape matched; try as a CALM reference";
                 candidates.Add(new IdentifierCandidate(calmRef, SourceSystems.Mets, OntologyType.Work,
                     reason + "; a born-digital preservation identifier is also minted under mets"));
                 candidates.Add(new IdentifierCandidate(calmRef, SourceSystems.CalmRefNo, OntologyType.Work, reason));
-                candidates.Add(new IdentifierCandidate(calmRef, SourceSystems.CalmAltRefNo, OntologyType.Work, reason));
             }
 
             return candidates;
