@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
@@ -15,14 +14,10 @@ namespace Wellcome.Dds.Server.Controllers;
 [Route("extensions/born-digital")]
 public class BornDigitalExtensionsController : ControllerBase
 {
-    private string WebRootPath { get; }
     private DdsOptions DdsOptions { get; }
 
-    public BornDigitalExtensionsController(
-        IWebHostEnvironment environment,
-        IOptions<DdsOptions> options)
+    public BornDigitalExtensionsController(IOptions<DdsOptions> options)
     {
-        WebRootPath = environment.WebRootPath;
         DdsOptions = options.Value;
     }
 
@@ -66,8 +61,10 @@ public class BornDigitalExtensionsController : ControllerBase
     private string GetFontPath()
     {
         // A TrueType conversion of the woff2 this used to ship, because libvips loads fonts through
-        // FreeType, which does not read woff2.
-        return System.IO.Path.Combine(WebRootPath, "born-digital", "wellcome-bold.ttf");
+        // FreeType, which does not read woff2. It lives under Resources/, not wwwroot/, so that it is
+        // copied to the output without being served as a static file (its embedding licence is
+        // preview-and-print only).
+        return System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "born-digital", "wellcome-bold.ttf");
     }
 
 

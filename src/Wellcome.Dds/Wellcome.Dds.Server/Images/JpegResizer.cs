@@ -8,18 +8,25 @@ namespace Wellcome.Dds.Server.Images;
 /// </summary>
 public static class JpegResizer
 {
-    public const int DefaultQuality = 80;
+    public const int DefaultQuality = 85;
+
+    /// <summary>
+    /// libvips' VIPS_MAX_COORD. Thumbnail fits the image inside width x height, and defaults height to
+    /// width, so a portrait image would come out narrower than asked; an unbounded height makes the
+    /// width the only constraint, as ImageSharp's Resize(width, 0) was.
+    /// </summary>
+    private const int UnboundedHeight = 10_000_000;
 
     public static byte[] ResizeToWidth(byte[] source, int width, int quality = DefaultQuality)
     {
         // Enums.Size.Both allows upscaling, matching the previous behaviour for widths above the source's.
-        using var image = Image.ThumbnailBuffer(source, width, size: Enums.Size.Both);
+        using var image = Image.ThumbnailBuffer(source, width, height: UnboundedHeight, size: Enums.Size.Both);
         return image.JpegsaveBuffer(q: quality);
     }
 
     public static byte[] ResizeToWidth(string sourcePath, int width, int quality = DefaultQuality)
     {
-        using var image = Image.Thumbnail(sourcePath, width, size: Enums.Size.Both);
+        using var image = Image.Thumbnail(sourcePath, width, height: UnboundedHeight, size: Enums.Size.Both);
         return image.JpegsaveBuffer(q: quality);
     }
 }

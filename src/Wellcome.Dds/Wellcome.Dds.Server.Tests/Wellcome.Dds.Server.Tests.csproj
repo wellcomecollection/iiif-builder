@@ -32,7 +32,7 @@
 
     <ItemGroup>
       <!-- The font the server renders placeholder canvases with, for ImageRenderingTests -->
-      <Content Include="../Wellcome.Dds.Server/wwwroot/born-digital/wellcome-bold.ttf" Link="born-digital/wellcome-bold.ttf">
+      <Content Include="../Wellcome.Dds.Server/Resources/born-digital/wellcome-bold.ttf" Link="Resources/born-digital/wellcome-bold.ttf">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

@@ -21,6 +21,13 @@ namespace PdfThumbGenerator
         private const int ThumbnailWidth = 1024;
         private const int JpegQuality = 85;
 
+        /// <summary>
+        /// libvips' VIPS_MAX_COORD: Thumbnail fits inside width x height and defaults height to width,
+        /// which would make a portrait page narrower than ThumbnailWidth. Unbounded height means the
+        /// width is the only constraint.
+        /// </summary>
+        private const int UnboundedHeight = 10_000_000;
+
         private readonly ILogger<PdfThumbnailUtil> logger;
         private readonly IAmazonS3 ddsServiceS3;
         private readonly DdsOptions ddsOptions;
@@ -129,7 +136,7 @@ namespace PdfThumbGenerator
         {
             logger.LogInformation("Resizing {Identifier} and saving to S3 at {Key}", identifier, key);
             byte[] jpeg;
-            using (var image = Image.Thumbnail(outputJpgPath, ThumbnailWidth, size: Enums.Size.Both))
+            using (var image = Image.Thumbnail(outputJpgPath, ThumbnailWidth, height: UnboundedHeight, size: Enums.Size.Both))
             {
                 jpeg = image.JpegsaveBuffer(q: JpegQuality);
             }
