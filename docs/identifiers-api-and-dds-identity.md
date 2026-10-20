@@ -426,11 +426,69 @@ they exist at all" on the page.
 - **Sub-package candidate stems** (RFC 085): probe `in00012345` when `in00012345_0002` is not known.
   Not implemented.
 
-## Next steps
+## Plan
 
-1. Add the `mets` lookup and catalogue redirect to the identity write path, behind a config flag,
-   writing `Source` and `CatalogueId`. Keep the search fallback. Log disagreements loudly.
-2. Build the helper service and use it on the resolve page, including the storage probe.
-3. Add the HRID shape to the parser and the candidate generator's stem rule.
-4. Provision keys; put the DDS on the internal usage plan.
-5. Audit the redirect contract against `CatalogueId` once it is authoritative (RFC 085 next step 3).
+Agreed 2026-10-20. The order is deliberate: each step is safe to deploy on its own, and each later
+step reuses the one before. Nothing here changes persisted data until step 3's flag is flipped.
+
+### Step 1: the helpers, on the resolve page (built; deploying to staging)
+
+`IIdentifierNavigator` / `IdentifierNavigator` / `StorageServiceProbe`, with `/dash/Identifiers/Resolve/{id}`
+as the first consumer, and the client, probe and navigator registered in the workflow processor so
+step 3 needs no wiring. Branch `feature/identifier-navigator`, on top of `feature/external-identity-service`
+(PR #296). Unit tests: `IdentifierNavigatorTests`, `WellcomeCollectionIdentifiersApiTests`,
+`IdentifierCandidatesTests`, `IdentifierSetTests`; live tests: `IdentifiersApiLiveTests`
+(`Category=Manual`, env var `IDENTIFIERS_API_KEY`).
+
+What staging can and cannot tell us:
+
+- The Identifiers API on the stage host returned the same canonical ids as production for everything
+  probed, so the registry side of the page is meaningful on staging.
+- The staging DDS talks to the stage storage service, which holds only what has been ingested into
+  staging. A storage miss on staging is not evidence that files are absent; the page names the storage
+  API it asked. Objects that have been ingested into staging will probe correctly.
+- Nothing on the page writes anything. It is safe to point Wellcome at it, and it lets them see the
+  DDS as a consumer of the API in their own logs.
+
+### Step 2: the real selection rule for the identifiers query
+
+Replace `GetWorkByOtherIdentifier`'s multiple-match rule with the four-step rule in
+[Choosing the work](#choosing-the-work-when-the-identifiers-query-returns-several), using the
+navigator's `GetPublicWork` for the registry cross-check. Small, self-contained, no data change.
+`IdentifierNavigator.FindWorkByAnyIdentifier` currently delegates to the catalogue client and should
+own the rule once it exists.
+
+### Step 3: the registry on the identity write path, in shadow mode first
+
+Behind a config flag (suggested `Dds:IdentifiersApiMode` = `off` | `shadow` | `write`), when a
+workflow message takes the write path in `PersistedIdentityService`:
+
+1. `GetSiblingsBySourceIdentifier("mets", packageIdentifier)`, then the catalogue redirect on the
+   METS work's canonical id, giving the registry-derived public work.
+2. Compare with the search-derived `CatalogueId` and with the stored `Source` (which the registry
+   validates, never replaces: see [What reads `Source`](#what-reads-source)).
+3. In `shadow` mode, log agreement, disagreement and registry 404s; write nothing. In `write` mode,
+   set `CatalogueId` from the redirect when the registry answered, keep the search fallback when it
+   did not (pipeline lag), and set `SourceValidated`.
+
+Deploy `shadow` to staging. Staging subscribes to the real Goobi and born-digital topics, so it
+processes every new ingest, which is the only traffic that can show anything the probes have not.
+After a few weeks of logs with no unexplained disagreements, flip to `write` on staging, then
+production once a production key exists. The storage probe is out of scope for the comparison on
+staging, for the reason in step 1.
+
+### Later, when there is data to test against
+
+- Add the HRID shape to `ParsingIdentityService` and the candidate generator's stem rule (RFC 085,
+  "Sub-package identity"), and make the seven `Source` readers ask their real question.
+- Audit the redirect contract against `CatalogueId` once it is authoritative (RFC 085 next step 3).
+- Provision a production key on the internal usage plan.
+
+### Pending outside this repo
+
+- catalogue-pipeline [#3796](https://github.com/wellcomecollection/catalogue-pipeline/issues/3796):
+  the mets lowercasing. Until fixed, and for every row minted before it is, casing recovery stays.
+- iiif-builder-infrastructure [#84](https://github.com/wellcomecollection/iiif-builder-infrastructure/pull/84):
+  staging keys and stage host for all four services.
+- Wellcome's answer on the multi-volume suffix convention for HRID packages (RFC 091 open question 1),
+  which decides what the parser's stem rule has to split.
