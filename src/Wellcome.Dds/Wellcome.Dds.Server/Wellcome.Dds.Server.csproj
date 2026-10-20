@@ -31,10 +31,16 @@
       <PackageReference Include="Microsoft.FeatureManagement.AspNetCore" Version="2.5.1" />
       <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
       <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
-      <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta19" />
-      <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
-      <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
+      <PackageReference Include="NetVips" Version="3.2.0" />
+      <!-- libvips binaries for where we run (Linux containers) and develop (Windows); the NetVips.Native meta-package would publish every platform -->
+      <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.7" />
+      <PackageReference Include="NetVips.Native.win-x64" Version="8.18.7" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- Files the server needs at runtime but must not serve: the placeholder-canvas font and its fontconfig -->
+      <Content Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
