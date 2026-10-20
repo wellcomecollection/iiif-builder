@@ -185,19 +185,10 @@ This is where the Identifiers API belongs. Proposed additional step, after the s
    from (`sierra-system-number`, `calm-record-id`, `folio-instance`, `axiell-guid`). That is what
    `ValidateSource` was waiting for, and it is the first authoritative value `Source` will ever have
    had. But `Source` must keep its current meaning, "the system that issued the package identifier",
-   so `b18304175` stays `sierra` even though its public work is a CALM record. Every code path that
-   reads `Source` (`MetsRepository`, `Dlcs.GetImagesForIdentifier`, two `DashController` actions,
-   `PeekController.XmlView`, `BulkWorkflowModel`, and the identity service's own case handling)
-   tests `== Source.Sierra` as a proxy for "this is a b number": Goobi METS structure, a path-safe
-   identifier, a case-normalisable one. None of them means "the catalogue record's source system",
-   and replacing the value with `calm-record-id` for digitised archive material would break volume
-   handling for that whole class. So the registry's role is to *validate* `Source` (the matching
-   `sierra-system-number` / `calm-ref-no` / `folio-instance` row exists for the package identifier),
-   not to supply it. If "which system the public record came from" is ever wanted, it is a new field
-   next to `CatalogueId`, read from the public work's original registry row. Those seven call sites
-   are also the RFC 081 problem in miniature: they branch on `Source` when they mean `Generator`, or
-   `IsBNumber`, or "has a volume suffix convention", and an HRID package (Goobi, volumes, path-safe,
-   not Sierra) will need each of them to ask its real question.
+   so `b18304175` stays `sierra` even though its public work is a CALM record. The registry's role is
+   to *validate* that (the matching `sierra-system-number` / `calm-ref-no` / `folio-instance` row
+   exists for the package identifier), not to supply a different value. See
+   [What reads `Source`](#what-reads-source) for why.
 
 Two things make this additive rather than a replacement:
 
@@ -209,6 +200,37 @@ Two things make this additive rather than a replacement:
 - **Merged works aggregate several objects.** A public work can carry more than one `mets`
   identifier. `CatalogueId` is a many-to-one binding and that is fine; the reverse direction (work to
   preservation identifier) is one-to-many and belongs to the catalogue API, not to the DDS table.
+
+### What reads `Source`
+
+`DdsIdentity.Source` is `sierra` or `calm`. Outside the identity service and display-only views
+(the identity page, bulk analyse, storage ingest), seven places read it, and none of them asks what
+the name says:
+
+| Where | Test | What it actually wants to know |
+| --- | --- | --- |
+| `MetsRepository.GetAsync` | `Source == Sierra` | Is this Goobi METS with the b-number volume/issue structure, so walk `VolumePart` / `IssuePart`? |
+| `Dlcs.GetImagesForIdentifier` | `Source != Sierra` throws | Can the DLCS be queried by a b-number-shaped string reference? |
+| `DashController.ManifestationSearch` | `Source == Sierra` | Is the package identifier already path-safe, or is the underscore form needed? |
+| `DashController.AssetType` | `Source == Sierra` | The same path-safety question |
+| `PeekController.XmlView` | `Source == Sierra` | Can a manifestation id be derived by splitting the filename on `_`? |
+| `BulkWorkflowModel` | counts `Source == Sierra` | How many of these are b numbers? (the text says "are from Sierra") |
+| `PersistedIdentityService.ReadIdentity` | `Source == Calm` | Is this an identifier whose case cannot be normalised? |
+
+In practice `Source == Sierra` means "this is a b number", standing in for three different
+properties: Goobi METS structure, path-safety of the identifier, and case-normalisability. Nothing
+reads it as "the catalogue system the public record came from". Two consequences:
+
+- The registry must not *replace* `Source` with the public work's source system. For `b18304175`
+  that would be `calm-record-id`, and `MetsRepository` would take the non-Sierra branch and break
+  volume handling for every archive item digitised under a b number. If "which system the public
+  record came from" is ever wanted, it is a new field next to `CatalogueId`, read from the public
+  work's original registry row.
+- These seven sites are the RFC 081 problem in miniature: they branch on `Source` when they mean
+  `Generator`, or `IsBNumber`, or "has a volume suffix convention". An HRID package will be Goobi
+  METS with volume structure and a path-safe, case-stable identifier, but it will not be `sierra`.
+  Each site needs to ask its real question before the first such package arrives. That is HRID
+  work, not registry work, but it was found here.
 
 ### For the redirect contract
 
@@ -314,9 +336,9 @@ they exist at all" on the page.
 - **Keys and throttles.** Staging is covered by iiif-builder-infrastructure #84 (stage host only).
   Production needs a key, on the internal plan, before anything but the dashboard uses the client.
 - **`Source` readers branch on the wrong thing.** Seven call sites test `Source == Sierra` to mean
-  Goobi structure, path-safety or case handling (write path, step 3). Each needs to ask its real
-  question before an HRID package arrives. Not a registry concern, but found while settling what
-  `Source` means.
+  Goobi structure, path-safety or case handling (see [What reads `Source`](#what-reads-source)).
+  Each needs to ask its real question before an HRID package arrives. Not a registry concern, but
+  found while settling what `Source` means.
 - **Pipeline lag on first ingest** (above). Needs a re-check path for unvalidated rows.
 - **The `mets` value is lowercased, but the storage service is case-sensitive.** Verified
   2026-10-07: `bags/born-digital/ARTCOO/B/15` is 200, `bags/born-digital/artcoo/b/15` and
