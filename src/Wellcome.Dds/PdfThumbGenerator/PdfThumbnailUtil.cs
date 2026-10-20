@@ -7,8 +7,7 @@ using Amazon.S3.Model;
 using Ghostscript.NET;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
+using NetVips;
 using Utils.Aws.S3;
 using Wellcome.Dds.Common;
 
@@ -19,12 +18,15 @@ namespace PdfThumbGenerator
     /// </summary>
     public class PdfThumbnailUtil
     {
+        private const int ThumbnailWidth = 1024;
+        private const int JpegQuality = 85;
+
         private readonly ILogger<PdfThumbnailUtil> logger;
         private readonly IAmazonS3 ddsServiceS3;
         private readonly DdsOptions ddsOptions;
-        
+
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="s3ClientFactory"></param>
         /// <param name="ddsOptions"></param>
@@ -40,7 +42,7 @@ namespace PdfThumbGenerator
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="pdfStreamSource"></param>
         /// <param name="identifier"></param>
@@ -62,15 +64,15 @@ namespace PdfThumbGenerator
             }
 
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-            
+
             await SavePdfToDisk(pdfStreamSource, inputPdfPath, identifier);
             await GenerateJpgFromPdf(outputJpgPath, inputPdfPath, identifier);
             await ResizeImageToS3(outputJpgPath, key, identifier);
-            
+
             if (File.Exists(inputPdfPath)) File.Delete(inputPdfPath);
             if (File.Exists(outputJpgPath)) File.Delete(outputJpgPath);
         }
-        
+
         private async Task SavePdfToDisk(Func<Task<Stream>> pdfStreamSource, string inputPdfPath,
             string identifier)
         {
@@ -86,9 +88,8 @@ namespace PdfThumbGenerator
         private async Task GenerateJpgFromPdf(string outputJpgPath, string inputPdfPath, string identifier)
         {
             logger.LogInformation("Generating JPG for {Identifier}, to disk at {Path}", identifier, outputJpgPath);
-            
-            var version = GhostscriptVersionInfo.GetLastInstalledVersion();
-            var exePath = Path.Combine(version.LibPath.Split(";")[0], "gswin64.exe");
+
+            var exePath = GetGhostscriptExecutable();
             var args =
                 $"-dNOPAUSE -dBATCH -r96 -sDEVICE=jpeg -sOutputFile=\"{outputJpgPath}\" -dLastPage=1 \"{inputPdfPath}\"";
             logger.LogInformation("Calling ghostscript with args {Args}", args);
@@ -110,15 +111,30 @@ namespace PdfThumbGenerator
             await ghostScriptProcess.WaitForExitAsync();
         }
 
+        /// <summary>
+        /// On Windows, find the installed Ghostscript through the registry (Ghostscript.NET); elsewhere
+        /// expect <c>gs</c> on the PATH.
+        /// </summary>
+        private static string GetGhostscriptExecutable()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                return "gs";
+            }
+            var version = GhostscriptVersionInfo.GetLastInstalledVersion();
+            return Path.Combine(version.LibPath.Split(";")[0], "gswin64.exe");
+        }
+
         private async Task ResizeImageToS3(string outputJpgPath, string key, string identifier)
         {
             logger.LogInformation("Resizing {Identifier} and saving to S3 at {Key}", identifier, key);
-            using var image = await Image.LoadAsync(outputJpgPath);
-            image.Mutate(x => x.Resize(1024, 0, KnownResamplers.Lanczos3));
+            byte[] jpeg;
+            using (var image = Image.Thumbnail(outputJpgPath, ThumbnailWidth, size: Enums.Size.Both))
+            {
+                jpeg = image.JpegsaveBuffer(q: JpegQuality);
+            }
 
-            await using var jpegOutputStream = new MemoryStream();
-            await image.SaveAsJpegAsync(jpegOutputStream);
-
+            await using var jpegOutputStream = new MemoryStream(jpeg);
             var putReqImg = new PutObjectRequest
             {
                 InputStream = jpegOutputStream,
@@ -137,7 +153,7 @@ namespace PdfThumbGenerator
                 BucketName = ddsOptions.PresentationContainer,
                 Key = key
             };
-            
+
             try
             {
                 using var res = await ddsServiceS3.GetObjectAsync(getReq);
@@ -148,7 +164,7 @@ namespace PdfThumbGenerator
             {
                 logger.LogError(ex, "Error getting object at {Key}", key);
             }
-            
+
             return false;
         }
     }

@@ -1,19 +1,13 @@
 using System;
-using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Fonts;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Processing;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Server.Images;
 
 namespace Wellcome.Dds.Server.Controllers;
 
@@ -23,7 +17,7 @@ public class BornDigitalExtensionsController : ControllerBase
 {
     private string WebRootPath { get; }
     private DdsOptions DdsOptions { get; }
-    
+
     public BornDigitalExtensionsController(
         IWebHostEnvironment environment,
         IOptions<DdsOptions> options)
@@ -31,39 +25,22 @@ public class BornDigitalExtensionsController : ControllerBase
         WebRootPath = environment.WebRootPath;
         DdsOptions = options.Value;
     }
-    
+
     [HttpGet("placeholder-canvas/{*pathParts}")]
     public async Task<IActionResult> PlaceholderCanvas(string pathParts)
     {
         var parts = new PlaceholderParts(pathParts);
-        using Image img = new Image<Rgba32>(1000, 800);
-        img.Mutate(x => x.Fill(Color.FromRgb(237, 236, 228)));
-        FontCollection collection = new();
-        FontFamily family = collection.Add(GetFontPath());
-        Font largeFont = family.CreateFont(32, FontStyle.Regular);
-        Font smallFont = family.CreateFont(16, FontStyle.Regular);
-        img.Mutate(x=> x.DrawText(
-            $"File type: {parts.MimeType}", 
-            largeFont, Color.Black, new PointF(20, 20)));
-        img.Mutate(x=> x.DrawText(
-            $"PRONOM key: {parts.PromomKey}", 
-            largeFont, Color.Black, new PointF(20, 80)));
-        img.Mutate(x=> x.DrawText(
-            $"This is a placeholder canvas.", 
-            smallFont, Color.Black, new PointF(20, 140)));
-        img.Mutate(x=> x.DrawText(
-            $"The original file is available in the rendering property of this canvas.", 
-            smallFont, Color.Black, new PointF(20, 165)));
-        
+        var png = PlaceholderCanvasRenderer.RenderPng(GetFontPath(), parts.MimeType, parts.PromomKey);
+
         Response.ContentType = "image/png";
         if (DdsOptions.PlaceholderCanvasCacheTimeDays > 0)
         {
             Response.CacheForDays(DdsOptions.PlaceholderCanvasCacheTimeDays);
         }
-        await img.SaveAsync(Response.Body, new PngEncoder());
+        await Response.Body.WriteAsync(png);
         return new EmptyResult();
     }
-    
+
     [HttpGet("placeholder-thumb/{*pathParts}")]
     public VirtualFileResult PlaceholderThumb(string pathParts)
     {
@@ -88,9 +65,11 @@ public class BornDigitalExtensionsController : ControllerBase
 
     private string GetFontPath()
     {
-        return System.IO.Path.Combine(WebRootPath, "born-digital", "wellcome-bold.woff2");
+        // A TrueType conversion of the woff2 this used to ship, because libvips loads fonts through
+        // FreeType, which does not read woff2.
+        return System.IO.Path.Combine(WebRootPath, "born-digital", "wellcome-bold.ttf");
     }
-    
+
 
     class PlaceholderParts
     {
@@ -143,7 +122,7 @@ public class BornDigitalExtensionsController : ControllerBase
             {
                 throw new FormatException("Invalid placeholder format");
             }
-            
+
         }
     }
 }
