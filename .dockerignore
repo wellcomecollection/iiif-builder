@@ -2,8 +2,11 @@ Dockerfile*
 .dockerignore
 .git
 .gitignore
-bin/
-obj/
+# Build output in any project directory, not just at the root of the context: Jenkinsfile-publish
+# runs `dotnet test` in the workspace before building the images, so every project has bin/ and obj/.
+**/bin/
+**/obj/
+**/TestResults/
 README.md
 LICENSE
 .idea
