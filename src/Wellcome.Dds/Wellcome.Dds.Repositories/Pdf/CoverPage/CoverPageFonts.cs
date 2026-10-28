@@ -46,12 +46,29 @@ public static class CoverPageFonts
     public static CoverPageFont Regular => regular.Value;
     public static CoverPageFont Bold => bold.Value;
 
-    private static byte[] Load(string fileName)
+    private static byte[] Load(string fileName) => CoverPageResources.Load($"fonts.{fileName}");
+}
+
+/// <summary>
+/// The Wellcome Collection logo in the footer: the same PNG the server serves at /logos/ and names
+/// as the provider logo in every manifest. The DDS writes that provider block itself, so the logo
+/// on the cover page is always this one; embedding it means no fetch and nothing to cache.
+/// </summary>
+public static class CoverPageLogo
+{
+    private static readonly Lazy<byte[]> bytes = new(() => CoverPageResources.Load("logos.wellcome-collection-black.png"));
+
+    public static byte[] Bytes => bytes.Value;
+}
+
+internal static class CoverPageResources
+{
+    public static byte[] Load(string name)
     {
-        var assembly = typeof(CoverPageFonts).Assembly;
-        var resourceName = $"Wellcome.Dds.Repositories.Resources.fonts.{fileName}";
+        var assembly = typeof(CoverPageResources).Assembly;
+        var resourceName = $"Wellcome.Dds.Repositories.Resources.{name}";
         using var stream = assembly.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException($"Embedded font {resourceName} is missing");
+            ?? throw new InvalidOperationException($"Embedded resource {resourceName} is missing");
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return buffer.ToArray();

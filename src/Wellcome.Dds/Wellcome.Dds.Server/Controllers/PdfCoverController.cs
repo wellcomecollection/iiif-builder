@@ -7,7 +7,6 @@ using Microsoft.FeatureManagement.Mvc;
 using Utils;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories.Pdf.CoverPage;
-using Wellcome.Dds.Server.Pdf;
 
 namespace Wellcome.Dds.Server.Controllers;
 
@@ -26,7 +25,6 @@ public class PdfCoverController : ControllerBase
     private readonly DdsOptions ddsOptions;
     private readonly IIdentityService identityService;
     private readonly CoverPageWriter writer;
-    private readonly CoverPageLogoCache logos;
     private readonly ILogger<PdfCoverController> logger;
 
     public PdfCoverController(
@@ -34,14 +32,12 @@ public class PdfCoverController : ControllerBase
         IOptions<DdsOptions> ddsOptions,
         IIdentityService identityService,
         CoverPageWriter writer,
-        CoverPageLogoCache logos,
         ILogger<PdfCoverController> logger)
     {
         this.helpers = helpers;
         this.ddsOptions = ddsOptions.Value;
         this.identityService = identityService;
         this.writer = writer;
-        this.logos = logos;
         this.logger = logger;
     }
 
@@ -72,18 +68,7 @@ public class PdfCoverController : ControllerBase
         }
 
         var content = CoverPageContent.FromManifest(manifest, ddsId.Value);
-        var logo = content.LogoUrl == null ? null : await logos.Get(content.LogoUrl);
-        byte[] pdf;
-        try
-        {
-            pdf = writer.Write(content, logo);
-        }
-        catch (Exception ex) when (logo != null)
-        {
-            // the logo was checked when fetched, so this should not happen; the page matters more than the logo
-            logger.LogError(ex, "Cover page for {Identifier} failed with the logo; writing it without", ddsId.Value.LogSafe());
-            pdf = writer.Write(content, null);
-        }
+        var pdf = writer.Write(content);
         logger.LogInformation("Generated PDF cover page for {Identifier} ({Bytes} bytes)", ddsId.Value.LogSafe(), pdf.Length);
         return File(pdf, "application/pdf");
     }

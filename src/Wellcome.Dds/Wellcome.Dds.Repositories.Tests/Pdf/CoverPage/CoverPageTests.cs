@@ -37,8 +37,6 @@ public class CoverPageTests
         }
         """;
 
-    private static readonly string SamplePngPath = Path.Combine(AppContext.BaseDirectory, "Pdf", "CoverPage", "logo.png");
-
     [Fact]
     public void Content_Is_Extracted_Like_The_Python_Service_Did()
     {
@@ -53,7 +51,6 @@ public class CoverPageTests
         // "Wellcome Collection" is dropped from the attribution; the HTML statement is kept for the writer to flatten
         content.Attribution.Should().ContainSingle().Which.Should().StartWith("<span>You have permission");
         content.ProviderAddress.Should().HaveCount(6).And.StartWith("Wellcome Collection");
-        content.LogoUrl.Should().Be("https://iiif.wellcomecollection.org/logos/wellcome-collection-black.png");
     }
 
     [Fact]
@@ -79,7 +76,6 @@ public class CoverPageTests
         content.Sections.Should().BeEmpty();
         content.Attribution.Should().BeEmpty();
         content.ProviderAddress.Should().BeEmpty();
-        content.LogoUrl.Should().BeNull();
     }
 
     [Fact]
@@ -145,9 +141,8 @@ public class CoverPageTests
     public void Writes_A_Pdf_With_Embedded_Inter_The_Text_And_The_Logo()
     {
         var content = CoverPageContent.FromManifest(JObject.Parse(BiocratsManifest), "b18035978");
-        var logo = File.Exists(SamplePngPath) ? File.ReadAllBytes(SamplePngPath) : null;
 
-        var pdf = new CoverPageWriter().Write(content, logo);
+        var pdf = new CoverPageWriter().Write(content);
         File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "cover-page-sample.pdf"), pdf);
 
         pdf.Should().StartWith("%PDF-"u8.ToArray());
@@ -165,7 +160,7 @@ public class CoverPageTests
         text.Should().NotContain("<span>").And.NotContain("<a ");
         text.Should().Contain("183 Euston Road");
         page.Letters.Select(l => l.FontName).Distinct().Should().BeEquivalentTo("Inter-Regular", "Inter-Bold");
-        page.GetImages().Count().Should().Be(logo == null ? 0 : 1);
+        page.GetImages().Should().ContainSingle("the embedded Wellcome Collection logo");
         // the persistent URL, and the Creative Commons link inside the attribution text (one rectangle per line it spans)
         page.ExperimentalAccess.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).Should().HaveCountGreaterOrEqualTo(2);
         var uris = System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.Latin1.GetString(pdf), @"/URI\s*\(([^)]*)\)").Select(m => m.Groups[1].Value);

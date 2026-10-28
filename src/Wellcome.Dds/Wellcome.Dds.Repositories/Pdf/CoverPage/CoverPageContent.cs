@@ -34,8 +34,6 @@ public class CoverPageContent
     /// </summary>
     public List<string> ProviderAddress { get; } = new();
 
-    public string? LogoUrl { get; init; }
-
     public static CoverPageContent FromManifest(JObject manifest, string identifier)
     {
         var label = FirstLanguageValues(manifest["label"]);
@@ -45,8 +43,7 @@ public class CoverPageContent
         var content = new CoverPageContent
         {
             Identifier = identifier,
-            Title = label.Count > 0 ? string.Join(" - ", label) : NoTitle,
-            LogoUrl = wellcome?["logo"]?.FirstOrDefault()?["id"]?.ToString()
+            Title = label.Count > 0 ? string.Join(" - ", label) : NoTitle
         };
 
         var metadata = new Dictionary<string, List<string>>();
