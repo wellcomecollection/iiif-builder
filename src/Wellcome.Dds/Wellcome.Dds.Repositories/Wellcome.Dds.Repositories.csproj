@@ -18,6 +18,13 @@
     <!-- libvips binaries for where we run (Linux containers) and develop (Windows); the NetVips.Native meta-package would publish every platform -->
     <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.7" />
     <PackageReference Include="NetVips.Native.win-x64" Version="8.18.7" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Inter, for PDF cover pages; embedded so no file path has to be right at runtime -->
+    <EmbeddedResource Include="Resources/fonts/Inter-Regular.ttf" />
+    <EmbeddedResource Include="Resources/fonts/Inter-Bold.ttf" />
   </ItemGroup>
 
   <ItemGroup>
