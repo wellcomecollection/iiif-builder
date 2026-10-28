@@ -15,6 +15,12 @@ namespace Wellcome.Dds.Server.Tests.Images;
 /// </summary>
 public class ImageRenderingTests
 {
+    static ImageRenderingTests()
+    {
+        // as Startup sets it: the text and PNG/JPEG paths used here must work with untrusted loaders blocked
+        NetVips.NetVips.BlockUntrusted = true;
+    }
+
     private static readonly string FontPath = Path.Combine(AppContext.BaseDirectory, "Resources", "born-digital", "wellcome-bold.ttf");
 
     // A real born-digital case: Word documents have one of the longest MIME types we will see.

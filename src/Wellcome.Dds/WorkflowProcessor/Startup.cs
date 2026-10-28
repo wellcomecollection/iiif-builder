@@ -99,6 +99,8 @@ namespace WorkflowProcessor
             services.AddScoped<IStorageServiceProbe, StorageServiceProbe>();
             services.AddScoped<IIdentifierNavigator, IdentifierNavigator>();
             services.AddPdfThumbnails(Configuration);
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
+            NetVips.NetVips.BlockUntrusted = true;
             services.AddHttpClient<ExternalIIIFReader>();
             services.AddSingleton<ThumbnailSizeDecorator>();
             services

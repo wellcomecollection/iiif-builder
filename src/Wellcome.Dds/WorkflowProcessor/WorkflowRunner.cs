@@ -231,6 +231,10 @@ namespace WorkflowProcessor
                     logger.LogInformation("JQ {identifier} PDF thumbnail: {result}", ddsIdentifier, result);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "JQ {identifier} PDF thumbnail generation failed", ddsIdentifier);

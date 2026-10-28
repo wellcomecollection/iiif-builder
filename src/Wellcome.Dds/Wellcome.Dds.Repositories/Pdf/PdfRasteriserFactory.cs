@@ -23,13 +23,13 @@ public static class PdfRasteriserFactory
             {
                 var exe = options.ExecutablePath.HasText() ? options.ExecutablePath : FindOnPath("pdftoppm");
                 return exe == null ? Unavailable(logger, "pdftoppm was configured but not found")
-                    : new PdftoppmRasteriser(exe, options.Dpi, timeout, logger);
+                    : new PdftoppmRasteriser(exe, options.Dpi, options.ThumbnailWidth, timeout, logger);
             }
             case "ghostscript":
             {
                 var exe = options.ExecutablePath.HasText() ? options.ExecutablePath : FindGhostscript();
                 return exe == null ? Unavailable(logger, "Ghostscript was configured but not found")
-                    : new GhostscriptRasteriser(exe, options.Dpi, timeout, logger);
+                    : new GhostscriptRasteriser(exe, options.Dpi, options.ThumbnailWidth, timeout, logger);
             }
             default:
             {
@@ -37,13 +37,13 @@ public static class PdfRasteriserFactory
                 if (pdftoppm != null)
                 {
                     logger.LogInformation("PDF thumbnails will be rendered by pdftoppm at {Path}", pdftoppm);
-                    return new PdftoppmRasteriser(pdftoppm, options.Dpi, timeout, logger);
+                    return new PdftoppmRasteriser(pdftoppm, options.Dpi, options.ThumbnailWidth, timeout, logger);
                 }
                 var gs = FindGhostscript();
                 if (gs != null)
                 {
                     logger.LogInformation("PDF thumbnails will be rendered by Ghostscript at {Path}", gs);
-                    return new GhostscriptRasteriser(gs, options.Dpi, timeout, logger);
+                    return new GhostscriptRasteriser(gs, options.Dpi, options.ThumbnailWidth, timeout, logger);
                 }
                 return Unavailable(logger, "neither pdftoppm nor Ghostscript was found");
             }
