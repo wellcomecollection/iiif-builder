@@ -94,8 +94,46 @@ public class CoverPageTests
     [Fact]
     public void Characters_The_Font_Cannot_Show_Become_Question_Marks()
     {
-        CoverPageText.Printable("Traité – “quotes” — Ελληνικά Кириллица").Should().Be("Traité – “quotes” — Ελληνικά Кириллица");
-        CoverPageText.Printable("日本語 🙂").Should().Be("??? ??");
+        var font = CoverPageFonts.Regular;
+        CoverPageText.Printable("Traité – “quotes” — Ελληνικά Кириллица", font).Should().Be("Traité – “quotes” — Ελληνικά Кириллица");
+        // one '?' per character, including an emoji outside the BMP; whitespace becomes a plain space
+        CoverPageText.Printable("日本語\t🙂", font).Should().Be("??? ?");
+        // assigned code points Inter has no glyph for: ŉ (Afrikaans), a C1 control, an unassigned Greek slot
+        CoverPageText.Printable("a\u0149b\u0080c\u0378", font).Should().Be("a?b?c?");
+    }
+
+    [Fact]
+    public void Text_With_Characters_The_Font_Lacks_Still_Writes()
+    {
+        var manifest = JObject.Parse(BiocratsManifest);
+        manifest["label"] = JObject.Parse("""{ "en": [ "Sch\u0149eider \u0080 日本" ] }""");
+
+        var pdf = new CoverPageWriter().Write(CoverPageContent.FromManifest(manifest, "x"), null);
+
+        using var document = PdfDocument.Open(pdf);
+        document.GetPage(1).Text.Should().Contain("Sch?eider ? ??");
+    }
+
+    [Fact]
+    public void More_Distinct_Characters_Than_A_Simple_Font_Can_Hold_Still_Writes()
+    {
+        // 303 distinct characters Inter has, across Latin, Latin-1, Greek and Cyrillic
+        var alphabet = string.Concat(Enumerable.Range(0x21, 94).Select(c => (char) c))
+            + string.Concat(Enumerable.Range(0xA1, 95).Select(c => (char) c))
+            + string.Concat(Enumerable.Range(0x391, 25).Where(c => c != 0x3A2).Select(c => (char) c))
+            + string.Concat(Enumerable.Range(0x3B1, 25).Select(c => (char) c))
+            + string.Concat(Enumerable.Range(0x410, 64).Select(c => (char) c));
+        alphabet.Distinct().Count().Should().BeGreaterThan(CoverPageWriter.MaxDistinctCharactersPerFont);
+        var manifest = JObject.Parse(BiocratsManifest);
+        manifest["metadata"]![2]!["value"] = new JObject { ["en"] = new JArray(alphabet) }; // not via JSON text: the alphabet has quotes and backslashes
+
+        var pdf = new CoverPageWriter().Write(CoverPageContent.FromManifest(manifest, "x"), null);
+
+        using var document = PdfDocument.Open(pdf);
+        var text = document.GetPage(1).Text;
+        text.Should().Contain("The biocrats", "the bold face is unaffected");
+        text.Should().Contain("!\"#$%", "the first characters of the alphabet are set as they are");
+        text.Should().Contain("??", "the characters past the limit become '?'");
     }
 
     [Fact]

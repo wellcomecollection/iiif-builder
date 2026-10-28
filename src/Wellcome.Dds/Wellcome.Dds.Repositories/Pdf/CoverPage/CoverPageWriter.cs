@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Writer;
 
@@ -30,17 +29,45 @@ public class CoverPageWriter
     private const double LogoWidth = 200, LogoHeight = 66, LogoBottomPadding = 10;
     private const double FooterGap = 20;
 
-    private readonly byte[] regularFont;
-    private readonly byte[] boldFont;
+    /// <summary>
+    /// PdfPig writes a simple (one byte per character) TrueType font, so each font can show at most
+    /// this many distinct characters in one document; beyond it, characters become '?'.
+    /// </summary>
+    public const int MaxDistinctCharactersPerFont = 255;
+
+    private readonly CoverPageFont regularFont;
+    private readonly CoverPageFont boldFont;
 
     public CoverPageWriter() : this(CoverPageFonts.Regular, CoverPageFonts.Bold)
     {
     }
 
-    public CoverPageWriter(byte[] regularFont, byte[] boldFont)
+    public CoverPageWriter(CoverPageFont regularFont, CoverPageFont boldFont)
     {
         this.regularFont = regularFont;
         this.boldFont = boldFont;
+    }
+
+    /// <summary>
+    /// Whether PdfPig can place these bytes as an image: a PNG or JPEG it can decode. Checked when a
+    /// logo is fetched, so a bad logo is dropped there rather than failing every cover page.
+    /// </summary>
+    public static bool IsUsableLogo(byte[]? logo)
+    {
+        if (logo == null || logo.Length < 8)
+        {
+            return false;
+        }
+        try
+        {
+            var scratch = new PdfDocumentBuilder();
+            PlaceLogo(scratch.AddPage(PageWidth, PageHeight), logo, new PdfRectangle(0, 0, LogoWidth, LogoHeight));
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     /// <param name="logo">The provider's logo as PNG or JPEG bytes, or null to leave the space empty.</param>
@@ -48,9 +75,9 @@ public class CoverPageWriter
     {
         var builder = new PdfDocumentBuilder();
         builder.DocumentInformation.Title = $"{content.Identifier}.pdf";
-        var regular = builder.AddTrueTypeFont(regularFont);
-        var bold = builder.AddTrueTypeFont(boldFont);
-        var layout = new Layout(builder, regular, bold);
+        var regular = new Face(regularFont, builder.AddTrueTypeFont(regularFont.Bytes));
+        var bold = new Face(boldFont, builder.AddTrueTypeFont(boldFont.Bytes));
+        var layout = new Layout(builder);
 
         layout.Paragraph(content.Title, bold, HeadingSize, HeadingLeading);
         layout.Space(30);
@@ -88,8 +115,63 @@ public class CoverPageWriter
             }
         }
 
-        layout.Footer(logo, content.ProviderAddress);
+        layout.Footer(logo, content.ProviderAddress, regular);
         return builder.Build();
+    }
+
+    private static void PlaceLogo(PdfPageBuilder page, byte[] logo, PdfRectangle placement)
+    {
+        if (logo.Length > 2 && logo[0] == 0xFF && logo[1] == 0xD8)
+        {
+            page.AddJpeg(logo, placement);
+        }
+        else
+        {
+            page.AddPng(logo, placement);
+        }
+    }
+
+    /// <summary>
+    /// A font as used in one document: which characters it has, and which it has used so far, so that
+    /// text can be made safe for PdfPig before it is measured or drawn.
+    /// </summary>
+    private class Face
+    {
+        private readonly CoverPageFont font;
+        private readonly HashSet<char> used = new() { CoverPageText.Substitute, ' ' };
+
+        public Face(CoverPageFont font, PdfDocumentBuilder.AddedFont added)
+        {
+            this.font = font;
+            Added = added;
+        }
+
+        public PdfDocumentBuilder.AddedFont Added { get; }
+
+        /// <summary>
+        /// Characters the font cannot show, or that would take it past PdfPig's per-font limit, become '?'.
+        /// </summary>
+        public string Fit(string text)
+        {
+            var printable = CoverPageText.Printable(text, font);
+            var chars = printable.ToCharArray();
+            for (var i = 0; i < chars.Length; i++)
+            {
+                if (used.Contains(chars[i]))
+                {
+                    continue;
+                }
+                if (used.Count < MaxDistinctCharactersPerFont)
+                {
+                    used.Add(chars[i]);
+                }
+                else
+                {
+                    chars[i] = CoverPageText.Substitute;
+                }
+            }
+            return new string(chars);
+        }
     }
 
     /// <summary>
@@ -99,20 +181,15 @@ public class CoverPageWriter
     private class Layout
     {
         private readonly PdfDocumentBuilder builder;
-        private readonly PdfDocumentBuilder.AddedFont regular;
         private PdfPageBuilder page;
         private double y;
 
-        public Layout(PdfDocumentBuilder builder, PdfDocumentBuilder.AddedFont regular, PdfDocumentBuilder.AddedFont bold)
+        public Layout(PdfDocumentBuilder builder)
         {
             this.builder = builder;
-            this.regular = regular;
-            page = builder.AddPage(PdfPig_A4Width, PdfPig_A4Height);
+            page = builder.AddPage(PageWidth, PageHeight);
             y = Top;
         }
-
-        private const double PdfPig_A4Width = PageWidth;
-        private const double PdfPig_A4Height = PageHeight;
 
         private static double FooterHeight => Math.Max(LogoHeight + LogoBottomPadding, 6 * FooterLeading) + FooterGap;
 
@@ -121,17 +198,17 @@ public class CoverPageWriter
             y -= points;
         }
 
-        public void Paragraph(string text, PdfDocumentBuilder.AddedFont font, double size, double leading, string? linkUrl = null)
+        public void Paragraph(string text, Face face, double size, double leading, string? linkUrl = null)
         {
-            foreach (var line in Wrap(CoverPageText.Printable(text), font, size))
+            foreach (var line in Wrap(face.Fit(text), face.Added, size))
             {
                 if (y - leading < Bottom + FooterHeight)
                 {
-                    page = builder.AddPage(PdfPig_A4Width, PdfPig_A4Height);
+                    page = builder.AddPage(PageWidth, PageHeight);
                     y = Top;
                 }
                 var baseline = y - size;
-                var letters = page.AddText(line, size, new PdfPoint(Left, baseline), font);
+                var letters = page.AddText(line, size, new PdfPoint(Left, baseline), face.Added);
                 if (linkUrl != null && letters.Count > 0)
                 {
                     var right = letters.Max(l => l.GlyphRectangle.Right);
@@ -141,21 +218,13 @@ public class CoverPageWriter
             }
         }
 
-        public void Footer(byte[]? logo, List<string> addressLines)
+        public void Footer(byte[]? logo, List<string> addressLines, Face face)
         {
             var logoBottom = Bottom + LogoBottomPadding;
             var logoTop = logoBottom + LogoHeight;
             if (logo != null && logo.Length > 0)
             {
-                var placement = new PdfRectangle(Left, logoBottom, Left + LogoWidth, logoTop);
-                if (IsJpeg(logo))
-                {
-                    page.AddJpeg(logo, placement);
-                }
-                else
-                {
-                    page.AddPng(logo, placement);
-                }
+                PlaceLogo(page, logo, new PdfRectangle(Left, logoBottom, Left + LogoWidth, logoTop));
             }
 
             // the address sits to the right of the logo, top-aligned with it
@@ -163,7 +232,7 @@ public class CoverPageWriter
             var baseline = logoTop - FooterSize;
             foreach (var line in addressLines)
             {
-                page.AddText(CoverPageText.Printable(line), FooterSize, new PdfPoint(x, baseline), regular);
+                page.AddText(face.Fit(line), FooterSize, new PdfPoint(x, baseline), face.Added);
                 baseline -= FooterLeading;
             }
         }
@@ -212,7 +281,5 @@ public class CoverPageWriter
             var letters = page.MeasureText(text, size, new PdfPoint(0, 0), font);
             return letters.Count == 0 ? 0 : letters.Max(l => l.GlyphRectangle.Right);
         }
-
-        private static bool IsJpeg(byte[] bytes) => bytes.Length > 2 && bytes[0] == 0xFF && bytes[1] == 0xD8;
     }
 }
