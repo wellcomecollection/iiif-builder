@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Concurrent;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -8,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories.Pdf.CoverPage;
+using Wellcome.Dds.Server.Pdf;
 
 namespace Wellcome.Dds.Server.Controllers;
 
@@ -71,46 +70,18 @@ public class PdfCoverController : ControllerBase
 
         var content = CoverPageContent.FromManifest(manifest, ddsId.Value);
         var logo = content.LogoUrl == null ? null : await logos.Get(content.LogoUrl);
-        var pdf = writer.Write(content, logo);
-        logger.LogInformation("Generated PDF cover page for {Identifier} ({Bytes} bytes)", ddsId.Value, pdf.Length);
-        return File(pdf, "application/pdf");
-    }
-}
-
-/// <summary>
-/// The provider logo referenced by a manifest, fetched once per URL and kept for the process lifetime.
-/// A failed fetch is logged and the cover page is produced without the logo.
-/// </summary>
-public class CoverPageLogoCache
-{
-    private readonly HttpClient httpClient;
-    private readonly ILogger<CoverPageLogoCache> logger;
-    private readonly ConcurrentDictionary<string, Task<byte[]?>> cache = new();
-
-    public CoverPageLogoCache(HttpClient httpClient, ILogger<CoverPageLogoCache> logger)
-    {
-        this.httpClient = httpClient;
-        this.logger = logger;
-    }
-
-    public Task<byte[]?> Get(string url)
-    {
-        return cache.GetOrAdd(url, Fetch);
-    }
-
-    private async Task<byte[]?> Fetch(string url)
-    {
+        byte[] pdf;
         try
         {
-            var bytes = await httpClient.GetByteArrayAsync(url);
-            logger.LogInformation("Fetched cover page logo {Url} ({Bytes} bytes)", url, bytes.Length);
-            return bytes;
+            pdf = writer.Write(content, logo);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (logo != null)
         {
-            logger.LogWarning(ex, "Could not fetch cover page logo {Url}; cover pages will have no logo until restart", url);
-            cache.TryRemove(url, out _); // so the next request tries again
-            return null;
+            // the logo was checked when fetched, so this should not happen; the page matters more than the logo
+            logger.LogError(ex, "Cover page for {Identifier} failed with the logo; writing it without", ddsId.Value);
+            pdf = writer.Write(content, null);
         }
+        logger.LogInformation("Generated PDF cover page for {Identifier} ({Bytes} bytes)", ddsId.Value, pdf.Length);
+        return File(pdf, "application/pdf");
     }
 }

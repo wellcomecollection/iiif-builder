@@ -8,10 +8,12 @@ namespace Wellcome.Dds.Repositories.Pdf.CoverPage;
 
 /// <summary>
 /// Turns the HTML fragments that appear in manifest metadata ("Attribution and usage" is one) into
-/// plain paragraphs, and keeps text within what the embedded fonts can show.
+/// plain paragraphs, and keeps text to what a font can show.
 /// </summary>
 public static class CoverPageText
 {
+    public const char Substitute = '?';
+
     private static readonly Regex LineBreaks = new("<br\\s*/?>", RegexOptions.IgnoreCase);
     private static readonly Regex Tags = new("<[^>]+>");
     private static readonly Regex Spaces = new("[ \\t\\r\\n]+");
@@ -29,32 +31,27 @@ public static class CoverPageText
     }
 
     /// <summary>
-    /// Inter covers Latin, Greek and Cyrillic; the PDF font is a simple 1-byte font so it cannot show
-    /// characters outside the Basic Multilingual Plane's lower ranges at all. Anything else becomes '?',
-    /// which is what the previous service produced for such characters too.
+    /// The text with every character the font has no glyph for replaced by <see cref="Substitute"/>
+    /// (one per character, so an emoji or a CJK ideograph is one '?'), and whitespace reduced to spaces.
     /// </summary>
-    public static string Printable(string text)
+    public static string Printable(string text, CoverPageFont font)
     {
         var sb = new StringBuilder(text.Length);
-        foreach (var c in text)
+        foreach (var rune in text.EnumerateRunes())
         {
-            sb.Append(IsPrintable(c) ? c : '?');
+            if (Rune.IsWhiteSpace(rune))
+            {
+                sb.Append(' ');
+            }
+            else if (rune.IsBmp && !Rune.IsControl(rune) && font.Has((char) rune.Value))
+            {
+                sb.Append((char) rune.Value);
+            }
+            else
+            {
+                sb.Append(Substitute);
+            }
         }
         return sb.ToString();
-    }
-
-    private static bool IsPrintable(char c)
-    {
-        if (c < 0x20)
-        {
-            return false;
-        }
-        // Latin, Latin-1, Latin Extended A/B, IPA, spacing modifiers, Greek, Cyrillic, Latin Extended Additional
-        if (c <= 0x052F || (c >= 0x1E00 && c <= 0x1EFF))
-        {
-            return true;
-        }
-        // General punctuation (dashes, quotes, ellipsis), currency, letterlike symbols, arrows
-        return c >= 0x2010 && c <= 0x2199;
     }
 }
