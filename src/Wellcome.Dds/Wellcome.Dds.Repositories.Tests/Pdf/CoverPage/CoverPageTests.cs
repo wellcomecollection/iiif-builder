@@ -83,12 +83,17 @@ public class CoverPageTests
     }
 
     [Fact]
-    public void Html_Fragments_Become_Plain_Paragraphs()
+    public void Html_Fragments_Become_Plain_Paragraphs_Keeping_The_Links()
     {
         var paragraphs = CoverPageText.ToParagraphs(
-            "<span>You may <a href=\"x\">copy</a> this.<br/><br/>Second &amp; last.<br/></span>");
+            "<span>You may <a target=\"_top\" href=\"http://x.example/a?b=1&amp;c=2\">copy</a> this.<br/><br/>Second &amp;\n  last.<br/></span>");
 
-        paragraphs.Should().Equal("You may copy this.", "Second & last.");
+        paragraphs.Select(p => p.Text).Should().Equal("You may copy this.", "Second & last.");
+        paragraphs[0].Segments.Select(seg => (seg.Text, seg.Url)).Should().Equal(
+            ("You may ", null),
+            ("copy", "http://x.example/a?b=1&c=2"),
+            (" this.", null));
+        paragraphs[1].Segments.Should().ContainSingle().Which.Url.Should().BeNull();
     }
 
     [Fact]
@@ -161,7 +166,31 @@ public class CoverPageTests
         text.Should().Contain("183 Euston Road");
         page.Letters.Select(l => l.FontName).Distinct().Should().BeEquivalentTo("Inter-Regular", "Inter-Bold");
         page.GetImages().Count().Should().Be(logo == null ? 0 : 1);
-        page.ExperimentalAccess.GetAnnotations().Should().ContainSingle(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link);
+        // the persistent URL, and the Creative Commons link inside the attribution text (one rectangle per line it spans)
+        page.ExperimentalAccess.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).Should().HaveCountGreaterOrEqualTo(2);
+        var uris = System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.Latin1.GetString(pdf), @"/URI\s*\(([^)]*)\)").Select(m => m.Groups[1].Value);
+        uris.Distinct().Should().BeEquivalentTo("https://wellcomecollection.org/works/zjytxny8", "http://creativecommons.org/licenses/by-nc/4.0/");
+    }
+
+    [Fact]
+    public void A_Link_That_Wraps_Gets_A_Rectangle_On_Each_Line_Over_Its_Own_Words()
+    {
+        var manifest = JObject.Parse(BiocratsManifest);
+        var linkText = string.Join(" ", Enumerable.Repeat("licence terms", 12));
+        manifest["metadata"]![3]!["value"] = new JObject { ["en"] = new JArray($"Read the <a href=\"http://x.example/\">{linkText}</a> before use.") };
+
+        var pdf = new CoverPageWriter().Write(CoverPageContent.FromManifest(manifest, "x"), null);
+
+        using var document = PdfDocument.Open(pdf);
+        var page = document.GetPage(1);
+        var links = page.ExperimentalAccess.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).ToList();
+        links.Count.Should().BeGreaterThan(2, "the link text wraps over more than one line, plus the persistent URL");
+        // every letter of the link text lies inside one of the link rectangles, and "Read the" and "before use." lie in none
+        Func<UglyToad.PdfPig.Content.Letter, bool> covered = l => links.Any(a => a.Rectangle.Left <= l.GlyphRectangle.Left + 0.5 && a.Rectangle.Right >= l.GlyphRectangle.Right - 0.5
+                                                                  && a.Rectangle.Bottom <= l.GlyphRectangle.Bottom + 0.5 && a.Rectangle.Top >= l.GlyphRectangle.Top - 0.5);
+        var words = page.GetWords().ToList();
+        words.Where(w => w.Text is "licence" or "terms").Should().HaveCount(24).And.OnlyContain(w => w.Letters.All(l => covered(l)));
+        words.Where(w => w.Text is "Read" or "use.").Should().HaveCount(2).And.OnlyContain(w => !w.Letters.Any(l => covered(l)));
     }
 
     [Fact]
