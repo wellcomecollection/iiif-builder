@@ -188,6 +188,10 @@ namespace Wellcome.Dds.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it; the PDF, SVG and
+            // ImageMagick loaders are not needed and are the ones that take untrusted input badly.
+            NetVips.NetVips.BlockUntrusted = true;
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
