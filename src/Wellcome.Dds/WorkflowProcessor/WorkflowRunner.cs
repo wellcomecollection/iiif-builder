@@ -20,6 +20,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories.Presentation.SpecialState;
+using Wellcome.Dds.Repositories.Pdf;
 using AccessCondition = Wellcome.Dds.Common.AccessCondition;
 using Version = IIIF.Presentation.Version;
 
@@ -43,6 +44,7 @@ namespace WorkflowProcessor
         private readonly ICacheInvalidationPathPublisher cacheInvalidationPathPublisher;
         private readonly IMemoryCache memoryCache;
         private readonly IIdentityService identityService;
+        private readonly IPdfThumbnailService pdfThumbnailService;
 
         public WorkflowRunner(
             IIngestJobRegistry ingestJobRegistry, 
@@ -57,7 +59,8 @@ namespace WorkflowProcessor
             AltoDerivedAssetBuilder altoBuilder,
             ICacheInvalidationPathPublisher cacheInvalidationPathPublisher,
             IMemoryCache memoryCache,
-            IIdentityService identityService)
+            IIdentityService identityService,
+            IPdfThumbnailService pdfThumbnailService)
         {
             this.ingestJobRegistry = ingestJobRegistry;
             this.logger = logger;
@@ -72,6 +75,7 @@ namespace WorkflowProcessor
             this.cacheInvalidationPathPublisher = cacheInvalidationPathPublisher;
             this.memoryCache = memoryCache;
             this.identityService = identityService;
+            this.pdfThumbnailService = pdfThumbnailService;
         }
 
         public async Task ProcessJob(WorkflowJob job, CancellationToken cancellationToken = default)
@@ -162,6 +166,13 @@ namespace WorkflowProcessor
                     }
                 }
 
+                if (jobOptions.RebuildIIIF && ddsIdentifier.Generator == Generator.Archivematica)
+                {
+                    // Born-digital packages may contain PDFs; store the thumbnail /thumb serves before
+                    // anyone asks for it. Never fails the job: /thumb and the dashboard can generate later.
+                    await EnsurePdfThumbnails(ddsIdentifier, cancellationToken);
+                }
+
                 if (jobOptions.RebuildTextCaches || jobOptions.RebuildAllAnnoPageCaches)
                 {
                     // This criterion could change, but for now it's the simplest test; we only have ALTO for Goobi-processed things.
@@ -207,6 +218,22 @@ namespace WorkflowProcessor
                         ddsIdentifier);
                     cache.Compact(100);
                 }
+            }
+        }
+
+        private async Task EnsurePdfThumbnails(DdsIdentity ddsIdentifier, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var results = await pdfThumbnailService.EnsureThumbnailsForPackage(ddsIdentifier, cancellationToken: cancellationToken);
+                foreach (var result in results)
+                {
+                    logger.LogInformation("JQ {identifier} PDF thumbnail: {result}", ddsIdentifier, result);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "JQ {identifier} PDF thumbnail generation failed", ddsIdentifier);
             }
         }
 

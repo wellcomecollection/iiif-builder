@@ -12,8 +12,9 @@ using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Repositories.Images;
+using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
-using Wellcome.Dds.Server.Images;
 
 namespace Wellcome.Dds.Server.Controllers
 {
@@ -24,20 +25,20 @@ namespace Wellcome.Dds.Server.Controllers
         private const int MaxWidth = 1024; 
         private readonly IMetsRepository metsRepository;
         private readonly DdsContext ddsContext;
-        private readonly PdfThumbnailUtil pdfThumbnailUtil;
+        private readonly IPdfThumbnailService pdfThumbnailService;
         private readonly ILogger<ThumbController> logger;
         private readonly IIdentityService identityService;
 
         public ThumbController(
             IMetsRepository metsRepository,
             DdsContext ddsContext,
-            PdfThumbnailUtil pdfThumbnailUtil,
+            IPdfThumbnailService pdfThumbnailService,
             ILogger<ThumbController> logger,
             IIdentityService identityService)
         {
             this.metsRepository = metsRepository;
             this.ddsContext = ddsContext;
-            this.pdfThumbnailUtil = pdfThumbnailUtil;
+            this.pdfThumbnailService = pdfThumbnailService;
             this.logger = logger;
             this.identityService = identityService;
         }
@@ -92,7 +93,7 @@ namespace Wellcome.Dds.Server.Controllers
             if (manifestations.Exists(m => m.AssetType == "application/pdf"))
             {
                 // Born digital PDF...
-                return await HandlePdfThumbRequest(ddsId.Value, width ?? 200);
+                return await HandlePdfThumbRequest(ddsId, width ?? 200);
             }
             
             return NotFound($"No thumbnail for {id}");
@@ -114,15 +115,25 @@ namespace Wellcome.Dds.Server.Controllers
             return new List<Manifestation>{ manifestation };
         }
 
-        private async Task<IActionResult> HandlePdfThumbRequest(string identifier, int width)
+        private async Task<IActionResult> HandlePdfThumbRequest(DdsIdentity ddsId, int width)
         {
+            var identifier = ddsId.Value;
             Stream thumbnailStream = null;
             try
             {
-                thumbnailStream = await pdfThumbnailUtil.GetPdfThumbnail(identifier);
+                thumbnailStream = await pdfThumbnailService.GetThumbnail(identifier);
                 if (thumbnailStream == null)
                 {
-                    logger.LogInformation("Request for not found PDF thumbnail for '{Identifier}'", identifier);
+                    // Not pre-generated (or uploaded): render page 1 now and store it for next time.
+                    var result = await pdfThumbnailService.EnsureThumbnail(ddsId, cancellationToken: HttpContext.RequestAborted);
+                    logger.LogInformation("On-demand PDF thumbnail for '{Identifier}': {Result}", identifier, result);
+                    if (result.Outcome == PdfThumbnailOutcome.Generated)
+                    {
+                        thumbnailStream = await pdfThumbnailService.GetThumbnail(identifier);
+                    }
+                }
+                if (thumbnailStream == null)
+                {
                     return NotFound($"No thumbnail image for {identifier}");
                 }
 

@@ -38,6 +38,9 @@ ENV LANG en_GB.UTF8
 LABEL maintainer="Donald Gray <donald.gray@digirati.com>,Tom Crane <tom.crane@digirati.com>"
 LABEL org.opencontainers.image.source=https://github.com/wellcomecollection/iiif-builder
 
+# pdftoppm renders born-digital PDF first pages for the thumbnail page
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 EXPOSE 80
