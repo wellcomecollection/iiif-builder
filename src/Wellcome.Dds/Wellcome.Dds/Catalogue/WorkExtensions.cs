@@ -123,6 +123,30 @@ namespace Wellcome.Dds.Catalogue
             return Array.Empty<string>();
         }
 
+        /// <summary>
+        /// Current (/presentation/{id}, /presentation/v2/{id}) and legacy (/iiif/{id}/manifest) forms.
+        /// </summary>
+        private static readonly Regex[] IiifLocationForms =
+        {
+            new Regex(@"/presentation/(?:v2/)?(.+?)/?$"),
+            new Regex(@"/iiif/(.+?)/manifest/?$")
+        };
+
+        /// <summary>
+        /// The preservation identifiers named by the work's iiif-presentation locations: the identifier
+        /// segment of each IIIF Manifest or Collection URI, unescaped, in both current and legacy forms.
+        /// </summary>
+        public static IEnumerable<string> GetIiifPresentationIdentifiers(this Work work)
+        {
+            return work.Items.AnyItems()
+                .SelectMany(item => item.Locations.AnyItems())
+                .Where(loc => loc.LocationType?.Id == "iiif-presentation" && loc.Url.HasText())
+                .Select(loc => IiifLocationForms.Select(form => form.Match(loc.Url!)).FirstOrDefault(m => m.Success))
+                .Where(m => m != null)
+                .Select(m => Uri.UnescapeDataString(m!.Groups[1].Value))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+        }
+
         public static bool HasIIIFDigitalLocation(this Work work)
         {
             var iiifLocations = work

@@ -74,6 +74,16 @@ public class IdentifierNavigatorTests
 
     private static HttpRequestException NotFound() => new HttpRequestException("404", null, HttpStatusCode.NotFound);
 
+    /// <summary>
+    /// What the catalogue client returns for an identifiers query: the chosen work, or nothing.
+    /// </summary>
+    private static WorkSelection Selected(string identifier, Work? work) => new WorkSelection(identifier)
+    {
+        Chosen = work,
+        Strength = work == null ? WorkMatchStrength.None : WorkMatchStrength.SierraSystemNumber,
+        Reason = work == null ? "The identifiers query returned no works" : "The only work returned"
+    };
+
     [Fact]
     public async Task Born_Digital_Calm_Ref_Navigates_Every_Route()
     {
@@ -97,7 +107,7 @@ public class IdentifierNavigatorTests
             (SourceSystems.CalmRefNo, "ARTCOO/B/15"), (SourceSystems.Mets, "artcoo/b/15"));
         A.CallTo(() => catalogue.GetWorkByWorkId("q8fhz52m")).Returns(publicWork);
         A.CallTo(() => catalogue.GetWorkByWorkId("m2fe2wrv")).Throws(NotFound());
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("ARTCOO/B/15")).Returns(publicWork);
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("ARTCOO/B/15")).Returns(Selected("ARTCOO/B/15", publicWork));
 
         // Storage: born-digital hit
         A.CallTo(() => storageProbe.Probe(StorageSpace.BornDigital, "ARTCOO/B/15"))
@@ -151,7 +161,7 @@ public class IdentifierNavigatorTests
         var publicWork = WorkWithLocation("vaqg68j6", "https://iiif.wellcomecollection.org/presentation/ARTCOO/B/15",
             (SourceSystems.CalmRefNo, "ARTCOO/B/15"));
         A.CallTo(() => catalogue.GetWorkByWorkId("q8fhz52m")).Returns(publicWork);
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("q8fhz52m")).Returns((Work) null);
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("q8fhz52m")).Returns(Selected("q8fhz52m", null));
 
         var nav = await sut.Navigate("q8fhz52m");
 
@@ -175,7 +185,7 @@ public class IdentifierNavigatorTests
         });
         A.CallTo(() => identifiersApi.Resolve("q8fhz52m")).Returns(resolution);
         A.CallTo(() => catalogue.GetWorkByWorkId("q8fhz52m")).Throws(NotFound());
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("q8fhz52m")).Returns((Work) null);
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("q8fhz52m")).Returns(Selected("q8fhz52m", null));
 
         var nav = await sut.Navigate("q8fhz52m");
 
@@ -198,7 +208,7 @@ public class IdentifierNavigatorTests
         var publicWork = WorkWithLocation("nydjbrr7", "https://iiif.wellcomecollection.org/presentation/v2/b14658197",
             (SourceSystems.SierraSystemNumber, "b14658197"));
         A.CallTo(() => catalogue.GetWorkByWorkId(A<string>._)).Returns(publicWork);
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("b14658197")).Returns(publicWork);
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b14658197")).Returns(Selected("b14658197", publicWork));
         A.CallTo(() => storageProbe.Probe(StorageSpace.Digitised, "b14658197"))
             .Returns(new StorageProbeResult(StorageSpace.Digitised, "b14658197") { Found = true, Version = "v1" });
 
@@ -223,7 +233,7 @@ public class IdentifierNavigatorTests
         resolution.Lookups.Add(Hit(SourceSystems.SierraSystemNumber, "b18304175", sierraSet));
         A.CallTo(() => identifiersApi.Resolve("b18304175")).Returns(resolution);
         A.CallTo(() => catalogue.GetWorkByWorkId("er85sbxs")).Returns(new Work { Id = "a9jwm2jc" });
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("b18304175")).Returns(new Work { Id = "zzzzzzzz" });
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b18304175")).Returns(Selected("b18304175", new Work { Id = "zzzzzzzz" }));
 
         var nav = await sut.Navigate("b18304175");
 
@@ -243,7 +253,7 @@ public class IdentifierNavigatorTests
         A.CallTo(() => identifiersApi.Resolve("SA/MAC/J.3/32")).Returns(resolution);
         var publicWork = WorkWithLocation("a9jwm2jc", "https://iiif.wellcomecollection.org/presentation/v2/b18304175",
             (SourceSystems.CalmAltRefNo, "SA/MAC/J.3/32"), (SourceSystems.Mets, "b18304175"));
-        A.CallTo(() => catalogue.GetWorkByOtherIdentifier("SA/MAC/J.3/32")).Returns(publicWork);
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("SA/MAC/J.3/32")).Returns(Selected("SA/MAC/J.3/32", publicWork));
         A.CallTo(() => storageProbe.Probe(StorageSpace.Digitised, "b18304175"))
             .Returns(new StorageProbeResult(StorageSpace.Digitised, "b18304175") { Found = true });
 
@@ -295,5 +305,101 @@ public class IdentifierNavigatorTests
         (await sut.FindPredecessorPreservationIdentifier("in00067890")).Should().Be("b18035978");
         (await sut.FindPredecessorPreservationIdentifier("in00012345")).Should().BeNull("no predecessor: post-migration item");
         (await sut.FindPredecessorPreservationIdentifier("in99999999")).Should().BeNull("unknown to the registry");
+    }
+
+    // --- LookupWorkByAnyIdentifier: the identifiers query cross-checked against the registry (step 3) ---
+
+    [Fact]
+    public async Task Lookup_Uses_The_Query_Alone_When_The_Registry_Has_No_Mets_Row()
+    {
+        var work = WorkWithLocation("vaqg68j6", "https://iiif.wellcomecollection.org/presentation/ARTCOO/B/15");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("ARTCOO/B/15")).Returns(Selected("ARTCOO/B/15", work));
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "ARTCOO/B/15", OntologyType.Work)).Returns((IdentifierSet) null);
+
+        var lookup = await sut.LookupWorkByAnyIdentifier("ARTCOO/B/15");
+
+        lookup.Work!.Id.Should().Be("vaqg68j6");
+        lookup.Route.Should().Be(WorkLookupRoute.Search);
+        lookup.RegistryCanonicalId.Should().BeNull();
+        lookup.Note.Should().Contain("no mets row");
+        A.CallTo(() => catalogue.GetWorkByWorkId(A<string>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Lookup_Falls_Back_To_The_Registry_When_The_Query_Is_Ambiguous()
+    {
+        var ambiguous = new WorkSelection("b14658197") { Ambiguous = true, Reason = "2 of 2 works are bound equally strongly" };
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b14658197")).Returns(ambiguous);
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "b14658197", OntologyType.Work))
+            .Returns(Set("metsmets", Row(SourceSystems.Mets, "b14658197")));
+        var publicWork = WorkWithLocation("pubpubpu", "https://iiif.wellcomecollection.org/presentation/b14658197");
+        A.CallTo(() => catalogue.GetWorkByWorkId("metsmets")).Returns(publicWork);
+
+        var lookup = await sut.LookupWorkByAnyIdentifier("b14658197");
+
+        lookup.Work!.Id.Should().Be("pubpubpu");
+        lookup.Route.Should().Be(WorkLookupRoute.Registry);
+        lookup.ViaRegistry!.Redirected.Should().BeTrue();
+        lookup.Note.Should().Contain("equally strongly").And.Contain("redirects to pubpubpu");
+    }
+
+    [Fact]
+    public async Task Lookup_Reports_Agreement_When_Both_Routes_Reach_The_Same_Work()
+    {
+        var publicWork = WorkWithLocation("pubpubpu", "https://iiif.wellcomecollection.org/presentation/b14658197");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b14658197")).Returns(Selected("b14658197", publicWork));
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "b14658197", OntologyType.Work))
+            .Returns(Set("metsmets", Row(SourceSystems.Mets, "b14658197")));
+        A.CallTo(() => catalogue.GetWorkByWorkId("metsmets")).Returns(publicWork);
+
+        var lookup = await sut.LookupWorkByAnyIdentifier("b14658197");
+
+        lookup.Work!.Id.Should().Be("pubpubpu");
+        lookup.Route.Should().Be(WorkLookupRoute.Both);
+        lookup.RoutesDisagreed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Lookup_Prefers_The_Registry_And_Says_So_When_The_Routes_Disagree()
+    {
+        var bySearch = WorkWithLocation("searched", "https://iiif.wellcomecollection.org/presentation/b14658197");
+        var byRegistry = WorkWithLocation("merged00", "https://iiif.wellcomecollection.org/presentation/b14658197");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b14658197")).Returns(Selected("b14658197", bySearch));
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "b14658197", OntologyType.Work))
+            .Returns(Set("metsmets", Row(SourceSystems.Mets, "b14658197")));
+        A.CallTo(() => catalogue.GetWorkByWorkId("metsmets")).Returns(byRegistry);
+
+        var lookup = await sut.LookupWorkByAnyIdentifier("b14658197");
+
+        lookup.Work!.Id.Should().Be("merged00");
+        lookup.Route.Should().Be(WorkLookupRoute.RegistryOverSearch);
+        lookup.RoutesDisagreed.Should().BeTrue();
+        lookup.Note.Should().Contain("DISAGREE").And.Contain("searched").And.Contain("merged00");
+        (await sut.FindWorkByAnyIdentifier("b14658197"))!.Id.Should().Be("merged00");
+    }
+
+    [Fact]
+    public async Task Lookup_Survives_A_Registry_Error_And_A_Mets_Canonical_That_Is_Not_A_Work()
+    {
+        var work = WorkWithLocation("vaqg68j6", "https://iiif.wellcomecollection.org/presentation/ARTCOO/B/15");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("ARTCOO/B/15")).Returns(Selected("ARTCOO/B/15", work));
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "ARTCOO/B/15", OntologyType.Work))
+            .Throws(new IdentifiersApiException("url", HttpStatusCode.InternalServerError, null));
+
+        var afterError = await sut.LookupWorkByAnyIdentifier("ARTCOO/B/15");
+
+        afterError.Work!.Id.Should().Be("vaqg68j6");
+        afterError.Route.Should().Be(WorkLookupRoute.Search);
+        afterError.RegistryError.Should().NotBeNull();
+
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, "ARTCOO/B/15", OntologyType.Work))
+            .Returns(Set("m2fe2wrv", Row(SourceSystems.Mets, "artcoo/b/15")));
+        A.CallTo(() => catalogue.GetWorkByWorkId("m2fe2wrv")).Throws(NotFound());
+
+        var afterNotFound = await sut.LookupWorkByAnyIdentifier("ARTCOO/B/15");
+
+        afterNotFound.Work!.Id.Should().Be("vaqg68j6");
+        afterNotFound.Route.Should().Be(WorkLookupRoute.Search);
+        afterNotFound.Note.Should().Contain("not a work in the catalogue");
     }
 }

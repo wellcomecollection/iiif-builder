@@ -147,6 +147,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddSingleton<ThumbnailSizeDecorator>();
             
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
+            services.AddScoped<Wellcome.Dds.Common.IIdentityStatsRepository, Wellcome.Dds.Repositories.IdentityStatsRepository>();
 
             services.AddControllersWithViews(
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))

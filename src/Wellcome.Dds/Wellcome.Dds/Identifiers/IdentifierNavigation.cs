@@ -46,6 +46,11 @@ namespace Wellcome.Dds.Identifiers
         public string? WorkByIdentifiersQueryError { get; set; }
 
         /// <summary>
+        /// How the work was chosen from the query's results (or why none was).
+        /// </summary>
+        public WorkSelection? WorkByIdentifiersQuerySelection { get; set; }
+
+        /// <summary>
         /// Preservation identifiers read from <see cref="WorkByIdentifiersQuery"/>'s IIIF locations and mets identifiers.
         /// </summary>
         public List<string> PreservationIdentifiersFromWork { get; } = new List<string>();

@@ -37,8 +37,16 @@ namespace Wellcome.Dds.Identifiers
         Task<string?> FindPredecessorPreservationIdentifier(string folioInstanceId);
 
         /// <summary>
-        /// The catalogue's identifiers= query: the only route for identifiers the registry never mints,
-        /// such as a CALM AltRefNo.
+        /// The public work for an identifier, by the catalogue's identifiers= query (with the selection rule
+        /// for several results) cross-checked against the registry's mets row and the catalogue redirect.
+        /// The query is the only route for identifiers the registry never mints, such as a CALM AltRefNo;
+        /// the registry is the merger's own statement, so it wins when both answer and they disagree.
+        /// </summary>
+        Task<WorkLookup> LookupWorkByAnyIdentifier(string identifier);
+
+        /// <summary>
+        /// <see cref="LookupWorkByAnyIdentifier"/>, reduced to the work. Null when neither route answers or
+        /// the query is ambiguous and the registry has no row.
         /// </summary>
         Task<Work?> FindWorkByAnyIdentifier(string identifier);
 
