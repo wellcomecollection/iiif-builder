@@ -23,8 +23,10 @@ provider's logo and address. A 404 means there is no Manifest for the identifier
 The path and the output are the same, so switching is a DLCS configuration change: point the named
 query's cover page URL at the iiif-builder host. The server also answers at `/pdf-cover-v2/{identifier}`,
 so the edge can route the old path to the old service and the new path to the server while both run,
-and the DLCS can be switched by path. The provider logo is fetched from the URL in the Manifest with a
-User-Agent header; the logo's CloudFront rejects requests without one. Once that has happened and been verified, delete
+and the DLCS can be switched by path. The provider logo is the URL in the Manifest; when its path is a file under the server's
+web root (the Wellcome Collection logo is `wwwroot/logos/wellcome-collection-black.png`, which the DDS serves
+itself) it is read from disk, otherwise it is fetched over HTTP with a User-Agent header, since the edge
+rejects requests without one. Once that has happened and been verified, delete
 `src/PdfCoverPage`, `Dockerfile-pdfgenerator`, and the `pdf-generator` service and ECR repository in
 iiif-builder-infrastructure. `/pdf-cover/ping` exists on the server too, for anything that still probes
 the old health check.
