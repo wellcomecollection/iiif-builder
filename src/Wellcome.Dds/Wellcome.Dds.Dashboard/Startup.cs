@@ -38,6 +38,7 @@ using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Dashboard
@@ -115,6 +116,9 @@ namespace Wellcome.Dds.Dashboard
                 .AddScoped<IMetsRepository, MetsRepository>();
 
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
+            services.AddPdfThumbnails(Configuration);
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
+            NetVips.NetVips.BlockUntrusted = true;
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDigitalObjectRepository, DigitalObjectRepository>();

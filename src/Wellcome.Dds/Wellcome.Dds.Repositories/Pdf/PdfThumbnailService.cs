@@ -1,0 +1,296 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Utils;
+using Utils.Aws.S3;
+using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories.Images;
+
+namespace Wellcome.Dds.Repositories.Pdf;
+
+public class PdfThumbnailService : IPdfThumbnailService
+{
+    private const string KeyPrefix = "_pdf_thumbs/";
+
+    /// <summary>
+    /// S3 user metadata on a thumbnail this service made (the SDK adds the x-amz-meta- prefix); the
+    /// dashboard tags its uploads "uploaded". Thumbnails from before the tags (the old Ghostscript tool,
+    /// old uploads) have none, and are kept like uploads; the dashboard button replaces them one by one.
+    /// </summary>
+    public const string SourceMetadataKey = "source";
+    public const string SourceMetadataGenerated = "generated";
+    public const string SourceMetadataUploaded = "uploaded";
+
+    private readonly IMetsRepository metsRepository;
+    private readonly IIdentityService identityService;
+    private readonly IPdfRasteriser rasteriser;
+    private readonly IAmazonS3 ddsServiceS3;
+    private readonly DdsOptions ddsOptions;
+    private readonly PdfThumbnailOptions options;
+    private readonly ILogger<PdfThumbnailService> logger;
+
+    public PdfThumbnailService(
+        IMetsRepository metsRepository,
+        IIdentityService identityService,
+        IPdfRasteriser rasteriser,
+        INamedAmazonS3ClientFactory s3ClientFactory,
+        IOptions<DdsOptions> ddsOptions,
+        IOptions<PdfThumbnailOptions> options,
+        ILogger<PdfThumbnailService> logger)
+    {
+        this.metsRepository = metsRepository;
+        this.identityService = identityService;
+        this.rasteriser = rasteriser;
+        ddsServiceS3 = s3ClientFactory.Get(NamedClient.Dds);
+        this.ddsOptions = ddsOptions.Value;
+        this.options = options.Value;
+        this.logger = logger;
+    }
+
+    public string GetKey(string identifier)
+    {
+        return $"{KeyPrefix}{identifier}.jpg";
+    }
+
+    public async Task<Stream?> GetThumbnail(string identifier)
+    {
+        var key = GetKey(identifier);
+        try
+        {
+            var response = await ddsServiceS3.GetObjectAsync(new GetObjectRequest
+            {
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key
+            });
+            if (response.HttpStatusCode == HttpStatusCode.OK && response.ContentLength > 0)
+            {
+                return response.ResponseStream;
+            }
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            logger.LogError(ex, "Error getting object at {Key}", key.LogSafe());
+        }
+        return null;
+    }
+
+    public async Task<bool> ThumbnailExists(string identifier)
+    {
+        return (await GetStored(identifier)).Exists;
+    }
+
+    /// <summary>
+    /// Whether a thumbnail is stored and whether this service generated it. S3 answers 403 rather than
+    /// 404 for a missing key when the caller may not list the bucket, so any S3 error counts as "not
+    /// there" and is logged, rather than thrown at a /thumb request or a workflow job.
+    /// </summary>
+    private async Task<(bool Exists, bool Generated)> GetStored(string identifier)
+    {
+        var key = GetKey(identifier);
+        try
+        {
+            var metadata = await ddsServiceS3.GetObjectMetadataAsync(new GetObjectMetadataRequest
+            {
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key
+            });
+            var exists = metadata.HttpStatusCode == HttpStatusCode.OK && metadata.ContentLength > 0;
+            var generated = exists && metadata.Metadata[SourceMetadataKey] == SourceMetadataGenerated;
+            return (exists, generated);
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
+        {
+            return (false, false);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            logger.LogError(ex, "Error getting metadata for {Key}; treating as no thumbnail", key.LogSafe());
+            return (false, false);
+        }
+    }
+
+    public async Task<PdfThumbnailResult> EnsureThumbnail(DdsIdentity ddsId, PdfThumbnailRefresh refresh = PdfThumbnailRefresh.KeepExisting, CancellationToken cancellationToken = default)
+    {
+        var identifier = ddsId.Value;
+        var key = GetKey(identifier);
+        if (refresh != PdfThumbnailRefresh.ReplaceAll)
+        {
+            var stored = await GetStored(identifier);
+            if (stored.Exists && (refresh == PdfThumbnailRefresh.KeepExisting || !stored.Generated))
+            {
+                return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.AlreadyExists,
+                    stored.Generated ? null : "kept: not tagged as generated by the DDS (uploaded by hand, or from before tagging)");
+            }
+        }
+
+        IManifestation? manifestation;
+        try
+        {
+            manifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not load METS for {Identifier}", identifier.LogSafe());
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.Failed, $"Could not load METS: {ex.Message}");
+        }
+        if (manifestation == null)
+        {
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.NoPdf,
+                "Not a manifestation (a collection has no PDF of its own; use a manifestation identifier)");
+        }
+
+        var pdfFile = PdfThumbnailAccess.GetPdfFile(manifestation);
+        if (pdfFile?.RelativePath == null)
+        {
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.NoPdf, "The manifestation contains no PDF");
+        }
+
+        if (!PdfThumbnailAccess.IsPermitted(pdfFile.AccessCondition))
+        {
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.NotPermitted,
+                $"Access condition '{pdfFile.AccessCondition ?? AccessCondition.Missing}' does not allow a public thumbnail")
+            {
+                SourcePath = pdfFile.RelativePath
+            };
+        }
+
+        var declaredSize = ParseSize(pdfFile.AssetMetadata?.GetFileSize());
+        if (declaredSize > options.MaxPdfBytes)
+        {
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.TooLarge,
+                $"PDF is {StringUtils.FormatFileSize(declaredSize)}, above the {StringUtils.FormatFileSize(options.MaxPdfBytes)} limit")
+            {
+                SourcePath = pdfFile.RelativePath
+            };
+        }
+
+        var workingDirectory = Path.Combine(Path.GetTempPath(), "pdf_thumbs", Guid.NewGuid().ToString("N"));
+        var pdfPath = Path.Combine(workingDirectory, "source.pdf");
+        var renderedPath = Path.Combine(workingDirectory, "page1.png");
+        try
+        {
+            Directory.CreateDirectory(workingDirectory);
+
+            logger.LogInformation("Fetching {RelativePath} for {Identifier}", pdfFile.RelativePath.LogSafe(), identifier.LogSafe());
+            var tooLarge = await DownloadWithCap(pdfFile, pdfPath, cancellationToken);
+            if (tooLarge)
+            {
+                return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.TooLarge,
+                    $"PDF exceeds the {StringUtils.FormatFileSize(options.MaxPdfBytes)} limit")
+                {
+                    SourcePath = pdfFile.RelativePath
+                };
+            }
+
+            logger.LogInformation("Rendering page 1 of {Identifier} with {Rasteriser}", identifier.LogSafe(), rasteriser.Name);
+            await rasteriser.RasteriseFirstPage(pdfPath, renderedPath, cancellationToken);
+
+            // The render is lossless PNG at (pdftoppm) or above (Ghostscript) the thumbnail width, so this
+            // is the only lossy step.
+            var jpeg = JpegResizer.ResizeToWidth(renderedPath, options.ThumbnailWidth, options.JpegQuality);
+
+            await using var jpegStream = new MemoryStream(jpeg);
+            var put = new PutObjectRequest
+            {
+                InputStream = jpegStream,
+                ContentType = "image/jpeg",
+                BucketName = ddsOptions.PresentationContainer,
+                Key = key
+            };
+            put.Metadata.Add(SourceMetadataKey, SourceMetadataGenerated);
+            await ddsServiceS3.PutObjectAsync(put, cancellationToken);
+
+            logger.LogInformation("Stored PDF thumbnail {Key} ({Size})", key.LogSafe(), StringUtils.FormatFileSize(jpeg.Length));
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.Generated,
+                $"{StringUtils.FormatFileSize(jpeg.Length)} JPEG from {rasteriser.Name}")
+            {
+                SourcePath = pdfFile.RelativePath
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "PDF thumbnail generation failed for {Identifier}", identifier.LogSafe());
+            return new PdfThumbnailResult(identifier, key, PdfThumbnailOutcome.Failed, ex.Message)
+            {
+                SourcePath = pdfFile.RelativePath
+            };
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(workingDirectory))
+                {
+                    Directory.Delete(workingDirectory, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not remove {Directory}", workingDirectory);
+            }
+        }
+    }
+
+    public async Task<List<PdfThumbnailResult>> EnsureThumbnailsForPackage(DdsIdentity packageId, PdfThumbnailRefresh refresh = PdfThumbnailRefresh.ReplaceGenerated, CancellationToken cancellationToken = default)
+    {
+        var results = new List<PdfThumbnailResult>();
+        await foreach (var inContext in metsRepository.GetAllManifestationsInContext(packageId).WithCancellation(cancellationToken))
+        {
+            var manifestation = inContext.Manifestation;
+            var manifestationId = identityService.GetIdentity(manifestation.Identifier);
+            if (manifestation.Partial)
+            {
+                manifestation = await metsRepository.GetAsync(manifestationId) as IManifestation;
+            }
+            if (manifestation == null || PdfThumbnailAccess.GetPdfFile(manifestation) == null)
+            {
+                continue;
+            }
+            results.Add(await EnsureThumbnail(manifestationId, refresh, cancellationToken));
+        }
+        return results;
+    }
+
+    /// <summary>
+    /// Copy the PDF to disk, giving up as soon as it exceeds the size limit. Returns true if it did.
+    /// </summary>
+    private async Task<bool> DownloadWithCap(IPhysicalFile pdfFile, string pdfPath, CancellationToken cancellationToken)
+    {
+        await using var source = await pdfFile.WorkStore.GetStreamForPathAsync(pdfFile.RelativePath!);
+        await using var target = File.Create(pdfPath);
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+        {
+            total += read;
+            if (total > options.MaxPdfBytes)
+            {
+                return true;
+            }
+            await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+        }
+        return false;
+    }
+
+    private static long ParseSize(string? size)
+    {
+        return long.TryParse(size, out var bytes) ? bytes : 0;
+    }
+}

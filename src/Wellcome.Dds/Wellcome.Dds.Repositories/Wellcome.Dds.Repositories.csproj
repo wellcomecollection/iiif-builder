@@ -12,6 +12,12 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
     <PackageReference Include="iiif-net" Version="0.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
+    <PackageReference Include="NetVips" Version="3.2.0" />
+    <!-- libvips binaries for where we run (Linux containers) and develop (Windows); the NetVips.Native meta-package would publish every platform -->
+    <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.7" />
+    <PackageReference Include="NetVips.Native.win-x64" Version="8.18.7" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 
   <ItemGroup>
