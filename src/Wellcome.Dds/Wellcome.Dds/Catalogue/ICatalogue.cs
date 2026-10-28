@@ -8,11 +8,19 @@ namespace Wellcome.Dds.Catalogue
     public interface ICatalogue
     {
         /// <summary>
-        /// Find a work in the catalogue
+        /// Find a work in the catalogue by any identifier it carries (the identifiers= query). When the
+        /// query returns several works, the one most strongly bound to the identifier is chosen
+        /// (<see cref="WorkSelection"/>); when none is clearly strongest, null, never a guess.
         /// </summary>
         /// <param name="identifier">Usually a B Number, but could be a CALM-ref</param>
-        /// <returns>A Catalogue Work</returns>
+        /// <returns>A Catalogue Work, fetched in full, or null</returns>
         Task<Work?> GetWorkByOtherIdentifier(string identifier);
+
+        /// <summary>
+        /// As <see cref="GetWorkByOtherIdentifier"/>, but returning the whole selection: the chosen work
+        /// (fetched in full), how it was bound to the identifier, and the works it beat.
+        /// </summary>
+        Task<WorkSelection> FindWorksByOtherIdentifier(string identifier);
         
         /// <summary>
         /// Get a work in the catalogue
