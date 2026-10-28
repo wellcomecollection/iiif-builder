@@ -157,7 +157,7 @@ namespace Wellcome.Dds.Repositories.Catalogue
             var response = await httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Request to '{url}' returned {statusCode}", url, response.StatusCode);
+                logger.LogWarning("Request to '{url}' returned {statusCode}", url.LogSafe(), response.StatusCode);
             }
 
             response.EnsureSuccessStatusCode();
