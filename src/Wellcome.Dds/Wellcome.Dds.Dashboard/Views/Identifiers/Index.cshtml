@@ -1,0 +1,418 @@
+@using Wellcome.Dds.Catalogue
+@using Wellcome.Dds.Identifiers
+@using Wellcome.Dds.IIIFBuilding
+@inject UriPatterns UriPatterns
+@model IdentifiersModel
+
+@{
+    ViewBag.Title = "Identifiers API";
+}
+
+<h1>Identifiers API</h1>
+
+<p>
+    Queries the catalogue's <a href="https://github.com/wellcomecollection/docs/tree/main/rfcs/089-identifiers-api">Identifiers API</a>
+    (RFC 089) at <code>@Model.BaseUrl</code>, which maps canonical catalogue ids to their source identifiers and back.
+    This is not the DDS's own identity service, which is at <code>/dash/Identity/Get/{id}</code>
+    (@Html.ActionLink("stats on its table", "Stats", "Identity")).
+</p>
+
+@if (!Model.HasApiKey)
+{
+    <div class="alert alert-danger" role="alert">
+        No API key is configured (<code>IdentifiersApi:ApiKey</code>); requests will be rejected by the API gateway.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Resolve anything</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("ResolveForm", "Identifiers")">
+                    <p class="help-block">A b number, CALM ref, GUID, Miro number, FOLIO HRID or canonical id. The source systems whose identifier shape matches are each tried, then the catalogue API and the storage service.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="id" value="@Model.ResolveInput" placeholder="b14658197" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Resolve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Canonical id &rarr; source identifiers</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("Index", "Identifiers")">
+                    <p class="help-block">Forward lookup. Returns the full identifier set.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="canonicalId" value="@Model.CanonicalId" placeholder="vsyg427x" pattern="@CanonicalIdentifier.Pattern" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Look up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">Source identifier &rarr; canonical id</div>
+            <div class="panel-body">
+                <form method="GET" action="@Url.Action("Index", "Identifiers")">
+                    <p class="help-block">Reverse lookup on the (type, sourceSystem, value) key.</p>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="sourceSystem" list="sourceSystems" value="@Model.SourceSystem" placeholder="sierra-system-number" />
+                        <datalist id="sourceSystems">
+                            @foreach (var ss in Model.KnownSourceSystems)
+                            {
+                                <option value="@ss"></option>
+                            }
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="value" value="@Model.Value" placeholder="b14658197" />
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" name="type">
+                            @foreach (var t in Model.Types)
+                            {
+                                <option value="@t" selected="@(t == Model.Type)">@t</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" name="siblings" value="true" checked="@Model.IncludeSiblings" /> Include siblings</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Look up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ErrorMessage.HasText())
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+
+@if (Model.HasQuery)
+{
+    <p><small>API request: <code>@Model.ApiUrl</code></small></p>
+
+    if (Model.NotFound)
+    {
+        <div class="alert alert-warning" role="alert">404 &mdash; no mapping found.</div>
+    }
+    if (Model.CanonicalIdRef != null)
+    {
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                Canonical id:
+                <a href="@Url.Action("Index", "Identifiers", new { canonicalId = Model.CanonicalIdRef.CanonicalId })">@Model.CanonicalIdRef.CanonicalId</a>
+            </div>
+            <div class="panel-body">
+                <pre>@IdentifiersModel.ToJson(Model.CanonicalIdRef)</pre>
+            </div>
+        </div>
+    }
+    if (Model.IdentifierSet != null)
+    {
+        @await Html.PartialAsync("_IdentifierSet", Model.IdentifierSet)
+    }
+}
+
+@if (Model.Navigation != null)
+{
+    var nav = Model.Navigation;
+    <h2>Resolving <code>@nav.Identifier</code></h2>
+
+    @* 1. The DDS's own view *@
+    <div class="panel panel-default">
+        <div class="panel-heading">DDS identity</div>
+        <div class="panel-body">
+            @if (nav.DdsIdentity != null)
+            {
+                var ddsId = nav.DdsIdentity;
+                <ul class="list-unstyled">
+                    <li>
+                        Package identifier <code>@ddsId.PackageIdentifier</code>
+                        <small class="text-muted">source @ddsId.Source, generator @ddsId.Generator, space @ddsId.StorageSpace, level @ddsId.Level</small>
+                    </li>
+                    <li>
+                        @if (ddsId.FromGenerator)
+                        {
+                            <span class="label label-primary">stored record from generator</span>
+                        }
+                        else
+                        {
+                            <span class="label label-default">parsed only, no stored record</span>
+                        }
+                        @if (ddsId.CatalogueId.HasText())
+                        {
+                            <text> CatalogueId <a href="@UriPatterns.CatalogueApi(ddsId.CatalogueId)">@ddsId.CatalogueId</a></text>
+                        }
+                        | @Html.ActionLink("Identity page", "Get", "Identity", new { id = ddsId.PathElementSafe }, null)
+                    </li>
+                </ul>
+            }
+            else
+            {
+                <p class="text-danger">Not a valid DDS identifier: @nav.DdsIdentityError</p>
+            }
+        </div>
+    </div>
+
+    @* 2. Preservation identifier(s) from the registry *@
+    foreach (var p in nav.PreservationIdentifiers)
+    {
+        var probeValue = p.ProbeValue;
+        var pathSafe = probeValue.Replace('/', '_');
+        <div class="panel panel-primary">
+            <div class="panel-heading">Preservation identifier: <code>@probeValue</code></div>
+            <div class="panel-body">
+                <p>
+                    The <code>mets</code> source identifier is the METS record identifier, which today is the preservation identifier
+                    (RFC 085 / 091): the storage service package name, our package identifier, and the identity in the canonical IIIF Manifest URI.
+                </p>
+                <ul class="list-unstyled">
+                    <li>
+                        Registry value <code>@p.Value</code>
+                        @if (p.CasedValue != null && p.CasedValue != p.Value)
+                        {
+                            <text>&rarr; storage key <code>@p.CasedValue</code> <small class="text-muted">(casing from @p.CasingSource)</small></text>
+                        }
+                        else if (p.CasingSource != null)
+                        {
+                            <small class="text-muted">(@p.CasingSource)</small>
+                        }
+                        else
+                        {
+                            <span class="label label-warning">casing unknown: the registry lowercases and the storage service is case-sensitive</span>
+                        }
+                    </li>
+                    <li>
+                        METS work canonical id:
+                        <a href="@Url.Action("Index", "Identifiers", new { canonicalId = p.MetsCanonicalId })">@p.MetsCanonicalId</a>
+                        <small class="text-muted">(not the public work; see below for where the catalogue API redirects it)</small>
+                    </li>
+                    <li><a href="@UriPatterns.Manifest(probeValue)">IIIF Manifest</a></li>
+                    <li>
+                        @Html.ActionLink("Manifestation", "Manifestation", "Dash", new { id = pathSafe }, null)
+                        |
+                        @Html.ActionLink("Identity", "Get", "Identity", new { id = pathSafe }, null)
+                    </li>
+                </ul>
+            </div>
+        </div>
+    }
+    if (nav.PreservationIdentifiers.Count == 0 && nav.Registry != null && nav.Registry.AnyFound)
+    {
+        <div class="alert alert-info" role="alert">
+            The registry has mappings for this string, but none under <code>mets</code>, so it does not give a preservation identifier.
+        </div>
+    }
+
+    @* 3. The public work, by both routes *@
+    <div class="panel @(nav.RoutesAgree == false ? "panel-danger" : "panel-default")">
+        <div class="panel-heading">Public work</div>
+        <div class="panel-body">
+            <h5>Via the registry, then the catalogue API</h5>
+            @if (nav.PublicWorks.Count == 0)
+            {
+                <p class="text-muted">No registry hits to follow.</p>
+            }
+            else
+            {
+                <table class="table table-condensed">
+                    <thead>
+                    <tr><th>Registry row</th><th>Canonical id</th><th>Catalogue API says</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var pw in nav.PublicWorks)
+                    {
+                        <tr>
+                            <td>@pw.Description</td>
+                            <td><a href="@UriPatterns.CatalogueApi(pw.RegistryCanonicalId)">@pw.RegistryCanonicalId</a></td>
+                            <td>
+                                @if (pw.Found)
+                                {
+                                    if (pw.Redirected)
+                                    {
+                                        <span class="label label-info">redirects to</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="label label-success">is the work</span>
+                                    }
+                                    <a href="@UriPatterns.PersistentPlayerUri(pw.Work.Id)">@pw.Work.Id</a>
+                                    <small>@pw.Work.Title</small>
+                                }
+                                else
+                                {
+                                    <span class="label label-default">@(pw.StatusCode?.ToString() ?? "error")</span> @pw.Error
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+
+            <h5>Via the catalogue's <code>identifiers=</code> query</h5>
+            @if (nav.WorkByIdentifiersQuery != null)
+            {
+                var w = nav.WorkByIdentifiersQuery;
+                <p>
+                    <a href="@UriPatterns.PersistentPlayerUri(w.Id)">@w.Id</a> <small>@w.Title</small>
+                    | <a href="@UriPatterns.CatalogueApi(w.Id)">Catalogue API</a>
+                    @if (nav.RoutesAgree == true)
+                    {
+                        <span class="label label-success">agrees with the registry route</span>
+                    }
+                    else if (nav.RoutesAgree == false)
+                    {
+                        <span class="label label-danger">disagrees with the registry route</span>
+                    }
+                </p>
+                if (nav.WorkByIdentifiersQuerySelection != null)
+                {
+                    var sel = nav.WorkByIdentifiersQuerySelection;
+                    <p class="text-muted"><small>@sel.Reason</small></p>
+                    if (sel.Others.Any())
+                    {
+                        <p>
+                            <small>Also returned by the query, not chosen:
+                            @foreach (var other in sel.Others)
+                            {
+                                <a href="@UriPatterns.CatalogueApi(other.Id)">@other.Id</a> <span class="text-muted">@WorkSelection.Describe(WorkSelection.GetStrength(other, nav.Identifier))</span>@(other == sel.Others.Last() ? "" : ";")
+                            }
+                            </small>
+                        </p>
+                    }
+                }
+                if (nav.PreservationIdentifiersFromWork.Count > 0)
+                {
+                    <p>
+                        Preservation identifier(s) on this work, from its IIIF locations and <code>mets</code> identifiers:
+                        @foreach (var pid in nav.PreservationIdentifiersFromWork)
+                        {
+                            <code>@pid</code>
+                        }
+                    </p>
+                }
+                else
+                {
+                    <p class="text-muted">This work has no IIIF location: nothing digitised is attached to it.</p>
+                }
+            }
+            else if (nav.WorkByIdentifiersQueryError.HasText())
+            {
+                <p class="text-danger">@nav.WorkByIdentifiersQueryError</p>
+            }
+            else if (nav.WorkByIdentifiersQuerySelection is { Ambiguous: true })
+            {
+                <p class="text-warning">Ambiguous, so no work chosen: @nav.WorkByIdentifiersQuerySelection.Reason</p>
+            }
+            else
+            {
+                <p class="text-muted">No work found by this identifier.</p>
+            }
+        </div>
+    </div>
+
+    @* 4. Preserved files *@
+    <div class="panel @(nav.PreservedFilesFound.Any() ? "panel-success" : "panel-default")">
+        <div class="panel-heading">Preserved files</div>
+        <div class="panel-body">
+            <p><small class="text-muted">Probed <code>@nav.StorageApi</code>. A miss here only means the object is not in <em>this</em> storage service.</small></p>
+            @if (nav.StorageProbes.Count == 0)
+            {
+                <p class="text-muted">Nothing to probe: no preservation identifier was found or inferred.</p>
+            }
+            else
+            {
+                <table class="table table-condensed">
+                    <thead>
+                    <tr><th>Space</th><th>Identifier sent</th><th>Result</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var probe in nav.StorageProbes)
+                    {
+                        <tr>
+                            <td>@probe.StorageSpace</td>
+                            <td><code>@probe.Identifier</code></td>
+                            <td>
+                                @if (probe.Found)
+                                {
+                                    <span class="label label-success">found</span>
+                                    <text>@probe.Version in <code>@probe.Bucket</code>/<code>@probe.Path</code></text>
+                                    if (probe.Created.HasValue)
+                                    {
+                                        <small class="text-muted">created @probe.Created.Value.ToString("yyyy-MM-dd")</small>
+                                    }
+                                    <text> | </text>@Html.ActionLink("Storage map", "StorageMap", "Dash", new { id = probe.Identifier.Replace('/', '_') }, null)
+                                }
+                                else if (probe.NotFound)
+                                {
+                                    <span class="label label-default">404</span>
+                                }
+                                else
+                                {
+                                    <span class="label label-danger">error</span> @probe.Error
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    @* 5. Every registry candidate tried *@
+    <h3>Registry lookups</h3>
+}
+
+@if (Model.Resolution != null)
+{
+    if (Model.Resolution.Lookups.Count == 0)
+    {
+        <div class="alert alert-warning" role="alert">Could not generate any candidate lookups for this string.</div>
+    }
+    else if (!Model.Resolution.AnyFound)
+    {
+        <div class="alert alert-warning" role="alert">None of the @Model.Resolution.Lookups.Count candidate lookups found a mapping.</div>
+    }
+    foreach (var lookup in Model.Resolution.Lookups)
+    {
+        var candidate = lookup.Candidate;
+        var panelClass = lookup.Found ? "panel-success" : (lookup.Error.HasText() ? "panel-danger" : "panel-default");
+        <div class="panel @panelClass">
+            <div class="panel-heading">
+                @if (candidate.IsCanonical)
+                {
+                    <strong>canonical id</strong> <code>@candidate.Value</code>
+                }
+                else
+                {
+                    <strong>@candidate.SourceSystem</strong> <code>@candidate.Value</code> <small>(@candidate.Type)</small>
+                }
+                <small class="text-muted">&mdash; @candidate.Reason</small>
+            </div>
+            <div class="panel-body">
+                <p><small>API request: <code>@lookup.ApiUrl</code></small></p>
+                @if (lookup.Found)
+                {
+                    @await Html.PartialAsync("_IdentifierSet", lookup.IdentifierSet)
+                }
+                else if (lookup.Error.HasText())
+                {
+                    <div class="alert alert-danger" role="alert">@lookup.Error</div>
+                }
+                else
+                {
+                    <p class="text-muted">404 &mdash; no mapping found.</p>
+                }
+            </div>
+        </div>
+    }
+}

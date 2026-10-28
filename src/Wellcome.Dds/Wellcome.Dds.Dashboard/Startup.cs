@@ -37,7 +37,10 @@ using Wellcome.Dds.Dashboard.Controllers;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Identifiers;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Identifiers;
+using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 
 namespace Wellcome.Dds.Dashboard
@@ -109,12 +112,22 @@ namespace Wellcome.Dds.Dashboard
             // DdsContext is in Wellcome.Dds.Repositories
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
 
+            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService
+            services.Configure<IdentifiersApiOptions>(Configuration.GetSection("IdentifiersApi"));
+            services.AddHttpClient<IIdentifiersApi, WellcomeCollectionIdentifiersApi>();
+            // Composes the registry, the catalogue API and the storage service (scoped: StorageServiceClient is)
+            services.AddScoped<IStorageServiceProbe, StorageServiceProbe>();
+            services.AddScoped<IIdentifierNavigator, IdentifierNavigator>();
+
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
                 .AddScoped<IMetsRepository, MetsRepository>();
 
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
+            services.AddPdfThumbnails(Configuration);
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
+            NetVips.NetVips.BlockUntrusted = true;
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDigitalObjectRepository, DigitalObjectRepository>();
@@ -134,6 +147,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddSingleton<ThumbnailSizeDecorator>();
             
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
+            services.AddScoped<Wellcome.Dds.Common.IIdentityStatsRepository, Wellcome.Dds.Repositories.IdentityStatsRepository>();
 
             services.AddControllersWithViews(
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))
