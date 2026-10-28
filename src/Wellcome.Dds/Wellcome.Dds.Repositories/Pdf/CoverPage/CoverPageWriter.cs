@@ -49,28 +49,11 @@ public class CoverPageWriter
     }
 
     /// <summary>
-    /// Whether PdfPig can place these bytes as an image: a PNG or JPEG it can decode. Checked when a
-    /// logo is fetched, so a bad logo is dropped there rather than failing every cover page.
+    /// The cover page with the Wellcome Collection logo in the footer.
     /// </summary>
-    public static bool IsUsableLogo(byte[]? logo)
-    {
-        if (logo == null || logo.Length < 8)
-        {
-            return false;
-        }
-        try
-        {
-            var scratch = new PdfDocumentBuilder();
-            PlaceLogo(scratch.AddPage(PageWidth, PageHeight), logo, new PdfRectangle(0, 0, LogoWidth, LogoHeight));
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
+    public byte[] Write(CoverPageContent content) => Write(content, CoverPageLogo.Bytes);
 
-    /// <param name="logo">The provider's logo as PNG or JPEG bytes, or null to leave the space empty.</param>
+    /// <param name="logo">The logo as PNG or JPEG bytes, or null to leave the space empty (for tests).</param>
     public byte[] Write(CoverPageContent content, byte[]? logo)
     {
         var builder = new PdfDocumentBuilder();

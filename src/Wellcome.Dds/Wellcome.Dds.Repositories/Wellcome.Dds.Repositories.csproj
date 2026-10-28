@@ -19,6 +19,8 @@
     <!-- Inter, for PDF cover pages; embedded so no file path has to be right at runtime -->
     <EmbeddedResource Include="Resources/fonts/Inter-Regular.ttf" />
     <EmbeddedResource Include="Resources/fonts/Inter-Bold.ttf" />
+    <!-- the footer logo: a copy of Wellcome.Dds.Server/wwwroot/logos/wellcome-collection-black.png -->
+    <EmbeddedResource Include="Resources/logos/wellcome-collection-black.png" />
   </ItemGroup>
 
   <ItemGroup>

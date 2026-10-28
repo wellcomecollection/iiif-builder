@@ -26,12 +26,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="Pdf\CoverPage\logo.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Test.Helpers\Test.Helpers.csproj" />
       <ProjectReference Include="..\Wellcome.Dds.Repositories\Wellcome.Dds.Repositories.csproj" />
     </ItemGroup>
