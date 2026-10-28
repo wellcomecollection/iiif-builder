@@ -29,6 +29,7 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.WordsAndPictures;
@@ -88,6 +89,7 @@ namespace WorkflowProcessor
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+            services.AddPdfThumbnails(Configuration);
             services.AddHttpClient<ExternalIIIFReader>();
             services.AddSingleton<ThumbnailSizeDecorator>();
             services

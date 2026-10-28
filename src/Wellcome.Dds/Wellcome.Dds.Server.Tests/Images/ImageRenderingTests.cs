@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using FluentAssertions;
 using NetVips;
+using Wellcome.Dds.Repositories.Images;
 using Wellcome.Dds.Server.Images;
 using Xunit;
 
