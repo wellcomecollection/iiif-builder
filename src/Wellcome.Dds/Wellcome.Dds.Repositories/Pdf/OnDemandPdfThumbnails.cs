@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Utils;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.Repositories.Pdf;
@@ -29,7 +30,9 @@ public class OnDemandPdfThumbnails
     private readonly PdfThumbnailOptions options;
     private readonly ILogger<OnDemandPdfThumbnails> logger;
     private readonly SemaphoreSlim concurrency;
-    private readonly ConcurrentDictionary<string, Task<PdfThumbnailResult>> inFlight = new();
+
+    // Lazy so that a GetOrAdd race (the factory may run twice) still starts exactly one generation.
+    private readonly ConcurrentDictionary<string, Lazy<Task<PdfThumbnailResult>>> inFlight = new();
     private readonly ConcurrentDictionary<string, (DateTime Until, PdfThumbnailResult Result)> remembered = new();
 
     public OnDemandPdfThumbnails(
@@ -65,23 +68,30 @@ public class OnDemandPdfThumbnails
             remembered.TryRemove(identifier, out _);
         }
 
-        var task = inFlight.GetOrAdd(identifier, _ => Generate(ddsId));
+        var lazy = inFlight.GetOrAdd(identifier, _ => new Lazy<Task<PdfThumbnailResult>>(() => Generate(ddsId)));
+        if (lazy.IsValueCreated && lazy.Value.IsCompleted)
+        {
+            // left behind by waiters that all gave up before it finished: start afresh
+            inFlight.TryRemove(new KeyValuePair<string, Lazy<Task<PdfThumbnailResult>>>(identifier, lazy));
+            lazy = inFlight.GetOrAdd(identifier, _ => new Lazy<Task<PdfThumbnailResult>>(() => Generate(ddsId)));
+        }
         try
         {
-            return await task.WaitAsync(waitToken);
+            return await lazy.Value.WaitAsync(waitToken);
         }
         finally
         {
-            if (task.IsCompleted)
+            if (lazy.Value.IsCompleted)
             {
-                inFlight.TryRemove(new KeyValuePair<string, Task<PdfThumbnailResult>>(identifier, task));
+                // only this entry, never one that a later request put in its place
+                inFlight.TryRemove(new KeyValuePair<string, Lazy<Task<PdfThumbnailResult>>>(identifier, lazy));
             }
         }
     }
 
     private async Task<PdfThumbnailResult> Generate(DdsIdentity ddsId)
     {
-        // Yield so GetOrAdd's factory returns the task before any of the work runs on the caller's thread.
+        // Yield so the Lazy's factory returns the task before any of the work runs on the caller's thread.
         await Task.Yield();
         await concurrency.WaitAsync();
         try
@@ -97,14 +107,13 @@ public class OnDemandPdfThumbnails
                 var until = DateTime.UtcNow.AddMinutes(options.FailureMemoryMinutes);
                 remembered[ddsId.Value] = (until, result);
                 logger.LogInformation("On-demand PDF thumbnail for {Identifier} produced nothing ({Outcome}); not retrying until {Until:u}",
-                    ddsId.Value, result.Outcome, until);
+                    ddsId.Value.LogSafe(), result.Outcome, until);
             }
             return result;
         }
         finally
         {
             concurrency.Release();
-            inFlight.TryRemove(ddsId.Value, out _);
         }
     }
 }
