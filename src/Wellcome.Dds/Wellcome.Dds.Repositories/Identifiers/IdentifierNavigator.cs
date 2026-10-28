@@ -22,11 +22,6 @@ namespace Wellcome.Dds.Repositories.Identifiers
         private const string IiifPresentationLocationType = "iiif-presentation";
 
         /// <summary>
-        /// The preservation identifier is the tail of the IIIF location, after an optional version segment.
-        /// </summary>
-        private static readonly Regex PresentationPath = new Regex("/presentation/(?:v2/)?(.+)$");
-
-        /// <summary>
         /// Identifier forms that are lowercase by nature, so the registry's lowercased value is already usable.
         /// </summary>
         private static readonly Regex LowercaseByNature = new Regex("^(b[0-9]{7}[0-9x]|in[0-9]{5,})$");
@@ -74,10 +69,12 @@ namespace Wellcome.Dds.Repositories.Identifiers
                 nav.PublicWorks.Add(await GetPublicWork(lookup.IdentifierSet!.CanonicalId!, lookup.Candidate.ToString()));
             }
 
-            // 4. The catalogue's own identifiers query, independent of the registry.
+            // 4. The catalogue's own identifiers query, independent of the registry (the page shows both routes
+            //    side by side, so the cross-check in LookupWorkByAnyIdentifier is not repeated here).
             try
             {
-                nav.WorkByIdentifiersQuery = await FindWorkByAnyIdentifier(nav.Identifier);
+                nav.WorkByIdentifiersQuerySelection = await catalogue.FindWorksByOtherIdentifier(nav.Identifier);
+                nav.WorkByIdentifiersQuery = nav.WorkByIdentifiersQuerySelection.Chosen;
                 if (nav.WorkByIdentifiersQuery != null)
                 {
                     nav.PreservationIdentifiersFromWork.AddRange(GetPreservationIdentifiersForWork(nav.WorkByIdentifiersQuery));
@@ -133,12 +130,7 @@ namespace Wellcome.Dds.Repositories.Identifiers
 
         public IReadOnlyList<string> GetPreservationIdentifiersForWork(Work work)
         {
-            var fromLocations = work.Items.AnyItems()
-                .SelectMany(item => item.Locations.AnyItems())
-                .Where(loc => loc.LocationType?.Id == IiifPresentationLocationType && loc.Url.HasText())
-                .Select(loc => PresentationPath.Match(loc.Url!))
-                .Where(m => m.Success)
-                .Select(m => Uri.UnescapeDataString(m.Groups[1].Value.TrimEnd('/')));
+            var fromLocations = work.GetIiifPresentationIdentifiers();
 
             // mets identifiers corroborate but are absent from some merged works, so they come second.
             var fromIdentifiers = work.Identifiers.AnyItems()
@@ -158,11 +150,77 @@ namespace Wellcome.Dds.Repositories.Identifiers
                 .Value;
         }
 
-        public Task<Work?> FindWorkByAnyIdentifier(string identifier)
+        public async Task<Work?> FindWorkByAnyIdentifier(string identifier)
         {
-            // The selection rule for multiple matches lives in the catalogue client for now; see the design
-            // doc, "Choosing the work when the identifiers query returns several", for what it should become.
-            return catalogue.GetWorkByOtherIdentifier(identifier);
+            return (await LookupWorkByAnyIdentifier(identifier)).Work;
+        }
+
+        public async Task<WorkLookup> LookupWorkByAnyIdentifier(string identifier)
+        {
+            var lookup = new WorkLookup(identifier);
+
+            // Steps 1, 2 and 4: the query, ranked, or null when ambiguous.
+            try
+            {
+                lookup.Selection = await catalogue.FindWorksByOtherIdentifier(identifier);
+            }
+            catch (HttpRequestException ex)
+            {
+                lookup.SelectionError = ex.Message;
+                logger.LogWarning(ex, "Identifiers query failed for {Identifier}", identifier.LogSafe());
+            }
+            var bySearch = lookup.Selection?.Chosen;
+
+            // Step 3: the registry's mets row, then the catalogue redirect, independent of search ranking.
+            try
+            {
+                var set = await identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, identifier);
+                if (set?.CanonicalId != null)
+                {
+                    lookup.RegistryCanonicalId = set.CanonicalId;
+                    lookup.ViaRegistry = await GetPublicWork(set.CanonicalId, $"{SourceSystems.Mets}/{identifier}");
+                }
+            }
+            catch (IdentifiersApiException ex)
+            {
+                lookup.RegistryError = ex.Message;
+                logger.LogWarning(ex, "Registry lookup failed for {Identifier}; the identifiers query stands alone", identifier.LogSafe());
+            }
+            var byRegistry = lookup.ViaRegistry is { Found: true } ? lookup.ViaRegistry.Work : null;
+
+            if (byRegistry == null)
+            {
+                lookup.Work = bySearch;
+                lookup.Route = bySearch == null ? WorkLookupRoute.None : WorkLookupRoute.Search;
+                lookup.Note = (lookup.RegistryCanonicalId == null
+                                  ? "The registry has no mets row for this identifier (not a preservation identifier, or pipeline lag); "
+                                  : $"The registry's canonical id {lookup.RegistryCanonicalId} is not a work in the catalogue; ")
+                              + (bySearch == null ? "the identifiers query found nothing usable" : "the identifiers query stands alone")
+                              + (lookup.Selection == null ? "" : $" ({lookup.Selection.Reason})");
+            }
+            else if (bySearch == null)
+            {
+                lookup.Work = byRegistry;
+                lookup.Route = WorkLookupRoute.Registry;
+                lookup.Note = $"The identifiers query found nothing usable ({lookup.Selection?.Reason ?? lookup.SelectionError}); " +
+                              $"the registry's mets row {lookup.RegistryCanonicalId} redirects to {byRegistry.Id}";
+            }
+            else if (bySearch.Id == byRegistry.Id)
+            {
+                lookup.Work = bySearch;
+                lookup.Route = WorkLookupRoute.Both;
+                lookup.Note = $"Both routes reach {bySearch.Id} ({lookup.Selection!.Reason})";
+            }
+            else
+            {
+                // The redirect is the merger's own statement of which work the digital object belongs to.
+                lookup.Work = byRegistry;
+                lookup.Route = WorkLookupRoute.RegistryOverSearch;
+                lookup.Note = $"ROUTES DISAGREE: the identifiers query chose {bySearch.Id} ({lookup.Selection!.Reason}) " +
+                              $"but the registry's mets row {lookup.RegistryCanonicalId} redirects to {byRegistry.Id}; preferring the registry";
+                logger.LogWarning("Work lookup for {Identifier}: {Note}", identifier.LogSafe(), lookup.Note);
+            }
+            return lookup;
         }
 
         public async Task<IReadOnlyList<StorageProbeResult>> LocatePreservedFiles(string preservationIdentifier)

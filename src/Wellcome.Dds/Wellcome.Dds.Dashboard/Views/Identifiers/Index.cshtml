@@ -1,3 +1,4 @@
+@using Wellcome.Dds.Catalogue
 @using Wellcome.Dds.Identifiers
 @using Wellcome.Dds.IIIFBuilding
 @inject UriPatterns UriPatterns
@@ -12,7 +13,8 @@
 <p>
     Queries the catalogue's <a href="https://github.com/wellcomecollection/docs/tree/main/rfcs/089-identifiers-api">Identifiers API</a>
     (RFC 089) at <code>@Model.BaseUrl</code>, which maps canonical catalogue ids to their source identifiers and back.
-    This is not the DDS's own identity service, which is at <code>/dash/Identity/Get/{id}</code>.
+    This is not the DDS's own identity service, which is at <code>/dash/Identity/Get/{id}</code>
+    (@Html.ActionLink("stats on its table", "Stats", "Identity")).
 </p>
 
 @if (!Model.HasApiKey)
@@ -271,6 +273,22 @@
                         <span class="label label-danger">disagrees with the registry route</span>
                     }
                 </p>
+                if (nav.WorkByIdentifiersQuerySelection != null)
+                {
+                    var sel = nav.WorkByIdentifiersQuerySelection;
+                    <p class="text-muted"><small>@sel.Reason</small></p>
+                    if (sel.Others.Any())
+                    {
+                        <p>
+                            <small>Also returned by the query, not chosen:
+                            @foreach (var other in sel.Others)
+                            {
+                                <a href="@UriPatterns.CatalogueApi(other.Id)">@other.Id</a> <span class="text-muted">@WorkSelection.Describe(WorkSelection.GetStrength(other, nav.Identifier))</span>@(other == sel.Others.Last() ? "" : ";")
+                            }
+                            </small>
+                        </p>
+                    }
+                }
                 if (nav.PreservationIdentifiersFromWork.Count > 0)
                 {
                     <p>
@@ -289,6 +307,10 @@
             else if (nav.WorkByIdentifiersQueryError.HasText())
             {
                 <p class="text-danger">@nav.WorkByIdentifiersQueryError</p>
+            }
+            else if (nav.WorkByIdentifiersQuerySelection is { Ambiguous: true })
+            {
+                <p class="text-warning">Ambiguous, so no work chosen: @nav.WorkByIdentifiersQuerySelection.Reason</p>
             }
             else
             {

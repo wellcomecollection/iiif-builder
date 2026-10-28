@@ -210,12 +210,15 @@ Two things make this additive rather than a replacement:
 ### Choosing the work when the identifiers query returns several
 
 `GetWorkByOtherIdentifier` queries `works?identifiers={value}` and, when more than one work comes
-back, picks by a rule its own comment calls "NOT the real implementation yet": the work whose
+back, used to pick by a rule its own comment called "NOT the real implementation yet": the work whose
 `sierra-identifier` is the short form of the requested b number, or whose work type is `k`
 ("unlikely to be a Miro item"). On 2026-10-20 every identifier probed, including the `b14658197`
 the comment cites, returned exactly one work, so the rule may rarely fire now; the Miro-sharing
 case it was written for appears to have been resolved by later merge rules. It still needs to be
-right. The real rule, in order of strength:
+right. The real rule, in order of strength (implemented 2026-10-28: steps 1, 2 and 4 in
+`WorkSelection.Choose`, pure and unit-tested, applied by the catalogue client's
+`FindWorksByOtherIdentifier`, which `GetWorkByOtherIdentifier` now reduces to; step 3 in
+`IdentifierNavigator.LookupWorkByAnyIdentifier`, whose `WorkLookup` says which route answered):
 
 1. **The work whose `iiif-presentation` location names the requested preservation identifier**
    (`/presentation/{id}` or `/presentation/v2/{id}`, case-insensitive). That location is the merge
@@ -450,13 +453,24 @@ What staging can and cannot tell us:
 - Nothing on the page writes anything. It is safe to point Wellcome at it, and it lets them see the
   DDS as a consumer of the API in their own logs.
 
-### Step 2: the real selection rule for the identifiers query
+### Step 2: the real selection rule for the identifiers query (built)
 
-Replace `GetWorkByOtherIdentifier`'s multiple-match rule with the four-step rule in
-[Choosing the work](#choosing-the-work-when-the-identifiers-query-returns-several), using the
-navigator's `GetPublicWork` for the registry cross-check. Small, self-contained, no data change.
-`IdentifierNavigator.FindWorkByAnyIdentifier` currently delegates to the catalogue client and should
-own the rule once it exists.
+`GetWorkByOtherIdentifier`'s multiple-match rule is replaced by the four-step rule in
+[Choosing the work](#choosing-the-work-when-the-identifiers-query-returns-several). Steps 1, 2 and 4
+(location, identifier-type ranking, null-and-log) are `WorkSelection` in `Wellcome.Dds/Catalogue`,
+applied inside the catalogue client, so every existing caller of `GetWorkByOtherIdentifier` gets the
+rule without change and the catalogue client still knows nothing about the registry. Step 3 (the
+registry's `mets` row, then the catalogue redirect, preferred on disagreement) is
+`IdentifierNavigator.LookupWorkByAnyIdentifier`, returning a `WorkLookup` that names the route and the
+reason; `FindWorkByAnyIdentifier` reduces it to the work. The resolve page shows the selection reason
+and the works the query returned but did not choose. `/dash/Identity/Stats` (added at the same time)
+counts the identities table by level, source, storage space and generator, and shows how many package
+rows a generator has asserted, how many are validated, how many are bound to a catalogue work, and the
+recently processed packages for which no work was found; the figures to watch as steps 2 and 3 land. Branch `feature/identifier-selection-rule`, on top
+of `feature/identifier-navigator`. Tests: `WorkSelectionTests` (the rule on hand-made works),
+`IdentifierNavigatorTests` (the cross-check: registry absent, query ambiguous, agreement,
+disagreement, registry errors). No data change: nothing on the write path calls the navigator yet;
+that is step 3.
 
 ### Step 3: the registry on the identity write path, in shadow mode first
 

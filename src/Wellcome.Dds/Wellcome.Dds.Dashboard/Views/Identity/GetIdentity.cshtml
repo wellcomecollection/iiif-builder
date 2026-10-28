@@ -8,7 +8,7 @@
 <h1>@ViewBag.Title</h1>
 
 <p>
-    This is the DDS's own identity record.
+    This is the DDS's own identity record (@Html.ActionLink("stats on the identities table", "Stats", "Identity")).
     <a href="@Url.Action("Resolve", "Identifiers", new { id = Model.PackageIdentifier })">Look up @Model.PackageIdentifier in the catalogue Identifiers API</a>
 </p>
 
