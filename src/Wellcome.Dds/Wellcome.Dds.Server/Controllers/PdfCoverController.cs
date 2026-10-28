@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
+using Utils;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories.Pdf.CoverPage;
 using Wellcome.Dds.Server.Pdf;
@@ -64,7 +65,7 @@ public class PdfCoverController : ControllerBase
         var manifest = await helpers.LoadAsJson(ddsOptions.PresentationContainer, $"v3/{ddsId}");
         if (manifest == null)
         {
-            logger.LogInformation("No manifest for PDF cover page {Identifier}", ddsId.Value);
+            logger.LogInformation("No manifest for PDF cover page {Identifier}", ddsId.Value.LogSafe());
             return NotFound("Manifest for identifier not found");
         }
 
@@ -78,10 +79,10 @@ public class PdfCoverController : ControllerBase
         catch (Exception ex) when (logo != null)
         {
             // the logo was checked when fetched, so this should not happen; the page matters more than the logo
-            logger.LogError(ex, "Cover page for {Identifier} failed with the logo; writing it without", ddsId.Value);
+            logger.LogError(ex, "Cover page for {Identifier} failed with the logo; writing it without", ddsId.Value.LogSafe());
             pdf = writer.Write(content, null);
         }
-        logger.LogInformation("Generated PDF cover page for {Identifier} ({Bytes} bytes)", ddsId.Value, pdf.Length);
+        logger.LogInformation("Generated PDF cover page for {Identifier} ({Bytes} bytes)", ddsId.Value.LogSafe(), pdf.Length);
         return File(pdf, "application/pdf");
     }
 }
