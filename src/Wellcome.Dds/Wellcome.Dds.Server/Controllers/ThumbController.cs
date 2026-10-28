@@ -125,11 +125,13 @@ namespace Wellcome.Dds.Server.Controllers
             // thumbnail was generated or uploaded by hand; same rule as AV posters.
             if (resource is ICollection collection)
             {
-                resource = collection.Manifestations.FirstOrDefault();
+                // a package identifier: the thumbnail stands for the first work, so judge that work, fully loaded
+                var first = collection.Manifestations.FirstOrDefault();
+                resource = first == null ? null : await metsRepository.GetAsync(identityService.GetIdentity(first.Identifier));
             }
             if (resource is not IManifestation pdfManifestation || !PdfThumbnailAccess.IsPermitted(pdfManifestation))
             {
-                logger.LogInformation("PDF thumbnail for '{Identifier}' not served: access condition does not permit it", identifier);
+                logger.LogInformation("PDF thumbnail for '{Identifier}' not served: not a PDF whose access condition permits it", identifier.LogSafe());
                 return NotFound($"No thumbnail for {identifier}");
             }
 
@@ -142,7 +144,7 @@ namespace Wellcome.Dds.Server.Controllers
                     // Not pre-generated (or uploaded): render page 1 now and store it for next time, within
                     // the process-wide limits on concurrent and repeated on-demand work.
                     var result = await onDemandPdfThumbnails.Ensure(ddsId, HttpContext.RequestAborted);
-                    logger.LogInformation("On-demand PDF thumbnail for '{Identifier}': {Result}", identifier, result);
+                    logger.LogInformation("On-demand PDF thumbnail for '{Identifier}': {Result}", identifier.LogSafe(), result.LogSafe());
                     if (result.Outcome == PdfThumbnailOutcome.Generated)
                     {
                         thumbnailStream = await pdfThumbnailService.GetThumbnail(identifier);

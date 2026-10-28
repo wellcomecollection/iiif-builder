@@ -90,8 +90,10 @@ public class UploadController : Controller
             {
                 InputStream = thumb.OpenReadStream(),
                 Key = pdfThumbnailService.GetKey(id),
-                BucketName = ddsOptions.PresentationContainer
+                BucketName = ddsOptions.PresentationContainer,
+                ContentType = "image/jpeg"
             };
+            uploadRequest.Metadata.Add(PdfThumbnailService.SourceMetadataKey, PdfThumbnailService.SourceMetadataUploaded);
 
             var fileTransferUtility = new TransferUtility(s3ClientFactory.Get(NamedClient.Dds));
             await fileTransferUtility.UploadAsync(uploadRequest);

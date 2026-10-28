@@ -129,8 +129,10 @@ makes it in three places:
 - the iiif-builder server, on demand, the first time `/thumb/{id}` is asked for a thumbnail that does not exist;
 - the dashboard, from the "Generate or upload" link on the PDF asset-type page, which also still accepts a
   hand-made JPEG for the cases where page 1 is a poor choice. An upload writes the same key. A generated
-  thumbnail carries S3 metadata `source=generated`; an upload does not, so re-ingest replaces generated
-  thumbnails (the PDF may have changed) but keeps uploaded ones, and only the dashboard button replaces an upload.
+  thumbnail carries S3 metadata `source=generated` and an upload `source=uploaded`, so re-ingest replaces
+  generated thumbnails (the PDF may have changed) but keeps uploaded ones; only the dashboard button replaces
+  an upload. Thumbnails from before the tags (the old Ghostscript tool, old uploads) have no metadata and are
+  kept like uploads; regenerate them from the dashboard if page 1 has changed.
 
 Only a PDF whose access condition is Open, Requires registration or Open with advisory gets a thumbnail,
 and `/thumb` refuses to serve one for any other PDF even if a thumbnail is stored: the same rule as AV
