@@ -23,6 +23,8 @@ public static class PdfThumbnailServiceCollectionExtensions
             provider.GetRequiredService<IOptions<PdfThumbnailOptions>>().Value,
             provider.GetRequiredService<ILoggerFactory>().CreateLogger("PdfRasteriser")));
         services.Add(new ServiceDescriptor(typeof(IPdfThumbnailService), typeof(PdfThumbnailService), lifetime));
+        // process-wide limits for on-demand (/thumb) generation; creates its own scope for the service
+        services.AddSingleton<OnDemandPdfThumbnails>();
         return services;
     }
 }

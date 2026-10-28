@@ -44,9 +44,9 @@ public class PdfThumbnailServiceTests
         // default: no thumbnail stored yet
         A.CallTo(() => s3.GetObjectMetadataAsync(A<GetObjectMetadataRequest>._, A<CancellationToken>._))
             .Throws(new AmazonS3Exception("not found", ErrorType.Sender, "NoSuchKey", "req", HttpStatusCode.NotFound));
-        // default: the rasteriser writes a portrait A4-at-96dpi JPEG
+        // default: the rasteriser writes a portrait A4 PNG at 150 dpi, as Ghostscript would
         A.CallTo(() => rasteriser.RasteriseFirstPage(A<string>._, A<string>._, A<CancellationToken>._))
-            .Invokes((string pdf, string jpg, CancellationToken _) => WriteJpeg(jpg, 794, 1123))
+            .Invokes((string pdf, string png, CancellationToken _) => WritePng(png, 1240, 1754))
             .Returns(Task.CompletedTask);
 
         sut = new PdfThumbnailService(metsRepository, identityService, rasteriser, s3Factory,
@@ -55,13 +55,18 @@ public class PdfThumbnailServiceTests
             NullLogger<PdfThumbnailService>.Instance);
     }
 
-    private static void WriteJpeg(string path, int width, int height)
+    private static void WritePng(string path, int width, int height)
     {
         using var image = (Image.Black(width, height, bands: 3) + 200).Cast(Enums.BandFormat.Uchar);
         image.WriteToFile(path);
     }
 
     private IManifestation ManifestationWith(params (string mimeType, string relativePath, string? size)[] files)
+    {
+        return ManifestationWith(AccessCondition.Open, files);
+    }
+
+    private IManifestation ManifestationWith(string accessCondition, params (string mimeType, string relativePath, string? size)[] files)
     {
         var manifestation = A.Fake<IManifestation>();
         var sequence = new List<IPhysicalFile>();
@@ -74,6 +79,7 @@ public class PdfThumbnailServiceTests
             file.MimeType = mimeType;
             file.RelativePath = relativePath;
             file.WorkStore = workStore;
+            file.AccessCondition = accessCondition;
             if (size != null)
             {
                 var metadata = A.Fake<IAssetMetadata>();
@@ -117,25 +123,35 @@ public class PdfThumbnailServiceTests
         result.Outcome.Should().Be(PdfThumbnailOutcome.Generated);
         result.Key.Should().Be(ExpectedKey);
         result.SourcePath.Should().Be("objects/report.pdf");
-        A.CallTo(() => rasteriser.RasteriseFirstPage(A<string>.That.EndsWith("source.pdf"), A<string>.That.EndsWith("page1.jpg"), A<CancellationToken>._))
+        A.CallTo(() => rasteriser.RasteriseFirstPage(A<string>.That.EndsWith("source.pdf"), A<string>.That.EndsWith("page1.png"), A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
         var put = CapturedPut();
         put.Should().NotBeNull();
         put!.BucketName.Should().Be(Bucket);
         put.Key.Should().Be(ExpectedKey);
         put.ContentType.Should().Be("image/jpeg");
+        put.Metadata[PdfThumbnailService.SourceMetadataKey].Should().Be(PdfThumbnailService.SourceMetadataGenerated);
         // Resized to the thumbnail width, portrait, not fitted into a square
         using var image = Image.JpegloadBuffer(stored!);
         image.Width.Should().Be(options.ThumbnailWidth);
         image.Height.Should().Be(1448);
     }
 
+    private void StoredThumbnail(bool generated)
+    {
+        var response = new GetObjectMetadataResponse { HttpStatusCode = HttpStatusCode.OK, ContentLength = 4096 };
+        if (generated)
+        {
+            response.Metadata.Add(PdfThumbnailService.SourceMetadataKey, PdfThumbnailService.SourceMetadataGenerated);
+        }
+        A.CallTo(() => s3.GetObjectMetadataAsync(A<GetObjectMetadataRequest>._, A<CancellationToken>._)).Returns(response);
+    }
+
     [Fact]
-    public async Task Does_Nothing_When_A_Thumbnail_Exists_Unless_Regenerating()
+    public async Task Keeps_An_Existing_Thumbnail_Unless_Asked_To_Replace_It()
     {
         ManifestationWith(("application/pdf", "objects/report.pdf", null));
-        A.CallTo(() => s3.GetObjectMetadataAsync(A<GetObjectMetadataRequest>._, A<CancellationToken>._))
-            .Returns(new GetObjectMetadataResponse { HttpStatusCode = HttpStatusCode.OK, ContentLength = 4096 });
+        StoredThumbnail(generated: true);
 
         var result = await sut.EnsureThumbnail(ddsId);
 
@@ -143,10 +159,68 @@ public class PdfThumbnailServiceTests
         A.CallTo(() => rasteriser.RasteriseFirstPage(A<string>._, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
         A.CallTo(() => s3.PutObjectAsync(A<PutObjectRequest>._, A<CancellationToken>._)).MustNotHaveHappened();
 
-        var regenerated = await sut.EnsureThumbnail(ddsId, regenerate: true);
+        var regenerated = await sut.EnsureThumbnail(ddsId, PdfThumbnailRefresh.ReplaceAll);
 
         regenerated.Outcome.Should().Be(PdfThumbnailOutcome.Generated);
         A.CallTo(() => s3.PutObjectAsync(A<PutObjectRequest>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Replacing_Generated_Thumbnails_Spares_One_Uploaded_By_Hand()
+    {
+        ManifestationWith(("application/pdf", "objects/report.pdf", null));
+        StoredThumbnail(generated: false);
+
+        var kept = await sut.EnsureThumbnail(ddsId, PdfThumbnailRefresh.ReplaceGenerated);
+
+        kept.Outcome.Should().Be(PdfThumbnailOutcome.AlreadyExists);
+        kept.Message.Should().Contain("uploaded by hand");
+        A.CallTo(() => s3.PutObjectAsync(A<PutObjectRequest>._, A<CancellationToken>._)).MustNotHaveHappened();
+
+        StoredThumbnail(generated: true);
+        var replaced = await sut.EnsureThumbnail(ddsId, PdfThumbnailRefresh.ReplaceGenerated);
+
+        replaced.Outcome.Should().Be(PdfThumbnailOutcome.Generated);
+    }
+
+    [Theory]
+    [InlineData(AccessCondition.Closed)]
+    [InlineData(AccessCondition.RestrictedFiles)]
+    [InlineData(AccessCondition.ClinicalImages)]
+    [InlineData(AccessCondition.Missing)]
+    [InlineData(null)]
+    public async Task A_Pdf_That_Is_Not_Publicly_Viewable_Gets_No_Thumbnail(string? accessCondition)
+    {
+        ManifestationWith(accessCondition!, ("application/pdf", "objects/private.pdf", null));
+
+        var result = await sut.EnsureThumbnail(ddsId);
+
+        result.Outcome.Should().Be(PdfThumbnailOutcome.NotPermitted);
+        result.ThumbnailAvailable.Should().BeFalse();
+        A.CallTo(() => rasteriser.RasteriseFirstPage(A<string>._, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => s3.PutObjectAsync(A<PutObjectRequest>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData(AccessCondition.Open)]
+    [InlineData(AccessCondition.RequiresRegistration)]
+    [InlineData(AccessCondition.OpenWithAdvisory)]
+    public async Task A_Publicly_Viewable_Pdf_Gets_A_Thumbnail(string accessCondition)
+    {
+        ManifestationWith(accessCondition, ("application/pdf", "objects/public.pdf", null));
+
+        var result = await sut.EnsureThumbnail(ddsId);
+
+        result.Outcome.Should().Be(PdfThumbnailOutcome.Generated);
+    }
+
+    [Fact]
+    public async Task An_S3_Error_Other_Than_Not_Found_Counts_As_No_Thumbnail_And_Does_Not_Throw()
+    {
+        A.CallTo(() => s3.GetObjectMetadataAsync(A<GetObjectMetadataRequest>._, A<CancellationToken>._))
+            .Throws(new AmazonS3Exception("forbidden", ErrorType.Sender, "AccessDenied", "req", HttpStatusCode.Forbidden));
+
+        (await sut.ThumbnailExists(Identifier)).Should().BeFalse();
     }
 
     [Fact]

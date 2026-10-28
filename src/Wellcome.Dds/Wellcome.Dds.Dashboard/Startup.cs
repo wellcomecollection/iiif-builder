@@ -117,6 +117,8 @@ namespace Wellcome.Dds.Dashboard
 
             services.AddScoped<IStatusProvider, DatabaseStatusProvider>();
             services.AddPdfThumbnails(Configuration);
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
+            NetVips.NetVips.BlockUntrusted = true;
 
             // TODO - assess the lifecycle of all of these
             services.AddScoped<IDigitalObjectRepository, DigitalObjectRepository>();

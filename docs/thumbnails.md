@@ -128,12 +128,25 @@ makes it in three places:
   manifestation that contains a PDF;
 - the iiif-builder server, on demand, the first time `/thumb/{id}` is asked for a thumbnail that does not exist;
 - the dashboard, from the "Generate or upload" link on the PDF asset-type page, which also still accepts a
-  hand-made JPEG for the cases where page 1 is a poor choice. An upload writes the same key and is kept
-  until someone regenerates.
+  hand-made JPEG for the cases where page 1 is a poor choice. An upload writes the same key. A generated
+  thumbnail carries S3 metadata `source=generated`; an upload does not, so re-ingest replaces generated
+  thumbnails (the PDF may have changed) but keeps uploaded ones, and only the dashboard button replaces an upload.
+
+Only a PDF whose access condition is Open, Requires registration or Open with advisory gets a thumbnail,
+and `/thumb` refuses to serve one for any other PDF even if a thumbnail is stored: the same rule as AV
+poster images, since page 1 of a restricted PDF is as restricted as the rest of it.
+
+On-demand generation is bounded, because anyone can ask for `/thumb/{id}`: one generation per identifier
+at a time (concurrent requests share it), at most `OnDemandMaxConcurrent` (2) at once with the rest
+queued, and a request that produced no thumbnail (failed, too large, no PDF, not permitted) is remembered
+for `FailureMemoryMinutes` (10) and answered from memory rather than repeated.
 
 Rendering is done by an external tool run as a subprocess: `pdftoppm` from poppler-utils in the containers
 (installed in the Dockerfiles), or Ghostscript. On a Windows development machine it uses `pdftoppm.exe`
 if it is on the PATH (`winget install oschwartz10612.Poppler`), otherwise the Ghostscript install under
-Program Files. The `PdfThumbnails` configuration section pins the tool, its path, the timeout, the render
-DPI and the size limit above which a PDF is not fetched. `PdfThumbGenerator` is the old bulk CLI, now a
-loop over the same service.
+Program Files. pdftoppm renders page 1 straight to the thumbnail width as a PNG; Ghostscript has no
+render-to-width, so it renders at `Dpi` (150) and is resized down. Either way the JPEG encode is the only
+lossy step. The rasteriser runs without the server's `FONTCONFIG_FILE` so that PDFs with non-embedded fonts
+use the container's fontconfig and DejaVu, the same in every container. The `PdfThumbnails` configuration
+section pins the tool, its path, the timeout, the DPI, the size limit above which a PDF is not fetched, and
+the on-demand limits. `PdfThumbGenerator` is the old bulk CLI, now a loop over the same service.

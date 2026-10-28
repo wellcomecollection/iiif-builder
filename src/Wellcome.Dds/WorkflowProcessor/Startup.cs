@@ -90,6 +90,8 @@ namespace WorkflowProcessor
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
             services.AddPdfThumbnails(Configuration);
+            // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
+            NetVips.NetVips.BlockUntrusted = true;
             services.AddHttpClient<ExternalIIIFReader>();
             services.AddSingleton<ThumbnailSizeDecorator>();
             services

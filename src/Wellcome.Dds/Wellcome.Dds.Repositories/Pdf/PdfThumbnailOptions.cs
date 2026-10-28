@@ -24,10 +24,10 @@ public class PdfThumbnailOptions
     public int TimeoutSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Resolution to render page 1 at before resizing to the thumbnail width. 96 matches the
-    /// previous Ghostscript invocation; an A4 page comes out 794 pixels wide.
+    /// Resolution Ghostscript renders page 1 at, before resizing down to <see cref="ThumbnailWidth"/>;
+    /// 150 makes an A4 page 1240 pixels wide. pdftoppm ignores this and renders straight to the width.
     /// </summary>
-    public int Dpi { get; set; } = 96;
+    public int Dpi { get; set; } = 150;
 
     /// <summary>
     /// PDFs larger than this are not fetched from storage. The whole file has to be downloaded to
@@ -41,4 +41,15 @@ public class PdfThumbnailOptions
     public int ThumbnailWidth { get; set; } = 1024;
 
     public int JpegQuality { get; set; } = 85;
+
+    /// <summary>
+    /// How many on-demand (/thumb) generations the server runs at once; further requests queue.
+    /// </summary>
+    public int OnDemandMaxConcurrent { get; set; } = 2;
+
+    /// <summary>
+    /// How long an on-demand request that produced no thumbnail is remembered, so repeated requests for
+    /// the same identifier do not repeat the download and render.
+    /// </summary>
+    public int FailureMemoryMinutes { get; set; } = 10;
 }

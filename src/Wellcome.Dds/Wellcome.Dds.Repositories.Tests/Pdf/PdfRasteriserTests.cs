@@ -10,35 +10,40 @@ using Xunit;
 namespace Wellcome.Dds.Repositories.Tests.Pdf;
 
 /// <summary>
-/// Runs whichever real rasteriser this machine has (pdftoppm or Ghostscript); passes trivially if neither
-/// is installed, so CI without poppler is not blocked. The factory's choice is logged by the test output.
+/// Runs whichever real rasteriser this machine has (pdftoppm or Ghostscript). Reported as skipped, not
+/// passed, when neither is installed, so a CI run without poppler shows that these did not run.
 /// </summary>
 public class PdfRasteriserTests
 {
-    [Fact]
-    public async Task Renders_Page_One_At_The_Requested_Dpi()
+    private static IPdfRasteriser RequireRasteriser(PdfThumbnailOptions options)
     {
-        var rasteriser = PdfRasteriserFactory.Create(new PdfThumbnailOptions { Dpi = 96 }, NullLogger.Instance);
-        if (rasteriser is UnavailablePdfRasteriser)
-        {
-            return;
-        }
+        var rasteriser = PdfRasteriserFactory.Create(options, NullLogger.Instance);
+        Skip.If(rasteriser is UnavailablePdfRasteriser, UnavailablePdfRasteriser.Message);
+        return rasteriser;
+    }
+
+    [SkippableFact]
+    public async Task Renders_Page_One_To_The_Thumbnail_Width()
+    {
+        // pdftoppm renders straight to ThumbnailWidth; Ghostscript renders at Dpi: 300 x 450 points at 96 dpi
+        // is 400 x 600 pixels, so both tools should produce the same image here.
+        var rasteriser = RequireRasteriser(new PdfThumbnailOptions { Dpi = 96, ThumbnailWidth = 400 });
 
         var dir = Path.Combine(Path.GetTempPath(), "pdf_thumbs_tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         try
         {
             var pdfPath = Path.Combine(dir, "a5-ish.pdf");
-            var jpgPath = Path.Combine(dir, "page1.jpg");
-            // 300 x 450 points at 96 dpi is 400 x 600 pixels
+            var pngPath = Path.Combine(dir, "page1.png");
             await File.WriteAllBytesAsync(pdfPath, TinyPdf.SinglePage(300, 450));
 
-            await rasteriser.RasteriseFirstPage(pdfPath, jpgPath);
+            await rasteriser.RasteriseFirstPage(pdfPath, pngPath);
 
-            File.Exists(jpgPath).Should().BeTrue($"{rasteriser.Name} should have written the JPEG");
-            using var image = Image.NewFromFile(jpgPath);
+            File.Exists(pngPath).Should().BeTrue($"{rasteriser.Name} should have written the PNG");
+            using var image = Image.NewFromFile(pngPath);
             image.Width.Should().Be(400);
             image.Height.Should().Be(600);
+            image.Get("vips-loader").Should().Be("pngload");
         }
         finally
         {
@@ -46,20 +51,16 @@ public class PdfRasteriserTests
         }
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task A_Missing_Pdf_Is_A_Rasterise_Failure_Not_A_Crash()
     {
-        var rasteriser = PdfRasteriserFactory.Create(new PdfThumbnailOptions(), NullLogger.Instance);
-        if (rasteriser is UnavailablePdfRasteriser)
-        {
-            return;
-        }
+        var rasteriser = RequireRasteriser(new PdfThumbnailOptions());
 
         var dir = Path.Combine(Path.GetTempPath(), "pdf_thumbs_tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         try
         {
-            var act = () => rasteriser.RasteriseFirstPage(Path.Combine(dir, "does-not-exist.pdf"), Path.Combine(dir, "out.jpg"));
+            var act = () => rasteriser.RasteriseFirstPage(Path.Combine(dir, "does-not-exist.pdf"), Path.Combine(dir, "out.png"));
             await act.Should().ThrowAsync<PdfRasteriseException>();
         }
         finally

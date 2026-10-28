@@ -30,6 +30,15 @@
             <span class="label label-warning">missing</span>
         }
     </p>
+    @if (ViewBag.HasThumbnail)
+    {
+        <p>
+            <a href="@Url.Action("PdfThumbImage", new { id = ViewBag.Identifier })" target="_blank" title="Open the stored thumbnail at full size">
+                <img src="@Url.Action("PdfThumbImage", new { id = ViewBag.Identifier, v = DateTime.UtcNow.Ticks })"
+                     alt="Stored thumbnail for @ViewBag.Identifier" style="max-width: 300px; max-height: 420px; border: 1px solid #ddd; padding: 4px" />
+            </a>
+        </p>
+    }
 
     <h4>Generate from the PDF</h4>
     <form action="@Url.Action("GeneratePdfThumb", new { id = ViewBag.Identifier })" method="POST">

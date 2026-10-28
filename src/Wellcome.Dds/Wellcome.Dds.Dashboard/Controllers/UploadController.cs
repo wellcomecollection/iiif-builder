@@ -46,11 +46,26 @@ public class UploadController : Controller
         return View();
     }
 
+    /// <summary>
+    /// The stored thumbnail itself, for the preview on the page (the dashboard has no public /thumb).
+    /// </summary>
+    public async Task<ActionResult> PdfThumbImage(string id)
+    {
+        var ddsId = identityService.GetIdentity(id);
+        var stream = await pdfThumbnailService.GetThumbnail(ddsId.Value);
+        if (stream == null)
+        {
+            return NotFound();
+        }
+        Response.Headers["Cache-Control"] = "no-store";
+        return File(stream, "image/jpeg");
+    }
+
     [HttpPost]
     public async Task<ActionResult> GeneratePdfThumb(string id)
     {
         var ddsId = identityService.GetIdentity(id);
-        var result = await pdfThumbnailService.EnsureThumbnail(ddsId, regenerate: true, HttpContext.RequestAborted);
+        var result = await pdfThumbnailService.EnsureThumbnail(ddsId, PdfThumbnailRefresh.ReplaceAll, HttpContext.RequestAborted);
         if (result.Outcome == PdfThumbnailOutcome.Generated)
         {
             ViewBag.Message = $"Generated {result.Message} from {result.SourcePath}";
@@ -83,7 +98,8 @@ public class UploadController : Controller
             ViewBag.Message = "Thumbnail uploaded successfully";
         }
 
-        return View();
+        await PopulateViewBag(identityService.GetIdentity(id));
+        return View("PdfThumb");
     }
 
     private async Task PopulateViewBag(DdsIdentity ddsId)
