@@ -85,7 +85,7 @@ namespace Wellcome.Dds.Repositories.Identifiers
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Catalogue identifiers query failed for {identifier}", nav.Identifier);
+                logger.LogWarning(ex, "Catalogue identifiers query failed for {identifier}", nav.Identifier.LogSafe());
                 nav.WorkByIdentifiersQueryError = ex.Message;
             }
 

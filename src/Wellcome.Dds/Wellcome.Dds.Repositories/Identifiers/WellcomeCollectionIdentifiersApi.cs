@@ -107,7 +107,7 @@ namespace Wellcome.Dds.Repositories.Identifiers
             }
             else
             {
-                logger.LogWarning("No API key configured for the Identifiers API; request to '{url}' will be rejected", url);
+                logger.LogWarning("No API key configured for the Identifiers API; request to '{url}' will be rejected", url.LogSafe());
             }
 
             var response = await httpClient.SendAsync(request);
@@ -116,14 +116,14 @@ namespace Wellcome.Dds.Repositories.Identifiers
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                logger.LogDebug("Identifiers API has no mapping for '{url}'", url);
+                logger.LogDebug("Identifiers API has no mapping for '{url}'", url.LogSafe());
                 return null;
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 var error = TryParseError(body);
-                logger.LogWarning("Request to '{url}' returned {statusCode}: {error}", url, response.StatusCode, error?.Message);
+                logger.LogWarning("Request to '{url}' returned {statusCode}: {error}", url.LogSafe(), response.StatusCode, error?.Message);
                 throw new IdentifiersApiException(url, response.StatusCode, error);
             }
 

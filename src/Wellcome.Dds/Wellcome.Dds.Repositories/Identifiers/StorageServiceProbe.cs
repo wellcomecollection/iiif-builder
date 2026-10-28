@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Utils;
 using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.Identifiers;
 
@@ -52,12 +53,12 @@ namespace Wellcome.Dds.Repositories.Identifiers
                 {
                     result.Error = ex.Message;
                 }
-                logger.LogDebug("Storage probe {space}/{identifier}: {status}", storageSpace, identifier, ex.StatusCode);
+                logger.LogDebug("Storage probe {space}/{identifier}: {status}", storageSpace, identifier.LogSafe(), ex.StatusCode);
             }
             catch (Exception ex)
             {
                 result.Error = ex.Message;
-                logger.LogWarning(ex, "Storage probe {space}/{identifier} failed", storageSpace, identifier);
+                logger.LogWarning(ex, "Storage probe {space}/{identifier} failed", storageSpace, identifier.LogSafe());
             }
             return result;
         }
