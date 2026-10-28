@@ -6,7 +6,10 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FakeItEasy;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using NetVips;
 using Wellcome.Dds.Server.Pdf;
@@ -22,7 +25,7 @@ public class CoverPageLogoCacheTests
     private readonly List<string?> userAgents = new();
     private Func<HttpResponseMessage> respond = () => new HttpResponseMessage(HttpStatusCode.NotFound);
 
-    private CoverPageLogoCache Sut()
+    private CoverPageLogoCache Sut(IFileProvider? webRoot = null)
     {
         var handler = new StubHandler(request =>
         {
@@ -30,7 +33,31 @@ public class CoverPageLogoCacheTests
             userAgents.Add(request.Headers.UserAgent.ToString());
             return respond();
         });
-        return new CoverPageLogoCache(new StubFactory(handler), NullLogger<CoverPageLogoCache>.Instance);
+        var environment = A.Fake<IWebHostEnvironment>();
+        A.CallTo(() => environment.WebRootFileProvider).Returns(webRoot ?? new NullFileProvider());
+        return new CoverPageLogoCache(new StubFactory(handler), environment, NullLogger<CoverPageLogoCache>.Instance);
+    }
+
+    [Fact]
+    public async Task A_Logo_This_Server_Serves_Itself_Is_Read_From_The_Web_Root_Not_Fetched()
+    {
+        var webRoot = Path.Combine(Path.GetTempPath(), "cover-page-logo-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(webRoot, "logos"));
+        try
+        {
+            var png = Png();
+            await File.WriteAllBytesAsync(Path.Combine(webRoot, "logos", "wellcome-collection-black.png"), png);
+            var sut = Sut(new PhysicalFileProvider(webRoot));
+
+            var logo = await sut.Get("https://iiif.wellcomecollection.org/logos/wellcome-collection-black.png");
+
+            logo.Should().Equal(png);
+            requests.Should().BeEmpty("the file is on disk, so there is no reason to go through the edge and back");
+        }
+        finally
+        {
+            Directory.Delete(webRoot, recursive: true);
+        }
     }
 
     private static byte[] Png()
