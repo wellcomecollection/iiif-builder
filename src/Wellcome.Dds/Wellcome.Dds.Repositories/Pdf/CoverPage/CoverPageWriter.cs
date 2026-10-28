@@ -79,18 +79,19 @@ public class CoverPageWriter
         var bold = new Face(boldFont, builder.AddTrueTypeFont(boldFont.Bytes));
         var layout = new Layout(builder);
 
-        layout.Paragraph(content.Title, bold, HeadingSize, HeadingLeading);
+        layout.Paragraph(CoverParagraph.Plain(content.Title), bold, HeadingSize, HeadingLeading);
         layout.Space(30);
 
         foreach (var section in content.Sections)
         {
-            layout.Paragraph(section.Heading, bold, HeadingSize, HeadingLeading);
+            layout.Paragraph(CoverParagraph.Plain(section.Heading), bold, HeadingSize, HeadingLeading);
             layout.Space(6);
             foreach (var line in section.Lines)
             {
                 foreach (var paragraph in CoverPageText.ToParagraphs(line))
                 {
-                    layout.Paragraph(paragraph, regular, BodySize, BodyLeading, section.LinkUrl);
+                    layout.Paragraph(section.LinkUrl == null ? paragraph : CoverParagraph.Plain(paragraph.Text, section.LinkUrl),
+                        regular, BodySize, BodyLeading);
                 }
             }
             layout.Space(10);
@@ -99,7 +100,7 @@ public class CoverPageWriter
         layout.Space(20);
         if (content.Attribution.Count > 0)
         {
-            layout.Paragraph("License and attribution", bold, HeadingSize, HeadingLeading);
+            layout.Paragraph(CoverParagraph.Plain("License and attribution"), bold, HeadingSize, HeadingLeading);
             layout.Space(6);
             foreach (var line in content.Attribution)
             {
@@ -150,11 +151,11 @@ public class CoverPageWriter
 
         /// <summary>
         /// Characters the font cannot show, or that would take it past PdfPig's per-font limit, become '?'.
+        /// Character for character, so offsets into the text are unchanged.
         /// </summary>
         public string Fit(string text)
         {
-            var printable = CoverPageText.Printable(text, font);
-            var chars = printable.ToCharArray();
+            var chars = CoverPageText.Printable(text, font).ToCharArray();
             for (var i = 0; i < chars.Length; i++)
             {
                 if (used.Contains(chars[i]))
@@ -173,6 +174,11 @@ public class CoverPageWriter
             return new string(chars);
         }
     }
+
+    /// <summary>
+    /// A link over a range of characters of a paragraph's text.
+    /// </summary>
+    private readonly record struct LinkSpan(int Start, int End, string Url);
 
     /// <summary>
     /// A top-down cursor over as many pages as the text needs, with word wrapping measured in the
@@ -198,9 +204,23 @@ public class CoverPageWriter
             y -= points;
         }
 
-        public void Paragraph(string text, Face face, double size, double leading, string? linkUrl = null)
+        public void Paragraph(CoverParagraph paragraph, Face face, double size, double leading)
         {
-            foreach (var line in Wrap(face.Fit(text), face.Added, size))
+            // Fit each segment on its own: the substitution is character for character, so the segment
+            // lengths give the link spans in the fitted text.
+            var text = "";
+            var links = new List<LinkSpan>();
+            foreach (var segment in paragraph.Segments)
+            {
+                var fitted = face.Fit(segment.Text);
+                if (segment.Url != null && fitted.Length > 0)
+                {
+                    links.Add(new LinkSpan(text.Length, text.Length + fitted.Length, segment.Url));
+                }
+                text += fitted;
+            }
+
+            foreach (var (lineStart, lineText) in Wrap(text, face.Added, size))
             {
                 if (y - leading < Bottom + FooterHeight)
                 {
@@ -208,11 +228,21 @@ public class CoverPageWriter
                     y = Top;
                 }
                 var baseline = y - size;
-                var letters = page.AddText(line, size, new PdfPoint(Left, baseline), face.Added);
-                if (linkUrl != null && letters.Count > 0)
+                var letters = page.AddText(lineText, size, new PdfPoint(Left, baseline), face.Added);
+                var lineEnd = lineStart + lineText.Length;
+                foreach (var link in links)
                 {
-                    var right = letters.Max(l => l.GlyphRectangle.Right);
-                    page.AddLink(linkUrl, new PdfRectangle(Left, baseline - 3, right, baseline + size));
+                    // the part of this link that falls on this line, as indexes into the line
+                    var from = Math.Max(link.Start, lineStart) - lineStart;
+                    var to = Math.Min(link.End, lineEnd) - lineStart;
+                    if (from >= to || from >= letters.Count)
+                    {
+                        continue;
+                    }
+                    to = Math.Min(to, letters.Count);
+                    var x1 = letters[from].StartBaseLine.X;
+                    var x2 = letters[to - 1].EndBaseLine.X;
+                    page.AddLink(link.Url, new PdfRectangle(x1, baseline - 3, x2, baseline + size));
                 }
                 y -= leading;
             }
@@ -237,43 +267,74 @@ public class CoverPageWriter
             }
         }
 
-        private IEnumerable<string> Wrap(string text, PdfDocumentBuilder.AddedFont font, double size)
+        /// <summary>
+        /// Word-wrap the text to the content width, yielding each line with its start offset in the text
+        /// so links can be placed by character position. Words are runs between spaces; a word wider
+        /// than the page is broken by character.
+        /// </summary>
+        private IEnumerable<(int Start, string Text)> Wrap(string text, PdfDocumentBuilder.AddedFont font, double size)
         {
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length == 0)
+            var words = new List<(int Start, int End)>();
+            var i = 0;
+            while (i < text.Length)
+            {
+                while (i < text.Length && text[i] == ' ')
+                {
+                    i++;
+                }
+                var start = i;
+                while (i < text.Length && text[i] != ' ')
+                {
+                    i++;
+                }
+                if (i > start)
+                {
+                    words.Add((start, i));
+                }
+            }
+            if (words.Count == 0)
             {
                 yield break;
             }
-            var line = "";
-            foreach (var word in words)
+
+            var lineStart = words[0].Start;
+            var lineEnd = words[0].End;
+            foreach (var word in words.Skip(1))
             {
-                var candidate = line.Length == 0 ? word : line + " " + word;
-                if (Width(candidate, font, size) <= ContentWidth)
+                if (Width(text[lineStart..word.End], font, size) <= ContentWidth)
                 {
-                    line = candidate;
+                    lineEnd = word.End;
                     continue;
                 }
-                if (line.Length > 0)
+                foreach (var piece in Broken(text, lineStart, lineEnd, font, size))
                 {
-                    yield return line;
+                    yield return piece;
                 }
-                // a single word wider than the page: break it by character
-                line = word;
-                while (Width(line, font, size) > ContentWidth && line.Length > 1)
-                {
-                    var fit = line.Length - 1;
-                    while (fit > 1 && Width(line[..fit], font, size) > ContentWidth)
-                    {
-                        fit--;
-                    }
-                    yield return line[..fit];
-                    line = line[fit..];
-                }
+                lineStart = word.Start;
+                lineEnd = word.End;
             }
-            if (line.Length > 0)
+            foreach (var piece in Broken(text, lineStart, lineEnd, font, size))
             {
-                yield return line;
+                yield return piece;
             }
+        }
+
+        /// <summary>
+        /// The line as one piece, or, if it is a single word wider than the page, broken by character.
+        /// </summary>
+        private IEnumerable<(int Start, string Text)> Broken(string text, int start, int end, PdfDocumentBuilder.AddedFont font, double size)
+        {
+            while (end - start > 1 && Width(text[start..end], font, size) > ContentWidth)
+            {
+                var fit = end - 1;
+                while (fit > start + 1 && Width(text[start..fit], font, size) > ContentWidth)
+                {
+                    fit--;
+                }
+                yield return (start, text[start..fit]);
+                start = fit;
+            }
+            yield return (start, text[start..end]);
         }
 
         private double Width(string text, PdfDocumentBuilder.AddedFont font, double size)

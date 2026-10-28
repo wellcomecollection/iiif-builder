@@ -17,6 +17,12 @@ public class CoverPageLogoCache
 {
     public static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(10);
 
+    /// <summary>
+    /// The logo is served through CloudFront with a rule that rejects requests with no User-Agent
+    /// (a 403), and HttpClient sends none by default.
+    /// </summary>
+    public const string UserAgent = "Wellcome-DDS/1.0 (iiif-builder PDF cover page; +https://github.com/wellcomecollection/iiif-builder)";
+
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ILogger<CoverPageLogoCache> logger;
     private readonly ConcurrentDictionary<string, Lazy<Task<Entry>>> cache = new();
@@ -43,7 +49,11 @@ public class CoverPageLogoCache
     {
         try
         {
-            var bytes = await httpClientFactory.CreateClient(nameof(CoverPageLogoCache)).GetByteArrayAsync(url);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.UserAgent.ParseAdd(UserAgent);
+            using var response = await httpClientFactory.CreateClient(nameof(CoverPageLogoCache)).SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var bytes = await response.Content.ReadAsByteArrayAsync();
             if (CoverPageWriter.IsUsableLogo(bytes))
             {
                 logger.LogInformation("Fetched cover page logo {Url} ({Bytes} bytes)", url, bytes.Length);

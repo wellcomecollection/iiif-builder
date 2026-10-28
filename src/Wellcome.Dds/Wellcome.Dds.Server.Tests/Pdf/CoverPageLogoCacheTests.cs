@@ -19,6 +19,7 @@ public class CoverPageLogoCacheTests
     private const string Url = "https://example.org/logo.png";
 
     private readonly List<string> requests = new();
+    private readonly List<string?> userAgents = new();
     private Func<HttpResponseMessage> respond = () => new HttpResponseMessage(HttpStatusCode.NotFound);
 
     private CoverPageLogoCache Sut()
@@ -26,6 +27,7 @@ public class CoverPageLogoCacheTests
         var handler = new StubHandler(request =>
         {
             requests.Add(request.RequestUri!.ToString());
+            userAgents.Add(request.Headers.UserAgent.ToString());
             return respond();
         });
         return new CoverPageLogoCache(new StubFactory(handler), NullLogger<CoverPageLogoCache>.Instance);
@@ -50,6 +52,8 @@ public class CoverPageLogoCacheTests
         first.Should().Equal(png);
         second.Should().BeSameAs(first);
         requests.Should().ContainSingle();
+        // the logo's CloudFront rejects requests with no User-Agent, which HttpClient sends by default
+        userAgents.Should().ContainSingle().Which.Should().Be(CoverPageLogoCache.UserAgent);
     }
 
     [Fact]

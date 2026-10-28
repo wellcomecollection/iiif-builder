@@ -14,10 +14,12 @@ namespace Wellcome.Dds.Server.Controllers;
 /// <summary>
 /// The cover page the DLCS prepends to a generated PDF of a digitised work. Built from the work's
 /// IIIF Manifest in the presentation bucket. Replaces the PdfCoverPage Python service, at the same
-/// path, so pointing the DLCS named query at this host is the only change needed.
+/// path, so pointing the DLCS named query at this host is the only change needed; also at /pdf-cover-v2,
+/// which the edge can route here while /pdf-cover still goes to the old service.
 /// </summary>
 [FeatureGate(FeatureFlags.PresentationServices)]
 [Route("pdf-cover")]
+[Route("pdf-cover-v2")] // so the DLCS can be switched over by route while the old service still answers /pdf-cover
 public class PdfCoverController : ControllerBase
 {
     private readonly Helpers helpers;
