@@ -12,6 +12,13 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
     <PackageReference Include="iiif-net" Version="0.2.0" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Inter, for PDF cover pages; embedded so no file path has to be right at runtime -->
+    <EmbeddedResource Include="Resources/fonts/Inter-Regular.ttf" />
+    <EmbeddedResource Include="Resources/fonts/Inter-Bold.ttf" />
   </ItemGroup>
 
   <ItemGroup>

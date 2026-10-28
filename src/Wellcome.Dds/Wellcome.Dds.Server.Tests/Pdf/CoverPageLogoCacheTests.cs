@@ -1,0 +1,94 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using NetVips;
+using Wellcome.Dds.Server.Pdf;
+using Xunit;
+
+namespace Wellcome.Dds.Server.Tests.Pdf;
+
+public class CoverPageLogoCacheTests
+{
+    private const string Url = "https://example.org/logo.png";
+
+    private readonly List<string> requests = new();
+    private Func<HttpResponseMessage> respond = () => new HttpResponseMessage(HttpStatusCode.NotFound);
+
+    private CoverPageLogoCache Sut()
+    {
+        var handler = new StubHandler(request =>
+        {
+            requests.Add(request.RequestUri!.ToString());
+            return respond();
+        });
+        return new CoverPageLogoCache(new StubFactory(handler), NullLogger<CoverPageLogoCache>.Instance);
+    }
+
+    private static byte[] Png()
+    {
+        using var image = (Image.Black(200, 66, bands: 3) + 255).Cast(Enums.BandFormat.Uchar);
+        return image.PngsaveBuffer();
+    }
+
+    [Fact]
+    public async Task A_Png_Is_Fetched_Once_And_Served_From_The_Cache()
+    {
+        var png = Png();
+        respond = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(png) };
+        var sut = Sut();
+
+        var first = await sut.Get(Url);
+        var second = await sut.Get(Url);
+
+        first.Should().Equal(png);
+        second.Should().BeSameAs(first);
+        requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Something_That_Is_Not_An_Image_Is_Not_Used_And_Not_Refetched_For_A_While()
+    {
+        respond = () => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<html><body>Sorry, something went wrong</body></html>", Encoding.UTF8, "text/html")
+        };
+        var sut = Sut();
+
+        (await sut.Get(Url)).Should().BeNull();
+        (await sut.Get(Url)).Should().BeNull();
+
+        requests.Should().ContainSingle("a bad answer is remembered, not retried on every cover page");
+    }
+
+    [Fact]
+    public async Task A_Failed_Fetch_Means_No_Logo_Not_An_Error()
+    {
+        respond = () => throw new HttpRequestException("connection refused");
+        var sut = Sut();
+
+        (await sut.Get(Url)).Should().BeNull();
+    }
+
+    private class StubHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> respond;
+        public StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) => this.respond = respond;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(respond(request));
+    }
+
+    private class StubFactory : IHttpClientFactory
+    {
+        private readonly HttpMessageHandler handler;
+        public StubFactory(HttpMessageHandler handler) => this.handler = handler;
+        public HttpClient CreateClient(string name) => new(handler, disposeHandler: false);
+    }
+}
