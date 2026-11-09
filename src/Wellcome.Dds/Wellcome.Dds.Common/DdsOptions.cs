@@ -67,6 +67,14 @@
         // Workflow
         public string[]? WorkflowMessageListenQueues { get; set; }
         public bool WorkflowMessagePoll { get; set; }
+
+        /// <summary>
+        /// Workflow messages should carry a package-level identifier (b30454785), but Goobi has sent
+        /// manifestation-level ones (b30454785_0001). When true, such a message is taken to mean its
+        /// package. When false, it is rejected: recorded as a finished job with an error, under the
+        /// identifier as sent, and not processed. Turn off once senders are fixed.
+        /// </summary>
+        public bool AcceptManifestationLevelWorkflowIdentifiers { get; set; } = true;
         public string? DashboardPushBornDigitalQueue { get; set; }
         public string? DashboardPushDigitisedQueue { get; set; }
         

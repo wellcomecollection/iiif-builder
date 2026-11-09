@@ -41,3 +41,7 @@ So DDS production and test each have their own queue(s) subscribed to both Goobi
 In normal operation the `Test` environment WorkflowProcessor does not listen to queues. This is set via `WorkflowMessagePoll` in DdsOptions. It might be that Test WorkflowProcessor is deployed with an empty list for `WorkflowMessageListenQueues`.
 
 Stage should listen to Goobi stage and Storage stage, and sync with DLCS, all the time it's running (assuming much less traffic comes through stage, and the traffic that does come through still needs to be looked at via IIIF/DLCS).
+
+## Message identifiers
+
+A workflow message must carry a package-level identifier (e.g., `b30454785`), never a manifestation-level one (`b30454785_0001`); a workflow job always processes a whole package. In November 2026 Goobi started sending manifestation-level identifiers for multiple manifestations. While DdsOptions `AcceptManifestationLevelWorkflowIdentifiers` is `true` (the default), the WorkflowProcessor takes such a message to mean its package. Once senders are fixed, set it to `false`: such messages are then rejected, recorded as finished jobs with an error under the identifier as sent, so they show on the dashboard's workflow errors page without being processed. See `docs/sql/goobi-volume-identifiers.sql` for cleaning up jobs recorded under manifestation-level identifiers.

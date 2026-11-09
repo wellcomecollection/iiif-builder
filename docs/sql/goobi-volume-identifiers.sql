@@ -18,6 +18,11 @@
 --
 -- Set the start date in each statement (the 'since' CTE) to just before the Goobi change.
 -- dlcs_ingest_jobs rows are already keyed by package + volume part and need no changes.
+--
+-- Once Dds:AcceptManifestationLevelWorkflowIdentifiers is false, rejected messages are also
+-- recorded as volume-keyed rows (error "Workflow message identifier is not package level...").
+-- Those are deliberate, and REQUEUE would quietly undo them, so finish with this script before
+-- switching the flag off.
 
 
 -- ============================================================================================
