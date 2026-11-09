@@ -647,17 +647,31 @@ namespace WorkflowProcessor
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
                                     DdsIdentity? identity = null;
+                                    // A workflow job is always for a whole package. If the message names a
+                                    // volume or issue (e.g. b30454785_0001), act on its package (b30454785);
+                                    // the generator can only be asserted at package level anyway.
+                                    var jobIdentifier = workflowMessage.Identifier;
                                     try
                                     {
+                                        // A plain read: never creates volume/issue rows, and the authoritative
+                                        // package write below invalidates any child entry it caches.
+                                        var messageIdentity = identityService.GetIdentity(workflowMessage.Identifier);
+                                        if (!messageIdentity.IsPackageLevelIdentifier)
+                                        {
+                                            logger.LogWarning(
+                                                "Workflow message identifier {identifier} is not package level; using package {packageIdentifier}",
+                                                workflowMessage.Identifier.LogSafe(), messageIdentity.PackageIdentifier.LogSafe());
+                                            jobIdentifier = messageIdentity.PackageIdentifier;
+                                        }
                                         // Now we can tell the identity service something authoritative
-                                        identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
+                                        identity = identityService.GetIdentity(jobIdentifier, workflowMessage.Origin);
                                         logger.LogInformation("Received Identity: {identity}", identity);
                                         logger.LogInformation(identity.GetVerbose());
                                     }
                                     catch (Exception ex) when (ex is FormatException or InvalidEnumArgumentException)
                                     {
-                                        // Permanent: an unparseable identifier, unknown origin, or a
-                                        // generator asserted on a volume/issue. Redelivery can never
+                                        // Permanent: an unparseable identifier or unknown origin.
+                                        // Redelivery can never
                                         // succeed, so still record the workflow job below (visible in
                                         // the dashboard) and let the message be deleted.
                                         logger.LogWarning(ex,
@@ -675,7 +689,7 @@ namespace WorkflowProcessor
 
                                     try
                                     {
-                                        await dbContext.PutJob(identity?.PackageIdentifier ?? workflowMessage.Identifier,
+                                        await dbContext.PutJob(identity?.PackageIdentifier ?? jobIdentifier,
                                             true, false, null, false, true);
                                         await dbContext.SaveChangesAsync(cancellationToken);
                                     }

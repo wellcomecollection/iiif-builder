@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Test.Helpers;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
+using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Xunit;
 
@@ -16,6 +17,7 @@ namespace WorkflowProcessor.Tests
     public class WorkflowRunnerTests
     {
         private readonly IIngestJobRegistry ingestJobRegistry;
+        private readonly ICatalogue catalogue;
         private readonly WorkflowRunner sut;
 
         public WorkflowRunnerTests()
@@ -31,6 +33,7 @@ namespace WorkflowProcessor.Tests
             var ddsOptionsInst = Options.Create(ddsOptions);
             
             ingestJobRegistry = A.Fake<IIngestJobRegistry>();
+            catalogue = A.Fake<ICatalogue>();
             var identityService = new ParsingIdentityService(new MemoryCache(new MemoryCacheOptions()));
             sut = new WorkflowRunner(
                 ingestJobRegistry, 
@@ -39,9 +42,9 @@ namespace WorkflowProcessor.Tests
                 null, 
                 null, 
                 null, 
-                ddsOptionsInst, 
-                null, 
-                null, 
+                ddsOptionsInst,
+                catalogue,
+                null,
                 null, 
                 A.Fake<ICacheInvalidationPathPublisher>(), 
                 null,
@@ -128,6 +131,24 @@ namespace WorkflowProcessor.Tests
             // Assert
             job.FirstDlcsJobId.Should().Be(0);
             job.DlcsJobCount.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task ProcessJob_LooksUpCatalogueByPackageIdentifier_ForVolumeLevelJob()
+        {
+            // Arrange - a job keyed by a volume id, as recorded when Goobi sent b30454785_0001
+            var job = new WorkflowJob
+            {
+                Identifier = "b30454785_0001",
+                WorkflowOptions = new RunnerOptions { RefreshFlatManifestations = true, RebuildIIIF = true }.ToInt32()
+            };
+
+            // Act
+            await sut.ProcessJob(job);
+
+            // Assert - the catalogue only knows the work by its b number
+            A.CallTo(() => catalogue.GetWorkByOtherIdentifier("b30454785")).MustHaveHappened();
+            A.CallTo(() => catalogue.GetWorkByOtherIdentifier("b30454785_0001")).MustNotHaveHappened();
         }
     }
 }

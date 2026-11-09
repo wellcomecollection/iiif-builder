@@ -136,7 +136,8 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RefreshFlatManifestations)
                 {
-                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.Value);
+                    // The catalogue knows the work by its package identifier, not by volume/issue ids
+                    work = await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.PackageIdentifier);
                     if (work != null)
                     {
                         logger.LogInformation("JQ {identifier} RefreshFlatManifestations", ddsIdentifier);
@@ -150,7 +151,7 @@ namespace WorkflowProcessor
 
                 if (jobOptions.RebuildIIIF)
                 {
-                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.Value);
+                    work ??= await catalogue.GetWorkByOtherIdentifier(ddsIdentifier.PackageIdentifier);
                     if (work != null)
                     {
                         logger.LogInformation("JQ {identifier} RebuildIIIF", ddsIdentifier);
