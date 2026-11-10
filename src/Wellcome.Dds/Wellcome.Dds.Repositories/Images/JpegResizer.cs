@@ -1,6 +1,6 @@
 using NetVips;
 
-namespace Wellcome.Dds.Server.Images;
+namespace Wellcome.Dds.Repositories.Images;
 
 /// <summary>
 /// Resize an image to a width, preserving aspect ratio, and encode it as JPEG. libvips uses

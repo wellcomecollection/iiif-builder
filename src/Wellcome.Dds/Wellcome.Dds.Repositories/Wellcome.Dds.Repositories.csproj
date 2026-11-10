@@ -21,6 +21,12 @@
     <EmbeddedResource Include="Resources/fonts/Inter-Bold.ttf" />
     <!-- the footer logo: a copy of Wellcome.Dds.Server/wwwroot/logos/wellcome-collection-black.png -->
     <EmbeddedResource Include="Resources/logos/wellcome-collection-black.png" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
+    <PackageReference Include="NetVips" Version="3.2.0" />
+    <!-- libvips binaries for where we run (Linux containers) and develop (Windows); the NetVips.Native meta-package would publish every platform -->
+    <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.7" />
+    <PackageReference Include="NetVips.Native.win-x64" Version="8.18.7" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 
   <ItemGroup>

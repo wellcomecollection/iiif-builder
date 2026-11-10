@@ -33,6 +33,7 @@ using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
 using Wellcome.Dds.Repositories.Pdf.CoverPage;
+using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
 using Wellcome.Dds.Server.Auth;
@@ -171,8 +172,8 @@ namespace Wellcome.Dds.Server
                 .AddScoped<IDigitalObjectRepository, DigitalObjectRepository>()
                 .AddScoped<ISearchTextProvider, CachingAltoSearchTextProvider>()
                 .AddScoped<CachingAltoSearchTextProvider>()
-                .AddScoped<AltoSearchTextProvider>()
-                .AddSingleton<PdfThumbnailUtil>();
+                .AddScoped<AltoSearchTextProvider>();
+            services.AddPdfThumbnails(Configuration);
 
             services.AddSingleton<IAuthenticationService, SierraRestPatronApi>();
             // services.AddSingleton<IAuthenticationService, AllowAllAuthenticator>();

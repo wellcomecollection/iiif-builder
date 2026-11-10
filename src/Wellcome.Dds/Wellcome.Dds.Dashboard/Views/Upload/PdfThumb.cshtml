@@ -1,31 +1,62 @@
 @model dynamic
 
 @{
-    ViewBag.Title = "Upload a PDF Thumbnail";
+    ViewBag.Title = "PDF Thumbnail";
 }
 
 <a id="top"></a>
 
 
 <div class="col-md-12">
-    <h3 style="margin: 25px 0 20px 0">Upload a 1024 px wide (approx) JPEG</h3>
-    
-    @if (ViewBag.Error == null)
+    <h3 style="margin: 25px 0 20px 0">PDF thumbnail for @ViewBag.Identifier</h3>
+
+    @if (ViewBag.Error != null)
     {
         <div class="alert alert-danger" role="alert">@ViewBag.Error</div>
     }
-    else
+    @if (ViewBag.Message != null)
     {
-        <form action="@Url.Action("UploadedPdfThumb", new { id = ViewBag.Identifier })" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="fileInput">Choose file</label>
-                <input type="file" id="fileInput" name="thumbFile">
-                <p class="help-block">The exact size doesn't matter as long as it's reasonably large.</p>
-            </div>
-            <button type="submit" class="btn btn-default">Upload</button>
-        </form>        
+        <div class="alert alert-success" role="alert">@ViewBag.Message</div>
     }
 
-    
-</div>
+    <p>
+        Stored at <code>@ViewBag.ThumbKey</code>:
+        @if (ViewBag.HasThumbnail)
+        {
+            <span class="label label-success">present</span>
+        }
+        else
+        {
+            <span class="label label-warning">missing</span>
+        }
+    </p>
+    @if (ViewBag.HasThumbnail)
+    {
+        <p>
+            <a href="@Url.Action("PdfThumbImage", new { id = ViewBag.Identifier })" target="_blank" title="Open the stored thumbnail at full size">
+                <img src="@Url.Action("PdfThumbImage", new { id = ViewBag.Identifier, v = DateTime.UtcNow.Ticks })"
+                     alt="Stored thumbnail for @ViewBag.Identifier" style="max-width: 300px; max-height: 420px; border: 1px solid #ddd; padding: 4px" />
+            </a>
+        </p>
+    }
 
+    <h4>Generate from the PDF</h4>
+    <form action="@Url.Action("GeneratePdfThumb", new { id = ViewBag.Identifier })" method="POST">
+        <p class="help-block">Renders page 1 of the PDF, resizes it to 1024 px wide and stores it, replacing any existing thumbnail.</p>
+        <button type="submit" class="btn btn-primary">Generate</button>
+    </form>
+
+    <h4 style="margin-top: 30px">Or upload a 1024 px wide (approx) JPEG</h4>
+    <form action="@Url.Action("UploadedPdfThumb", new { id = ViewBag.Identifier })" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="fileInput">Choose file</label>
+            <input type="file" id="fileInput" name="thumbFile">
+            <p class="help-block">For when page 1 is not a good thumbnail. The exact size doesn't matter as long as it's reasonably large.</p>
+        </div>
+        <button type="submit" class="btn btn-default">Upload</button>
+    </form>
+
+    <p style="margin-top: 30px">
+        @Html.ActionLink("View PDFs", "AssetType", "Dash", new { id = "application-pdf" })
+    </p>
+</div>
