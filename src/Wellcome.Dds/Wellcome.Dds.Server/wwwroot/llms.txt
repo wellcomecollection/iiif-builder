@@ -31,7 +31,8 @@ Guidance for automated clients, AI agents, and developers writing code against t
 ## IIIF specifications
 
 - [IIIF Presentation API 3.0](https://iiif.io/api/presentation/3.0/): Structure of the Manifests served here
-- [IIIF Image API 3.0](https://iiif.io/api/image/3.0/): Image request syntax, including `sizes`, `tiles` and canonical URI forms
+- [IIIF Image API 2.1](https://iiif.io/api/image/2.1/): Request syntax for the Image API 2 services advertised in these Manifests, including `sizes`, `tiles` and canonical URI forms
+- [IIIF Image API 3.0](https://iiif.io/api/image/3.0/): Request syntax for services that explicitly advertise Image API 3; choose the specification matching the image service, not the Manifest's Presentation API version
 - [IIIF Content Search API](https://iiif.io/api/search/): Search within a single work
 - [IIIF Authorization Flow API](https://iiif.io/api/auth/): How access-controlled items are signalled
 
