@@ -227,8 +227,12 @@ right. The real rule, in order of strength (implemented 2026-10-28: steps 1, 2 a
    needs the CALM-ref form too.
 2. **Failing that, rank by how the identifier matched.** The query matches any identifier type, so a
    work can match through an incidental one. Prefer the work on which the requested value is its
-   `mets`, then `sierra-system-number`, then `calm-ref-no`, then `calm-altref-no`, then anything
-   else. This generalises the short-form rule and drops the `k` guess.
+   `mets`, then its own `sierra-identifier` (the short form of the b number: the work *is* that
+   Sierra record), then a `sierra-system-number` it merely carries (a Miro image work references the
+   record this way), then `calm-ref-no`, then `calm-altref-no`, then anything else. Among works bound
+   equally, the only one with a IIIF location wins, since the DDS wants the digitised work. This
+   generalises the short-form rule and drops the `k` guess. Checked against 920 live identifiers on
+   2026-11-10: two returned more than one work, both Miro cases, both chosen as the old rule chose.
 3. **Cross-check with the registry.** `by-source/mets/{id}`, then the catalogue redirect on the
    METS work's canonical id, gives the public work by a route that does not depend on search
    ranking. When both routes answer they should agree; on disagreement log loudly and prefer the

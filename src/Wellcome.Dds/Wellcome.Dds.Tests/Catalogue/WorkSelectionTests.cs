@@ -98,15 +98,47 @@ public class WorkSelectionTests
     }
 
     [Fact]
-    public void The_Short_Form_Sierra_Identifier_Counts_As_The_System_Number()
+    public void The_Short_Form_Sierra_Identifier_Means_The_Work_Is_That_Record()
     {
         // b14658197's sierra-identifier is 1465819: the rule the old implementation was written for
         var work = Work("x", null, ("sierra-identifier", "1465819"));
         var other = Work("y", null, ("sierra-identifier", "9999999"));
 
-        WorkSelection.GetStrength(work, "b14658197").Should().Be(WorkMatchStrength.SierraSystemNumber);
+        WorkSelection.GetStrength(work, "b14658197").Should().Be(WorkMatchStrength.SierraRecord);
         WorkSelection.GetStrength(other, "b14658197").Should().Be(WorkMatchStrength.None);
         WorkSelection.Choose("b14658197", new[] { other, work }).Chosen!.Id.Should().Be("x");
+    }
+
+    [Fact]
+    public void A_Miro_Image_Work_Carrying_The_B_Number_Loses_To_The_Sierra_Record_Itself()
+    {
+        // Live case b11140094 (2026-11-10): the digitised work is a merge of two Sierra records and its IIIF
+        // location names the other b number; the Miro image work references b11140094 as a system number only.
+        var digitised = Work("a6k242dv", "https://iiif.wellcomecollection.org/presentation/v2/b29311317",
+            ("sierra-system-number", "b11140094"), ("sierra-identifier", "1114009"),
+            ("sierra-system-number", "b29311317"), ("sierra-identifier", "2931131"));
+        var miro = Work("xsjsnphr", null, ("miro-image-number", "L0014950"), ("sierra-system-number", "b11140094"));
+
+        var selection = WorkSelection.Choose("b11140094", new[] { miro, digitised });
+
+        selection.Chosen!.Id.Should().Be("a6k242dv");
+        selection.Strength.Should().Be(WorkMatchStrength.SierraRecord);
+    }
+
+    [Fact]
+    public void Among_Equally_Bound_Works_The_One_With_A_Iiif_Location_Wins()
+    {
+        var digitised = Work("dddddddd", "https://iiif.wellcomecollection.org/presentation/v2/b99999999", ("sierra-system-number", "b12345678"));
+        var reference = Work("rrrrrrrr", null, ("sierra-system-number", "b12345678"));
+
+        var selection = WorkSelection.Choose("b12345678", new[] { reference, digitised });
+
+        selection.Chosen!.Id.Should().Be("dddddddd");
+        selection.Reason.Should().Contain("only one with a IIIF location");
+
+        // two digitised works equally bound is still ambiguous
+        var another = Work("eeeeeeee", "https://iiif.wellcomecollection.org/presentation/v2/b88888888", ("sierra-system-number", "b12345678"));
+        WorkSelection.Choose("b12345678", new[] { digitised, another }).Ambiguous.Should().BeTrue();
     }
 
     [Fact]

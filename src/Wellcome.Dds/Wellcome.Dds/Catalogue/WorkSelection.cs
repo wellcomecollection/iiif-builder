@@ -21,14 +21,20 @@ namespace Wellcome.Dds.Catalogue
         PresentationLocation = 0,
         /// <summary>The identifier is the work's <c>mets</c> identifier (compared ignoring case).</summary>
         Mets = 1,
-        /// <summary>The work's <c>sierra-system-number</c>, or its <c>sierra-identifier</c> as the short form of the b number.</summary>
-        SierraSystemNumber = 2,
-        CalmRefNo = 3,
-        CalmAltRefNo = 4,
+        /// <summary>
+        /// The work's <c>sierra-identifier</c> is the short form of the b number: the work is that Sierra
+        /// record. A Miro image work carries the same b number as a <c>sierra-system-number</c> only, as a
+        /// reference to the record, which is the next level down.
+        /// </summary>
+        SierraRecord = 2,
+        /// <summary>The work's <c>sierra-system-number</c> is the b number.</summary>
+        SierraSystemNumber = 3,
+        CalmRefNo = 4,
+        CalmAltRefNo = 5,
         /// <summary>Some other identifier type carries the value.</summary>
-        OtherIdentifier = 5,
+        OtherIdentifier = 6,
         /// <summary>The query matched but nothing visible on the work explains how.</summary>
-        None = 6
+        None = 7
     }
 
     /// <summary>
@@ -109,6 +115,18 @@ namespace Wellcome.Dds.Catalogue
                 return selection;
             }
 
+            // Equally bound: the DDS wants the work that has been digitised, so if exactly one of them has a
+            // IIIF location at all (for any identifier), it is the one.
+            var digitised = atBest.Where(ws => ws.Work.HasIIIFDigitalLocation()).ToList();
+            if (digitised.Count == 1 && best != WorkMatchStrength.None)
+            {
+                selection.Chosen = digitised[0].Work;
+                selection.Strength = best;
+                selection.Reason = $"Chosen from {ranked.Count} works: {atBest.Count} are bound equally ({Describe(best)}) " +
+                                   $"and this is the only one with a IIIF location; the others are {string.Join(", ", atBest.Where(ws => ws != digitised[0]).Select(ws => ws.Work.Id))}";
+                return selection;
+            }
+
             selection.Ambiguous = true;
             selection.Reason = best == WorkMatchStrength.None
                 ? $"{ranked.Count} works returned and none shows how it matched: {string.Join(", ", ranked.Select(ws => ws.Work.Id))}"
@@ -141,8 +159,8 @@ namespace Wellcome.Dds.Catalogue
             var value = workIdentifier.Value!;
             if (type == "sierra-identifier")
             {
-                // Sierra's own 7-digit form of the b number
-                return shortBNumber != null && value == shortBNumber ? WorkMatchStrength.SierraSystemNumber : WorkMatchStrength.None;
+                // Sierra's own 7-digit form of the b number: the work is that record
+                return shortBNumber != null && value == shortBNumber ? WorkMatchStrength.SierraRecord : WorkMatchStrength.None;
             }
             if (!value.Equals(identifier, StringComparison.OrdinalIgnoreCase))
             {
@@ -164,7 +182,8 @@ namespace Wellcome.Dds.Catalogue
             {
                 WorkMatchStrength.PresentationLocation => "its IIIF location names the identifier",
                 WorkMatchStrength.Mets => "the identifier is its mets identifier",
-                WorkMatchStrength.SierraSystemNumber => "the identifier is its Sierra system number",
+                WorkMatchStrength.SierraRecord => "the identifier is its own Sierra record (sierra-identifier)",
+                WorkMatchStrength.SierraSystemNumber => "the identifier is a Sierra system number it carries",
                 WorkMatchStrength.CalmRefNo => "the identifier is its CALM RefNo",
                 WorkMatchStrength.CalmAltRefNo => "the identifier is its CALM AltRefNo",
                 WorkMatchStrength.OtherIdentifier => "the identifier is one of its other identifiers",
