@@ -12,6 +12,7 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils.Aws.Options;
+using Utils;
 using Utils.Storage;
 
 namespace Utils.Aws.S3
@@ -141,7 +142,7 @@ namespace Utils.Aws.S3
             }
             catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
-                logger.LogDebug("Could not find S3 object {Bucket}/{Key}", container, fileName);
+                logger.LogDebug("Could not find S3 object {Bucket}/{Key}", container, fileName.LogSafe());
                 return null;
             }
             catch (AmazonS3Exception e)
