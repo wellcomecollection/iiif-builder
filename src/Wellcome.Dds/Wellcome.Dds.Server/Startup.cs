@@ -32,6 +32,7 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Pdf.CoverPage;
 using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
@@ -150,6 +151,8 @@ namespace Wellcome.Dds.Server
             services.AddSingleton<LinkRewriter>();
             services.AddSingleton<UriPatterns>();
             services.AddSingleton<Helpers>();
+            // PDF cover pages for the DLCS, built from manifests in the presentation bucket
+            services.AddSingleton<CoverPageWriter>();
 
             // should cover all the resolved type usages...
             services.AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>));
