@@ -34,4 +34,7 @@ WORKDIR /app
 
 EXPOSE 80
 COPY --from=publish /app/publish .
+# libvips (NetVips) renders the born-digital placeholder canvases with the bundled Wellcome Bold font;
+# point fontconfig at a minimal config so it does not look for a system one that is not installed.
+ENV FONTCONFIG_FILE=/app/Resources/born-digital/fonts.conf
 ENTRYPOINT [ "dotnet", "Wellcome.Dds.Server.dll" ]

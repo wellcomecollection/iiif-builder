@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement.Mvc;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -16,6 +13,7 @@ using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Presentation;
+using Wellcome.Dds.Server.Images;
 
 namespace Wellcome.Dds.Server.Controllers
 {
@@ -193,10 +191,12 @@ namespace Wellcome.Dds.Server.Controllers
 
         private async Task<IActionResult> ResizeImageToResponseBody(Stream imgSourceStream, int width)
         {
+            // Posters and PDF thumbnails are small; buffer them so libvips can read a seekable source.
+            await using var buffer = new MemoryStream();
+            await imgSourceStream.CopyToAsync(buffer);
+            var jpeg = JpegResizer.ResizeToWidth(buffer.ToArray(), width);
             Response.ContentType = "image/jpeg";
-            using var image = await Image.LoadAsync(imgSourceStream);
-            image.Mutate(x => x.Resize(width, 0, KnownResamplers.Lanczos3));
-            await image.SaveAsync(Response.Body, new JpegEncoder());
+            await Response.Body.WriteAsync(jpeg);
             return new EmptyResult();
         }
     }
