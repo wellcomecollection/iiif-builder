@@ -162,7 +162,7 @@ public class CoverPageTests
         page.Letters.Select(l => l.FontName).Distinct().Should().BeEquivalentTo("Inter-Regular", "Inter-Bold");
         page.GetImages().Should().ContainSingle("the embedded Wellcome Collection logo");
         // the persistent URL, and the Creative Commons link inside the attribution text (one rectangle per line it spans)
-        page.ExperimentalAccess.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).Should().HaveCountGreaterOrEqualTo(2);
+        page.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).Should().HaveCountGreaterOrEqualTo(2);
         var uris = System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.Latin1.GetString(pdf), @"/URI\s*\(([^)]*)\)").Select(m => m.Groups[1].Value);
         uris.Distinct().Should().BeEquivalentTo("https://wellcomecollection.org/works/zjytxny8", "http://creativecommons.org/licenses/by-nc/4.0/");
     }
@@ -178,11 +178,11 @@ public class CoverPageTests
 
         using var document = PdfDocument.Open(pdf);
         var page = document.GetPage(1);
-        var links = page.ExperimentalAccess.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).ToList();
+        var links = page.GetAnnotations().Where(a => a.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).ToList();
         links.Count.Should().BeGreaterThan(2, "the link text wraps over more than one line, plus the persistent URL");
         // every letter of the link text lies inside one of the link rectangles, and "Read the" and "before use." lie in none
-        Func<UglyToad.PdfPig.Content.Letter, bool> covered = l => links.Any(a => a.Rectangle.Left <= l.GlyphRectangle.Left + 0.5 && a.Rectangle.Right >= l.GlyphRectangle.Right - 0.5
-                                                                  && a.Rectangle.Bottom <= l.GlyphRectangle.Bottom + 0.5 && a.Rectangle.Top >= l.GlyphRectangle.Top - 0.5);
+        Func<UglyToad.PdfPig.Content.Letter, bool> covered = l => links.Any(a => a.Rectangle.Left <= l.BoundingBox.Left + 0.5 && a.Rectangle.Right >= l.BoundingBox.Right - 0.5
+                                                                  && a.Rectangle.Bottom <= l.BoundingBox.Bottom + 0.5 && a.Rectangle.Top >= l.BoundingBox.Top - 0.5);
         var words = page.GetWords().ToList();
         words.Where(w => w.Text is "licence" or "terms").Should().HaveCount(24).And.OnlyContain(w => w.Letters.All(l => covered(l)));
         words.Where(w => w.Text is "Read" or "use.").Should().HaveCount(2).And.OnlyContain(w => !w.Letters.Any(l => covered(l)));
@@ -205,7 +205,7 @@ public class CoverPageTests
         // nothing ran off the right edge
         foreach (var letter in document.GetPages().SelectMany(p => p.Letters))
         {
-            letter.GlyphRectangle.Right.Should().BeLessThanOrEqualTo(595.28 - 70);
+            letter.BoundingBox.Right.Should().BeLessThanOrEqualTo(595.28 - 70);
         }
     }
 }

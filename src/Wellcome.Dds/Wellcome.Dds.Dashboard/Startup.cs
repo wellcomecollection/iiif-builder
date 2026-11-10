@@ -162,7 +162,7 @@ namespace Wellcome.Dds.Dashboard
                 // This maintains the behaviour that was present in
                 // dotnet until .NET 8.0.17 + .NET 9.0.6 release and so avoids breaking changes.
                 opts.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
-                opts.KnownNetworks.Clear();
+                opts.KnownIPNetworks.Clear();
                 opts.KnownProxies.Clear();
             });
         }

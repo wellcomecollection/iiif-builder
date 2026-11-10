@@ -453,7 +453,7 @@ namespace DlcsWebClient.Dlcs
                 return default;
             }
 
-            var pdf = await response.Content.ReadAsAsync<Pdf>();
+            var pdf = JsonConvert.DeserializeObject<Pdf>(await response.Content.ReadAsStringAsync());
             if (string.IsNullOrEmpty(pdf.Url))
             {
                 pdf.Url = uri.Replace("pdf-control", "pdf");
