@@ -118,3 +118,37 @@ Even with the DLCS doing this, the DDS would still be the place to ask for a wor
 [1] See https://github.com/wellcomecollection/docs/pull/30/files
 
 [2] So why not just put this /thumb/bnumber path into the Catalogue API and let DDS redirect appropriately? Because, at present, the DDS learns the appropriate thumb from the Catalogue API! This logic (finding the cover page) could move to the DDS, though - it already does this to generate IIIF Range Navigation.
+## Born-digital PDF thumbnails
+
+`/thumb/{id}` for a born-digital PDF serves `_pdf_thumbs/{id}.jpg` from the presentation bucket: page 1 of
+the PDF rendered and resized to 1024 px wide. `PdfThumbnailService` (in `Wellcome.Dds.Repositories/Pdf`)
+makes it in three places:
+
+- the workflow processor, when a born-digital package is (re)processed with `RebuildIIIF`, for every
+  manifestation that contains a PDF;
+- the iiif-builder server, on demand, the first time `/thumb/{id}` is asked for a thumbnail that does not exist;
+- the dashboard, from the "Generate or upload" link on the PDF asset-type page, which also still accepts a
+  hand-made JPEG for the cases where page 1 is a poor choice. An upload writes the same key. A generated
+  thumbnail carries S3 metadata `source=generated` and an upload `source=uploaded`, so re-ingest replaces
+  generated thumbnails (the PDF may have changed) but keeps uploaded ones; only the dashboard button replaces
+  an upload. Thumbnails from before the tags (the old Ghostscript tool, old uploads) have no metadata and are
+  kept like uploads; regenerate them from the dashboard if page 1 has changed.
+
+Only a PDF whose access condition is Open, Requires registration or Open with advisory gets a thumbnail,
+and `/thumb` refuses to serve one for any other PDF even if a thumbnail is stored: the same rule as AV
+poster images, since page 1 of a restricted PDF is as restricted as the rest of it.
+
+On-demand generation is bounded, because anyone can ask for `/thumb/{id}`: one generation per identifier
+at a time (concurrent requests share it), at most `OnDemandMaxConcurrent` (2) at once with the rest
+queued, and a request that produced no thumbnail (failed, too large, no PDF, not permitted) is remembered
+for `FailureMemoryMinutes` (10) and answered from memory rather than repeated.
+
+Rendering is done by an external tool run as a subprocess: `pdftoppm` from poppler-utils in the containers
+(installed in the Dockerfiles), or Ghostscript. On a Windows development machine it uses `pdftoppm.exe`
+if it is on the PATH (`winget install oschwartz10612.Poppler`), otherwise the Ghostscript install under
+Program Files. pdftoppm renders page 1 straight to the thumbnail width as a PNG; Ghostscript has no
+render-to-width, so it renders at `Dpi` (150) and is resized down. Either way the JPEG encode is the only
+lossy step. The rasteriser runs without the server's `FONTCONFIG_FILE` so that PDFs with non-embedded fonts
+use the container's fontconfig and DejaVu, the same in every container. The `PdfThumbnails` configuration
+section pins the tool, its path, the timeout, the DPI, the size limit above which a PDF is not fetched, and
+the on-demand limits. `PdfThumbGenerator` is the old bulk CLI, now a loop over the same service.

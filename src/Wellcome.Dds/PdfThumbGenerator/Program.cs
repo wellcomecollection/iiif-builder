@@ -24,6 +24,7 @@ using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Pdf;
 
 namespace PdfThumbGenerator
 {
@@ -47,12 +48,12 @@ namespace PdfThumbGenerator
                         .AddSingleton<StorageServiceClient>()
                         .AddSingleton<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                         .AddSingleton(typeof(IBinaryObjectCache<>), typeof(BinaryObjectCache<>))
-                        .AddSingleton<PdfThumbnailUtil>()
+                        .AddPdfThumbnails(context.Configuration, ServiceLifetime.Singleton)
                         .AddHostedService(provider =>
                             new PdfGenerator(
                                 provider.GetService<ILogger<PdfGenerator>>()!,
                                 provider.GetService<IMetsRepository>()!,
-                                provider.GetService<PdfThumbnailUtil>()!,
+                                provider.GetService<IPdfThumbnailService>()!,
                                 provider.GetService<IIdentityService>()!,
                                 file));
 
@@ -85,17 +86,17 @@ namespace PdfThumbGenerator
     {
         private readonly ILogger<PdfGenerator> logger;
         private readonly IMetsRepository metsRepository;
-        private readonly PdfThumbnailUtil pdfThumbnailUtil;
+        private readonly IPdfThumbnailService pdfThumbnailService;
         private readonly string file;
         private readonly IIdentityService identityService;
 
 
         public PdfGenerator(ILogger<PdfGenerator> logger, IMetsRepository metsRepository,
-            PdfThumbnailUtil pdfThumbnailUtil, IIdentityService identityService, string file)
+            IPdfThumbnailService pdfThumbnailService, IIdentityService identityService, string file)
         {
             this.logger = logger;
             this.metsRepository = metsRepository;
-            this.pdfThumbnailUtil = pdfThumbnailUtil;
+            this.pdfThumbnailService = pdfThumbnailService;
             this.file = file;
             this.identityService = identityService;
         }
@@ -127,26 +128,12 @@ namespace PdfThumbGenerator
 
         private async Task ProcessPdf(BornDigitalPdf pdf)
         {
-            // find PDF items
             try
             {
                 logger.LogDebug("Processing {Identifier}", pdf.Identifier);
                 var identity = identityService.GetIdentity(pdf.Identifier!);
-                IMetsResource? resource = await metsRepository.GetAsync(identity);
-                if (resource is ICollection)
-                {
-                    throw new InvalidOperationException(
-                        $"{pdf.Identifier} is a multiple manifestation - update handling");
-                }
-                var manifestation = resource as IManifestation;
-                var pdfItems = manifestation!.Sequence!.Where(s => s.MimeType == "application/pdf");
-                
-                foreach (var pdfItem in pdfItems)
-                {
-                    await pdfThumbnailUtil.EnsurePdfThumbnails(
-                        () => pdfItem.WorkStore.GetStreamForPathAsync(pdfItem.RelativePath!),
-                        pdf.Identifier!);
-                }
+                var result = await pdfThumbnailService.EnsureThumbnail(identity);
+                logger.LogInformation("{Result}", result);
             }
             catch (Exception ex)
             {

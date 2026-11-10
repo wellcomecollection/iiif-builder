@@ -10,6 +10,7 @@ using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Workflow;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
+using Wellcome.Dds.Repositories.Pdf;
 using Xunit;
 
 namespace WorkflowProcessor.Tests
@@ -48,7 +49,8 @@ namespace WorkflowProcessor.Tests
                 null, 
                 A.Fake<ICacheInvalidationPathPublisher>(), 
                 null,
-                identityService);
+                identityService,
+                A.Fake<IPdfThumbnailService>());
         }
         
         [Fact]
