@@ -10,6 +10,13 @@ namespace Wellcome.Dds.Identifiers
     public interface IIdentifiersApi
     {
         /// <summary>
+        /// False where the API is not configured (see <see cref="IdentifiersApiOptions.IsEnabled"/>): every
+        /// lookup then answers "no mapping" without a request, and callers that would combine the registry
+        /// with other sources use the other sources alone.
+        /// </summary>
+        bool IsEnabled { get; }
+
+        /// <summary>
         /// Forward lookup: GET /identifiers/v1/{canonicalId}
         /// </summary>
         /// <param name="canonicalId">An 8 character catalogue identifier, e.g., vsyg427x</param>

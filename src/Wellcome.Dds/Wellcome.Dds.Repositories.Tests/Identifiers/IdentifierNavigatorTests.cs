@@ -28,6 +28,8 @@ public class IdentifierNavigatorTests
         // default: every probe is a 404 unless a test says otherwise
         A.CallTo(() => storageProbe.Probe(A<string>._, A<string>._))
             .ReturnsLazily((string space, string id) => Task.FromResult(new StorageProbeResult(space, id) { StatusCode = 404 }));
+        // default: the Identifiers API is configured
+        A.CallTo(() => identifiersApi.IsEnabled).Returns(true);
         // default: parse-only identities
         A.CallTo(() => identityService.GetIdentity(A<string>._))
             .ReturnsLazily((string s) => ParsingIdentityService.Parse(s));
@@ -401,5 +403,37 @@ public class IdentifierNavigatorTests
         afterNotFound.Work!.Id.Should().Be("vaqg68j6");
         afterNotFound.Route.Should().Be(WorkLookupRoute.Search);
         afterNotFound.Note.Should().Contain("not a work in the catalogue");
+    }
+
+    [Fact]
+    public async Task Lookup_Uses_The_Query_Alone_Where_The_Identifiers_Api_Is_Not_Enabled()
+    {
+        A.CallTo(() => identifiersApi.IsEnabled).Returns(false);
+        var work = WorkWithLocation("vaqg68j6", "https://iiif.wellcomecollection.org/presentation/ARTCOO/B/15");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("ARTCOO/B/15")).Returns(Selected("ARTCOO/B/15", work));
+
+        var lookup = await sut.LookupWorkByAnyIdentifier("ARTCOO/B/15");
+
+        lookup.Work!.Id.Should().Be("vaqg68j6");
+        lookup.Route.Should().Be(WorkLookupRoute.Search);
+        lookup.Note.Should().Contain("not enabled");
+        A.CallTo(() => identifiersApi.GetSiblingsBySourceIdentifier(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Navigate_Still_Works_Where_The_Identifiers_Api_Is_Not_Enabled()
+    {
+        A.CallTo(() => identifiersApi.IsEnabled).Returns(false);
+        A.CallTo(() => identifiersApi.Resolve("b14658197")).Returns(new IdentifierResolution("b14658197") { Disabled = true });
+        var work = WorkWithLocation("nydjbrr7", "https://iiif.wellcomecollection.org/presentation/v2/b14658197");
+        A.CallTo(() => catalogue.FindWorksByOtherIdentifier("b14658197")).Returns(Selected("b14658197", work));
+
+        var nav = await sut.Navigate("b14658197");
+
+        nav.Registry!.Disabled.Should().BeTrue();
+        nav.PublicWorks.Should().BeEmpty();
+        nav.WorkByIdentifiersQuery!.Id.Should().Be("nydjbrr7");
+        nav.RoutesAgree.Should().BeNull();
+        nav.StorageProbes.Should().NotBeEmpty("the storage service is still probed with the identifier as supplied");
     }
 }

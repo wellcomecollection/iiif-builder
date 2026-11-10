@@ -453,6 +453,15 @@ What staging can and cannot tell us:
 - Nothing on the page writes anything. It is safe to point Wellcome at it, and it lets them see the
   DDS as a consumer of the API in their own logs.
 
+### Where the API is not configured
+
+`IdentifiersApiOptions.IsEnabled` is true exactly when an `IdentifiersApi:ApiKey` is configured (or
+`IdentifiersApi:Enabled` says so explicitly). Where it is false, `AddIdentifiersApi` registers
+`DisabledIdentifiersApi` instead of the HTTP client: every lookup answers "no mapping" without a
+request, a resolution says it was skipped, `LookupWorkByAnyIdentifier` uses the identifiers query
+alone, and the dashboard says the API is not enabled. Production has no key today, so deploying any
+of this there changes nothing until a key is provisioned; staging has the stage key (infra #84).
+
 ### Step 2: the real selection rule for the identifiers query (built)
 
 `GetWorkByOtherIdentifier`'s multiple-match rule is replaced by the four-step rule in

@@ -93,10 +93,7 @@ namespace WorkflowProcessor
 
             // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService; not called on the
             // write path yet, registered so the dashboard's navigator is available here when it is
-            services.Configure<IdentifiersApiOptions>(Configuration.GetSection("IdentifiersApi"));
-            services.AddHttpClient<IIdentifiersApi, WellcomeCollectionIdentifiersApi>();
-            services.AddScoped<IStorageServiceProbe, StorageServiceProbe>();
-            services.AddScoped<IIdentifierNavigator, IdentifierNavigator>();
+            services.AddIdentifiersApi(Configuration);
             services.AddHttpClient<ExternalIIIFReader>();
             services.AddSingleton<ThumbnailSizeDecorator>();
             services

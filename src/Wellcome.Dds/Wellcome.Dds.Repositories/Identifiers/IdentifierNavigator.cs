@@ -172,6 +172,14 @@ namespace Wellcome.Dds.Repositories.Identifiers
             var bySearch = lookup.Selection?.Chosen;
 
             // Step 3: the registry's mets row, then the catalogue redirect, independent of search ranking.
+            if (!identifiersApi.IsEnabled)
+            {
+                lookup.Work = bySearch;
+                lookup.Route = bySearch == null ? WorkLookupRoute.None : WorkLookupRoute.Search;
+                lookup.Note = $"{DisabledIdentifiersApi.Reason}; the identifiers query stands alone"
+                              + (lookup.Selection == null ? "" : $" ({lookup.Selection.Reason})");
+                return lookup;
+            }
             try
             {
                 var set = await identifiersApi.GetSiblingsBySourceIdentifier(SourceSystems.Mets, identifier);

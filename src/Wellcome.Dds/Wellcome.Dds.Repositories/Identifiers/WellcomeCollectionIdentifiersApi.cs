@@ -17,7 +17,6 @@ namespace Wellcome.Dds.Repositories.Identifiers
     public class WellcomeCollectionIdentifiersApi : IIdentifiersApi
     {
         private const string ApiKeyHeader = "x-api-key";
-        private const string IncludeSiblings = "siblings";
 
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
@@ -36,6 +35,8 @@ namespace Wellcome.Dds.Repositories.Identifiers
             this.logger = logger;
             baseUrl = options.BaseUrl.TrimEnd('/');
         }
+
+        public bool IsEnabled => options.IsEnabled;
 
         public async Task<IdentifierSet?> GetByCanonicalId(string canonicalId)
         {
@@ -74,26 +75,10 @@ namespace Wellcome.Dds.Repositories.Identifiers
             return resolution;
         }
 
-        public string GetApiUrl(string canonicalId)
-        {
-            return $"{baseUrl}/{Uri.EscapeDataString(canonicalId.Trim())}";
-        }
+        public string GetApiUrl(string canonicalId) => IdentifiersApiUrls.Canonical(baseUrl, canonicalId);
 
         public string GetApiUrl(string sourceSystem, string value, string type = OntologyType.Work, bool includeSiblings = false)
-        {
-            // value must be a single path segment, so a CALM ref like PPCRI/A/1 is sent as PPCRI%2FA%2F1
-            var url = $"{baseUrl}/by-source/{Uri.EscapeDataString(sourceSystem.Trim())}/{Uri.EscapeDataString(value.Trim())}";
-            var args = new List<string>();
-            if (type.HasText())
-            {
-                args.Add($"type={Uri.EscapeDataString(type.Trim())}");
-            }
-            if (includeSiblings)
-            {
-                args.Add($"include={IncludeSiblings}");
-            }
-            return args.Count > 0 ? url + "?" + string.Join('&', args) : url;
-        }
+            => IdentifiersApiUrls.BySource(baseUrl, sourceSystem, value, type, includeSiblings);
 
         /// <summary>
         /// GET the url, returning null for a 404 and throwing for any other non-success status.

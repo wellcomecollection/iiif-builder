@@ -18,7 +18,10 @@ namespace Wellcome.Dds.Dashboard.Models
         };
 
         public string BaseUrl { get; set; }
-        public bool HasApiKey { get; set; }
+        /// <summary>
+        /// False where the API is not configured: lookups are skipped and the page says so.
+        /// </summary>
+        public bool ApiEnabled { get; set; }
 
         // Form inputs
         public string CanonicalId { get; set; }

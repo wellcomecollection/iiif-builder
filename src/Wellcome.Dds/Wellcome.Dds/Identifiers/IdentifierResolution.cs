@@ -20,6 +20,11 @@ namespace Wellcome.Dds.Identifiers
 
         public List<CandidateLookup> Lookups { get; } = new List<CandidateLookup>();
 
+        /// <summary>
+        /// True when no lookups were made because the Identifiers API is not enabled in this environment.
+        /// </summary>
+        public bool Disabled { get; set; }
+
         public IEnumerable<CandidateLookup> Found => Lookups.Where(l => l.Found);
 
         public bool AnyFound => Lookups.Any(l => l.Found);

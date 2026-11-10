@@ -17,10 +17,12 @@
     (@Html.ActionLink("stats on its table", "Stats", "Identity")).
 </p>
 
-@if (!Model.HasApiKey)
+@if (!Model.ApiEnabled)
 {
-    <div class="alert alert-danger" role="alert">
-        No API key is configured (<code>IdentifiersApi:ApiKey</code>); requests will be rejected by the API gateway.
+    <div class="alert alert-warning" role="alert">
+        The Identifiers API is not enabled in this environment (no <code>IdentifiersApi:ApiKey</code>, or
+        <code>IdentifiersApi:Enabled</code> is false). Registry lookups are skipped; the DDS identity, the catalogue
+        API and the storage service parts of the resolve page still work.
     </div>
 }
 
@@ -374,7 +376,11 @@
 
 @if (Model.Resolution != null)
 {
-    if (Model.Resolution.Lookups.Count == 0)
+    if (Model.Resolution.Disabled)
+    {
+        <div class="alert alert-info" role="alert">Registry lookups skipped: the Identifiers API is not enabled in this environment.</div>
+    }
+    else if (Model.Resolution.Lookups.Count == 0)
     {
         <div class="alert alert-warning" role="alert">Could not generate any candidate lookups for this string.</div>
     }

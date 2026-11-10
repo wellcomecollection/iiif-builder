@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.Identifiers;
+using Wellcome.Dds.Repositories.Identifiers;
 
 namespace Wellcome.Dds.Dashboard.Controllers;
 
@@ -48,7 +49,11 @@ public class IdentifiersController : Controller
 
         try
         {
-            if (model.CanonicalId.HasText())
+            if (!model.ApiEnabled && (model.CanonicalId.HasText() || model.Value.HasText()))
+            {
+                model.ErrorMessage = DisabledIdentifiersApi.Reason;
+            }
+            else if (model.CanonicalId.HasText())
             {
                 model.ApiUrl = identifiersApi.GetApiUrl(model.CanonicalId);
                 model.IdentifierSet = await identifiersApi.GetByCanonicalId(model.CanonicalId);
@@ -115,7 +120,7 @@ public class IdentifiersController : Controller
         return new IdentifiersModel
         {
             BaseUrl = options.BaseUrl,
-            HasApiKey = options.ApiKey.HasText()
+            ApiEnabled = identifiersApi.IsEnabled
         };
     }
 }

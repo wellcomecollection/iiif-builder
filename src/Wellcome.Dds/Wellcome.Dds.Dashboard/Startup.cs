@@ -111,12 +111,10 @@ namespace Wellcome.Dds.Dashboard
             // DdsContext is in Wellcome.Dds.Repositories
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
 
-            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService
-            services.Configure<IdentifiersApiOptions>(Configuration.GetSection("IdentifiersApi"));
-            services.AddHttpClient<IIdentifiersApi, WellcomeCollectionIdentifiersApi>();
-            // Composes the registry, the catalogue API and the storage service (scoped: StorageServiceClient is)
-            services.AddScoped<IStorageServiceProbe, StorageServiceProbe>();
-            services.AddScoped<IIdentifierNavigator, IdentifierNavigator>();
+            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService, with the navigator
+            // that composes it with the catalogue API and the storage service. Where no key is configured the
+            // registry is a stand-in that answers "no mapping", and the rest works as before.
+            services.AddIdentifiersApi(Configuration);
 
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
