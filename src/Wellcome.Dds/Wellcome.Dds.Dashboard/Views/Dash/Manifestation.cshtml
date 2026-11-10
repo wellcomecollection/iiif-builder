@@ -275,6 +275,7 @@
                         }
                         <li><a href="@Model.CatalogueApi">Catalogue API</a> | <a href="@Model.CatalogueApiFull">Full</a></li>
                         <li><a href="@Url.Action("Get", "Identity", new { id= Model.DdsIdentifier.Value })">Identity</a></li>
+                        <li><a href="@Url.Action("Resolve", "Identifiers", new { id = Model.DdsIdentifier.PackageIdentifier })">Identifiers API</a></li>
                     </ul>
                 </li>
                 <li class="list-group-item">

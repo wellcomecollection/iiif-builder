@@ -1,0 +1,32 @@
+@using Wellcome.Dds.Common
+@model List<DdsIdentity>
+
+<table class="table table-condensed table-hover">
+    <thead>
+    <tr>
+        <th>Identifier</th>
+        <th>Source</th>
+        <th>Storage space</th>
+        <th>Generator</th>
+        <th>Catalogue id</th>
+        <th>Created</th>
+        <th>Updated</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var identity in Model)
+    {
+        <tr>
+            <td><a href="@Url.Action("Get", "Identity", new { id = identity.PathElementSafe })">@identity.Value</a></td>
+            <td>@identity.Source @(identity.SourceValidated ? "" : "?")</td>
+            <td>@identity.StorageSpace @(identity.StorageSpaceValidated ? "" : "?")</td>
+            <td>@(identity.Generator ?? "-")</td>
+            <td>@(identity.CatalogueId ?? "-")</td>
+            <td>@identity.Created.ToString("u")</td>
+            <td>@identity.Updated.ToString("u")</td>
+            <td><a href="@Url.Action("Resolve", "Identifiers", new { id = identity.PackageIdentifier })">resolve</a></td>
+        </tr>
+    }
+    </tbody>
+</table>

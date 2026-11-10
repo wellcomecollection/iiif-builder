@@ -29,6 +29,8 @@ using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Identifiers;
+using Wellcome.Dds.Repositories.Identifiers;
 using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 using Wellcome.Dds.Repositories.WordsAndPictures;
@@ -89,6 +91,10 @@ namespace WorkflowProcessor
             services.AddHttpClient<OAuth2ApiConsumer>();
             services.AddDlcsClient(Configuration);
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
+
+            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService; not called on the
+            // write path yet, registered so the dashboard's navigator is available here when it is
+            services.AddIdentifiersApi(Configuration);
             services.AddPdfThumbnails(Configuration);
             // libvips: only the trusted loaders (JPEG, PNG, ...) may decode what we hand it
             NetVips.NetVips.BlockUntrusted = true;

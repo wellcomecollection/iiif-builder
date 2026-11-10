@@ -1,0 +1,95 @@
+@using Wellcome.Dds.Common
+@model IdentityStats
+
+@{
+    ViewBag.Title = "Identity stats";
+    string Pct(int part, int whole) => whole == 0 ? "" : $"({(double) part / whole:P1})";
+}
+
+<a id="top"></a>
+
+<div class="col-md-12">
+    <h3 style="margin: 25px 0 20px 0">Identity stats</h3>
+    <p>
+        The DDS's own <code>identities</code> table: one row per identifier the DDS has seen, package level
+        (a b number, a CALM ref) or a volume or issue within a package. The volume and issue rows copy their
+        package's source, storage space, generator and catalogue id, so the figures below are for package-level
+        rows unless they say otherwise.
+        @Html.ActionLink("Identifiers API", "Index", "Identifiers") is the catalogue's registry, a different thing.
+        <br/><small class="text-muted">Generated @Model.GeneratedAt.ToString("u")</small>
+    </p>
+</div>
+
+<div class="col-md-6">
+    <h4>Rows</h4>
+    <table class="table table-condensed">
+        <tr><th>All rows</th><td class="text-right">@($"{Model.Total:n0}")</td><td></td></tr>
+        @foreach (var level in Model.ByLevel)
+        {
+            <tr><td>&nbsp;&nbsp;@(level.Key ?? "(none)")</td><td class="text-right">@($"{level.Count:n0}")</td><td class="text-muted">@Pct(level.Count, Model.Total)</td></tr>
+        }
+        <tr><th>Packages with volume or issue rows</th><td class="text-right">@($"{Model.PackagesWithChildren:n0}")</td><td class="text-muted">@Pct(Model.PackagesWithChildren, Model.Packages)</td></tr>
+        <tr><th>Rows whose value is not all lowercase</th><td class="text-right">@($"{Model.MixedCaseValues:n0}")</td><td class="text-muted">@Pct(Model.MixedCaseValues, Model.Total) <span title="CALM refs; the storage service is case-sensitive, so these rows are where the DDS keeps the casing">CALM refs</span></td></tr>
+    </table>
+
+    <h4>Packages: where the identifier came from</h4>
+    <table class="table table-condensed">
+        <tr><th>Package-level rows</th><td class="text-right">@($"{Model.Packages:n0}")</td><td></td></tr>
+        <tr><th colspan="3">By source (system that issued the identifier)</th></tr>
+        @foreach (var c in Model.BySource)
+        {
+            <tr><td>&nbsp;&nbsp;@(c.Key ?? "(none)")</td><td class="text-right">@($"{c.Count:n0}")</td><td class="text-muted">@Pct(c.Count, Model.Packages)</td></tr>
+        }
+        <tr><th colspan="3">By storage space</th></tr>
+        @foreach (var c in Model.ByStorageSpace)
+        {
+            <tr><td>&nbsp;&nbsp;@(c.Key ?? "(none)")</td><td class="text-right">@($"{c.Count:n0}")</td><td class="text-muted">@Pct(c.Count, Model.Packages)</td></tr>
+        }
+        <tr><th colspan="3">By generator (workflow tool that made the METS)</th></tr>
+        @foreach (var c in Model.ByGenerator)
+        {
+            <tr><td>&nbsp;&nbsp;@(c.Key ?? "(none: parsed only)")</td><td class="text-right">@($"{c.Count:n0}")</td><td class="text-muted">@Pct(c.Count, Model.Packages)</td></tr>
+        }
+        <tr><th colspan="3">Source and storage space together</th></tr>
+        @foreach (var c in Model.BySourceAndStorageSpace)
+        {
+            <tr><td>&nbsp;&nbsp;@c.Key</td><td class="text-right">@($"{c.Count:n0}")</td><td class="text-muted">@Pct(c.Count, Model.Packages)</td></tr>
+        }
+    </table>
+</div>
+
+<div class="col-md-6">
+    <h4>Packages: how much is known for sure</h4>
+    <table class="table table-condensed">
+        <tr><th>Asserted by a generator (Goobi, Archivematica)</th><td class="text-right">@($"{Model.PackagesFromGenerator:n0}")</td><td class="text-muted">@Pct(Model.PackagesFromGenerator, Model.Packages)</td></tr>
+        <tr><th>Parsed only: nothing has asserted they exist</th><td class="text-right">@($"{Model.PackagesParsedOnly:n0}")</td><td class="text-muted">@Pct(Model.PackagesParsedOnly, Model.Packages)</td></tr>
+        <tr><th>Storage space validated (a storage manifest was loaded)</th><td class="text-right">@($"{Model.PackagesStorageSpaceValidated:n0}")</td><td class="text-muted">@Pct(Model.PackagesStorageSpaceValidated, Model.Packages)</td></tr>
+        <tr><th>Source validated <small>(always false until the registry is on the write path)</small></th><td class="text-right">@($"{Model.PackagesSourceValidated:n0}")</td><td class="text-muted">@Pct(Model.PackagesSourceValidated, Model.Packages)</td></tr>
+        <tr><th>Bound to a catalogue work (CatalogueId set)</th><td class="text-right">@($"{Model.PackagesWithCatalogueId:n0}")</td><td class="text-muted">@Pct(Model.PackagesWithCatalogueId, Model.Packages)</td></tr>
+        <tr class="@(Model.PackagesFromGeneratorWithoutCatalogueId > 0 ? "warning" : "")"><th>Asserted by a generator but no catalogue work found</th><td class="text-right">@($"{Model.PackagesFromGeneratorWithoutCatalogueId:n0}")</td><td class="text-muted">@Pct(Model.PackagesFromGeneratorWithoutCatalogueId, Model.PackagesFromGenerator)</td></tr>
+    </table>
+
+    <h4>Activity (all rows)</h4>
+    <table class="table table-condensed">
+        <tr><th>Earliest created</th><td>@(Model.EarliestCreated?.ToString("u") ?? "-")</td></tr>
+        <tr><th>Latest created</th><td>@(Model.LatestCreated?.ToString("u") ?? "-")</td></tr>
+        <tr><th>Latest updated</th><td>@(Model.LatestUpdated?.ToString("u") ?? "-")</td></tr>
+        <tr><th>Created in the last 24 hours / 7 days / 30 days</th><td>@($"{Model.CreatedLast24Hours:n0}") / @($"{Model.CreatedLast7Days:n0}") / @($"{Model.CreatedLast30Days:n0}")</td></tr>
+        <tr><th>Updated in the last 24 hours / 7 days</th><td>@($"{Model.UpdatedLast24Hours:n0}") / @($"{Model.UpdatedLast7Days:n0}")</td></tr>
+    </table>
+</div>
+
+<div class="col-md-12">
+    @if (Model.RecentPackagesWithoutCatalogueId.Any())
+    {
+        <h4>Recently processed packages with no catalogue work</h4>
+        <p class="help-block">The generator asserted these, but the catalogue's identifiers query found no work (or an ambiguous one). They get another chance on the next reprocess.</p>
+        <partial name="_IdentityList" model="Model.RecentPackagesWithoutCatalogueId" />
+    }
+
+    <h4>Last @Model.RecentlyCreatedPackages.Count packages created</h4>
+    <partial name="_IdentityList" model="Model.RecentlyCreatedPackages" />
+
+    <h4>Last @Model.RecentlyUpdatedPackages.Count packages updated</h4>
+    <partial name="_IdentityList" model="Model.RecentlyUpdatedPackages" />
+</div>

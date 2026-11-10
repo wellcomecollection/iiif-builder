@@ -90,7 +90,7 @@ namespace OAuth2
             }
             catch (HttpRequestException webex)
             {
-                logger.LogError(webex, "Error calling {url}", url);
+                logger.LogError(webex, "Error calling {url}", url.LogSafe());
                 throw;
             }
         }

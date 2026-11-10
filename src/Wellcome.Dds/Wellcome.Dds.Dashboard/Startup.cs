@@ -37,7 +37,9 @@ using Wellcome.Dds.Dashboard.Controllers;
 using Wellcome.Dds.Dashboard.Models;
 using Wellcome.Dds.IIIFBuilding;
 using Wellcome.Dds.Repositories;
+using Wellcome.Dds.Identifiers;
 using Wellcome.Dds.Repositories.Catalogue;
+using Wellcome.Dds.Repositories.Identifiers;
 using Wellcome.Dds.Repositories.Pdf;
 using Wellcome.Dds.Repositories.Presentation;
 
@@ -110,6 +112,11 @@ namespace Wellcome.Dds.Dashboard
             // DdsContext is in Wellcome.Dds.Repositories
             services.AddHttpClient<ICatalogue, WellcomeCollectionCatalogue>();
 
+            // The catalogue's ID registry (RFC 089), distinct from our own IIdentityService, with the navigator
+            // that composes it with the catalogue API and the storage service. Where no key is configured the
+            // registry is a stand-in that answers "no mapping", and the rest works as before.
+            services.AddIdentifiersApi(Configuration);
+
             // This is the one that needs an IAmazonS3 with the storage profile
             services.AddScoped<IWorkStorageFactory, ArchiveStorageServiceWorkStorageFactory>()
                 .AddScoped<StorageServiceClient>()
@@ -138,6 +145,7 @@ namespace Wellcome.Dds.Dashboard
             services.AddSingleton<ThumbnailSizeDecorator>();
             
             services.AddScoped<IDds, Wellcome.Dds.Repositories.Dds>();
+            services.AddScoped<Wellcome.Dds.Common.IIdentityStatsRepository, Wellcome.Dds.Repositories.IdentityStatsRepository>();
 
             services.AddControllersWithViews(
                 opts => opts.Filters.Add(typeof(DashGlobalsActionFilter)))

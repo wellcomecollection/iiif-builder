@@ -1,0 +1,71 @@
+@using Wellcome.Dds.Identifiers
+@using Wellcome.Dds.IIIFBuilding
+@inject UriPatterns UriPatterns
+@model IdentifierSet
+
+<div class="row">
+    <div class="col-md-12">
+        <h4>
+            <a href="@Url.Action("Index", "Identifiers", new { canonicalId = Model.CanonicalId })">@Model.CanonicalId</a>
+            <small>@Model.Type</small>
+            @if (Model.Type == OntologyType.Work)
+            {
+                <small>| <a href="@UriPatterns.PersistentPlayerUri(Model.CanonicalId)">Work page</a></small>
+            }
+        </h4>
+        <table class="table table-condensed">
+            <thead>
+            <tr>
+                <th>Source system</th>
+                <th>Value</th>
+                <th>Type</th>
+                <th>Original / alias</th>
+                <th>Created</th>
+                <th>DDS</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var si in Model.SourceIdentifiers ?? new SourceIdentifier[0])
+            {
+                <tr>
+                    <td>@si.SourceSystem</td>
+                    <td>
+                        <a href="@Url.Action("Index", "Identifiers", new { sourceSystem = si.SourceSystem, value = si.Value, type = si.Type, siblings = true })"
+                           title="Reverse lookup of this identifier">@si.Value</a>
+                    </td>
+                    <td>@si.Type</td>
+                    <td>
+                        @if (si.IsAlias)
+                        {
+                            <span class="label label-default">alias</span>
+                        }
+                        else
+                        {
+                            <span class="label label-primary">original</span>
+                        }
+                    </td>
+                    <td title="@si.CreatedAt.ToString("u")">@si.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (si.Value.IsBNumber())
+                        {
+                            @Html.ActionLink("Manifestation", "Manifestation", "Dash", new { id = si.Value }, null)
+                            @: |
+                            @Html.ActionLink("Identity", "Get", "Identity", new { id = si.Value }, null)
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (Model.ETag.HasText() || Model.CacheControl.HasText())
+        {
+            <p>
+                <small class="text-muted">
+                    ETag: <code>@Model.ETag</code>
+                    Cache-Control: <code>@Model.CacheControl</code>
+                </small>
+            </p>
+        }
+        <pre>@IdentifiersModel.ToJson(Model)</pre>
+    </div>
+</div>
