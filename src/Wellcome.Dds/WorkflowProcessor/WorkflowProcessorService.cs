@@ -647,17 +647,49 @@ namespace WorkflowProcessor
                                 if (workflowMessage.Identifier.HasText() && workflowMessage.Identifier != "null")
                                 {
                                     DdsIdentity? identity = null;
+                                    // A workflow job is always for a whole package. If the message names a
+                                    // volume or issue (e.g. b30454785_0001), act on its package (b30454785);
+                                    // the generator can only be asserted at package level anyway.
+                                    // Whether that's accepted is gated by AcceptManifestationLevelWorkflowIdentifiers.
+                                    var jobIdentifier = workflowMessage.Identifier;
+                                    string? rejection = null;
                                     try
                                     {
-                                        // Now we can tell the identity service something authoritative
-                                        identity = identityService.GetIdentity(workflowMessage.Identifier, workflowMessage.Origin);
-                                        logger.LogInformation("Received Identity: {identity}", identity);
-                                        logger.LogInformation(identity.GetVerbose());
+                                        // A plain read: never creates volume/issue rows, and the authoritative
+                                        // package write below invalidates any child entry it caches.
+                                        var messageIdentity = identityService.GetIdentity(workflowMessage.Identifier);
+                                        if (!messageIdentity.IsPackageLevelIdentifier)
+                                        {
+                                            if (ddsOptions.AcceptManifestationLevelWorkflowIdentifiers)
+                                            {
+                                                logger.LogWarning(
+                                                    "Workflow message identifier {identifier} is not package level; using package {packageIdentifier}",
+                                                    workflowMessage.Identifier.LogSafe(), messageIdentity.PackageIdentifier.LogSafe());
+                                                jobIdentifier = messageIdentity.PackageIdentifier;
+                                            }
+                                            else
+                                            {
+                                                logger.LogWarning(
+                                                    "Workflow message identifier {identifier} is not package level; rejecting",
+                                                    workflowMessage.Identifier.LogSafe());
+                                                jobIdentifier = messageIdentity.Value;
+                                                rejection = "Workflow message identifier is not package level; expected " +
+                                                            messageIdentity.PackageIdentifier;
+                                            }
+                                        }
+
+                                        if (rejection == null)
+                                        {
+                                            // Now we can tell the identity service something authoritative
+                                            identity = identityService.GetIdentity(jobIdentifier, workflowMessage.Origin);
+                                            logger.LogInformation("Received Identity: {identity}", identity);
+                                            logger.LogInformation(identity.GetVerbose());
+                                        }
                                     }
                                     catch (Exception ex) when (ex is FormatException or InvalidEnumArgumentException)
                                     {
-                                        // Permanent: an unparseable identifier, unknown origin, or a
-                                        // generator asserted on a volume/issue. Redelivery can never
+                                        // Permanent: an unparseable identifier or unknown origin.
+                                        // Redelivery can never
                                         // succeed, so still record the workflow job below (visible in
                                         // the dashboard) and let the message be deleted.
                                         logger.LogWarning(ex,
@@ -675,8 +707,20 @@ namespace WorkflowProcessor
 
                                     try
                                     {
-                                        await dbContext.PutJob(identity?.PackageIdentifier ?? workflowMessage.Identifier,
-                                            true, false, null, false, true);
+                                        if (rejection != null)
+                                        {
+                                            // Record it so it shows on the dashboard's errors page, but never
+                                            // process it: taken (not waiting), then finished with the error.
+                                            var rejectedJob = await dbContext.PutJob(jobIdentifier,
+                                                false, true, null, false, false);
+                                            rejectedJob.Finished = true;
+                                            rejectedJob.Error = rejection;
+                                        }
+                                        else
+                                        {
+                                            await dbContext.PutJob(identity?.PackageIdentifier ?? jobIdentifier,
+                                                true, false, null, false, true);
+                                        }
                                         await dbContext.SaveChangesAsync(cancellationToken);
                                     }
                                     catch (Exception ex)
