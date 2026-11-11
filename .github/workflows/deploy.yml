@@ -9,8 +9,7 @@ on:
     inputs:
       environment:
         description: Environment to deploy to
-        type: choice
-        options: [staging, staging-prod, production]
+        type: environment
         required: true
       image_tag:
         description: Image tag to deploy, a commit SHA or a published branch or tag name
