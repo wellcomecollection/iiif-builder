@@ -1,0 +1,92 @@
+# Tests every push and pull request, then publishes the images for pushes to this repository.
+# Images are tagged with the commit SHA and the branch or tag name; nothing is deployed (see deploy.yml).
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        working-directory: src/Wellcome.Dds
+        run: dotnet test Wellcome.Dds.sln --filter "Category!=Database&Category!=Manual"
+
+  publish:
+    # Fork pull requests never reach this job, and pull_request runs only test.
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: iiif-builder
+            dockerfile: Dockerfile-iiifbuilder
+          - repository: iiif-builder-dashboard
+            dockerfile: Dockerfile-dashboard
+          - repository: job-processor
+            dockerfile: Dockerfile-jobprocessor
+          - repository: workflow-processor
+            dockerfile: Dockerfile-workflowprocessor
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Choose the name tag
+        id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # Docker tags allow [A-Za-z0-9_.-], not starting with . or -, up to 128 characters
+          tag=$(printf '%s' "$REF_NAME" | tr -c 'A-Za-z0-9_.-' '-' | sed 's/^[.-]/_/' | cut -c1-128)
+          # Environment tags are only ever set by deploy.yml
+          case "$tag" in
+            staging|staging-prod|production)
+              echo "::error::'$REF_NAME' would overwrite the $tag environment tag; rename the branch or tag"
+              exit 1
+              ;;
+          esac
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_PUBLISH_ROLE_ARN }}
+          aws-region: eu-west-1
+          mask-aws-account-id: true
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Build and push
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ matrix.repository }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          NAME_TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          docker build -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$NAME_TAG" -f "$DOCKERFILE" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:$NAME_TAG"
