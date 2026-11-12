@@ -166,7 +166,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     {
                         if (Type.StartsWith("Periodical"))
                         {
+                            // A default; an issue with none of its own should use its volume's licence if that
+                            // has one (see SectionMetadataX.GetPeriodicalIssueLicence)
                             modsData.DzLicenseCode = "CC-BY-NC";
+                            modsData.DzLicenseCodeIsDefault = true;
                         }
                     }
                 }

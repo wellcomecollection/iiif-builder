@@ -14,6 +14,13 @@
         string? RecordIdentifier { get; set; }
         string? AccessCondition { get; set; }
         string? DzLicenseCode { get; set; }
+
+        /// <summary>
+        /// True when DzLicenseCode was not in the METS but supplied as a default
+        /// (periodical sections with no licence are given "CC-BY-NC").
+        /// </summary>
+        bool DzLicenseCodeIsDefault { get; set; }
+
         int PlayerOptions { get; set; }
         string? Usage { get; set; }
         string? Leader6 { get; set; }

@@ -83,10 +83,7 @@ namespace Wellcome.Dds.Common.Tests
         [InlineData("CC-0")]
         [InlineData("CC-BY")]
         [InlineData("CC-BY-NC")]
-        [InlineData("CC-BY-ND")]
-        [InlineData("CC-BY-SA")]
         [InlineData("CC-BY-NC-ND")]
-        [InlineData("CC-BY-NC-SA")]
         [InlineData("OGL")]
         [InlineData("OPL")]
         [InlineData(" PDM ")]
@@ -94,6 +91,40 @@ namespace Wellcome.Dds.Common.Tests
         {
             sut.GetPermittedOperations(licence, "Monograph", "image/jp2")
                 .Should().BeEquivalentTo(CurrentView, HighRes, LowRes, Pdf);
+        }
+
+        [Theory]
+        [InlineData("CC-BY-ND", "e")]
+        [InlineData("CC-BY-SA", "f")]
+        [InlineData("CC-BY-NC-SA", "g")]
+        public void OpenLicenceName_Monograph_NoPdf_WhereTheLetterCodeHadNone(string licence, string letter)
+        {
+            var expected = new[] { CurrentView, HighRes, LowRes };
+            sut.GetPermittedOperations(licence, "Monograph", "image/jp2").Should().BeEquivalentTo(expected);
+            sut.GetPermittedOperations(letter, "Monograph", "image/jp2").Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public void OpenLicenceName_Periodical_NoPdf_WhereTheLetterCodeHadNone()
+        {
+            sut.GetPermittedOperations("CC-BY-SA", "PeriodicalIssue", "image/jp2")
+                .Should().BeEquivalentTo(CurrentView, HighRes, LowRes);
+        }
+
+        [Fact]
+        public void OpenLicenceName_Artwork_PermitsHighRes_Deliberately()
+        {
+            // A licence name can't say what the artwork letters l-q said (no high-res); per decision D1 every open
+            // licence name permits high-res. Artworks restricted on purpose do it with player flags.
+            sut.GetPermittedOperations("CC-BY-NC", "Artwork", "image/jp2").Should().Contain(HighRes);
+        }
+
+        [Fact]
+        public void OpenLicenceName_Transcript_PermitsOriginalOnly()
+        {
+            // Transcripts aren't image sequences, so no "View as PDF" rendering
+            sut.GetPermittedOperations("CC-BY", "Transcript", "application/pdf")
+                .Should().BeEquivalentTo(Original);
         }
 
         [Theory]

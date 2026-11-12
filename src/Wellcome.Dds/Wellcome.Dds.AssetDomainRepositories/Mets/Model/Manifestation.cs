@@ -87,10 +87,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
                     return LicensesAndOptions.Instance.GetPermittedOperations(
                         SectionMetadata.PlayerOptions, FirstInternetType);
                 }
-                if (SectionMetadata != null && SectionMetadata.DzLicenseCode.HasText())
+                var licence = Type == "PeriodicalIssue"
+                    ? SectionMetadata?.GetPeriodicalIssueLicence(ParentSectionMetadata)
+                    : SectionMetadata?.DzLicenseCode;
+                if (licence.HasText())
                 {
                     return LicensesAndOptions.Instance.GetPermittedOperations(
-                        SectionMetadata.DzLicenseCode, Type!, FirstInternetType);
+                        licence, Type!, FirstInternetType);
                 }
                 return new string[] {};
             }

@@ -170,9 +170,17 @@ namespace Wellcome.Dds.Common
         }
 
         /// <summary>
+        /// Open licences whose monograph letter codes (e, f, g) never permitted a PDF.
+        /// </summary>
+        private static readonly HashSet<string> NoPdfLicenceNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "CC-BY-ND", "CC-BY-SA", "CC-BY-NC-SA"
+        };
+
+        /// <summary>
         /// An open licence name permits what an open letter code permits for the same kind of item: every image
-        /// operation including PDF, but no PDF for single artworks and bound manuscripts, and only the original file
-        /// for audio, video and PDF monographs.
+        /// operation including PDF, but no PDF for single artworks and bound manuscripts, or under the licences whose
+        /// letter codes excluded it; and only the original file for audio, video, transcripts and PDF monographs.
         /// </summary>
         private string[] GetPermittedOperationsForLicenceName(string licenceName, string sectionType, string? assetType)
         {
@@ -183,7 +191,7 @@ namespace Wellcome.Dds.Common
 
             var type = sectionType.ToLowerInvariant();
             int[] opts;
-            if (type == "video" || type == "audio")
+            if (type == "video" || type == "audio" || type == "transcript")
             {
                 opts = new[] { 4 };
             }
@@ -191,7 +199,7 @@ namespace Wellcome.Dds.Common
             {
                 opts = new[] { 4 };
             }
-            else if (type == "artwork" || type == "boundmanuscript")
+            else if (type == "artwork" || type == "boundmanuscript" || NoPdfLicenceNames.Contains(licenceName))
             {
                 opts = new[] { 0, 1, 2 };
             }

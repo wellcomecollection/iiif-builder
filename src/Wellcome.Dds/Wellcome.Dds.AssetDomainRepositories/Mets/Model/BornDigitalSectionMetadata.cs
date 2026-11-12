@@ -26,6 +26,7 @@ public class BornDigitalSectionMetadata : ISectionMetadata
     /// A rights statement
     /// </summary>
     public string? DzLicenseCode { get; set; }
+    public bool DzLicenseCodeIsDefault { get; set; }
     public int PlayerOptions { get; set; }
     public string? Usage { get; set; }
     public string? Leader6 { get; set; }

@@ -430,6 +430,19 @@ namespace DlcsWebClient.Tests.Dlcs
             result.Should().BeTrue();
         }
 
+        [Fact]
+        public async Task DeletePdf_ReturnsTrue_For200WithEmptyBody()
+        {
+            // Arrange
+            httpHandler.GetResponseMessage("", HttpStatusCode.OK);
+
+            // Act
+            var result = await sut.DeletePdf("b1234567");
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
         [Theory]
         [InlineData("{\"success\": true}", true)]
         [InlineData("{\"success\": false}", false)]
