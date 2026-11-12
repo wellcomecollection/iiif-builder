@@ -40,4 +40,29 @@ COPY --from=publish /app/publish .
 # libvips (NetVips) renders the born-digital placeholder canvases with the bundled Wellcome Bold font;
 # point fontconfig at a minimal config so it does not look for a system one that is not installed.
 ENV FONTCONFIG_FILE=/app/Resources/born-digital/fonts.conf
+# What the image was built from. build.yml passes these; a local build leaves them empty.
+# They become the Build configuration section, which the dashboard shows at /dash/settings/build.
+ARG BUILD_COMMIT= \
+    BUILD_REF= \
+    BUILD_DESCRIBE= \
+    BUILD_COMMIT_SUBJECT= \
+    BUILD_COMMIT_AUTHOR= \
+    BUILD_COMMIT_DATE= \
+    BUILD_PULL_REQUEST= \
+    BUILD_PULL_REQUEST_TITLE= \
+    BUILD_REPOSITORY= \
+    BUILD_RUN= \
+    BUILD_DATE=
+ENV Build__Commit=$BUILD_COMMIT \
+    Build__Ref=$BUILD_REF \
+    Build__Describe=$BUILD_DESCRIBE \
+    Build__CommitSubject=$BUILD_COMMIT_SUBJECT \
+    Build__CommitAuthor=$BUILD_COMMIT_AUTHOR \
+    Build__CommitDate=$BUILD_COMMIT_DATE \
+    Build__PullRequest=$BUILD_PULL_REQUEST \
+    Build__PullRequestTitle=$BUILD_PULL_REQUEST_TITLE \
+    Build__Repository=$BUILD_REPOSITORY \
+    Build__Run=$BUILD_RUN \
+    Build__Date=$BUILD_DATE
+LABEL org.opencontainers.image.revision=$BUILD_COMMIT
 ENTRYPOINT [ "dotnet", "Wellcome.Dds.Server.dll" ]

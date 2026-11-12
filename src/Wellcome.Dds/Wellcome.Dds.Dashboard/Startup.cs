@@ -84,6 +84,7 @@ namespace Wellcome.Dds.Dashboard
             services.Configure<DdsOptions>(Configuration.GetSection("Dds"));
             services.Configure<StorageOptions>(Configuration.GetSection("Storage"));
             services.Configure<DashOptions>(Configuration.GetSection("Dash"));
+            services.Configure<BuildInfo>(Configuration.GetSection("Build"));
             services.Configure<S3CacheOptions>(Configuration.GetSection("S3CacheOptions"));
             services.Configure<CacheInvalidationOptions>(Configuration.GetSection("CacheInvalidation"));
 
