@@ -114,14 +114,30 @@ namespace Wellcome.Dds.Common
         }
 
         /// <summary>
-        /// 
+        /// Licence names that METS files now carry in mods:accessCondition type="dz", in place of the old
+        /// single-letter codes (and the "CC-BY-NC" the DDS assumes for periodicals that have no code).
+        /// These are all open licences, so they permit the same operations as an open letter code.
+        /// Any other name (e.g., "ARR", "In copyright") or unrecognised value permits nothing, as before.
         /// </summary>
-        /// <param name="dzLicenseCode">Single character license code</param>
+        private static readonly HashSet<string> OpenLicenceNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "PDM", "CC0", "CC-0", "CC-BY", "CC-BY-NC", "CC-BY-ND", "CC-BY-SA", "CC-BY-NC-ND", "CC-BY-NC-SA", "OGL", "OPL"
+        };
+
+        /// <summary>
+        /// The download operations permitted by a licence code, for a given section type and asset type.
+        /// </summary>
+        /// <param name="dzLicenseCode">Single character license code (e.g., "a"), or a licence name (e.g., "PDM")</param>
         /// <param name="sectionType">e.g., "Monograph", "Artwork"</param>
         /// <param name="assetType">e.g., "seadragon/dzi", "application/pdf"</param>
         /// <returns></returns>
         public string[] GetPermittedOperations(string dzLicenseCode, string sectionType, string? assetType)
         {
+            if (dzLicenseCode.Trim().Length > 1)
+            {
+                return GetPermittedOperationsForLicenceName(dzLicenseCode.Trim(), sectionType, assetType);
+            }
+
             var permittedOps = new List<string>();
             if (LicenseOptions.TryGetValue(
                     sectionType.ToLowerInvariant(), out Dictionary<string, int[]>? optsForType))
@@ -153,6 +169,48 @@ namespace Wellcome.Dds.Common
             return permittedOps.ToArray();
         }
 
+        /// <summary>
+        /// Open licences whose monograph letter codes (e, f, g) never permitted a PDF.
+        /// </summary>
+        private static readonly HashSet<string> NoPdfLicenceNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "CC-BY-ND", "CC-BY-SA", "CC-BY-NC-SA"
+        };
+
+        /// <summary>
+        /// An open licence name permits what an open letter code permits for the same kind of item: every image
+        /// operation including PDF, but no PDF for single artworks and bound manuscripts, or under the licences whose
+        /// letter codes excluded it; and only the original file for audio, video, transcripts and PDF monographs.
+        /// </summary>
+        private string[] GetPermittedOperationsForLicenceName(string licenceName, string sectionType, string? assetType)
+        {
+            if (!OpenLicenceNames.Contains(licenceName) || DownloadOptions == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var type = sectionType.ToLowerInvariant();
+            int[] opts;
+            if (type == "video" || type == "audio" || type == "transcript")
+            {
+                opts = new[] { 4 };
+            }
+            else if (type == "monograph" && assetType.HasText() && assetType.ToLowerInvariant() == "application/pdf")
+            {
+                opts = new[] { 4 };
+            }
+            else if (type == "artwork" || type == "boundmanuscript" || NoPdfLicenceNames.Contains(licenceName))
+            {
+                opts = new[] { 0, 1, 2 };
+            }
+            else
+            {
+                opts = new[] { 0, 1, 2, 3 };
+            }
+
+            return opts.Select(i => DownloadOptions[i]).ToArray();
+        }
+
 
         private LicensesAndOptions()
         {
@@ -174,8 +232,9 @@ namespace Wellcome.Dds.Common
                                      "media"        // 4
                                    };
 
-            // This structure tells us which operations are permitted for a given type and code
-            LicenseOptions = new Dictionary<string, Dictionary<string, int[]>>
+            // This structure tells us which operations are permitted for a given type and code.
+            // Section types are looked up lower-cased, so the keys must not depend on case ("boundManuscript").
+            LicenseOptions = new Dictionary<string, Dictionary<string, int[]>>(StringComparer.OrdinalIgnoreCase)
             {
                 {
                     "monograph", new Dictionary<string, int[]>

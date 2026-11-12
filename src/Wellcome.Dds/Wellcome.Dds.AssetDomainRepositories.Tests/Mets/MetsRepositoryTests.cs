@@ -139,6 +139,36 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Mets
             }
 
         }
-        
+
+        [Fact]
+        public async Task Licence_Name_Without_Player_Options_Permits_HighRes_And_Pdf()
+        {
+            // The b17523552 fixture is the b30074976 monograph with dz "PDM" and player "0", as in the real
+            // b17523552 METS. Before licence names were understood this permitted nothing, so the DDS registered
+            // its images with maxUnauthorised 1000.
+            var metsRepository = new MetsRepository(
+                workStorageFactory,
+                new NullLogger<MetsRepository>(),
+                Options.Create(new DdsOptions()),
+                identityService);
+            var manifestation = (MetsManifestation) await metsRepository.GetAsync(identityService.GetIdentity("b17523552"));
+
+            manifestation.PermittedOperations.Should().BeEquivalentTo(
+                "currentViewAsJpg", "wholeImageHighResAsJpg", "wholeImageLowResAsJpg", "entireDocumentAsPdf");
+        }
+
+        [Fact]
+        public async Task Player_Options_Take_Precedence_Over_Licence()
+        {
+            // b30074976 has dz "CC-BY" and player "63"; the player flags decide, which is the only way to get "embed"
+            var metsRepository = new MetsRepository(
+                workStorageFactory,
+                new NullLogger<MetsRepository>(),
+                Options.Create(new DdsOptions()),
+                identityService);
+            var manifestation = (MetsManifestation) await metsRepository.GetAsync(identityService.GetIdentity("b30074976"));
+
+            manifestation.PermittedOperations.Should().Contain("embed").And.Contain("wholeImageHighResAsJpg");
+        }
     }
 }
