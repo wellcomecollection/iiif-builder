@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace Wellcome.Dds.Dashboard
 {
@@ -43,6 +44,17 @@ namespace Wellcome.Dds.Dashboard
         public string CommitUrl => RepositoryLink("commit", Commit);
         public string RefUrl => RepositoryLink("tree", Ref);
         public string PullRequestUrl => RepositoryLink("pull", PullRequest);
+
+        /// <summary>CommitDate in the server's local time (Europe/London in the image); null if absent or unreadable</summary>
+        public DateTime? CommitDateLocal => ToLocal(CommitDate);
+
+        /// <summary>Date (when the image was built) in the server's local time; null if absent or unreadable</summary>
+        public DateTime? DateLocal => ToLocal(Date);
+
+        private static DateTime? ToLocal(string iso8601) =>
+            DateTimeOffset.TryParse(iso8601, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+                ? date.LocalDateTime
+                : null;
 
         private string RepositoryLink(string kind, string value) =>
             string.IsNullOrEmpty(Repository) || string.IsNullOrEmpty(value) ? null : $"{Repository}/{kind}/{value}";

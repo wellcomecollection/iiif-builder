@@ -3,6 +3,8 @@
 @{
     ViewBag.Title = "Build";
     var build = Model.Build;
+    // All times in the dashboard's usual format, in local (London) time
+    const string dateFormat = "dd/MM/yy HH:mm:ss";
 }
 
 <div class="col-md-12">
@@ -47,7 +49,7 @@
                 </tr>
                 <tr>
                     <th>Commit author, date</th>
-                    <td>@build.CommitAuthor, @build.CommitDate</td>
+                    <td>@build.CommitAuthor, @(build.CommitDateLocal?.ToString(dateFormat) ?? build.CommitDate)</td>
                 </tr>
                 <tr>
                     <th>Built from</th>
@@ -59,7 +61,7 @@
                 </tr>
                 <tr>
                     <th>Built</th>
-                    <td><a href="@build.Run">@build.Date</a></td>
+                    <td><a href="@build.Run">@(build.DateLocal?.ToString(dateFormat) ?? build.Date)</a></td>
                 </tr>
             }
             <tr>
@@ -68,7 +70,7 @@
             </tr>
             <tr>
                 <th>Dashboard running since</th>
-                <td>@Model.Started.ToString("dd/MM/yy HH:mm:ss") <span class="text-muted">(the last deploy or restart of this container)</span></td>
+                <td>@Model.Started.ToString(dateFormat) <span class="text-muted">(the last deploy or restart of this container)</span></td>
             </tr>
             <tr>
                 <th>Runtime</th>
