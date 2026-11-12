@@ -1,0 +1,91 @@
+# Deploys published images to one environment: retags each image to the environment's tag,
+# then redeploys that environment's ECS services and waits for them to settle.
+# The role, cluster, services and tag come from the GitHub environment's secrets, so they stay out of the
+# public run logs: AWS_DEPLOY_ROLE_ARN, ECS_CLUSTER, ECS_SERVICES (space separated) and DEPLOY_TAG.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy to
+        type: environment
+        required: true
+      image_tag:
+        description: Image tag to deploy, a commit SHA or a published branch or tag name
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SOURCE_TAG: ${{ inputs.image_tag }}
+      ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+      ECS_SERVICES: ${{ secrets.ECS_SERVICES }}
+      DEPLOY_TAG: ${{ secrets.DEPLOY_TAG }}
+      AWS_REGION: eu-west-1
+    steps:
+      - name: Check inputs
+        run: |
+          if ! [[ "$SOURCE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::'$SOURCE_TAG' is not a valid image tag"
+            exit 1
+          fi
+          for v in ECS_CLUSTER ECS_SERVICES DEPLOY_TAG; do
+            if [ -z "${!v}" ]; then
+              echo "::error::The environment has no $v secret"
+              exit 1
+            fi
+          done
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-1
+          mask-aws-account-id: true
+
+      - name: Retag images
+        run: |
+          set -euo pipefail
+          # Check every image exists before moving any tag, so a missing image cannot leave the environment half retagged
+          for repo in iiif-builder iiif-builder-dashboard job-processor workflow-processor; do
+            aws ecr describe-images --repository-name "$repo" --image-ids imageTag="$SOURCE_TAG" > /dev/null
+          done
+          for repo in iiif-builder iiif-builder-dashboard job-processor workflow-processor; do
+            image=$(aws ecr batch-get-image --repository-name "$repo" --image-ids imageTag="$SOURCE_TAG" \
+              --accepted-media-types application/vnd.docker.distribution.manifest.v2+json application/vnd.oci.image.manifest.v1+json application/vnd.oci.image.index.v1+json application/vnd.docker.distribution.manifest.list.v2+json \
+              --output json)
+            media_type=$(jq -r '.images[0].imageManifestMediaType' <<< "$image")
+            manifest=$(jq -r '.images[0].imageManifest' <<< "$image")
+            if out=$(aws ecr put-image --repository-name "$repo" --image-tag "$DEPLOY_TAG" \
+                --image-manifest "$manifest" --image-manifest-media-type "$media_type" 2>&1); then
+              echo "$repo: retagged $SOURCE_TAG"
+            elif grep -q ImageAlreadyExistsException <<< "$out"; then
+              echo "$repo: already tagged"
+            else
+              echo "$out" >&2
+              exit 1
+            fi
+          done
+
+      - name: Redeploy services
+        run: |
+          set -euo pipefail
+          read -r -a services <<< "$ECS_SERVICES"
+          for s in "${services[@]}"; do
+            aws ecs update-service --cluster "$ECS_CLUSTER" --service "$s" --force-new-deployment > /dev/null
+          done
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "${services[@]}"
+          echo "All services are stable"
