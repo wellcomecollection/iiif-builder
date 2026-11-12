@@ -132,6 +132,10 @@ The following categories are used for tests:
 
 Unit tests are ran as part of building the Docker image. `Database` and `Manual` categories are ignored when running in the Dockerfile (`RUN dotnet test "Wellcome.Dds.sln" --filter "Category!=Database&Category!=Manual"`). _Depending on requirements it may make sense to ignore these in IDE for standard test runs_.
 
+## Smoke testing a deploy
+
+Automated tests do not cover native libraries, external tools, fonts, logins or the edge. [docs/smoke-test.md](docs/smoke-test.md) is the checklist of what to check by hand on staging and production after a deploy, with the identifiers and log lines to use.
+
 ## AWS Profiles
 
 For local development there are 3 different AWS profiles that are required. These are setup in the appsettings as a configSection with profile + region properties, e.g.:

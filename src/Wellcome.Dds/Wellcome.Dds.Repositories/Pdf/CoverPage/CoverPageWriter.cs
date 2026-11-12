@@ -323,7 +323,7 @@ public class CoverPageWriter
         private double Width(string text, PdfDocumentBuilder.AddedFont font, double size)
         {
             var letters = page.MeasureText(text, size, new PdfPoint(0, 0), font);
-            return letters.Count == 0 ? 0 : letters.Max(l => l.GlyphRectangle.Right);
+            return letters.Count == 0 ? 0 : letters.Max(l => l.BoundingBox.Right);
         }
     }
 }

@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Test
         working-directory: src/Wellcome.Dds
@@ -39,6 +39,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      pull-requests: read
     strategy:
       fail-fast: false
       matrix:
@@ -55,6 +56,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history and tags, so the build can name the release it follows (git describe)
+          fetch-depth: 0
 
       - name: Choose the name tag
         id: tag
@@ -86,7 +89,34 @@ jobs:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ matrix.repository }}
           DOCKERFILE: ${{ matrix.dockerfile }}
           NAME_TAG: ${{ steps.tag.outputs.name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          docker build -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$NAME_TAG" -f "$DOCKERFILE" .
+          set -euo pipefail
+          # What the image is built from; the dashboard shows it at /dash/settings/build.
+          # The pull request is the one this commit merged, or else an open one with this commit at its head.
+          # gh prints the error body on stdout when the call fails, so keep the output only on success
+          if ! pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+              --jq '(map(select(.merge_commit_sha == env.GITHUB_SHA)) + .)[0] // empty | "\(.number) \(.title)"'); then
+            pr=""
+          fi
+          pr_number=""
+          pr_title=""
+          if [ -n "$pr" ]; then
+            pr_number=${pr%% *}
+            pr_title=${pr#* }
+          fi
+          docker build -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$NAME_TAG" -f "$DOCKERFILE" \
+            --build-arg "BUILD_COMMIT=$GITHUB_SHA" \
+            --build-arg "BUILD_REF=$GITHUB_REF_NAME" \
+            --build-arg "BUILD_DESCRIBE=$(git describe --tags --always)" \
+            --build-arg "BUILD_COMMIT_SUBJECT=$(git log -1 --format=%s)" \
+            --build-arg "BUILD_COMMIT_AUTHOR=$(git log -1 --format=%an)" \
+            --build-arg "BUILD_COMMIT_DATE=$(git log -1 --format=%cI)" \
+            --build-arg "BUILD_PULL_REQUEST=$pr_number" \
+            --build-arg "BUILD_PULL_REQUEST_TITLE=$pr_title" \
+            --build-arg "BUILD_REPOSITORY=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --build-arg "BUILD_RUN=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            .
           docker push "$IMAGE:$GITHUB_SHA"
           docker push "$IMAGE:$NAME_TAG"

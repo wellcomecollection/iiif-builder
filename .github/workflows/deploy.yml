@@ -3,6 +3,8 @@
 # The role, cluster, services and tag come from the GitHub environment's secrets, so they stay out of the
 # public run logs: AWS_DEPLOY_ROLE_ARN, ECS_CLUSTER, ECS_SERVICES (space separated) and DEPLOY_TAG.
 name: Deploy
+# The run is made from main (the environments allow nothing else), so name it after what it deploys
+run-name: Deploy ${{ inputs.image_tag }} to ${{ inputs.environment }}
 
 on:
   workflow_dispatch:
@@ -12,7 +14,7 @@ on:
         type: environment
         required: true
       image_tag:
-        description: Image tag to deploy, a commit SHA or a published branch or tag name
+        description: Image tag to deploy, a commit SHA or a published branch or tag name (feature/x is fine, it becomes feature-x)
         type: string
         required: true
 
@@ -31,7 +33,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      SOURCE_TAG: ${{ inputs.image_tag }}
+      REQUESTED_TAG: ${{ inputs.image_tag }}
       ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
       ECS_SERVICES: ${{ secrets.ECS_SERVICES }}
       DEPLOY_TAG: ${{ secrets.DEPLOY_TAG }}
@@ -39,10 +41,19 @@ jobs:
     steps:
       - name: Check inputs
         run: |
+          # Accept a branch or tag name as git has it: convert it the way build.yml does when it names the image tag
+          # (anything outside [A-Za-z0-9_.-] becomes -, a leading . or - becomes _, at most 128 characters).
+          # Surrounding spaces, as a paste can bring, are dropped first. A SHA passes through unchanged.
+          trimmed=$(printf '%s' "$REQUESTED_TAG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+          SOURCE_TAG=$(printf '%s' "$trimmed" | tr -c 'A-Za-z0-9_.-' '-' | sed 's/^[.-]/_/' | cut -c1-128)
           if ! [[ "$SOURCE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
-            echo "::error::'$SOURCE_TAG' is not a valid image tag"
+            echo "::error::'$REQUESTED_TAG' is not a valid image tag"
             exit 1
           fi
+          if [ "$SOURCE_TAG" != "$REQUESTED_TAG" ]; then
+            echo "Deploying image tag '$SOURCE_TAG' (from '$REQUESTED_TAG')"
+          fi
+          echo "SOURCE_TAG=$SOURCE_TAG" >> "$GITHUB_ENV"
           for v in ECS_CLUSTER ECS_SERVICES DEPLOY_TAG; do
             if [ -z "${!v}" ]; then
               echo "::error::The environment has no $v secret"

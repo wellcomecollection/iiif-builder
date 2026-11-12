@@ -1,8 +1,15 @@
 ﻿@using Wellcome.Dds.Dashboard
 @inject IOptions<DashOptions> DashOptions
+@inject IOptions<BuildInfo> BuildInfo
 @{
     var heartBeat = (DateTime?) ViewBag.Heartbeat;
     var heartBeatDisplay = $"{heartBeat?.ToString("dd/MM/yy HH:mm:ss")}";
+    var build = BuildInfo.Value;
+    var buildDisplay = !build.IsKnown
+        ? "Local build"
+        : string.IsNullOrEmpty(build.PullRequest)
+            ? $"Build {build.ShortCommit} ({build.Ref})"
+            : $"Build {build.ShortCommit} (#{build.PullRequest} {build.PullRequestTitle})";
 }
 <!DOCTYPE html>
 <html>
@@ -62,7 +69,7 @@
         @RenderBody()
         <hr />
         <footer>
-            <p>Logged in as @User.Identity.Name</p>
+            <p>Logged in as @User.Identity.Name | <a asp-controller="Settings" asp-action="Build">@buildDisplay</a></p>
         </footer>
     </div>
 

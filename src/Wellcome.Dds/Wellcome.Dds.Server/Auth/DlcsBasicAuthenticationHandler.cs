@@ -25,9 +25,8 @@ namespace Wellcome.Dds.Server.Auth
             IOptionsMonitor<BasicAuthenticationOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock,
             IOptions<DdsOptions> ddsOptions)
-            : base(options, logger, encoder, clock)
+            : base(options, logger, encoder)
         {
             this.ddsOptions = ddsOptions.Value;
         }

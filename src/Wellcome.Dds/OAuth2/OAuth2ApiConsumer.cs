@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -62,7 +63,7 @@ namespace OAuth2
                 var response = await httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
-                var token = await response.Content.ReadAsAsync<OAuth2Token>();
+                var token = JsonConvert.DeserializeObject<OAuth2Token>(await response.Content.ReadAsStringAsync());
                 Tokens[clientCredentials.Scope] = token;
                 return token;
             }
