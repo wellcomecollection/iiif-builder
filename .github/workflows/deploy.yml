@@ -3,6 +3,8 @@
 # The role, cluster, services and tag come from the GitHub environment's secrets, so they stay out of the
 # public run logs: AWS_DEPLOY_ROLE_ARN, ECS_CLUSTER, ECS_SERVICES (space separated) and DEPLOY_TAG.
 name: Deploy
+# The run is made from main (the environments allow nothing else), so name it after what it deploys
+run-name: Deploy ${{ inputs.image_tag }} to ${{ inputs.environment }}
 
 on:
   workflow_dispatch:
