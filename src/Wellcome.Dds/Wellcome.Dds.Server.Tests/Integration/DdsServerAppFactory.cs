@@ -12,17 +12,6 @@ namespace Wellcome.Dds.Server.Tests.Integration
     {
         private readonly Dictionary<string, string> configuration = new();
 
-        /// <summary>
-        /// Specify connection string to use for dds instrumentation context when building services
-        /// </summary>
-        /// <param name="connectionString">connection string to use for instrumentation dbContext</param>
-        /// <returns>Current instance</returns>
-        public DdsServerAppFactory WithInstrumentationConnectionString(string connectionString)
-        {
-            configuration["ConnectionStrings:DdsInstrumentation"] = connectionString;
-            return this;
-        }
-        
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             var projectDir = Directory.GetCurrentDirectory();
