@@ -1,0 +1,58 @@
+apiVersion: backplane/v1
+kind: System
+metadata:
+  name: iiif-builder
+  title: IIIF builder
+  description: Builds and serves IIIF Presentation resources for digitised works
+spec:
+  owner: team:digital-platform
+  vendors: [team:digirati]
+  lifecycle: production
+---
+apiVersion: backplane/v1
+kind: Component
+metadata:
+  name: iiif-builder
+  title: IIIF builder server
+  description: Serves IIIF resources and provisions DLCS roles (Wellcome.Dds.Server)
+spec:
+  type: service
+  owner: team:digital-platform
+  lifecycle: production
+  system: system:iiif-builder
+---
+apiVersion: backplane/v1
+kind: Component
+metadata:
+  name: iiif-builder-dashboard
+  title: IIIF builder dashboard
+  description: UI for monitoring and managing the workflow process (Wellcome.Dds.Dashboard)
+spec:
+  type: service
+  owner: team:digital-platform
+  lifecycle: production
+  system: system:iiif-builder
+---
+apiVersion: backplane/v1
+kind: Component
+metadata:
+  name: iiif-builder-job-processor
+  title: IIIF builder job processor
+  description: Background service handling DLCS jobs created by the workflow processor
+spec:
+  type: service
+  owner: team:digital-platform
+  lifecycle: production
+  system: system:iiif-builder
+---
+apiVersion: backplane/v1
+kind: Component
+metadata:
+  name: iiif-builder-workflow-processor
+  title: IIIF builder workflow processor
+  description: Background service handling workflow jobs requested by Goobi
+spec:
+  type: service
+  owner: team:digital-platform
+  lifecycle: production
+  system: system:iiif-builder
