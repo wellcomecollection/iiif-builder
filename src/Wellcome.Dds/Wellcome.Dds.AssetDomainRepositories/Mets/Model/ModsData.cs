@@ -22,7 +22,6 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets.Model
         public string? RecordIdentifier { get; set; }
         public string? AccessCondition { get; set; }
         public string? DzLicenseCode { get; set; }
-        public bool DzLicenseCodeIsDefault { get; set; }
         public int PlayerOptions { get; set; }
         public string? Usage { get; set; }
         public string? Leader6 { get; set; }

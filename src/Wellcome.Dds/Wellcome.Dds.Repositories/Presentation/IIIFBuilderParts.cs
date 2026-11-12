@@ -227,9 +227,7 @@ namespace Wellcome.Dds.Repositories.Presentation
 
         private static string? GetMappedLicenceCode(IManifestation metsManifestation)
         {
-            var dzl = metsManifestation.Type == "PeriodicalIssue"
-                ? metsManifestation.SectionMetadata!.GetPeriodicalIssueLicence(metsManifestation.ParentSectionMetadata)
-                : metsManifestation.SectionMetadata!.DzLicenseCode;
+            var dzl = metsManifestation.SectionMetadata!.DzLicenseCode;
             return LicenceCodes.MapLicenseCode(dzl);
         }
 
@@ -1212,19 +1210,13 @@ namespace Wellcome.Dds.Repositories.Presentation
             {
                 sectionMods.AccessCondition = volumeMods.AccessCondition;
             }
-            // The issue's own licence, else the volume's, else the default the issue was given. This must match
-            // what Manifestation.PermittedOperations uses. (The old "if blank" test never fired, because
-            // periodical sections with no licence are given "CC-BY-NC" when their MODS is read.)
-            var licence = sectionMods.GetPeriodicalIssueLicence(volumeMods);
-            if (licence != sectionMods.DzLicenseCode)
-            {
-                sectionMods.DzLicenseCode = licence;
-                sectionMods.DzLicenseCodeIsDefault = false;
-            }
             if (sectionMods.DzLicenseCode.IsNullOrWhiteSpace())
             {
-                sectionMods.DzLicenseCode = "CC-BY-NC";
-                sectionMods.DzLicenseCodeIsDefault = true;
+                sectionMods.DzLicenseCode = volumeMods.DzLicenseCode;
+                if (sectionMods.DzLicenseCode.IsNullOrWhiteSpace())
+                {
+                    sectionMods.DzLicenseCode = "CC-BY-NC";
+                }
             }
             if (sectionMods.PlayerOptions <= 0)
             {
