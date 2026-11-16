@@ -134,7 +134,7 @@ Unit tests are ran as part of building the Docker image. `Database` and `Manual`
 
 ## Smoke testing a deploy
 
-Automated tests do not cover native libraries, external tools, fonts, logins or the edge. [docs/smoke-test.md](docs/smoke-test.md) is the checklist of what to check by hand on staging and production after a deploy, with the identifiers and log lines to use.
+Unit tests do not cover native libraries, external tools, fonts, logins, the DLCS or the edge. [docs/smoke-test.md](docs/smoke-test.md) describes the smoke tests: the automated part (`Wellcome.Dds.SmokeTests`, run by the Deploy workflow against the deployed environment) and the checklist of what to check by hand, with the identifiers and log lines to use.
 
 ## AWS Profiles
 

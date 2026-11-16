@@ -1,0 +1,43 @@
+# Runs the smoke tests (src/Wellcome.Dds/Wellcome.Dds.SmokeTests) against a deployed environment, from outside
+# and with no credentials. Deploy calls this once the services are stable; it can also be run by hand.
+# Report only: failures appear in the run summary and as annotations, but don't fail the run.
+name: Smoke test
+run-name: Smoke test ${{ inputs.environment }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to test
+        type: choice
+        options: [staging, staging-prod, production]
+        required: true
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Smoke test
+        continue-on-error: true
+        working-directory: src/Wellcome.Dds
+        env:
+          SMOKE_ENV: ${{ inputs.environment }}
+        run: >
+          dotnet test Wellcome.Dds.SmokeTests/Wellcome.Dds.SmokeTests.csproj
+          --logger GitHubActions --logger "console;verbosity=normal"

@@ -29,7 +29,7 @@ jobs:
 
       - name: Test
         working-directory: src/Wellcome.Dds
-        run: dotnet test Wellcome.Dds.sln --filter "Category!=Database&Category!=Manual"
+        run: dotnet test Wellcome.Dds.sln --filter "Category!=Database&Category!=Manual&Category!=Smoke"
 
   publish:
     # Fork pull requests never reach this job, and pull_request runs only test.

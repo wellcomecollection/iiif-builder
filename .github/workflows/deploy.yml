@@ -1,5 +1,6 @@
 # Deploys published images to one environment: retags each image to the environment's tag,
-# then redeploys that environment's ECS services and waits for them to settle.
+# then redeploys that environment's ECS services and waits for them to settle, then runs the smoke tests
+# against it (smoke-test.yml, report only).
 # The role, cluster, services and tag come from the GitHub environment's secrets, so they stay out of the
 # public run logs: AWS_DEPLOY_ROLE_ARN, ECS_CLUSTER, ECS_SERVICES (space separated) and DEPLOY_TAG.
 name: Deploy
@@ -100,3 +101,10 @@ jobs:
           done
           aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "${services[@]}"
           echo "All services are stable"
+
+  # Report only: the smoke test's own step can't fail this run (see smoke-test.yml)
+  smoke-test:
+    needs: deploy
+    uses: ./.github/workflows/smoke-test.yml
+    with:
+      environment: ${{ inputs.environment }}

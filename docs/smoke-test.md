@@ -1,66 +1,77 @@
-# Smoke test checklist
+# Smoke tests
 
-What to check by hand after a deploy, on staging first and then production. Automated tests cover the
-logic; this list covers the things only a running system shows: native libraries in the images,
-external tools, fonts, logins, database access, and the edge in front of it all. Tick everything in
-the "every deploy" sections; the others when the area has changed.
+What to check after a deploy, on staging first and then production. Unit tests cover the logic; smoke
+tests cover what only a running system shows: native libraries in the images, external tools, fonts,
+logins, database access, the DLCS, and the edge in front of it all.
 
-Replace `{host}` with the environment:
+Half of it is automated, and runs on its own after every deploy. The rest needs a person, a login or the
+logs, and is the checklist below.
 
 | Environment | Server | Dashboard |
 | --- | --- | --- |
 | Staging | `https://iiif-stage.wellcomecollection.org` | `https://iiif-stage.wellcomecollection.org/dash` (direct: `dds-stage.wellcomecollection.digirati.io`) |
+| Staging-prod | `https://iiif-test.wellcomecollection.org` (shuts down at 18:00) | `https://iiif-test.wellcomecollection.org/dash` |
 | Production | `https://iiif.wellcomecollection.org` | `https://iiif.wellcomecollection.org/dash` |
 
-Staging has only what has been ingested into staging; a 404 for an identifier that exists in
-production usually means that, not a fault. The identifiers below are known on both unless noted.
+Staging and staging-prod have only what has been ingested into them; a 404 for an identifier that exists
+in production usually means that, not a fault.
 
-## Every deploy: the four services are up
+## Automated: the Smoke test workflow
 
-- [ ] Server health: `{host}/management/healthcheck` returns `Healthy`.
-- [ ] Dashboard health: `{host}/dash/management/healthcheck` returns `Healthy` (database checks included).
+`src/Wellcome.Dds/Wellcome.Dds.SmokeTests` checks a deployed environment from outside, with no credentials.
+The Deploy workflow runs it once the services are stable (`.github/workflows/smoke-test.yml`); it can also
+be run by hand from Actions → Smoke test, for any environment. It only reports: failures show in the run
+summary and as annotations, but don't fail the deploy.
+
+What it checks:
+
+| Area | Checks |
+| --- | --- |
+| Health | Server and dashboard health checks say `Healthy` (the dashboard's includes the databases); Swagger loads |
+| IIIF | Goobi manifest as Presentation 3 and 2; a Collection leads to Manifests (two levels for a multi-volume work, three for Chemist & Druggist); born-digital manifest; AV manifest has video or sound |
+| Text | ALTO resolves for the first, middle and last canvas; search within finds hits |
+| Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` but refuses tiles; an access-controlled item offers auth services and refuses anonymous tiles |
+| Rendering | Placeholder canvases are 1000×800 PNGs (libvips); the AV poster thumbnail scales to 300 wide keeping its aspect ratio; a born-digital PDF thumbnail renders at 200 and 400 wide (pdftoppm) and 2000 is refused |
+| Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded; ping answers; an unknown item is 404 |
+
+Each environment's items are in `Fixtures/{environment}.json`. A check whose item isn't set there is
+skipped, not passed; staging and staging-prod skip the ones they have no content for. To add a check's item
+for an environment, ingest something suitable there and add its identifier.
+
+To run locally (the tests call the live services):
+
+```bash
+cd src/Wellcome.Dds
+SMOKE_ENV=staging dotnet test Wellcome.Dds.SmokeTests/Wellcome.Dds.SmokeTests.csproj
+# SMOKE_HOST overrides the fixture file's host, e.g. to test the dashboard's direct address
+```
+
+They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
+
+## Manual: every deploy
+
+- [ ] The Smoke test run (in the Deploy run, or run by hand) has no failures, or only ones you understand.
 - [ ] Workflow processor and job processor: healthy in ECS, and their logs show startup without exceptions.
 - [ ] Workflow processor log has `PDF thumbnails will be rendered by pdftoppm at /usr/bin/pdftoppm`
       (the image has poppler-utils; `ghostscript` or `cannot be generated` here means it does not).
-- [ ] Server log has no `Fontconfig` errors at startup or on the first placeholder canvas request.
+- [ ] Server log has no `Fontconfig` errors at startup or on the first placeholder canvas request, and no
+      `libvips` or `VipsOperation` errors after the smoke test.
 
-## Every deploy: IIIF
+## Image rendering: after any change to NetVips, the images, fonts or the base image
 
-- [ ] Goobi manifest: `{host}/presentation/b18035978` (v3) and `{host}/presentation/v2/b18035978`.
-- [ ] Multiple-manifestation item: `{host}/presentation/b19974760` is a Collection; one of its volumes
-      (`{host}/presentation/b19974760_10`) is a Manifest.
-- [ ] Born-digital manifest: `{host}/presentation/ARTCOO/B/15` (staging: `SA/REN/T/1`).
-- [ ] AV manifest with a poster: pick a current AV item from the dashboard home page.
-- [ ] A Canvas's image service and a page of ALTO text resolve for the Goobi item above
-      (`{host}/text/alto/b18035978/...` from the manifest's `seeAlso`).
-- [ ] Search within: `{host}/search/v1/b18035978?q=health` returns hits.
-- [ ] Swagger loads: `{host}/swagger`.
-
-## Image rendering (libvips via NetVips): after any change to NetVips, the images, fonts or the base image
-
-The server renders placeholder canvases with libvips and Pango using the bundled Wellcome Bold font.
-The server, dashboard and workflow processor resize JPEGs with libvips.
-
-- [ ] Placeholder canvas renders as a PNG with the text in Wellcome Bold, not a fallback font:
+- [ ] Placeholder canvas text is in Wellcome Bold, not a fallback font:
       `{host}/extensions/born-digital/placeholder-canvas/x-fmt/92/image/vnd.adobe.photoshop`.
-      Expect two headings ("File type:", "PRONOM key:") at 32px and two sentences at 16px.
-- [ ] A long MIME type wraps instead of overprinting:
-      `{host}/extensions/born-digital/placeholder-canvas/fmt/412/application/vnd.openxmlformats-officedocument.wordprocessingml.document`.
-- [ ] A born-digital manifest for an item with a non-image file shows the placeholder canvas inline.
-- [ ] AV poster via `/thumb`: `{host}/thumb/{av identifier}` returns a JPEG at the requested width
-      (`{host}/thumb/{id}/300` is 300 wide; a portrait poster keeps its aspect ratio, not square-fitted).
-- [ ] Server log has no `libvips` or `VipsOperation` errors after the above.
+      Expect two headings ("File type:", "PRONOM key:") at 32px and two sentences at 16px; the long MIME type
+      in `.../fmt/412/application/vnd.openxmlformats-officedocument.wordprocessingml.document` wraps.
+- [ ] A born-digital manifest for an item with a non-image file shows the placeholder canvas inline in a viewer.
 - [ ] (After a base image change) the published image contains `runtimes/linux-x64/native/libvips.so.42`
       and no `win-x64` natives: `docker run --rm --entrypoint ls <image> /app/runtimes`.
 
 ## Born-digital PDF thumbnails: after any change to the thumbnail service, poppler, or the base image
 
-- [ ] On demand: `{host}/thumb/{born-digital PDF identifier}` for an item with no stored thumbnail
-      returns a JPEG (first request renders page 1 and stores it; server log:
-      `On-demand PDF thumbnail for '...': ...: Generated`). Production reference: `b29696586` → 200×283 at
-      the default width. Staging: `SA/REN/T/1`.
-- [ ] Second request is served from the stored thumbnail (no `Rendering page 1` log line).
-- [ ] `{host}/thumb/{id}/400` returns 400 wide; `{host}/thumb/{id}/2000` is rejected (max 1024).
+- [ ] On demand: the first request for an item with no stored thumbnail logs
+      `On-demand PDF thumbnail for '...': ...: Generated`; the second is served from the stored thumbnail
+      (no `Rendering page 1` log line).
 - [ ] Access rule: a PDF whose access condition is not Open, Requires registration or Open with
       advisory returns 404, and the log says `not served: not a PDF whose access condition permits it`.
       Check that this line does NOT appear for an item that should be open.
@@ -74,22 +85,19 @@ The server, dashboard and workflow processor resize JPEGs with libvips.
 
 ## PDF cover page (PdfPig): after any change to the cover page, PdfPig, or the fonts
 
-- [ ] `{host}/pdf-cover-v2/b31486320` returns a one-page PDF: title, Contributors, Publication/Creation,
-      Persistent URL, "License and attribution", and the Wellcome Collection logo and address in the footer.
-- [ ] Compare with the old service's `https://pdf.wellcomecollection.digirati.io/pdf-cover/b31486320`
-      (staging: `pdf-stage.wellcomecollection.digirati.io`): same text and line breaks; footer position may
-      differ by a few points.
+- [ ] `{host}/pdf-cover-v2/b31486320` looks right: title, Contributors, Publication/Creation, Persistent URL,
+      "License and attribution", and the Wellcome Collection logo and address in the footer.
 - [ ] Links are clickable: the persistent URL, and "Creative Commons, Public Domain Mark" inside the
       attribution text (also `b28942772`, which has two links, one wrapping across a line).
-- [ ] Fonts are embedded (open the PDF's properties: Inter-Regular and Inter-Bold, embedded subsets).
 - [ ] A title with accented characters renders them (`b18035978` has none; find one with é or an em dash).
-- [ ] `{host}/pdf-cover-v2/ping` answers; `{host}/pdf-cover-v2/b00000000` is 404, not 500.
-- [ ] Until the DLCS is switched: `{host}/pdf-cover/...` still goes to the Python service at the edge.
-      After: a DLCS-generated PDF (`{host}/pdf/b31486320`) has the cover page as page 1.
+- [ ] Until the edge routes `/pdf-cover/...` to the server, it still goes to the Python service, and the DLCS
+      may call `pdf.wellcomecollection.digirati.io` directly (see #315). After: a DLCS-generated PDF
+      (`{host}/pdf/b31486320`) has the server's cover page (producer "PdfPig") as page 1.
 
 ## Dashboard: every deploy, and after any change to Microsoft.Identity.Web, EF Core or the database
 
-- [ ] Login via Entra works (`/dash` redirects to Microsoft login and back; the footer shows the account).
+- [ ] Login via Entra works (`/dash` redirects to Microsoft login and back; the footer shows the account
+      and links to the build page, which shows the deployed commit).
 - [ ] Home page lists recent items; search box finds `b18035978`.
 - [ ] Manifestation page for a Goobi item, a multiple-manifestation volume and a born-digital item.
 - [ ] Workflow: `/dash/WorkflowCall/Stats`, `/dash/WorkflowCall/Recent`, `/dash/WorkflowCall/Errors`.
