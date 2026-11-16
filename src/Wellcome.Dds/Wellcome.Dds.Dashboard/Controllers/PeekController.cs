@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Wellcome.Dds.AssetDomain;
+using Wellcome.Dds.AssetDomainRepositories.Mets;
 using Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService;
 using Wellcome.Dds.Catalogue;
 using Wellcome.Dds.Common;
@@ -26,6 +28,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
         private readonly ILogger<PeekController> logger;
         private readonly LinkRewriter linkRewriter;
         private readonly IIdentityService identityService;
+        private readonly StorageServiceClient storageServiceClient;
 
         public PeekController(
             IDds dds,
@@ -34,8 +37,10 @@ namespace Wellcome.Dds.Dashboard.Controllers
             ILogger<PeekController> logger,
             IIIIFBuilder iiifBuilder,
             LinkRewriter linkRewriter,
-            IIdentityService identityService)
+            IIdentityService identityService,
+            StorageServiceClient storageServiceClient)
         {
+            this.storageServiceClient = storageServiceClient;
             this.dds = dds;
             this.catalogue = catalogue;
             this.workStorageFactory = workStorageFactory;
@@ -188,32 +193,49 @@ namespace Wellcome.Dds.Dashboard.Controllers
             return View("Code", model);
         }
         
+        // The storage manifest is fetched directly, not through the work store: building a work store builds a
+        // storage map from the manifest, and these pages are how you find out why that failed.
         public async Task<ContentResult> StorageManifestRaw(string id)
         {
             var ddsId = identityService.GetIdentity(id);
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
-            var storageManifest = await archiveStore.GetStorageManifest();
+            var storageManifest = await storageServiceClient.GetStorageManifest(ddsId.StorageSpace!, ddsId.PackageIdentifier);
             return Content(storageManifest.ToString(Formatting.Indented), "application/json");
         }
-        
+
         public async Task<ActionResult> StorageManifest(string id)
         {
             var ddsId = identityService.GetIdentity(id);
-            var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
 
             string errorMessage = null;
             string jsonAsString = null;
             try
             {
-                var storageManifest = await archiveStore.GetStorageManifest();
+                var storageManifest = await storageServiceClient.GetStorageManifest(ddsId.StorageSpace!, ddsId.PackageIdentifier);
                 jsonAsString = storageManifest.ToString(Formatting.Indented);
+                if (storageManifest.SelectToken("manifest.files") is not JArray { Count: > 0 })
+                {
+                    errorMessage = "This storage manifest lists no files, so the DDS can't build a storage map " +
+                                   "(\"Unable to generate VersionSet\") or read the item's METS.";
+                }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error getting StorageManifest id '{id}'", id);
                 errorMessage = ex.Message;
             }
-            
+
+            string anchorFile = null;
+            try
+            {
+                var archiveStore = (ArchiveStorageServiceWorkStore) await workStorageFactory.GetWorkStore(ddsId);
+                anchorFile = archiveStore.GetRootDocument();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not build a work store for '{id}'", id);
+                errorMessage ??= $"Could not build a work store: {ex.Message}";
+            }
+
             var model = new CodeModel
             {
                 Title = "Storage Manifest",
@@ -222,7 +244,7 @@ namespace Wellcome.Dds.Dashboard.Controllers
                 ErrorMessage = errorMessage,
                 Mode = "ace/mode/json",
                 Raw = Url.Action("StorageManifestRaw", new {id}),
-                AnchorFile = archiveStore.GetRootDocument()
+                AnchorFile = anchorFile
             };
             return View("Code", model);
         }
