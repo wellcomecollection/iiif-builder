@@ -38,8 +38,8 @@ What it checks:
 | Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded, and the persistent URL and licence are links; a title with an accented character keeps it (Grüneberg, `b18029292`); ping answers; an unknown item is 404 |
 
 Each environment's items are in `Fixtures/{environment}.json`. A check whose item isn't set there is
-skipped, not passed; staging and staging-prod skip the ones they have no content for. To add a check's item
-for an environment, ingest something suitable there and add its identifier.
+skipped, not passed. All three environments have an item for every check. To change one, ingest something
+suitable there and put its identifier in the file.
 
 Choose staging items that staging itself built after May 2023. Until then, staging's configuration put
 other hosts in what it built: from March 2021 to April 2023 staging-prod wrote into staging's buckets with
@@ -49,9 +49,9 @@ staging-prod answers for them, which is not at all after 18:00, so the checks wo
 at an item's JSON first: every `iiif-…` host in it should be `iiif-stage`. Chemist & Druggist is never
 rebuilt anywhere, so staging's collection check uses a small multi-volume work instead.
 
-Staging's items must be in the staging storage service and have been through a workflow job on staging. If
-staging is cleaned out, restore these (staging-prod reads production storage, so there they only need a
-workflow job):
+Staging and staging-prod use the same items. On staging they must be in the staging storage service and have
+been through a workflow job on staging; staging-prod reads production storage, so there they only need a
+workflow job on staging-prod. If either is cleaned out, restore these:
 
 | Item | Used for |
 | --- | --- |
