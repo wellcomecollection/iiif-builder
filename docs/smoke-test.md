@@ -35,7 +35,7 @@ What it checks:
 | Text | ALTO resolves for the first, middle and last canvas; their line annotation pages and the manifest's image annotation page resolve; the raw text rendering resolves; search within finds hits, and autocomplete suggests terms |
 | Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` but refuses tiles; an access-controlled item offers auth services and refuses anonymous tiles, its Auth 2 probe says 401 and its access service page loads; thumbnails are served for all three |
 | Rendering | Placeholder canvases are 1000×800 PNGs (libvips), both directly and as painted in a born-digital manifest; the AV poster thumbnail scales to 300 wide keeping its aspect ratio; a born-digital PDF thumbnail renders at 200 and 400 wide (pdftoppm) and 2000 is refused |
-| Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded, and the persistent URL and licence are links; ping answers; an unknown item is 404 |
+| Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded, and the persistent URL and licence are links; a title with an accented character keeps it (Grüneberg, `b18029292`); ping answers; an unknown item is 404 |
 
 Each environment's items are in `Fixtures/{environment}.json`. A check whose item isn't set there is
 skipped, not passed; staging and staging-prod skip the ones they have no content for. To add a check's item
@@ -116,10 +116,9 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
       "License and attribution", and the Wellcome Collection logo and address in the footer.
 - [ ] A link that wraps across a line is clickable on both lines (`b28942772`, two links in the attribution
       text). The smoke test checks that the persistent URL and the licence are links.
-- [ ] A title with accented characters renders them (`b18035978` has none; find one with é or an em dash).
-- [ ] Until the edge routes `/pdf-cover/...` to the server, it still goes to the Python service, and the DLCS
-      may call `pdf.wellcomecollection.digirati.io` directly (see #315). After: a DLCS-generated PDF
-      (`{host}/pdf/b31486320`) has the server's cover page (producer "PdfPig") as page 1.
+- [ ] `/pdf-cover/...` (the path the DLCS's named query uses) reaches the Python service until
+      iiif-builder-infrastructure#88 is applied. After: `{host}/pdf-cover/b31486320` has producer "PdfPig",
+      and so does page 1 of a newly generated DLCS PDF.
 
 ## Dashboard: every deploy, and after any change to Microsoft.Identity.Web, EF Core or the database
 

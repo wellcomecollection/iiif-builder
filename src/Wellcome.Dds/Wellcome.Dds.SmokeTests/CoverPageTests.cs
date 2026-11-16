@@ -40,6 +40,17 @@ public class CoverPageTests
             $"the licence is a link (links: {string.Join(", ", links)})");
     }
 
+    [SkippableFact]
+    public async Task Cover_page_renders_accented_characters()
+    {
+        Skip.If(F.AccentedCoverItem == null || F.AccentedCoverText == null, "No accented cover page item for this environment");
+        var response = await Fetch.Get($"pdf-cover-v2/{F.AccentedCoverItem}");
+
+        response.Status.Should().Be(HttpStatusCode.OK, response.ToString());
+        using var pdf = PdfDocument.Open(response.Body);
+        pdf.GetPage(1).Text.Should().Contain(F.AccentedCoverText, "Inter has the glyph, so nothing is dropped or replaced");
+    }
+
     [Fact]
     public async Task Cover_page_ping_answers()
     {

@@ -76,6 +76,10 @@ public record SmokeFixtures
 
     public string? CoverPageItem { get; init; }
 
+    /// <summary>An item whose cover page has non-ASCII text, and that text</summary>
+    public string? AccentedCoverItem { get; init; }
+    public string? AccentedCoverText { get; init; }
+
     /// <summary>Open, with no size limit: deep zoom works</summary>
     public string? OpenImageItem { get; init; }
 
