@@ -1,7 +1,5 @@
 {
   "host": "https://iiif-stage.wellcomecollection.org",
-  "goobiManifest": "b18035978",
-  "collection": "b19974760",
-  "coverPageItem": "b31486320",
-  "openImageItem": "b18035978"
+  "goobiManifest": "b31486320",
+  "coverPageItem": "b31486320"
 }

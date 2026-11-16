@@ -30,16 +30,24 @@ What it checks:
 
 | Area | Checks |
 | --- | --- |
-| Health | Server and dashboard health checks say `Healthy` (the dashboard's includes the databases); Swagger loads |
-| IIIF | Goobi manifest as Presentation 3 and 2; a Collection leads to Manifests (two levels for a multi-volume work, three for Chemist & Druggist); born-digital manifest; AV manifest has video or sound |
-| Text | ALTO resolves for the first, middle and last canvas; search within finds hits |
-| Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` but refuses tiles; an access-controlled item offers auth services and refuses anonymous tiles |
-| Rendering | Placeholder canvases are 1000×800 PNGs (libvips); the AV poster thumbnail scales to 300 wide keeping its aspect ratio; a born-digital PDF thumbnail renders at 200 and 400 wide (pdftoppm) and 2000 is refused |
-| Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded; ping answers; an unknown item is 404 |
+| Health | Server and dashboard health checks say `Healthy` (the dashboard's includes the databases); Swagger loads; the dashboard sends an anonymous user to the Entra login, with a redirect back to this host's `/dash/signin-oidc` |
+| IIIF | Goobi manifest as Presentation 3 and 2; the top-level collections (v3, v2 and archives) list items; a Collection leads to Manifests (two levels for a multi-volume work, three for Chemist & Druggist); born-digital manifest; AV manifest has video or sound |
+| Text | ALTO resolves for the first, middle and last canvas; their line annotation pages and the manifest's image annotation page resolve; the raw text rendering resolves; search within finds hits, and autocomplete suggests terms |
+| Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` but refuses tiles; an access-controlled item offers auth services and refuses anonymous tiles, its Auth 2 probe says 401 and its access service page loads; thumbnails are served for all three |
+| Rendering | Placeholder canvases are 1000×800 PNGs (libvips), both directly and as painted in a born-digital manifest; the AV poster thumbnail scales to 300 wide keeping its aspect ratio; a born-digital PDF thumbnail renders at 200 and 400 wide (pdftoppm) and 2000 is refused |
+| Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded, and the persistent URL and licence are links; ping answers; an unknown item is 404 |
 
 Each environment's items are in `Fixtures/{environment}.json`. A check whose item isn't set there is
 skipped, not passed; staging and staging-prod skip the ones they have no content for. To add a check's item
 for an environment, ingest something suitable there and add its identifier.
+
+Choose staging items that staging itself built after May 2023. Until then, staging's configuration put
+other hosts in what it built: from March 2021 to April 2023 staging-prod wrote into staging's buckets with
+`iiif-test` ids (that is how staging got Chemist & Druggist and `b18035978`), and until May 2023 staging's
+own DLCS links used `iiif-test` (as in `b31486320`'s images). Those items still work on staging only as far as
+staging-prod answers for them, which is not at all after 18:00, so the checks would test staging-prod. Look
+at an item's JSON first: every `iiif-…` host in it should be `iiif-stage`. Chemist & Druggist is never
+rebuilt anywhere, so staging has no collection check.
 
 To run locally (the tests call the live services):
 
@@ -66,7 +74,6 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
       `{host}/extensions/born-digital/placeholder-canvas/x-fmt/92/image/vnd.adobe.photoshop`.
       Expect two headings ("File type:", "PRONOM key:") at 32px and two sentences at 16px; the long MIME type
       in `.../fmt/412/application/vnd.openxmlformats-officedocument.wordprocessingml.document` wraps.
-- [ ] A born-digital manifest for an item with a non-image file shows the placeholder canvas inline in a viewer.
 - [ ] (After a base image change) the published image contains `runtimes/linux-x64/native/libvips.so.42`
       and no `win-x64` natives: `docker run --rm --entrypoint ls <image> /app/runtimes`.
 
@@ -90,8 +97,8 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
 
 - [ ] `{host}/pdf-cover-v2/b31486320` looks right: title, Contributors, Publication/Creation, Persistent URL,
       "License and attribution", and the Wellcome Collection logo and address in the footer.
-- [ ] Links are clickable: the persistent URL, and "Creative Commons, Public Domain Mark" inside the
-      attribution text (also `b28942772`, which has two links, one wrapping across a line).
+- [ ] A link that wraps across a line is clickable on both lines (`b28942772`, two links in the attribution
+      text). The smoke test checks that the persistent URL and the licence are links.
 - [ ] A title with accented characters renders them (`b18035978` has none; find one with é or an em dash).
 - [ ] Until the edge routes `/pdf-cover/...` to the server, it still goes to the Python service, and the DLCS
       may call `pdf.wellcomecollection.digirati.io` directly (see #315). After: a DLCS-generated PDF
@@ -99,8 +106,9 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
 
 ## Dashboard: every deploy, and after any change to Microsoft.Identity.Web, EF Core or the database
 
-- [ ] Login via Entra works (`/dash` redirects to Microsoft login and back; the footer shows the account
-      and links to the build page, which shows the deployed commit).
+- [ ] Login via Entra works: after Microsoft's login you're back on the dashboard, the footer shows the
+      account and links to the build page, which shows the deployed commit. (The smoke test checks the
+      redirect to the login.)
 - [ ] Home page lists recent items; search box finds `b18035978`.
 - [ ] Manifestation page for a Goobi item, a multiple-manifestation volume and a born-digital item.
 - [ ] Workflow: `/dash/WorkflowCall/Stats`, `/dash/WorkflowCall/Recent`, `/dash/WorkflowCall/Errors`.
@@ -126,6 +134,8 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
 
 ## Authentication and roles: after any change to Auth.Web, the Sierra client, or ASP.NET Core
 
+- [ ] The smoke test checks the anonymous side: auth services offered, the Auth 2 probe says 401, the
+      clickthrough access page loads.
 - [ ] Role provider login (`/wlorgp` / `/wlorgr` flow from a DLCS-authenticated item) authenticates a
       known reader account against the Sierra REST patron API and returns the expected roles.
 - [ ] The DLCS basic-auth endpoints the DLCS calls (origin fetch with `DlcsOriginUsername`) still work:

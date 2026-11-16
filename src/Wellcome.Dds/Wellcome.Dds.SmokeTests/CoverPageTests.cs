@@ -31,6 +31,13 @@ public class CoverPageTests
         page.Letters.Select(l => l.FontName).Distinct()
             .Should().Contain(f => f.Contains("Inter"), "the Inter fonts are embedded");
         page.Text.Should().Contain("wellcomecollection.org");
+
+        // The persistent URL and the licence are links, not just text
+        var links = page.GetHyperlinks().Select(h => h.Uri).ToList();
+        links.Should().Contain(u => u.StartsWith("https://wellcomecollection.org/works/"),
+            $"the persistent URL is a link (links: {string.Join(", ", links)})");
+        links.Should().Contain(u => !u.Contains("wellcomecollection.org"),
+            $"the licence is a link (links: {string.Join(", ", links)})");
     }
 
     [Fact]

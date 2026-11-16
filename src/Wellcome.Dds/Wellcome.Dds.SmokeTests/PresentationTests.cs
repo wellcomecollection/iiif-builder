@@ -52,6 +52,21 @@ public class PresentationTests
         Iiif.Type(current).Should().Be("Manifest", $"the first item of each level leads to a Manifest ({path})");
     }
 
+    [Theory]
+    [InlineData("presentation/collections", "Collection")]
+    [InlineData("presentation/v2/collections", "sc:Collection")]
+    [InlineData("presentation/collections/archives", "Collection")]
+    public async Task Top_level_collections_list_items(string path, string type)
+    {
+        var collection = await GetJson(path);
+
+        Iiif.Type(collection).Should().Be(type);
+        var items = collection.TryGetProperty("items", out var v3) ? v3
+            : collection.TryGetProperty("collections", out var v2) ? v2
+            : collection.GetProperty("members");
+        items.GetArrayLength().Should().BePositive($"{path} lists something");
+    }
+
     [SkippableFact]
     public async Task Born_digital_manifest()
     {
