@@ -23,6 +23,11 @@ The Deploy workflow runs it once the services are stable (`.github/workflows/smo
 be run by hand from Actions → Smoke test, for any environment. It only reports: failures show in the run
 summary and as annotations, but don't fail the deploy.
 
+Staging and staging-prod are only reachable on the VPN, and GitHub's runners aren't on it. So in GitHub
+the smoke test runs for production only: for the others it checks the health endpoint first, finds it
+unreachable, and says in the run summary that it was skipped, with the command to run locally. For staging,
+run the smoke tests yourself on the VPN (below) after a deploy.
+
 What it checks:
 
 | Area | Checks |

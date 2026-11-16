@@ -29,11 +29,46 @@ jobs:
         with:
           persist-credentials: false
 
+      # Staging and staging-prod are only reachable on the VPN, which GitHub's runners aren't on.
+      # Skip with a note rather than report every check as failed.
+      - name: Check the environment is reachable from GitHub
+        id: reach
+        env:
+          SMOKE_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          fixtures="src/Wellcome.Dds/Wellcome.Dds.SmokeTests/Fixtures/${SMOKE_ENV}.json"
+          if ! [[ "$SMOKE_ENV" =~ ^[a-z-]+$ ]] || [ ! -f "$fixtures" ]; then
+            echo "::error::No smoke test fixtures for environment '$SMOKE_ENV'"
+            exit 1
+          fi
+          host=$(jq -r .host "$fixtures")
+          code=$(curl -s -o /dev/null -m 20 -A "wellcome-dds-smoke-test/1.0" -w '%{http_code}' "$host/management/healthcheck" || true)
+          if [ -z "$code" ] || [ "$code" = "000" ]; then code=""; fi
+          if [ "$code" = "200" ]; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$host isn't reachable from GitHub's runners (health check: ${code:-no answer}); run the smoke tests locally on the VPN"
+            {
+              echo "### Smoke test skipped: $SMOKE_ENV"
+              echo
+              echo "$host isn't reachable from GitHub's runners (health check: ${code:-no answer}). Staging environments are only reachable on the VPN, so run the smoke tests from there:"
+              echo
+              echo '```bash'
+              echo "cd src/Wellcome.Dds"
+              echo "SMOKE_ENV=$SMOKE_ENV dotnet test Wellcome.Dds.SmokeTests/Wellcome.Dds.SmokeTests.csproj"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        if: steps.reach.outputs.reachable == 'true'
         with:
           dotnet-version: "10.0.x"
 
       - name: Smoke test
+        if: steps.reach.outputs.reachable == 'true'
         continue-on-error: true
         working-directory: src/Wellcome.Dds
         env:
