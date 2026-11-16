@@ -29,6 +29,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         private readonly DdsInstrumentationContext ddsInstrumentationContext;
         private readonly DdsOptions ddsOptions;
         private readonly IIdentityService identityService;
+        private readonly DlcsImageAccess access;
 
         public int DefaultSpace { get; }
         public int DefaultCustomer { get; }
@@ -51,6 +52,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             this.ddsInstrumentationContext = ddsInstrumentationContext;
             this.ddsOptions = ddsOptions.Value;
             this.identityService = identityService;
+            access = new DlcsImageAccess(dlcs.SizeModel, dlcs.RestrictedDownloadMaxWidth, dlcs.HoldAccessChanges);
         }
 
         // make all the things, then hand back to DashboardCloudServicesJobProcessor process job.
@@ -137,6 +139,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                                                     $"because it contains {syncOperation.MissingAccessConditions.Count} " +
                                                     $"file(s) with missing access conditions");
             }
+
+            if (syncOperation.DlcsLacksSizeFields)
+            {
+                throw new InvalidOperationException($"Cannot execute sync operation for {dlcsCallContext.Id}: " +
+                                                    DlcsLacksSizeFieldsMessage);
+            }
             
             var ingestOps = new List<Task>(2);
             logger.LogInformation(
@@ -188,6 +196,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 ImagesThatShouldBeOnDlcs = new Dictionary<string, Image?>(),
                 MissingAccessConditions = missingAccessConditions
             };
+            if (access.DlcsLacksSizeFields(imagesAlreadyOnDlcs))
+            {
+                syncOperation.DlcsLacksSizeFields = true;
+                syncOperation.Message = DlcsLacksSizeFieldsMessage;
+                logger.LogWarning("{message} Identifier {identifier}, callContext {callContext}",
+                    DlcsLacksSizeFieldsMessage, digitisedManifestation.Identifier, dlcsCallContext.Id);
+            }
 
             /*
              ImagesCurrentlyOnDlcs is a map of what we think DLCS should have, to what it actually has.
@@ -222,14 +237,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             // NB This returns -1 for a Chemist and Druggist issue
             syncOperation.LegacySequenceIndex = await metsRepository.FindSequenceIndex(manifestationDdsId);
 
-            // This sets the default maxUnauthorised, before we know what the roles are. 
-            // This is the default maxUnauthorised for the manifestation based only on on permittedOperations.
-            // later we might override this for individual images - AND WHEN THE ASSET IS NOT AN IMAGE
-            int maxUnauthorised = 1000;
-            if (metsManifestation.PermittedOperations.Contains("wholeImageHighResAsJpg"))
-            {
-                maxUnauthorised = -1; // Use DLCS default max size
-            }
+            // Whether open images can be had at full size. Each image's roles and size fields also depend on
+            // its own access condition and asset family (see DlcsImageAccess).
+            var permitsHighRes = metsManifestation.PermittedOperations.Contains("wholeImageHighResAsJpg");
 
             // What do we need to patch? List of existing DLCS images that don't have the correct metadata
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
@@ -262,9 +272,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 }
 
                 var newDlcsImage = MakeDlcsImage(storedFile, manifestationDdsId,
-                    syncOperation.LegacySequenceIndex, maxUnauthorised);
+                    syncOperation.LegacySequenceIndex, permitsHighRes);
                 syncOperation.ImagesThatShouldBeOnDlcs[storedFile.StorageIdentifier!] = newDlcsImage;
                 var existingDlcsImage = syncOperation.ImagesCurrentlyOnDlcs[storedFile.StorageIdentifier!];
+
+                // With Dlcs:HoldAccessChanges, an image already on the DLCS keeps its roles and size fields
+                var heldMismatches = existingDlcsImage != null
+                    ? access.Hold(newDlcsImage, existingDlcsImage)
+                    : new List<string>();
 
                 if (assetsToIngest.Contains(storedFile))
                 {
@@ -285,7 +300,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         // Make a new candidate image for patch diff; we only want this to get patchMismatchReasons here, 
                         // we won't use newDlcsImageForPatchTest for anything else.
                         var newDlcsImageForPatchTest = MakeDlcsImage(storedFile, manifestationDdsId,
-                            syncOperation.LegacySequenceIndex, maxUnauthorised);
+                            syncOperation.LegacySequenceIndex, permitsHighRes);
+                        access.Hold(newDlcsImageForPatchTest, existingDlcsImage);
                         var patchDiffImage = GetPatchImage(newDlcsImageForPatchTest, existingDlcsImage, out var patchMismatchReasons);
                         if (patchDiffImage != null)
                         {
@@ -304,6 +320,16 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                         }
                     }
 
+
+                    if (heldMismatches.Count > 0)
+                    {
+                        if (!syncOperation.Mismatches.TryGetValue(storedFile.StorageIdentifier!, out var reasons))
+                        {
+                            reasons = new List<string>();
+                            syncOperation.Mismatches[storedFile.StorageIdentifier!] = reasons;
+                        }
+                        reasons.AddRange(heldMismatches);
+                    }
 
                     if (existingDlcsImage.Ingesting == true)
                     {
@@ -627,14 +653,13 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 reingestImage ??= newDlcsImage;
             }
 
-            // This one CURRENTLY requires reingest because it's engine that modifies the S3 location
-            // But later it could go into regular batch-patch if protagonist no longer rejects it.
-            if (existingDlcsImage.MaxUnauthorised != newDlcsImage.MaxUnauthorised)
+            // maxUnauthorised (Legacy), or maxWidth and openFullMax (Explicit). These require reingest because
+            // the engine moves thumbnails between open and auth storage, and the DLCS won't batch-patch them.
+            foreach (var (field, newValue, existingValue) in access.SizeMismatches(newDlcsImage, existingDlcsImage))
             {
-                logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
-                    "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised);
-                reasons.Add(string.Format(reingestMessageUIFormat,
-                    "maxUnauthorised", newDlcsImage.MaxUnauthorised, existingDlcsImage.MaxUnauthorised));
+                logger.LogDebug(reingestMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,
+                    field, newValue, existingValue);
+                reasons.Add(string.Format(reingestMessageUIFormat, field, newValue, existingValue));
                 reingestImage ??= newDlcsImage;
             }
                 
@@ -745,7 +770,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 patchImage ??= newDlcsImage;
             }
 
-            if (!AreEqual(existingDlcsImage.Roles, newDlcsImage.Roles))
+            if (!access.RolesMatch(newDlcsImage, existingDlcsImage))
             {
                 logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
                     "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
@@ -759,6 +784,8 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 // remove fields not permitted in patch:
                 patchImage.Origin = null;
                 patchImage.MaxUnauthorised = null;
+                patchImage.MaxWidth = null;
+                patchImage.OpenFullMax = null;
                 patchImage.DeliveryChannels = null;
                 // others?
             }
@@ -839,7 +866,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             IStoredFile asset,
             DdsIdentity ddsId,
             int sequenceIndex,
-            int maxUnauthorised)
+            bool permitsHighRes)
         {
             string origin = asset.GetStoredFileInfo().Uri;
             var imageRegistration = new Image
@@ -878,15 +905,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
             }
             
             var roles = GetRoles(asset.PhysicalFile);
-            imageRegistration.Roles = roles;
-            if (asset.ProcessingBehaviour.AssetFamily == AssetFamily.Image)
-            {
-                imageRegistration.MaxUnauthorised = GetMaxUnauthorised(maxUnauthorised, roles);
-            }
-            else
-            {
-                imageRegistration.MaxUnauthorised = -1;
-            }
+            reqRegUri ??= dlcs.GetRoleUri(AccessCondition.RequiresRegistration);
+            access.Apply(imageRegistration,
+                isImage: asset.ProcessingBehaviour.AssetFamily == AssetFamily.Image,
+                roles: roles,
+                permitsHighRes: permitsHighRes,
+                isClickthrough: roles.Contains(reqRegUri));
 
             var processing = asset.ProcessingBehaviour;
             imageRegistration.DeliveryChannels = processing.DeliveryChannels
@@ -1064,12 +1088,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
         private string? reqRegUri;
 
-        private int GetMaxUnauthorised(int sequenceMaxSize, string[] roles)
-        {
-            if (!roles.HasItems()) return sequenceMaxSize;
-            reqRegUri ??= dlcs.GetRoleUri(AccessCondition.RequiresRegistration);
-            return roles.Contains(reqRegUri) ? 200 : 0;
-        }
+        private const string DlcsLacksSizeFieldsMessage =
+            "Dlcs:SizeModel is Explicit, but the DLCS doesn't return openFullMax, so it's older than Protagonist 1.13.1. " +
+            "Set Dlcs:SizeModel to Legacy.";
 
         public Task<IEnumerable<ErrorByMetadata>> GetErrorsByMetadata(DlcsCallContext dlcsCallContext)
             => dlcs.GetErrorsByMetadata(dlcsCallContext);

@@ -111,6 +111,22 @@ namespace Wellcome.Dds.AssetDomain.Dlcs
         int BatchSize { get; }
         
         bool PreventSynchronisation { get; }
+
+        /// <summary>
+        /// Whether to send maxUnauthorised (Legacy) or maxWidth and openFullMax (Explicit)
+        /// </summary>
+        DlcsSizeModel SizeModel { get; }
+
+        /// <summary>
+        /// Explicit only: the maxWidth for open images whose METS doesn't permit wholeImageHighResAsJpg
+        /// </summary>
+        int RestrictedDownloadMaxWidth { get; }
+
+        /// <summary>
+        /// If true, syncs work out role and size changes for images already on the DLCS, and list them as
+        /// mismatches, but don't send them.
+        /// </summary>
+        bool HoldAccessChanges { get; }
         Task<List<Batch>> GetTestedImageBatches(List<Batch> imageBatches, DlcsCallContext dlcsCallContext);
         Task<Dictionary<string, long>> GetDlcsQueueLevel();
         
