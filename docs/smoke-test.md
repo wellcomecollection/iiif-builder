@@ -59,7 +59,7 @@ workflow job):
 | `b20415151` | Collection of two volumes |
 | `ARTCOO/B/10` | Born-digital manifest of four PDFs (placeholder canvases); PDF thumbnail as `ARTCOO_B_10` |
 | `b30468115` | AV manifest and poster thumbnail |
-| `b18029292` | Size-limited images (CC-BY-NC-ND: `maxWidth` 1000, no tiles) |
+| `b18029292` | Size-limited images (player flags allow "embed" only: `maxWidth` 1000, no tiles); cover page with an accented title (Grüneberg) |
 | `b18945478` | Clickthrough: auth services, anonymous tiles refused |
 | `b31486320` | PDF cover page |
 
