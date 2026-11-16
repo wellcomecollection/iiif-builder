@@ -1,5 +1,13 @@
 {
   "host": "https://iiif-stage.wellcomecollection.org",
-  "goobiManifest": "b31486320",
-  "coverPageItem": "b31486320"
+  "goobiManifest": "b31494778",
+  "collection": "b20415151",
+  "bornDigitalManifest": "ARTCOO/B/10",
+  "avManifest": "b30468115",
+  "searchItem": "b31494778",
+  "searchTerm": "health",
+  "pdfThumbnailItem": "ARTCOO_B_10",
+  "coverPageItem": "b31486320",
+  "openImageItem": "b31494778",
+  "authItem": "b18945478"
 }
