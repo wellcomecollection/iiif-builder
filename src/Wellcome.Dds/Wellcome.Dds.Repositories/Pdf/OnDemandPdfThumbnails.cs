@@ -52,6 +52,11 @@ public class OnDemandPdfThumbnails
     public int InFlight => inFlight.Count;
 
     /// <summary>
+    /// PdfThumbnails:GenerateOnDemand. When false, callers should not call <see cref="Ensure"/>.
+    /// </summary>
+    public bool Enabled => options.GenerateOnDemand;
+
+    /// <summary>
     /// Generate the thumbnail for <paramref name="ddsId"/> if nothing is stored, with the limits above.
     /// <paramref name="waitToken"/> (the request's) stops this caller waiting; it does not cancel a
     /// generation that other callers may be sharing.
