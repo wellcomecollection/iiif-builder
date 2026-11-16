@@ -47,7 +47,24 @@ other hosts in what it built: from March 2021 to April 2023 staging-prod wrote i
 own DLCS links used `iiif-test` (as in `b31486320`'s images). Those items still work on staging only as far as
 staging-prod answers for them, which is not at all after 18:00, so the checks would test staging-prod. Look
 at an item's JSON first: every `iiif-…` host in it should be `iiif-stage`. Chemist & Druggist is never
-rebuilt anywhere, so staging has no collection check.
+rebuilt anywhere, so staging's collection check uses a small multi-volume work instead.
+
+Staging's items must be in the staging storage service and have been through a workflow job on staging. If
+staging is cleaned out, restore these (staging-prod reads production storage, so there they only need a
+workflow job):
+
+| Item | Used for |
+| --- | --- |
+| `b31494778` | Goobi manifest (v3 and v2), ALTO, annotations, raw text, search and autocomplete, open image tiles |
+| `b20415151` | Collection of two volumes |
+| `ARTCOO/B/10` | Born-digital manifest of four PDFs (placeholder canvases); PDF thumbnail as `ARTCOO_B_10` |
+| `b30468115` | AV manifest and poster thumbnail |
+| `b18029292` | Size-limited images (CC-BY-NC-ND: `maxWidth` 1000, no tiles) |
+| `b18945478` | Clickthrough: auth services, anonymous tiles refused |
+| `b31486320` | PDF cover page |
+
+Production uses the same items, except Chemist & Druggist (`b19974760`) for the collection check and
+`b29696586` for the PDF thumbnail.
 
 To run locally (the tests call the live services):
 
