@@ -479,7 +479,15 @@ namespace DlcsWebClient.Dlcs
                 return false;
             }
 
-            dynamic result = JObject.Parse(await response.Content.ReadAsStringAsync());
+            // Protagonist 1.14+ answers 204 with no body (and reports failure as a 500, handled above).
+            // Earlier versions answer 200 with {"success": true|false}.
+            var body = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.NoContent || string.IsNullOrWhiteSpace(body))
+            {
+                return true;
+            }
+
+            dynamic result = JObject.Parse(body);
             return (bool) result.success;
         }
 

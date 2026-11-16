@@ -416,5 +416,61 @@ namespace DlcsWebClient.Tests.Dlcs
             httpHandler.CallsMade.Should().ContainSingle(s => s == expected);
             message.Method.Should().Be(HttpMethod.Delete);
         }
+
+        [Fact]
+        public async Task DeletePdf_ReturnsTrue_For204NoContent()
+        {
+            // Arrange - Protagonist 1.14+ returns 204 with no body
+            httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            // Act
+            var result = await sut.DeletePdf("b1234567");
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task DeletePdf_ReturnsTrue_For200WithEmptyBody()
+        {
+            // Arrange
+            httpHandler.GetResponseMessage("", HttpStatusCode.OK);
+
+            // Act
+            var result = await sut.DeletePdf("b1234567");
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("{\"success\": true}", true)]
+        [InlineData("{\"success\": false}", false)]
+        public async Task DeletePdf_ReturnsSuccessValue_For200WithBody(string body, bool expected)
+        {
+            // Arrange - Protagonist before 1.14 returns 200 with {"success": true|false}
+            httpHandler.GetResponseMessage(body, HttpStatusCode.OK);
+
+            // Act
+            var result = await sut.DeletePdf("b1234567");
+
+            // Assert
+            result.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(HttpStatusCode.NotFound)]
+        [InlineData(HttpStatusCode.InternalServerError)]
+        public async Task DeletePdf_ReturnsFalse_IfCallUnsuccessful(HttpStatusCode statusCode)
+        {
+            // Arrange - Protagonist 1.14+ reports a failed delete as a 500
+            httpHandler.SetResponse(new HttpResponseMessage(statusCode));
+
+            // Act
+            var result = await sut.DeletePdf("b1234567");
+
+            // Assert
+            result.Should().BeFalse();
+        }
     }
 }
