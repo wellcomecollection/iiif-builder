@@ -52,9 +52,6 @@
 
         // These FOUR can probably go, as we don't use these old APIs any more
         public string? PinVerifyUrlFormat { get; set; } // suggest this should be secret
-        public string? PatronApiEndpoint { get; set; }
-        public string? MillenniumUserName { get; set; }
-        public string? MillenniumPassword { get; set; }
         
         public string? DlcsReturnUrl { get; set; }
         

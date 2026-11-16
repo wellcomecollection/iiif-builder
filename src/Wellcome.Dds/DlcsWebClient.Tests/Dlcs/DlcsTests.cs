@@ -175,7 +175,7 @@ namespace DlcsWebClient.Tests.Dlcs
             await sut.PatchImages(request, new DlcsCallContext("[test]", "[id]"));
 
             // Assert
-            var actual = await message.Content.ReadAsAsync<HydraImageCollection>();
+            var actual = JsonConvert.DeserializeObject<HydraImageCollection>(await message.Content.ReadAsStringAsync());
             actual.Members.Single().ModelId.Should().Be(expectedModelId);
         }
         

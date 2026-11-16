@@ -167,8 +167,5 @@ namespace Wellcome.Dds.AssetDomainRepositories
 
         public DdsInstrumentationDbException(string format, Exception innerException, params object[] args)
             : base(string.Format(format, args), innerException) { }
-
-        protected DdsInstrumentationDbException(SerializationInfo info, StreamingContext context)
-            : base(info, context) { }
     }
 }
