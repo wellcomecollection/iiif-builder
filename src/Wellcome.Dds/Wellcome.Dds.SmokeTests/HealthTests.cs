@@ -1,4 +1,6 @@
+using System;
 using System.Net;
+using System.Web;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -27,5 +29,19 @@ public class HealthTests
 
         response.Status.Should().Be(HttpStatusCode.OK, response.ToString());
         response.ContentType.Should().Be("text/html");
+    }
+
+    [Fact]
+    public async Task Dashboard_sends_anonymous_users_to_the_Entra_login()
+    {
+        // Checks the Identity.Web wiring (authority, and a redirect back to this host), not the login itself
+        var response = await Fetch.GetWithoutRedirect("dash/");
+
+        response.Status.Should().Be(HttpStatusCode.Redirect, response.ToString());
+        var location = response.Location;
+        location.Should().NotBeNull();
+        location!.Host.Should().Be("login.microsoftonline.com");
+        HttpUtility.ParseQueryString(location.Query)["redirect_uri"]
+            .Should().Be(SmokeEnvironment.Url("dash/signin-oidc"));
     }
 }

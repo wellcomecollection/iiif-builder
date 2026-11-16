@@ -1,14 +1,16 @@
 {
   "host": "https://iiif.wellcomecollection.org",
-  "goobiManifest": "b18035978",
+  "goobiManifest": "b31494778",
   "collection": "b19974760",
-  "bornDigitalManifest": "ARTCOO/B/15",
-  "avManifest": "b16724628",
-  "searchItem": "b18035978",
+  "bornDigitalManifest": "ARTCOO/B/10",
+  "avManifest": "b30468115",
+  "searchItem": "b31494778",
   "searchTerm": "health",
   "pdfThumbnailItem": "b29696586",
   "coverPageItem": "b31486320",
-  "openImageItem": "b18035978",
-  "sizeLimitedItem": "b18024142",
-  "authItem": "b18659135"
+  "openImageItem": "b31494778",
+  "sizeLimitedItem": "b18029292",
+  "authItem": "b18945478",
+  "accentedCoverItem": "b18029292",
+  "accentedCoverText": "Grüneberg"
 }

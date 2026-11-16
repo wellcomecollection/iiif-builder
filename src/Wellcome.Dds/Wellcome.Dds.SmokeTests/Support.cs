@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Wellcome.Dds.SmokeTests;
 
-public record Fetched(HttpStatusCode Status, string? ContentType, byte[] Body, Uri? FinalUri)
+public record Fetched(HttpStatusCode Status, string? ContentType, byte[] Body, Uri? FinalUri, Uri? Location = null)
 {
     public string Text => System.Text.Encoding.UTF8.GetString(Body);
     public JsonElement Json => JsonDocument.Parse(Body).RootElement;
@@ -17,15 +18,20 @@ public record Fetched(HttpStatusCode Status, string? ContentType, byte[] Body, U
 public static class Fetch
 {
     /// <summary>GET a URL (absolute, or a path on the environment's host), following redirects.</summary>
-    public static async Task<Fetched> Get(string urlOrPath)
+    public static Task<Fetched> Get(string urlOrPath) => Send(SmokeEnvironment.Http, urlOrPath);
+
+    /// <summary>GET without following a redirect; the target is in Location.</summary>
+    public static Task<Fetched> GetWithoutRedirect(string urlOrPath) => Send(SmokeEnvironment.HttpNoRedirect, urlOrPath);
+
+    private static async Task<Fetched> Send(HttpClient client, string urlOrPath)
     {
         var url = urlOrPath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? urlOrPath
             : SmokeEnvironment.Url(urlOrPath);
-        using var response = await SmokeEnvironment.Http.GetAsync(url);
+        using var response = await client.GetAsync(url);
         var body = await response.Content.ReadAsByteArrayAsync();
         return new Fetched(response.StatusCode, response.Content.Headers.ContentType?.MediaType, body,
-            response.RequestMessage?.RequestUri);
+            response.RequestMessage?.RequestUri, response.Headers.Location);
     }
 }
 
@@ -120,6 +126,22 @@ public static class Iiif
         return services.EnumerateArray()
             .Select(s => Type(s) ?? (s.TryGetProperty("profile", out var p) ? p.ToString() : null))
             .Where(t => t != null).Select(t => t!).ToList();
+    }
+
+    /// <summary>The first thumbnail image of a Presentation 3 resource.</summary>
+    public static string? ThumbnailId(JsonElement resource) =>
+        resource.TryGetProperty("thumbnail", out var t) && t.GetArrayLength() > 0 ? Id(t[0]) : null;
+
+    /// <summary>A service of an info.json or resource by type, e.g. AuthProbeService2, searching nested services.</summary>
+    public static JsonElement? FindService(JsonElement resource, string type)
+    {
+        if (!resource.TryGetProperty("service", out var services)) return null;
+        foreach (var s in services.ValueKind == JsonValueKind.Array ? services.EnumerateArray().ToList() : [services])
+        {
+            if (Type(s) == type) return s;
+            if (FindService(s, type) is { } nested) return nested;
+        }
+        return null;
     }
 
     /// <summary>A 512px tile from the top-left of the image: a request only deep zoom makes.</summary>

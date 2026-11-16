@@ -20,6 +20,9 @@ public static class SmokeEnvironment
     /// </summary>
     public static HttpClient Http { get; }
 
+    /// <summary>For checking a redirect itself, e.g. the dashboard's to the Entra login.</summary>
+    public static HttpClient HttpNoRedirect { get; }
+
     static SmokeEnvironment()
     {
         Name = Environment.GetEnvironmentVariable("SMOKE_ENV") is { Length: > 0 } env ? env : "production";
@@ -38,6 +41,9 @@ public static class SmokeEnvironment
 
         Http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("wellcome-dds-smoke-test/1.0");
+        HttpNoRedirect = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+            { Timeout = TimeSpan.FromSeconds(120) };
+        HttpNoRedirect.DefaultRequestHeaders.UserAgent.ParseAdd("wellcome-dds-smoke-test/1.0");
     }
 
     public static string Url(string path) => $"{Host}/{path.TrimStart('/')}";
@@ -69,6 +75,10 @@ public record SmokeFixtures
     public string? PdfThumbnailItem { get; init; }
 
     public string? CoverPageItem { get; init; }
+
+    /// <summary>An item whose cover page has non-ASCII text, and that text</summary>
+    public string? AccentedCoverItem { get; init; }
+    public string? AccentedCoverText { get; init; }
 
     /// <summary>Open, with no size limit: deep zoom works</summary>
     public string? OpenImageItem { get; init; }

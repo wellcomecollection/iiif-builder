@@ -29,8 +29,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # Staging and staging-prod are only reachable on the VPN, which GitHub's runners aren't on.
-      # Skip with a note rather than report every check as failed.
+      # If the environment isn't up (staging-prod shuts down at 18:00), skip with a note rather than
+      # report every check as failed.
       - name: Check the environment is reachable from GitHub
         id: reach
         env:
@@ -49,11 +49,11 @@ jobs:
             echo "reachable=true" >> "$GITHUB_OUTPUT"
           else
             echo "reachable=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::$host isn't reachable from GitHub's runners (health check: ${code:-no answer}); run the smoke tests locally on the VPN"
+            echo "::notice::$host isn't answering (health check: ${code:-no answer}); skipped the smoke tests"
             {
               echo "### Smoke test skipped: $SMOKE_ENV"
               echo
-              echo "$host isn't reachable from GitHub's runners (health check: ${code:-no answer}). Staging environments are only reachable on the VPN, so run the smoke tests from there:"
+              echo "$host isn't answering (health check: ${code:-no answer}), so the smoke tests didn't run. Staging-prod shuts down at 18:00. Once it's up, run this workflow again by hand, or locally:"
               echo
               echo '```bash'
               echo "cd src/Wellcome.Dds"

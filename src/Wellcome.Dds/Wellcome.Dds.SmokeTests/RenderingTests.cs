@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -23,6 +24,26 @@ public class RenderingTests
 
         response.Status.Should().Be(HttpStatusCode.OK, response.ToString());
         ImageHeader.Png(response.Body).Should().Be((1000, 800));
+    }
+
+    [SkippableFact]
+    public async Task Born_digital_placeholder_canvases_render()
+    {
+        // Files that aren't images (a .ppt, a .docx) are painted as a placeholder canvas made by libvips
+        Skip.If(F.BornDigitalManifest == null, "No born-digital item for this environment");
+        var manifest = await PresentationTests.GetJson($"presentation/{F.BornDigitalManifest}");
+        var placeholders = manifest.GetProperty("items").EnumerateArray()
+            .Select(c => Iiif.Id(Iiif.Body(c)))
+            .Where(id => id != null && id.Contains("/placeholder-canvas/"))
+            .Take(3).ToList();
+        Skip.If(placeholders.Count == 0, $"{F.BornDigitalManifest} has no placeholder canvases");
+
+        foreach (var placeholder in placeholders)
+        {
+            var response = await Fetch.Get(placeholder!);
+            response.Status.Should().Be(HttpStatusCode.OK, response.ToString());
+            ImageHeader.Png(response.Body).Should().Be((1000, 800), placeholder);
+        }
     }
 
     [SkippableFact]

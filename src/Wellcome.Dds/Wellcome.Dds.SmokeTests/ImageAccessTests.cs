@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -70,5 +72,40 @@ public class ImageAccessTests
 
         var tile = await Fetch.Get(Iiif.TileUrl(service!));
         tile.Status.Should().Be(HttpStatusCode.Unauthorized, tile.ToString());
+
+        // IIIF Auth 2: the probe says 401 to an anonymous user, and the access service offers its page
+        var probe = Iiif.FindService(info.Json, "AuthProbeService2");
+        probe.Should().NotBeNull("the info.json offers an Auth 2 probe service");
+        var probeResult = await Fetch.Get(Iiif.Id(probe!.Value)!);
+        probeResult.Status.Should().Be(HttpStatusCode.OK, probeResult.ToString());
+        Iiif.Type(probeResult.Json).Should().Be("AuthProbeResult2");
+        probeResult.Json.GetProperty("status").GetInt32().Should().Be(401);
+
+        var access = Iiif.FindService(probe.Value, "AuthAccessService2");
+        access.Should().NotBeNull("the probe service has an access service");
+        var accessPage = await Fetch.Get($"{Iiif.Id(access!.Value)}?origin=https://example.org");
+        accessPage.Status.Should().Be(HttpStatusCode.OK, accessPage.ToString());
+        accessPage.ContentType.Should().Be("text/html");
+    }
+
+    [SkippableFact]
+    public async Task Thumbnails_are_served_for_every_kind_of_item()
+    {
+        // Thumbnails stay open even where the full image is size-limited or behind a login
+        var items = new[] { F.OpenImageItem, F.SizeLimitedItem, F.AuthItem }.OfType<string>().Distinct().ToList();
+        Skip.If(items.Count == 0, "No image items for this environment");
+
+        foreach (var item in items)
+        {
+            var manifest = await PresentationTests.GetJson($"presentation/{item}");
+            var thumbnails = new List<string?> { Iiif.ThumbnailId(manifest), Iiif.ThumbnailId(manifest.GetProperty("items")[0]) };
+            foreach (var thumbnail in thumbnails)
+            {
+                thumbnail.Should().NotBeNull($"{item} and its first canvas have thumbnails");
+                var response = await Fetch.Get(thumbnail!);
+                response.Status.Should().Be(HttpStatusCode.OK, response.ToString());
+                ImageHeader.Jpeg(response.Body).Should().NotBeNull($"{thumbnail} is a JPEG");
+            }
+        }
     }
 }
