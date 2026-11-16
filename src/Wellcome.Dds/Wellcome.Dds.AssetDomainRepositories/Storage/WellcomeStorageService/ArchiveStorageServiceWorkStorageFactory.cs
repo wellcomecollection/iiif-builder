@@ -65,6 +65,12 @@ namespace Wellcome.Dds.AssetDomainRepositories.Storage.WellcomeStorageService
             var wellcomeBagAwareArchiveStorageMap = WellcomeBagAwareArchiveStorageMap.FromJObject(storageManifest, packageIdentifier);
             if (wellcomeBagAwareArchiveStorageMap.VersionSets.IsNullOrEmpty())
             {
+                var deletion = WellcomeBagAwareArchiveStorageMap.GetDeletion(storageManifest, packageIdentifier);
+                if (deletion != null)
+                {
+                    logger.LogWarning("JQ {packageIdentifier} - {message}", packageIdentifier, deletion.Message);
+                    throw deletion;
+                }
                 throw new InvalidOperationException($"Unable to generate VersionSet for StorageMap. Id: {packageIdentifier}");
             }
             return wellcomeBagAwareArchiveStorageMap;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using ProtoBuf;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.Common;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
@@ -42,6 +43,25 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
         /// </summary>
         [ProtoMember(6)]
         public string OtherIdentifier { get; set; }
+
+        /// <summary>
+        /// If the storage manifest's latest version is a deletion (no files, and a payload of zero bytes in zero
+        /// files, as in a Goobi "_deletion" bag), the exception that says so; otherwise null.
+        /// </summary>
+        public static DeletedInStorageException GetDeletion(JObject storageManifest, string identifier)
+        {
+            var files = storageManifest.SelectToken("manifest.files") as JArray;
+            var payloadOxum = storageManifest.SelectToken("info.payloadOxum")?.Value<string>();
+            if (files is not { Count: 0 } || payloadOxum != "0.0")
+            {
+                return null;
+            }
+
+            return new DeletedInStorageException(identifier,
+                storageManifest.Value<string>("version"),
+                storageManifest.SelectToken("info.baggingDate")?.Value<string>(),
+                storageManifest.SelectToken("info.internalSenderDescription")?.Value<string>());
+        }
 
         public static WellcomeBagAwareArchiveStorageMap FromJObject(JObject storageManifest, string identifier)
         {

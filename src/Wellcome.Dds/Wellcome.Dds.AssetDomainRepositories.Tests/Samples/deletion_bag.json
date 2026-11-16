@@ -1,0 +1,54 @@
+{
+  "id": "digitised/b10985402",
+  "space": {
+    "id": "digitised",
+    "type": "Space"
+  },
+  "info": {
+    "externalIdentifier": "b10985402",
+    "payloadOxum": "0.0",
+    "baggingDate": "2026-10-26",
+    "sourceOrganization": "intranda GmbH",
+    "externalDescription": "",
+    "internalSenderIdentifier": "433764",
+    "internalSenderDescription": "2026-10-26_b10985402_deletion",
+    "type": "BagInfo"
+  },
+  "manifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [],
+    "type": "BagManifest"
+  },
+  "tagManifest": {
+    "checksumAlgorithm": "SHA-256",
+    "files": [
+      {
+        "checksum": "06dc7fcd86d183e759dfbe3931b19f92c682e7926734dcb52f34ad20b18da8cd",
+        "name": "bag-info.txt",
+        "path": "v2/bag-info.txt",
+        "size": 262,
+        "type": "File"
+      },
+      {
+        "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "name": "manifest-sha256.txt",
+        "path": "v2/manifest-sha256.txt",
+        "size": 0,
+        "type": "File"
+      }
+    ],
+    "type": "BagManifest"
+  },
+  "location": {
+    "provider": {
+      "id": "amazon-s3",
+      "type": "Provider"
+    },
+    "bucket": "wellcomecollection-storage",
+    "path": "digitised/b10985402",
+    "type": "Location"
+  },
+  "createdDate": "2026-10-26T10:32:08.062322Z",
+  "version": "v2",
+  "type": "Bag"
+}

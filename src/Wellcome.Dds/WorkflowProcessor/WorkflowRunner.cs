@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
 using Wellcome.Dds;
+using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs.Ingest;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.AssetDomain.Workflow;
@@ -204,6 +205,14 @@ namespace WorkflowProcessor
                 job.TotalTime = (long) (DateTime.UtcNow - job.Taken.Value).TotalMilliseconds;
                 job.Finished = true;
                 logger.LogInformation("JQ {JobId} Processed in {TotalTime} ms", ddsIdentifier, job.TotalTime);
+            }
+            catch (Exception ex) when (DeletedInStorageException.Find(ex) is { } deleted)
+            {
+                // Not a failure: there is nothing to build. The job finishes and says why.
+                job.Error = ("Deleted in storage: " + deleted.Message).SummariseWithEllipsis(240);
+                job.TotalTime = (long) (DateTime.UtcNow - job.Taken!.Value).TotalMilliseconds;
+                job.Finished = true;
+                logger.LogWarning("JQ {identifier} - {message}", ddsIdentifier, deleted.Message);
             }
             catch (Exception ex)
             {
