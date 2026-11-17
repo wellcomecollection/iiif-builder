@@ -32,7 +32,7 @@ namespace DlcsWebClient.Tests.Dlcs
             var dlcsOptions = new DlcsOptions
             {
                 CustomerId = 99,
-                CustomerName = "tester",
+                CustomerName = "Tester", // mixed case, as Wellcome's config has it; the DLCS must be sent lowercase
                 CustomerDefaultSpace = 15,
                 BatchSize = 5,
                 ApiEntryPoint = "https://api.dlcs.test/",
