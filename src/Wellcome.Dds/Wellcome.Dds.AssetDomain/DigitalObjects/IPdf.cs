@@ -19,5 +19,8 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
 
         int PageCount { get; set; }
         long SizeBytes { get; set; }
+
+        // Set when the pdf-control request failed, saying why; not part of the DLCS response.
+        string? ControlFileError { get; set; }
     }
 }

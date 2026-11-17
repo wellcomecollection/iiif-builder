@@ -33,5 +33,8 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
 
         [JsonProperty(Order = 91, PropertyName = "sizeBytes")]
         public long SizeBytes { get; set; }
+
+        [JsonIgnore]
+        public string? ControlFileError { get; set; }
     }
 }
