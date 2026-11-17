@@ -33,7 +33,7 @@ What it checks:
 | Health | Server and dashboard health checks say `Healthy` (the dashboard's includes the databases); Swagger loads; the dashboard sends an anonymous user to the Entra login, with a redirect back to this host's `/dash/signin-oidc` |
 | IIIF | Goobi manifest as Presentation 3 and 2; the top-level collections (v3, v2 and archives) list items; a Collection leads to Manifests (two levels for a multi-volume work, three for Chemist & Druggist); born-digital manifest; AV manifest has video or sound |
 | Text | ALTO resolves for the first, middle and last canvas; their line annotation pages and the manifest's image annotation page resolve; the raw text rendering resolves; search within finds hits, and autocomplete suggests terms |
-| Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` but refuses tiles; an access-controlled item offers auth services and refuses anonymous tiles, its Auth 2 probe says 401 and its access service page loads; thumbnails are served for all three |
+| Image access (DLCS) | An open item has no `maxWidth` and serves tiles; a size-limited item (player flags, e.g. the genetics books) has `maxWidth: 1000`, serves `/full/!1000,1000/` and nothing larger, and either refuses tiles (option A, today) or serves them (option B, once re-synced under `Dlcs:SizeModel = Explicit`; see `docs/dlcs-size-model.md`); an access-controlled item offers auth services and refuses anonymous tiles, its Auth 2 probe says 401 and its access service page loads; thumbnails are served for all three |
 | Rendering | Placeholder canvases are 1000×800 PNGs (libvips), both directly and as painted in a born-digital manifest; the AV poster thumbnail scales to 300 wide keeping its aspect ratio; a born-digital PDF thumbnail renders at 200 and 400 wide (pdftoppm) and 2000 is refused |
 | Cover page | `/pdf-cover-v2/{id}` is one page, made by PdfPig, with Inter embedded, and the persistent URL and licence are links; a title with an accented character keeps it (Grüneberg, `b18029292`); ping answers; an unknown item is 404 |
 
@@ -59,7 +59,7 @@ workflow job on staging-prod. If either is cleaned out, restore these:
 | `b20415151` | Collection of two volumes |
 | `ARTCOO/B/10` | Born-digital manifest of four PDFs (placeholder canvases); PDF thumbnail as `ARTCOO_B_10` |
 | `b30468115` | AV manifest and poster thumbnail |
-| `b18029292` | Size-limited images (player flags allow "embed" only: `maxWidth` 1000, no tiles); cover page with an accented title (Grüneberg) |
+| `b18029292` | Size-limited images (player flags allow "embed" only: `maxWidth` 1000; no tiles under option A, tiles but nothing over 1000px under option B); cover page with an accented title (Grüneberg) |
 | `b18945478` | Clickthrough: auth services, anonymous tiles refused |
 | `b31486320` | PDF cover page |
 
