@@ -124,6 +124,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.DigitalObjects
             sync.DlcsImagesToPatch.Should().BeEmpty();
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Legacy_keeps_the_unobtainable_role_when_patching_for_another_reason(bool hold)
+        {
+            // e.g. a page reorder or the Goobi volume-id remediation changes string1
+            var onDlcs = MigratedRestrictedOpenImage();
+            onDlcs.String1 = "b99999999";
+
+            var sync = await Sync(MakeDlcs(DlcsSizeModel.Legacy, hold), false, onDlcs);
+
+            sync.DlcsImagesToIngest.Should().BeEmpty();
+            var patch = sync.DlcsImagesToPatch.Should().ContainSingle().Subject;
+            patch.String1.Should().Be("b12345672");
+            patch.Roles.Should().Equal(new[] { Unobtainable },
+                "Protagonist 1.13.1+ applies \"roles\": [] from a PATCH, which would open the image fully");
+        }
+
         [Fact]
         public async Task Legacy_reingests_an_image_that_should_now_be_fully_open()
         {

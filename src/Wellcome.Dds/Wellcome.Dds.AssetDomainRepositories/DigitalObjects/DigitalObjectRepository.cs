@@ -770,9 +770,10 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
                 patchImage ??= newDlcsImage;
             }
 
-            if (!access.RolesMatch(newDlcsImage, existingDlcsImage))
+            var rolesMatch = access.RolesMatch(newDlcsImage, existingDlcsImage);
+            if (!rolesMatch)
             {
-                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier, 
+                logger.LogDebug(patchMessageStructuredLoggingFormat, newDlcsImage.StorageIdentifier,
                     "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList());
                 reasons.Add(string.Format(patchMessageUIFormat,
                     "roles", newDlcsImage.Roles.ToCommaDelimitedList(), existingDlcsImage.Roles.ToCommaDelimitedList()));
@@ -781,6 +782,14 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             if (patchImage != null)
             {
+                if (rolesMatch && !AreEqual(existingDlcsImage.Roles, newDlcsImage.Roles))
+                {
+                    // Under Legacy, RolesMatch counts the 1.13.1 migration's unobtainable role as matching no
+                    // roles. A PATCH sent for another reason must keep it: Protagonist 1.13.1+ applies
+                    // "roles": [] from a PATCH, which removes the role and re-ingests the image fully open.
+                    patchImage.Roles = existingDlcsImage.Roles;
+                }
+
                 // remove fields not permitted in patch:
                 patchImage.Origin = null;
                 patchImage.MaxUnauthorised = null;
