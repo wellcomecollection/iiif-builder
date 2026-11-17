@@ -507,11 +507,15 @@
         @if (metsManifestation.FirstInternetType == "image/jp2")
         {
             <h3>PDF</h3>
-            if (pdf == null)
+            if (pdf == null || pdf.ControlFileError != null)
             {
                 <div class="panel panel-danger">
                     <div class="panel-body">
                         <p>Cannot retrieve information for PDF</p>
+                        @if (pdf?.ControlFileError != null)
+                        {
+                            <p><small>@pdf.ControlFileError</small></p>
+                        }
                     </div>
                 </div>
             }
