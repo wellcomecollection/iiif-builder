@@ -187,6 +187,11 @@ namespace Wellcome.Dds.Dashboard.Controllers
                     return RedirectToAction("Manifestation", "Dash", new {id = result.RedirectId});
                 }
             }
+            catch (Exception ex) when (DeletedInStorageException.Find(ex) is { } deleted)
+            {
+                logger.LogWarning("Manifestation for '{id}': {message}", id.LogSafe(), deleted.Message);
+                ViewBag.Message = deleted.Message + " Anything the DDS published for it before is still served.";
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error getting manifestation for '{id}'", ddsId?.Value.LogSafe() ?? id.LogSafe());
