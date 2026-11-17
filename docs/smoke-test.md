@@ -96,9 +96,11 @@ They're tagged `Category=Smoke`, and the unit-test run in CI leaves them out.
 
 ## Born-digital PDF thumbnails: after any change to the thumbnail service, poppler, or the base image
 
-- [ ] On demand: the first request for an item with no stored thumbnail logs
-      `On-demand PDF thumbnail for '...': ...: Generated`; the second is served from the stored thumbnail
-      (no `Rendering page 1` log line).
+- [ ] A workflow job for a born-digital package with a PDF (e.g. `ARTCOO/B/10`) stores its thumbnail, and
+      `/thumb/{id}` then serves it. The server doesn't generate on request unless
+      `PdfThumbnails:GenerateOnDemand` is on (see docs/thumbnails.md). If it is, the first request for an
+      item with no stored thumbnail logs `On-demand PDF thumbnail for '...': ...: Generated`, and the second is
+      served from the stored thumbnail with no `Rendering page 1` log line.
 - [ ] Access rule: a PDF whose access condition is not Open, Requires registration or Open with
       advisory returns 404, and the log says `not served: not a PDF whose access condition permits it`.
       Check that this line does NOT appear for an item that should be open.

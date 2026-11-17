@@ -122,11 +122,12 @@ Even with the DLCS doing this, the DDS would still be the place to ask for a wor
 
 `/thumb/{id}` for a born-digital PDF serves `_pdf_thumbs/{id}.jpg` from the presentation bucket: page 1 of
 the PDF rendered and resized to 1024 px wide. `PdfThumbnailService` (in `Wellcome.Dds.Repositories/Pdf`)
-makes it in three places:
+makes it in these places:
 
 - the workflow processor, when a born-digital package is (re)processed with `RebuildIIIF`, for every
   manifestation that contains a PDF;
-- the iiif-builder server, on demand, the first time `/thumb/{id}` is asked for a thumbnail that does not exist;
+- `PdfThumbGenerator`, the bulk CLI, for a CSV of identifiers (run with credentials that can write to the
+  presentation bucket);
 - the dashboard, from the "Generate or upload" link on the PDF asset-type page, which also still accepts a
   hand-made JPEG for the cases where page 1 is a poor choice. An upload writes the same key. A generated
   thumbnail carries S3 metadata `source=generated` and an upload `source=uploaded`, so re-ingest replaces
@@ -138,7 +139,15 @@ Only a PDF whose access condition is Open, Requires registration or Open with ad
 and `/thumb` refuses to serve one for any other PDF even if a thumbnail is stored: the same rule as AV
 poster images, since page 1 of a restricted PDF is as restricted as the rest of it.
 
-On-demand generation is bounded, because anyone can ask for `/thumb/{id}`: one generation per identifier
+**The server doesn't generate thumbnails on request.** `/thumb/{id}` serves only what is stored, and returns
+404 ("No thumbnail image") for a PDF without one. The code to generate on request is there, behind
+`PdfThumbnails:GenerateOnDemand` (default `false`), but storing the result needs `s3:PutObject` on the
+presentation bucket's `_pdf_thumbs/` prefix, and the server's task role is read-only on that bucket in every
+environment. Before it was switched off, every attempt rendered page 1 and then failed with AccessDenied.
+To turn it on, grant that permission (iiif-builder-infrastructure, the server's role, `_pdf_thumbs/*` only)
+and set `PdfThumbnails__GenerateOnDemand=true` on the iiif-builder service.
+
+When it's on, on-demand generation is bounded, because anyone can ask for `/thumb/{id}`: one generation per identifier
 at a time (concurrent requests share it), at most `OnDemandMaxConcurrent` (2) at once with the rest
 queued, and a request that produced no thumbnail (failed, too large, no PDF, not permitted) is remembered
 for `FailureMemoryMinutes` (10) and answered from memory rather than repeated.

@@ -444,13 +444,27 @@ namespace DlcsWebClient.Dlcs
         public async Task<IPdf?> GetPdfDetails(string identifier)
         {
             // e.g., pdf-control/wellcome/pdf/5/b12345678_0004
+            // Lowercase the customer name: the Orchestrator caches its customer lookup under the lowercased name
+            // but queries the database case-sensitively, so a lookup of "Wellcome" can cache a miss that makes
+            // every named query for "wellcome" return 404 for a while.
             var uri =
-                $"{options.InternalResourceEntryPoint}pdf-control/{options.CustomerName}/{options.PdfQueryName}/{options.CustomerDefaultSpace}/{identifier}";
+                $"{options.InternalResourceEntryPoint}pdf-control/{options.CustomerName?.ToLowerInvariant()}/{options.PdfQueryName}/{options.CustomerDefaultSpace}/{identifier}";
 
-            var response = await httpClient.GetAsync(uri);
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.GetAsync(uri);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                logger.LogWarning(ex, "PDF control request {uri} failed", uri);
+                return new Pdf { ControlFileError = $"Request to {uri} failed: {ex.Message}" };
+            }
+
             if (!response.IsSuccessStatusCode)
             {
-                return default;
+                logger.LogWarning("PDF control request {uri} returned {statusCode}", uri, response.StatusCode);
+                return new Pdf { ControlFileError = $"{uri} returned {(int)response.StatusCode} {response.ReasonPhrase}" };
             }
 
             var pdf = JsonConvert.DeserializeObject<Pdf>(await response.Content.ReadAsStringAsync());

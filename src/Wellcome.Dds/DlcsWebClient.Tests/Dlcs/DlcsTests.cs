@@ -32,7 +32,7 @@ namespace DlcsWebClient.Tests.Dlcs
             var dlcsOptions = new DlcsOptions
             {
                 CustomerId = 99,
-                CustomerName = "tester",
+                CustomerName = "Tester", // mixed case, as Wellcome's config has it; the DLCS must be sent lowercase
                 CustomerDefaultSpace = 15,
                 BatchSize = 5,
                 ApiEntryPoint = "https://api.dlcs.test/",
@@ -342,7 +342,7 @@ namespace DlcsWebClient.Tests.Dlcs
         [Theory]
         [InlineData(HttpStatusCode.NotFound)]
         [InlineData(HttpStatusCode.InternalServerError)]
-        public async Task GetPdfDetails_ReturnsNull_IfCallUnsuccessful(HttpStatusCode statusCode)
+        public async Task GetPdfDetails_ReturnsControlFileError_IfCallUnsuccessful(HttpStatusCode statusCode)
         {
             // Arrange
             httpHandler.SetResponse(new HttpResponseMessage(statusCode));
@@ -351,7 +351,10 @@ namespace DlcsWebClient.Tests.Dlcs
             var result = await sut.GetPdfDetails("b1234123");
             
             // Assert
-            result.Should().BeNull();
+            result.Should().NotBeNull();
+            result!.Exists.Should().BeFalse();
+            result.ControlFileError.Should()
+                .Be($"https://dlcs.io/pdf-control/tester/pdf-q/15/b1234123 returned {(int)statusCode} {new HttpResponseMessage(statusCode).ReasonPhrase}");
         }
         
         [Fact]
@@ -369,7 +372,8 @@ namespace DlcsWebClient.Tests.Dlcs
             var result = await sut.GetPdfDetails("b1234123");
             
             // Assert
-            result.Should().BeEquivalentTo(pdf);
+            result.Should().BeEquivalentTo(pdf, opts => opts.Excluding(p => p.ControlFileError));
+            result!.ControlFileError.Should().BeNull();
         }
         
         [Theory]
@@ -393,7 +397,7 @@ namespace DlcsWebClient.Tests.Dlcs
             var result = await sut.GetPdfDetails("b1234123");
             
             // Assert
-            result.Should().BeEquivalentTo(pdf, opts => opts.Excluding(p => p.Url));
+            result.Should().BeEquivalentTo(pdf, opts => opts.Excluding(p => p.Url).Excluding(p => p.ControlFileError));
             result.Url.Should().Be(expected);
         }
         

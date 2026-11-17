@@ -43,6 +43,14 @@ public class PdfThumbnailOptions
     public int JpegQuality { get; set; } = 85;
 
     /// <summary>
+    /// Whether /thumb renders and stores a missing thumbnail itself. Storing needs s3:PutObject on the
+    /// presentation bucket's _pdf_thumbs/ prefix, and the server's role is read-only in every environment,
+    /// so this is off: thumbnails come from workflow jobs (Archivematica packages), the dashboard's
+    /// Generate button and PdfThumbGenerator. Turn it on only with that permission in place.
+    /// </summary>
+    public bool GenerateOnDemand { get; set; } = false;
+
+    /// <summary>
     /// How many on-demand (/thumb) generations the server runs at once; further requests queue.
     /// </summary>
     public int OnDemandMaxConcurrent { get; set; } = 2;

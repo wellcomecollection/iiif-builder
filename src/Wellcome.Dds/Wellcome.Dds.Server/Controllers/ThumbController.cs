@@ -139,10 +139,11 @@ namespace Wellcome.Dds.Server.Controllers
             try
             {
                 thumbnailStream = await pdfThumbnailService.GetThumbnail(identifier);
-                if (thumbnailStream == null)
+                if (thumbnailStream == null && onDemandPdfThumbnails.Enabled)
                 {
                     // Not pre-generated (or uploaded): render page 1 now and store it for next time, within
                     // the process-wide limits on concurrent and repeated on-demand work.
+                    // Off unless PdfThumbnails:GenerateOnDemand, because the server can't store it.
                     var result = await onDemandPdfThumbnails.Ensure(ddsId, HttpContext.RequestAborted);
                     logger.LogInformation("On-demand PDF thumbnail for '{Identifier}': {Result}", identifier.LogSafe(), result.LogSafe());
                     if (result.Outcome == PdfThumbnailOutcome.Generated)
