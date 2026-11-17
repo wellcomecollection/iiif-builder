@@ -191,6 +191,12 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 logger.LogWarning("Manifestation for '{id}': {message}", id.LogSafe(), deleted.Message);
                 ViewBag.Message = deleted.Message + " Anything the DDS published for it before is still served.";
+                ViewBag.DeletedInStorage = true;
+                if (ddsId != null)
+                {
+                    // for the Storage Manifest and METS links; the view leaves out the rebuild button
+                    ViewBag.TryInstead = ddsId.PackageIdentifierPathElementSafe;
+                }
             }
             catch (Exception ex)
             {

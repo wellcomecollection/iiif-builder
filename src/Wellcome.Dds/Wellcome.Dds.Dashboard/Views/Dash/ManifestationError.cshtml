@@ -9,21 +9,29 @@
 
 @if (ViewBag.TryInstead != null)
 {
-    @if (ViewBag.TryInstead != ViewBag.DdsId.PackageIdentifierPathElementSafe)
+    @* Deleted in storage: there is nothing to rebuild from, but the storage manifest shows the deletion *@
+    @if (ViewBag.DeletedInStorage != true)
     {
-        <p>Maybe try @Html.ActionLink((string)ViewBag.TryInstead, "Manifestation", "Dash", new { id = ViewBag.TryInstead }, new { })</p>
+        @if (ViewBag.TryInstead != ViewBag.DdsId.PackageIdentifierPathElementSafe)
+        {
+            <p>Maybe try @Html.ActionLink((string)ViewBag.TryInstead, "Manifestation", "Dash", new { id = ViewBag.TryInstead }, new { })</p>
+        }
+
+        @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = ViewBag.TryInstead}, FormMethod.Post))
+        {
+            <p>You can still try to
+            <button type="submit" class="btn btn-link" title="Rebuild Manifestations and IIIF">rebuild Manifestations and IIIF for this item</button>
+            </p>
+        }
     }
 
-    @using (Html.BeginForm("RefreshIIIF", "WorkflowJob", new {id = ViewBag.TryInstead}, FormMethod.Post))
-    {
-        <p>You can still try to
-        <button type="submit" class="btn btn-link" title="Rebuild Manifestations and IIIF">rebuild Manifestations and IIIF for this item</button>
-        </p>
-    }
-    
     <h3>Other tools</h3>
     <p>@Html.ActionLink("Storage Manifest for " + (string) (ViewBag.DdsId.PackageIdentifierPathElementSafe), "StorageManifest", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})</p>
-    <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})">METS file for @(ViewBag.DdsId.PackageIdentifier)</a></p>
+    @if (ViewBag.DeletedInStorage != true)
+    {
+        @* a deleted item's latest version has no METS *@
+        <p><a href="@Url.Action("XmlView", "Peek", new {id = ViewBag.DdsId.PackageIdentifierPathElementSafe})">METS file for @(ViewBag.DdsId.PackageIdentifier)</a></p>
+    }
 }
 
 @{
