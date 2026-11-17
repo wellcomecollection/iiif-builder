@@ -83,6 +83,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.DigitalObjects
             image.Roles.Should().BeEmpty();
         }
 
+        [Fact]
+        public void A_negative_RestrictedDownloadMaxWidth_is_treated_as_0()
+        {
+            // Protagonist stores a negative maxWidth as 0; anything else would mismatch on every sync
+            var negative = new DlcsImageAccess(DlcsSizeModel.Explicit, -1, false);
+
+            var image = Make(negative, true, Array.Empty<string>(), false, false);
+
+            image.MaxWidth.Should().Be(0);
+        }
+
         /// <summary>
         /// What Protagonist 1.13.1's migration (and its API conversion of maxUnauthorised) makes of a Legacy
         /// registration: see the migration "Images gains maxWidth and openFullMax".

@@ -46,9 +46,14 @@ Under `Legacy`, an image the DDS expects to have no roles and `maxUnauthorised` 
 re-ingest the image, and it would come back with no size limit at all. On Protagonist 1.12 no image has that role,
 so `Legacy` behaves exactly as before.
 
-If an image with the `unobtainable` role should become fully open under `Legacy` on 1.15 (for example after a METS
-change), the first sync re-registers it with `maxUnauthorised: -1`. The DLCS keeps its roles in that case, so a
-second sync removes the role.
+A PATCH sent for another reason (a changed string1, a reorder) keeps the image's existing roles, so it doesn't send
+`"roles": []` and remove `unobtainable` that way either.
+
+`Legacy` on 1.15 is still only safe for images that should stay as they are. When an image should become fully open
+(a capped image after the licence-name fix, or a restricted image whose METS now allows high-res), the first sync
+re-registers it with `maxUnauthorised: -1` and `roles: []`. 1.15 keeps the existing role in that case and sets
+`openFullMax` to 0, so **nobody can see the image** until a second sync PATCHes the role away. So don't let syncs
+run under `Legacy` on 1.15: switch to `Explicit` first (see Order of use).
 
 ## Checks
 
@@ -60,9 +65,14 @@ second sync removes the role.
 ## Order of use
 
 1. Before the DLCS upgrade, every environment runs `Legacy`.
-2. For the upgrade and the days after, set `HoldAccessChanges` to `true`.
-3. Afterwards, one environment at a time: `HoldAccessChanges` back to `false`, then `SizeModel` to `Explicit`, then
-   re-sync the affected items in batches (`--populate-file`).
+2. Pause processing for the upgrade. As soon as the DLCS reports 1.15, switch every environment to `Explicit`
+   before processing resumes, so no sync runs under `Legacy` on 1.15.
+3. Re-sync the affected items in batches with workflow jobs (`--populate-file`). Workflow jobs rebuild the
+   manifest, so thumbnail sizes stay right; under a 1000px `maxWidth` the DLCS no longer makes a 1024px thumbnail.
 
-Going back from `Explicit` to `Legacy` is safe until those re-syncs. After them, `Legacy` would cap the images
-again, so fix forward instead.
+`HoldAccessChanges` is a safety switch for an unplanned period under `Legacy` on 1.15: with it on, syncs list role
+and size changes as mismatches but don't send them.
+
+After the re-syncs, going back to `Legacy` doesn't change images on a sync (it compares only `maxUnauthorised`,
+which `Explicit` leaves alone), but any re-registration under `Legacy` (Force Reingest, a new version from Goobi)
+caps an option B image again. Fix forward instead.

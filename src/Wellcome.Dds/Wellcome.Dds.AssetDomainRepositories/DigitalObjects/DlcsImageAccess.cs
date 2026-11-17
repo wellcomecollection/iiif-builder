@@ -35,7 +35,9 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         public DlcsImageAccess(DlcsSizeModel sizeModel, int restrictedDownloadMaxWidth, bool holdAccessChanges)
         {
             this.sizeModel = sizeModel;
-            this.restrictedDownloadMaxWidth = restrictedDownloadMaxWidth;
+            // Protagonist stores a negative maxWidth as 0, so comparing against a negative setting would
+            // find a mismatch, and re-ingest, on every sync
+            this.restrictedDownloadMaxWidth = Math.Max(0, restrictedDownloadMaxWidth);
             this.holdAccessChanges = holdAccessChanges;
         }
 
