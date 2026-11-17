@@ -200,7 +200,7 @@
             </div>
             @* END progress bars for currently running batches *@
         }
-        else if (Model.SyncOperation.RequiresSync || Model.SyncOperation.HasInvalidAccessCondition)
+        else if (Model.SyncOperation.RequiresSync || Model.SyncOperation.HasInvalidAccessCondition || Model.SyncOperation.DlcsLacksSizeFields)
         {
             @* BEGIN Information about synchronisation status *@
             @* (only shown if not all assets in manifestation are synced with DLCS) *@
@@ -232,6 +232,12 @@
                     {
                         <p class="text-danger">
                             This item CANNOT be synced because it has at least one invalid access condition.
+                        </p>
+                    }
+                    else if (Model.SyncOperation.DlcsLacksSizeFields)
+                    {
+                        <p class="text-danger">
+                            This item CANNOT be synced. @Model.SyncOperation.Message
                         </p>
                     }
                     else

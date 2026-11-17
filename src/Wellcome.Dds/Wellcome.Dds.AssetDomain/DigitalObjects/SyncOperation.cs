@@ -69,6 +69,11 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
         /// </summary>
         public List<IStoredFile>? MissingAccessConditions { get; set; }
 
+        /// <summary>
+        /// Dlcs:SizeModel is Explicit but the DLCS is older than Protagonist 1.13.1, so this must not be synced
+        /// </summary>
+        public bool DlcsLacksSizeFields { get; set; }
+
         public SyncOperation(DlcsCallContext dlcsCallContext)
         {
             SyncOperationIdentifier = Guid.NewGuid();
@@ -98,6 +103,7 @@ namespace Wellcome.Dds.AssetDomain.DigitalObjects
                 $"Ignored storage identifiers: {StorageIdentifiersToIgnore!.Count}",
                 $"Orphans: {Orphans!.Count}",
                 $"HasInvalidAccessCondition: {HasInvalidAccessCondition}",
+                $"DlcsLacksSizeFields: {DlcsLacksSizeFields}",
                 $"Message: {Message}",
                 $"SyncReason: {syncReasons}"
             };

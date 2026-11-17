@@ -296,6 +296,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.Dashboard
             await action.Should().ThrowAsync<InvalidOperationException>();
         }
         
+        [Fact]
+        public async Task ExecuteDlcsSyncOperation_Throws_IfDlcsLacksSizeFields()
+        {
+            // Arrange
+            var ctx = new DlcsCallContext("[test]", "[id]");
+            var syncOp = new SyncOperation(ctx)
+            {
+                DlcsLacksSizeFields = true,
+                DlcsImagesToIngest = Builder<Image>.CreateListOfSize(1).Build().ToList()
+            };
+            Func<Task> action = () => sut.ExecuteDlcsSyncOperation(syncOp, false, ctx);
+
+            // Assert
+            await action.Should().ThrowAsync<InvalidOperationException>();
+            A.CallTo(() => dlcs.RegisterImages(A<HydraImageCollection>._, A<DlcsCallContext>._, A<bool>._))
+                .MustNotHaveHappened();
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

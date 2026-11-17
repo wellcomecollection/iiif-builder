@@ -35,6 +35,19 @@ namespace Wellcome.Dds.AssetDomain.Dlcs.Model
         [JsonProperty(Order = 17, PropertyName = "maxUnauthorised")]
         public int? MaxUnauthorised { get; set; }
 
+        /// <summary>
+        /// Protagonist 1.13.1+: the largest response anyone may get. 0 is the system default.
+        /// </summary>
+        [JsonProperty(Order = 18, PropertyName = "maxWidth")]
+        public int? MaxWidth { get; set; }
+
+        /// <summary>
+        /// Protagonist 1.13.1+: the largest /full/ response available without a role, when the image has roles.
+        /// Null in responses from earlier versions.
+        /// </summary>
+        [JsonProperty(Order = 19, PropertyName = "openFullMax")]
+        public int? OpenFullMax { get; set; }
+
 
         [JsonProperty(Order = 30, PropertyName = "queued")]
         public DateTime? Queued { get; set; }

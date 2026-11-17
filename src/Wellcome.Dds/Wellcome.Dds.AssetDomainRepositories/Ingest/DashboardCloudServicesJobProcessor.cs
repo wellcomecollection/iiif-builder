@@ -298,7 +298,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.Ingest
             }
 
             var result = new ImageIngestResult();
-            if (!syncOperation.HasInvalidAccessCondition)
+            if (!syncOperation.HasInvalidAccessCondition && !syncOperation.DlcsLacksSizeFields)
             {
                 // This test used to be  asset.Family != 'I' - is it safe to just use mediaType here? 
                 // do we have any images whose mediaType does not start with image/* ?

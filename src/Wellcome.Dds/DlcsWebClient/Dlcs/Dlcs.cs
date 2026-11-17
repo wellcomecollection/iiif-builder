@@ -755,6 +755,9 @@ namespace DlcsWebClient.Dlcs
         public int BatchSize => options.BatchSize;
 
         public bool PreventSynchronisation => options.PreventSynchronisation;
+        public DlcsSizeModel SizeModel => options.SizeModel;
+        public int RestrictedDownloadMaxWidth => options.RestrictedDownloadMaxWidth;
+        public bool HoldAccessChanges => options.HoldAccessChanges;
 
         public async Task<Dictionary<string, long>> GetDlcsQueueLevel()
         {
