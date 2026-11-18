@@ -33,9 +33,9 @@ it is always this logo and nothing is fetched.
 Until November 2026 the cover page came from a separate Flask and reportlab service, `src/PdfCoverPage`
 (image `Dockerfile-pdfgenerator`, ECS service `pdf-generator` at `pdf.wellcomecollection.digirati.io`).
 The server's implementation replaced it in #304, with the same paths and the same output. The Python code
-and its Dockerfile have been removed from this repository. Retiring the running service also needs, outside
-this repository:
+and its Dockerfile have been removed from this repository.
 
-1. the edge routing rule changed so that `/pdf-cover/...` reaches `Wellcome.Dds.Server`;
-2. then the `pdf-generator` service and its ECR repository removed from every environment in
-   iiif-builder-infrastructure.
+The running service was retired on 18 November 2026. iiif-builder-infrastructure #88 sent `/pdf-cover*` on
+`pdf.wellcomecollection.digirati.io` (and `pdf-stage.` on staging) to `Wellcome.Dds.Server`, and removed the
+`pdf-generator` service from staging and production. #89 removes its ECR repository. Wellcome's CloudFront
+still sends `/pdf-cover*` on `iiif.wellcomecollection.org` to that hostname, which is how the DLCS reaches it.
