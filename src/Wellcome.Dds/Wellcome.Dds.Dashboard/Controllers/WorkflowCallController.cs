@@ -236,14 +236,14 @@ namespace Wellcome.Dds.Dashboard.Controllers
             {
                 var options = model.RunnerOptions.ToInt32();
                 model.TidyIdentifiers(identityService, true);
-                model.WorkflowJobs = new List<WorkflowJob>();
+                model.WorkflowJobs = new List<WorkflowJobWithIdentity>();
                 try
                 {
                     foreach (var ddsIdentifier in model.DdsIdentifiers)
                     {
                         var workflowJob = await workflowCallRepository.CreateWorkflowJob(
                             ddsIdentifier.PackageIdentifier, options);
-                        model.WorkflowJobs.Add(workflowJob);
+                        model.WorkflowJobs.Add(GetWorkflowJobWithIdentity(workflowJob));
                     }
                 }
                 catch (Exception e)

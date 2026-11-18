@@ -17,9 +17,16 @@
         </div>
     }
     
-    <p>The following jobs were successfully created:</p>
-        
-    <partial name="_WorkflowJobList" model="Model.WorkflowJobs" />
+    @if (Model.WorkflowJobs.Count > 0)
+    {
+        <p>The following @Model.WorkflowJobs.Count jobs were successfully created:</p>
+
+        <partial name="_WorkflowJobList" model="Model.WorkflowJobs" />
+    }
+    else
+    {
+        <p>No jobs were created.</p>
+    }
  
 </div>
 
