@@ -10,22 +10,32 @@ the title, Contributors, Publication/Creation, the persistent URL, any additiona
 `requiredStatement` (or the "Attribution and usage" metadata when there is none), and a footer with the
 provider's logo and address. A 404 means there is no Manifest for the identifier.
 
-## Two implementations, for now
+## Implementation
 
-- **`Wellcome.Dds.Server`**, `PdfCoverController`, backed by `Wellcome.Dds.Repositories/Pdf/CoverPage`
-  (content extraction, text handling, a PdfPig writer with the Inter fonts embedded in the assembly).
-  Pure managed code, Apache-2.0 library, no extra container. Added October 2026. Tests leave
-  `cover-page-sample.pdf` next to the test assembly for eyeballing.
-- **`src/PdfCoverPage`**, the original Flask and reportlab service in its own container
-  (`Dockerfile-pdfgenerator`, ECS service `pdf-generator` at `pdf.wellcomecollection.digirati.io`).
-  This is what the DLCS named query currently calls.
+`Wellcome.Dds.Server`'s `PdfCoverController`, backed by `Wellcome.Dds.Repositories/Pdf/CoverPage`:
+content extraction, text handling, and a PdfPig writer with the Inter fonts embedded in the assembly.
+Pure managed code, an Apache-2.0 library, no extra container. Tests leave `cover-page-sample.pdf` next
+to the test assembly for eyeballing.
 
-The path and the output are the same, so switching is a DLCS configuration change: point the named
-query's cover page URL at the iiif-builder host. The server also answers at `/pdf-cover-v2/{identifier}`,
-so the edge can route the old path to the old service and the new path to the server while both run,
-and the DLCS can be switched by path. The footer logo is the Wellcome Collection PNG embedded in the Repositories assembly, a copy of the one the
-server serves at `/logos/` and names in every Manifest; the DDS writes that provider block itself, so it is
-always this logo and nothing is fetched. Once that has happened and been verified, delete
-`src/PdfCoverPage`, `Dockerfile-pdfgenerator`, and the `pdf-generator` service and ECR repository in
-iiif-builder-infrastructure. `/pdf-cover/ping` exists on the server too, for anything that still probes
-the old health check.
+It answers at:
+
+- `/pdf-cover/{identifier}`, the path the DLCS uses;
+- `/pdf-cover-v2/{identifier}`, the same page, added so the edge could route the new implementation by
+  path while the old one still ran;
+- `/pdf-cover/ping`, for anything that probes the old health check.
+
+The footer logo is the Wellcome Collection PNG embedded in the Repositories assembly, a copy of the one
+the server serves at `/logos/` and names in every Manifest. The DDS writes that provider block itself, so
+it is always this logo and nothing is fetched.
+
+## History
+
+Until November 2026 the cover page came from a separate Flask and reportlab service, `src/PdfCoverPage`
+(image `Dockerfile-pdfgenerator`, ECS service `pdf-generator` at `pdf.wellcomecollection.digirati.io`).
+The server's implementation replaced it in #304, with the same paths and the same output. The Python code
+and its Dockerfile have been removed from this repository.
+
+The running service was retired on 18 November 2026. iiif-builder-infrastructure #88 sent `/pdf-cover*` on
+`pdf.wellcomecollection.digirati.io` (and `pdf-stage.` on staging) to `Wellcome.Dds.Server`, and removed the
+`pdf-generator` service from staging and production. #89 removes its ECR repository. Wellcome's CloudFront
+still sends `/pdf-cover*` on `iiif.wellcomecollection.org` to that hostname, which is how the DLCS reaches it.
