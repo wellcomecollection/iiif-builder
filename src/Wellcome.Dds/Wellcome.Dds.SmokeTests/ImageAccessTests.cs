@@ -38,15 +38,20 @@ public class ImageAccessTests
         }
     }
 
+    /// <remarks>
+    /// Accepts both of the states a size-limited item can be in while the DDS moves to Dlcs:SizeModel = Explicit
+    /// (docs/dlcs-size-model.md): option A, today's behaviour, where tiles are refused (401); and option B,
+    /// after the item is re-synced under Explicit, where tiles are served. Either way nothing larger than
+    /// 1000px is served. Once the size-limited item has been re-synced under Explicit, require option B only.
+    /// </remarks>
     [SkippableFact]
-    public async Task Size_limited_item_serves_1000px_but_no_tiles()
+    public async Task Size_limited_item_serves_nothing_larger_than_1000px()
     {
         Skip.If(F.SizeLimitedItem == null, "No size-limited item for this environment");
         var manifest = await PresentationTests.GetJson($"presentation/{F.SizeLimitedItem}");
         var service = Iiif.ImageServiceId(manifest.GetProperty("items")[0]);
         service.Should().NotBeNull();
 
-        // The DLCS answers 401 with a limited info.json
         var info = await Fetch.Get($"{service}/info.json");
         Iiif.MaxWidth(info.Json).Should().Be(1000, info.ToString());
         Iiif.ServiceTypes(info.Json).Should().NotContain(t => t.Contains("Auth"), "there is no login to offer");
@@ -54,8 +59,25 @@ public class ImageAccessTests
         var fits = await Fetch.Get($"{service}/full/!1000,1000/0/default.jpg");
         fits.Status.Should().Be(HttpStatusCode.OK, fits.ToString());
 
+        // Option A refuses tiles; option B serves them
         var tile = await Fetch.Get(Iiif.TileUrl(service!));
-        tile.Status.Should().Be(HttpStatusCode.Unauthorized, tile.ToString());
+        tile.Status.Should().BeOneOf([HttpStatusCode.OK, HttpStatusCode.Unauthorized], tile.ToString());
+        if (tile.Status == HttpStatusCode.OK)
+        {
+            ImageHeader.Jpeg(tile.Body).Should().NotBeNull("the tile is a JPEG");
+        }
+
+        // Option A refuses the full-size image; option B serves it scaled down to fit 1000px
+        var largest = await Fetch.Get($"{service}/full/max/0/default.jpg");
+        largest.Status.Should().BeOneOf([HttpStatusCode.OK, HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden],
+            largest.ToString());
+        if (largest.Status == HttpStatusCode.OK)
+        {
+            var size = ImageHeader.Jpeg(largest.Body);
+            size.Should().NotBeNull("the image is a JPEG");
+            size!.Value.Width.Should().BeLessThanOrEqualTo(1000);
+            size.Value.Height.Should().BeLessThanOrEqualTo(1000);
+        }
     }
 
     [SkippableFact]
