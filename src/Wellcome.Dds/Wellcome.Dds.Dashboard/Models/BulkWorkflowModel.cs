@@ -12,7 +12,7 @@ public class BulkWorkflowModel
     public string Identifiers { get; set; }
     public RunnerOptions RunnerOptions { get; set; }
     
-    public List<WorkflowJob> WorkflowJobs { get; set; }
+    public List<WorkflowJobWithIdentity> WorkflowJobs { get; set; } = new();
 
     public List<DdsIdentity> DdsIdentifiers { get; set; }
     public string IdentifiersSummary { get; set; }
