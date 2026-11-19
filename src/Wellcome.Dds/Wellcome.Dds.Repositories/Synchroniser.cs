@@ -8,6 +8,7 @@ using IIIF;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Utils;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
@@ -222,9 +223,14 @@ namespace Wellcome.Dds.Repositories
                         switch (metsManifestation.Sequence.First().GetDefaultProcessingBehaviour().AssetFamily)
                         {
                             case AssetFamily.Image:
+                                var openImageMaxSize = new DlcsImageAccess(
+                                        dlcsOptions.SizeModel,
+                                        dlcsOptions.RestrictedDownloadMaxWidth,
+                                        dlcsOptions.HoldAccessChanges)
+                                    .OpenImageMaxSize(DlcsImageAccess.PermitsHighRes(metsManifestation));
                                 
                                 // Get the computed sizes. The first will be the actual size.
-                                List<Size> firstFileSizes = asset.GetAvailableSizes();
+                                List<Size> firstFileSizes = asset.GetAvailableSizes(openImageMaxSize);
                                 List<Size>? catThumbSizes = null;
                                 IPhysicalFile? catThumbAsset = null;
                                 ddsManifestation.FirstFileThumbnailDimensions = firstFileSizes.AsString();
@@ -236,7 +242,7 @@ namespace Wellcome.Dds.Repositories
                                     if (catThumbAsset != null)
                                     {
                                         // Get the computed sizes. The first will be the actual size.
-                                        catThumbSizes = catThumbAsset.GetAvailableSizes();
+                                        catThumbSizes = catThumbAsset.GetAvailableSizes(openImageMaxSize);
                                         ddsManifestation.CatalogueThumbnailDimensions = catThumbSizes.AsString();
                                         ddsManifestation.CatalogueThumbnail = GetDlcsThumbnailServiceForAsset(catThumbAsset);
                                     }

@@ -8,6 +8,7 @@ using IIIF.Presentation.V3.Content;
 using Newtonsoft.Json;
 using Utils;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.Common;
 using Image = IIIF.Presentation.V3.Content.Image;
 using Size = IIIF.Size;
@@ -55,8 +56,10 @@ namespace Wellcome.Dds.Repositories.Presentation
         /// These values may later be updated with actual generated values from the DLCS
         /// </summary>
         /// <param name="asset"></param>
+        /// <param name="openImageMaxSize">The DLCS's size limit for an open image, on either side; 0 for none.
+        /// See <see cref="DlcsImageAccess.OpenImageMaxSize"/>.</param>
         /// <returns></returns>
-        public static List<Size> GetAvailableSizes(this IPhysicalFile asset)
+        public static List<Size> GetAvailableSizes(this IPhysicalFile asset, int openImageMaxSize)
         {
             var sizes = new List<Size>();
             var actualSize = new Size(
@@ -67,7 +70,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             switch (asset.AccessCondition)
             {
                 case AccessCondition.Open:
-                    usableThumbs = ImageApiSizeHelper.GetPossibleSizes(actualSize, true);
+                    usableThumbs = ImageApiSizeHelper.GetPossibleSizes(actualSize, true, openImageMaxSize);
                     break;
                 case AccessCondition.RequiresRegistration:
                 case AccessCondition.OpenWithAdvisory:

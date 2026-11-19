@@ -6,7 +6,9 @@ using FluentAssertions;
 using IIIF.Presentation.V3;
 using Microsoft.Extensions.Options;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
+using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Mets;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomainRepositories.Mets.Model;
 using Wellcome.Dds.Common;
 using Wellcome.Dds.IIIFBuilding;
@@ -28,7 +30,8 @@ namespace Wellcome.Dds.Repositories.Tests.Presentation
             })),
             "https://dlcs",
             false,
-            Array.Empty<string>());
+            Array.Empty<string>(),
+            new DlcsImageAccess(DlcsSizeModel.Explicit, 1000, false));
 
         private static StructRange Directory(string id, string label, string[] files, params StructRange[] children) =>
             new()

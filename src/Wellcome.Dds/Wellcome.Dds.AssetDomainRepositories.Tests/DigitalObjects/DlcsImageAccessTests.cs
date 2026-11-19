@@ -240,5 +240,24 @@ namespace Wellcome.Dds.AssetDomainRepositories.Tests.DigitalObjects
             Explicit.DlcsLacksSizeFields(current).Should().BeFalse();
             Explicit.DlcsLacksSizeFields(Array.Empty<Image>()).Should().BeFalse("nothing to tell from");
         }
+
+        [Theory]
+        [InlineData(DlcsSizeModel.Explicit, 1000, true, 0)]
+        [InlineData(DlcsSizeModel.Explicit, 1000, false, 1000)]
+        [InlineData(DlcsSizeModel.Explicit, 0, false, 0)]
+        [InlineData(DlcsSizeModel.Explicit, 1500, false, 1500)]
+        [InlineData(DlcsSizeModel.Legacy, 1500, false, 1000)]
+        [InlineData(DlcsSizeModel.Legacy, 1000, true, 0)]
+        public void OpenImageMaxSize_matches_the_limit_Apply_sends(DlcsSizeModel model, int restrictedDownloadMaxWidth,
+            bool permitsHighRes, int expected)
+        {
+            var access = new DlcsImageAccess(model, restrictedDownloadMaxWidth, false);
+
+            access.OpenImageMaxSize(permitsHighRes).Should().Be(expected);
+
+            var image = Make(access, true, Array.Empty<string>(), permitsHighRes, false);
+            var sent = model == DlcsSizeModel.Legacy ? image.MaxUnauthorised : image.MaxWidth;
+            Math.Max(0, sent!.Value).Should().Be(expected, "it's the limit the DLCS is given for the image");
+        }
     }
 }
