@@ -13,6 +13,7 @@ using IIIF.Presentation.V3.Content;
 using IIIF.Presentation.V3.Strings;
 using IIIF.Search.V1;
 using Utils;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomain;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Dlcs;
@@ -43,6 +44,7 @@ namespace Wellcome.Dds.Repositories.Presentation
         private readonly string[] extraAccessConditions;
         private readonly ManifestStructureHelper manifestStructureHelper;
         private readonly IDigitalObjectRepository digitalObjectRepository;
+        private readonly DlcsImageAccess imageAccess;
 
         // Existing Auth1 (actually 0.9.3) services
         private readonly IService clickthroughServiceV1;
@@ -76,8 +78,10 @@ namespace Wellcome.Dds.Repositories.Presentation
             UriPatterns uriPatterns,
             string dlcsEntryPoint,
             bool referenceV0SearchService, 
-            string[] extraAccessConditions)
+            string[] extraAccessConditions,
+            DlcsImageAccess imageAccess)
         {
+            this.imageAccess = imageAccess;
             this.uriPatterns = uriPatterns;
             this.dlcsEntryPoint = dlcsEntryPoint;
             this.referenceV0SearchService = referenceV0SearchService;
@@ -308,6 +312,7 @@ namespace Wellcome.Dds.Repositories.Presentation
             var isBornDigitalManifestation = metsManifestation.Type == "Born Digital"; // define as const - but where?
             var foundAuthServices = new Dictionary<string, IService>();
             var manifestIdentifier = metsManifestation.Identifier.ToString();
+            var openImageMaxSize = imageAccess.OpenImageMaxSize(DlcsImageAccess.PermitsHighRes(metsManifestation));
             manifest.Items = new List<Canvas>();
             var canvasesWithNewWorkflowTranscripts = new List<Canvas>();
             foreach (var physicalFile in metsManifestation.Sequence!)
@@ -361,7 +366,7 @@ namespace Wellcome.Dds.Repositories.Presentation
                         }
                         canvas.Width = size.Width;
                         canvas.Height = size.Height;
-                        var (mainImage, thumbImage) = GetCanvasImages(physicalFile);
+                        var (mainImage, thumbImage) = GetCanvasImages(physicalFile, openImageMaxSize);
                         canvas.Items = new List<AnnotationPage>
                         {
                             new()
@@ -878,12 +883,12 @@ namespace Wellcome.Dds.Repositories.Presentation
         }
 
 
-        private (Image MainImage, Image? ThumbImage) GetCanvasImages(IPhysicalFile physicalFile)
+        private (Image MainImage, Image? ThumbImage) GetCanvasImages(IPhysicalFile physicalFile, int openImageMaxSize)
         {
             var assetIdentifier = physicalFile.StorageIdentifier;
             var imageService = uriPatterns.DlcsImageService(dlcsEntryPoint, assetIdentifier);
             var thumbService = uriPatterns.DlcsThumb(dlcsEntryPoint, assetIdentifier);
-            var sizes = physicalFile.GetAvailableSizes();
+            var sizes = physicalFile.GetAvailableSizes(openImageMaxSize);
             var actualSize = sizes.First();
             var thumbSizes = sizes.Skip(1).ToList();
             var staticSize = actualSize;

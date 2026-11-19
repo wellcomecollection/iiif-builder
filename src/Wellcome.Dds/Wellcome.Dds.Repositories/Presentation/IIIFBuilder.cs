@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Utils;
+using Wellcome.Dds.AssetDomainRepositories.DigitalObjects;
 using Wellcome.Dds.AssetDomain.DigitalObjects;
 using Wellcome.Dds.AssetDomain.Mets;
 using Wellcome.Dds.Catalogue;
@@ -82,7 +83,11 @@ namespace Wellcome.Dds.Repositories.Presentation
                 uriPatterns,
                 dlcsOptions.Value.ResourceEntryPoint,
                 ddsOptions.Value.ReferenceV0SearchService,
-                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(',')
+                ddsOptions.Value.IncludeExtraAccessConditionsInManifest.SplitByDelimiterIntoArray(','),
+                new DlcsImageAccess(
+                    dlcsOptions.Value.SizeModel,
+                    dlcsOptions.Value.RestrictedDownloadMaxWidth,
+                    dlcsOptions.Value.HoldAccessChanges)
                 );
             presentation2Converter = new PresentationConverter(uriPatterns, logger, identityService);
         }

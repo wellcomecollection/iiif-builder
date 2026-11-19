@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Wellcome.Dds.AssetDomain.Dlcs;
 using Wellcome.Dds.AssetDomain.Dlcs.Model;
+using Wellcome.Dds.AssetDomain.Mets;
 
 namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 {
@@ -42,6 +43,22 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
         }
 
         public DlcsSizeModel SizeModel => sizeModel;
+
+        /// <summary>
+        /// Whether open images in the manifestation can be had at full size
+        /// </summary>
+        public static bool PermitsHighRes(IManifestation manifestation)
+            => manifestation.PermittedOperations.Contains("wholeImageHighResAsJpg");
+
+        /// <summary>
+        /// The largest response the DLCS gives anyone for an open image, on either side; 0 for no limit.
+        /// The DLCS doesn't make larger thumbnails for it either, so the IIIF the DDS builds lists no larger sizes.
+        /// </summary>
+        /// <param name="permitsHighRes">The manifestation's METS permits wholeImageHighResAsJpg</param>
+        public int OpenImageMaxSize(bool permitsHighRes)
+            => permitsHighRes ? 0
+                : sizeModel == DlcsSizeModel.Legacy ? LegacyRestrictedMaxUnauthorised
+                : restrictedDownloadMaxWidth;
 
         /// <summary>
         /// Set the roles and size fields on an image the DDS expects the DLCS to have.

@@ -239,7 +239,7 @@ namespace Wellcome.Dds.AssetDomainRepositories.DigitalObjects
 
             // Whether open images can be had at full size. Each image's roles and size fields also depend on
             // its own access condition and asset family (see DlcsImageAccess).
-            var permitsHighRes = metsManifestation.PermittedOperations.Contains("wholeImageHighResAsJpg");
+            var permitsHighRes = DlcsImageAccess.PermitsHighRes(metsManifestation);
 
             // What do we need to patch? List of existing DLCS images that don't have the correct metadata
             // Unlike the IStoredFiles in assetsToIngest, these are Hydra Images for the DLCS API
