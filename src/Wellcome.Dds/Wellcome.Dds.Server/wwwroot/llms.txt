@@ -1,0 +1,57 @@
+# Wellcome Collection IIIF
+
+> IIIF APIs for Wellcome Collection's digitised collections: books, manuscripts, archives, pictures, audio and video, mostly relating to the history of medicine and human health. This host serves IIIF Presentation API 3.0 Manifests and Collections, IIIF Image API 2.1 image services, pre-generated thumbnails, full text, and search within items. It is a public, free service run by a charity with finite infrastructure. Please follow the guidance below so it stays fast and available for everyone.
+
+Guidance for automated clients, AI agents, and developers writing code against this service:
+
+**Start from the Presentation API, not from constructed URLs.** The entry point for a digitised item is `https://iiif.wellcomecollection.org/presentation/{identifier}`, where `{identifier}` is the b-number of the digitised item (for example `b18035723`). To find items, search the Catalogue API (linked below): a work's `items[].locations[]` include the IIIF Presentation URL. A catalogue work can carry more than one b-number, so use the one in that location rather than any b-number in `identifiers`. Take every other URL (image services, thumbnails, text, search) from the Manifest rather than building it yourself. The Manifest is authoritative; other URL patterns on this host may change.
+
+**Check whether you got a Manifest or a Collection.** Multi-volume works, periodicals and works held in more than one copy return a `Collection` whose `items` are Manifests or further Collections. Check `type` and follow `items` until you reach the Manifest you need. Do not treat a Collection's `items` as Canvases.
+
+**Use the image sizes we have already made.** Images that are not pre-generated are rendered on demand, which is much slower for you and much more expensive for us.
+- Each Canvas's painting annotation has an `Image` body whose `id` is a ready-made JPEG at a good viewing size. If that size suits you, request that URL as given.
+- For smaller images, use the Canvas's (or Manifest's) `thumbnail`. Its image service (on `/thumbs/`) lists the available sizes in `sizes`. Request one of those sizes from that same service, using the exact `{width},{height}` given. If you need a size between two listed sizes, request the next larger one and scale it yourself.
+- Do not request arbitrary sizes from the main image service (on `/image/`) when a listed size would do.
+
+**For deep zoom, use tiles.** The main image service in the Manifest gives only its `id`, `width` and `height`. If you need high-resolution detail, fetch that service's `info.json` (once per image you actually zoom into) and request tiles as described by its `tiles` property. Do not request `full/full` or `full/max` for large images unless you genuinely need the whole image at full resolution.
+
+**Image services are IIIF Image API 2.1.** They are declared as `"@type": "ImageService2"` with `@id` rather than `id`. Use Image API 2.1 request syntax (`{id}/{region}/{size}/{rotation}/{quality}.{format}`), not Image API 3.0 syntax, even though the Manifests are Presentation API 3.0. If a service ever declares `ImageService3`, use the 3.0 syntax for that service.
+
+**Fetch only what you need.** A single work can have hundreds or thousands of Canvases. Do not download every image in a work to answer a question about it. Use the Manifest's `metadata`, structure (`structures`) and thumbnails first.
+
+**Use the text we already provide; do not run OCR.** For printed and some handwritten material:
+- The Manifest's `rendering` includes the full text of the work as `text/plain` (one request for the whole work) and a PDF. Use the plain text rather than downloading the PDF to extract text from it.
+- Each Canvas has `seeAlso` linking to ALTO XML (word positions) and `annotations` linking to line-level text annotations.
+- The Manifest's `service` includes an IIIF Content Search 1.0 service (`SearchService1`) with autocomplete, for finding words within the work.
+
+**Respect access controls.** Some items require the user to accept terms, or are restricted, and are protected by IIIF Authorization Flow 2.0 services (with Auth 1.0 equivalents for older viewers) declared in the Manifest. Do not attempt to bypass these. Automated clients should treat protected content as unavailable.
+
+**Check rights per item.** Licences vary between works. Read the `rights` property and `requiredStatement` in each Manifest, and include the attribution it specifies when reusing content.
+
+**Be a polite client.**
+- Send a descriptive `User-Agent` that includes a way to contact you (URL or email).
+- Crawlers must follow robots.txt, including its crawl delay.
+- Keep concurrency low; make requests one at a time unless you have good reason not to.
+- On `429` or `503`, back off and honour any `Retry-After` header.
+- Cache responses. Manifests change infrequently.
+
+**Do not crawl for bulk metadata.** If you need metadata for many or all works, use the catalogue snapshot (linked below) instead of fetching Manifests one by one.
+
+## IIIF specifications
+
+- [IIIF Presentation API 3.0](https://iiif.io/api/presentation/3.0/): Structure of the Manifests and Collections served here
+- [IIIF Image API 2.1](https://iiif.io/api/image/2.1/): Request syntax for the image services in these Manifests, including `sizes`, `tiles` and `info.json`
+- [IIIF Content Search API 1.0](https://iiif.io/api/search/1.0/): Search within a single work
+- [IIIF Authorization Flow API 2.0](https://iiif.io/api/auth/2.0/): How access-controlled items are signalled
+
+## Wellcome Collection APIs and data
+
+- [Example Manifest](https://iiif.wellcomecollection.org/presentation/b18035723): A digitised printed book, with image services, thumbnails, full text and search
+- [Catalogue API](https://api.wellcomecollection.org/catalogue/v2/works): Search and retrieve catalogue records for works, including links to their IIIF Manifests
+- [Developer documentation](https://developers.wellcomecollection.org/): Documentation for the Catalogue API and related services
+- [Catalogue snapshot](https://data.wellcomecollection.org/catalogue/v2/works.json.gz): Bulk download of all catalogue records (a large gzipped JSON Lines file), for clients that need data at scale
+
+## Optional
+
+- [Wellcome Collection](https://wellcomecollection.org/): Main website, for human browsing of the collections
+- [robots.txt](https://iiif.wellcomecollection.org/robots.txt): Crawling rules for this host
