@@ -28,7 +28,14 @@ public class ImageApiSizeHelper
     private static readonly int MaxNonOpenThumbWidth = 200;
 
     
-    public static List<Size> GetPossibleSizes(Size actualSize, bool open)
+    /// <summary>
+    /// The thumbnail sizes the DLCS makes for an image, largest first.
+    /// </summary>
+    /// <param name="actualSize">The image's full size</param>
+    /// <param name="open">False for images behind auth, which only get thumbnails up to MaxNonOpenThumbWidth</param>
+    /// <param name="maxSize">The DLCS's size limit for the image, on either side; 0 for none. The DLCS
+    /// doesn't make a thumbnail larger than this, and refuses any larger request.</param>
+    public static List<Size> GetPossibleSizes(Size actualSize, bool open, int maxSize = 0)
     {
         var sizes = new List<Size>();
         foreach (var sizeParamString in ThumbSizes)
@@ -66,6 +73,10 @@ public class ImageApiSizeHelper
         if (!open)
         {
             sizes = sizes.Where(s => s.Width <= MaxNonOpenThumbWidth).ToList();
+        }
+        if (maxSize > 0)
+        {
+            sizes = sizes.Where(s => Math.Max(s.Width, s.Height) <= maxSize).ToList();
         }
         return sizes.OrderByDescending(s => s.Width).ToList();
     }

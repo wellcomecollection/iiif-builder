@@ -35,6 +35,13 @@ Only the second row differs between `Explicit` and what the migration made of `L
 lets anyone deep zoom, with each response at most 1000px. The `unobtainable` role allowed `/full/` requests up to
 1000px and refused tiles to everyone.
 
+The IIIF the DDS builds lists no size the DLCS won't serve. For an open image whose METS doesn't permit
+high-res, the thumbnail sizes and the canvas's main image are limited to `RestrictedDownloadMaxWidth` (1000 under
+`Legacy`) on the longer side, because the DLCS neither makes larger thumbnails nor serves larger responses
+(`DlcsImageAccess.OpenImageMaxSize`). Without this, a rebuilt manifest listed a 1338px main image that returned 403
+and a 1338px thumbnail that returned 404. The DDS swaps in the DLCS's own thumbnail sizes only when both lists are
+the same length, so it didn't correct them.
+
 Changes to `maxUnauthorised`, `maxWidth` or `openFullMax` are re-ingests: the DLCS doesn't allow them in a batch
 PATCH, and they move thumbnails between open and auth storage. Role changes are batch PATCHes, which Protagonist
 1.14+ turns into a re-ingest when an image gains or loses its only role.
@@ -68,7 +75,7 @@ run under `Legacy` on 1.15: switch to `Explicit` first (see Order of use).
 2. Pause processing for the upgrade. As soon as the DLCS reports 1.15, switch every environment to `Explicit`
    before processing resumes, so no sync runs under `Legacy` on 1.15.
 3. Re-sync the affected items in batches with workflow jobs (`--populate-file`). Workflow jobs rebuild the
-   manifest, so thumbnail sizes stay right; under a 1000px `maxWidth` the DLCS no longer makes a 1024px thumbnail.
+   manifest as well; under a 1000px `maxWidth` the DLCS makes no thumbnail over 1000px on either side.
 
 `HoldAccessChanges` is a safety switch for an unplanned period under `Legacy` on 1.15: with it on, syncs list role
 and size changes as mismatches but don't send them.
