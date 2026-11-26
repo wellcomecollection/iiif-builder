@@ -259,7 +259,7 @@ namespace Wellcome.Dds.Server.Controllers
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
         {
-            logger.LogDebug("Serving IIIF Content for {path}", path);
+            logger.LogDebug("Serving IIIF Content for {path}", path.LogSafe());
             return await helpers.ServeIIIFContent(ddsOptions.PresentationContainer, path, contentType, this);
         }
 
