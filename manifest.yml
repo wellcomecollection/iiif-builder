@@ -20,6 +20,19 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - ref: component:storage-bags-api
+      criticality: soft
+      description: Production prefers the cached storage map
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:sierra
+      criticality: soft
+      description: Patron validation for DLCS auth
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Serves /text behind it
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -32,6 +45,21 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - component:storage-bags-api
+    - ref: component:storage-ingests-service
+      criticality: soft
+    - ref: component:catalogue-api-search
+      criticality: soft
+    - ref: component:catalogue-api-identifiers
+      criticality: soft
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      criticality: soft
+      description: Calls catalogue/v2 and identifiers/v1
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -44,6 +72,12 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - component:storage-bags-api
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -55,4 +89,33 @@ spec:
   type: service
   owner: team:digital-platform
   lifecycle: production
+  system: system:iiif-builder
+  dependsOn:
+    - ref: component:born-digital-listener
+      type: data
+      description: Born-digital bag notifications
+    - ref: component:goobi
+      type: data
+      description: Digitised bag notifications
+    - component:storage-bags-api
+    - ref: component:catalogue-api-search
+      criticality: soft
+    - ref: component:catalogue-api-identifiers
+      criticality: soft
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      criticality: soft
+      description: Calls catalogue/v2 and identifiers/v1
+---
+apiVersion: backplane/v1
+kind: Resource
+metadata:
+  name: dlcs
+  description: Digirati's DLCS image, AV and auth services at dlcs.io
+spec:
+  type: external
+  owner: team:digirati
   system: system:iiif-builder
