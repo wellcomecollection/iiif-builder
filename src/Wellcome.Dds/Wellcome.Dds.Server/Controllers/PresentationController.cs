@@ -385,7 +385,7 @@ namespace Wellcome.Dds.Server.Controllers
                     logger.LogDebug("{referenceNumber} has digital location", referenceNumber);
                     var refAsDdsId = identityService.GetIdentity(referenceNumber);
                     // Should we instead get the work from the Manifestations table at this point?
-                    var bNumber = work.GetSierraSystemBNumbers().FirstOrDefault();
+                    var bNumber = ManifestBNumber(work);
                     if (bNumber.HasText())
                     {
                         logger.LogDebug("Found bNumber for {referenceNumber}: {bNumber}", referenceNumber, bNumber);
@@ -434,6 +434,15 @@ namespace Wellcome.Dds.Server.Controllers
         }
         
         
+        /// <summary>
+        /// The b-number whose Manifest or Collection a work with a IIIF digital location points to. A work
+        /// merged from a print and an e-record carries both b-numbers, and the catalogue may list the print
+        /// one first, so prefer the b-number in the digital location itself; fall back to the first Sierra
+        /// b-number for locations that don't name one.
+        /// </summary>
+        private static string ManifestBNumber(Work work) =>
+            work.GetDigitisedBNumbers().FirstOrDefault() ?? work.GetSierraSystemBNumbers().FirstOrDefault();
+
         /// <summary> 
         /// IIIF 2 - Handles all archive CALM ref numbers.
         /// If this is actually a manifest it will redirect to the canonical DDS URL
@@ -458,7 +467,11 @@ namespace Wellcome.Dds.Server.Controllers
                 }
                 if (work.HasIIIFDigitalLocation())
                 {
-                    var bNumber = work.GetSierraSystemBNumbers().First();
+                    var bNumber = ManifestBNumber(work);
+                    if (!bNumber.HasText())
+                    {
+                        return NotFound();
+                    }
                     return Redirect(uriPatterns.Manifest(bNumber).AsV2());
                 }
 
