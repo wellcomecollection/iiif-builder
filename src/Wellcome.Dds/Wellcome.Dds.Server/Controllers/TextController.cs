@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -109,11 +111,13 @@ namespace Wellcome.Dds.Server.Controllers
             {
                 metsManifestation = await metsRepository.GetAsync(ddsId) as IManifestation;
             }
-            catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
+            catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException
+                                           or HttpRequestException { StatusCode: HttpStatusCode.NotFound })
             {
                 // MetsRepository throws rather than returning null when a well-formed identifier
-                // has no corresponding METS resource - no package in storage, or no METS file
-                // for the volume part.
+                // has no corresponding METS resource - no package in storage (the storage service
+                // 404s, e.g. a catalogue work id or any other string that parses as a CALM ref),
+                // or no METS file for the volume part. Other storage service failures stay 500s.
                 logger.LogInformation(ex, "No METS resource for ALTO request: {manifestationIdentifier}/{assetIdentifier}",
                     manifestationIdentifier, assetIdentifier);
                 return NotFound($"No ALTO file for {manifestationIdentifier}/{assetIdentifier}");
