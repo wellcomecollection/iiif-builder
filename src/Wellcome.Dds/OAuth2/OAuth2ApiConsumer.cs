@@ -91,7 +91,10 @@ namespace OAuth2
             }
             catch (HttpRequestException webex)
             {
-                logger.LogError(webex, "Error calling {url}", url.LogSafe());
+                // A 404 is an answer rather than a fault (e.g. a storage manifest requested for an
+                // identifier with no bag); the caller decides whether it matters.
+                var level = webex.StatusCode == HttpStatusCode.NotFound ? LogLevel.Warning : LogLevel.Error;
+                logger.Log(level, webex, "Error calling {url}", url.LogSafe());
                 throw;
             }
         }

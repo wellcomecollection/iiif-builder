@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OAuth2;
 using Test.Helpers;
@@ -251,6 +252,38 @@ namespace OAuth2Client.Tests
                 await action.Should().ThrowAsync<HttpRequestException>();
             }
             
+            [Theory]
+            [InlineData(HttpStatusCode.NotFound, LogLevel.Warning)]
+            [InlineData(HttpStatusCode.InternalServerError, LogLevel.Error)]
+            public async Task GetOAuthedJToken_LogsNotFoundAsWarning_OtherFailuresAsError(
+                HttpStatusCode status, LogLevel expectedLevel)
+            {
+                // Arrange
+                var logger = new CapturingLogger<OAuth2ApiConsumer>();
+                var consumer = new OAuth2ApiConsumer(new HttpClient(httpHandler), logger);
+                var tokenResponse = httpHandler.GetResponseMessage(
+                    "{\"access_token\": \"accessTokenOne\", \"token_type\": \"jwt\", \"expires_in\": 63}",
+                    HttpStatusCode.OK);
+                tokenResponse.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                var clientCredentials =
+                    GetClientCredentials($"{nameof(GetOAuthedJToken_LogsNotFoundAsWarning_OtherFailuresAsError)}_{status}");
+                httpHandler.RegisterCallback(c =>
+                {
+                    httpHandler.SetResponse(c.RequestUri.ToString() == clientCredentials.TokenEndPoint
+                        ? tokenResponse
+                        : new HttpResponseMessage(status));
+                });
+
+                // Act
+                Func<Task> action = () => consumer.GetOAuthedJToken("http://example.org", clientCredentials);
+
+                // Assert
+                await action.Should().ThrowAsync<HttpRequestException>();
+                logger.Entries.Should().ContainSingle()
+                    .Which.Level.Should().Be(expectedLevel);
+            }
+
             [Fact]
             public async Task GetOAuthedJToken_RenewsAccessToken_IfCallIs403Response()
             {
