@@ -14,12 +14,25 @@ kind: Component
 metadata:
   name: iiif-builder
   title: IIIF builder server
-  description: Serves IIIF resources and provisions DLCS roles (Wellcome.Dds.Server)
+  description: Serves IIIF Presentation resources (Wellcome.Dds.Server)
 spec:
   type: service
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - ref: component:storage-bags-api
+      criticality: soft
+      description: Production prefers the cached storage map
+    - ref: component:catalogue-api-search
+      criticality: soft
+      description: Archive lookups and fallback redirects
+    - ref: resource:iiif-builder-database
+      description: DDS Postgres; the health check depends on it
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Calls the storage and catalogue APIs
+    - ref: component:platform-infrastructure-iiif
+      description: Served behind iiif.wellcomecollection.org
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -32,6 +45,22 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - component:storage-bags-api
+    - ref: component:storage-ingests-service
+      criticality: soft
+    - ref: component:catalogue-api-search
+      criticality: soft
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:iiif-builder-database
+      description: DDS Postgres; the health check depends on it
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Calls the storage and catalogue APIs
+    - ref: component:platform-infrastructure-iiif
+      description: Served behind iiif.wellcomecollection.org
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -44,6 +73,16 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - component:storage-bags-api
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:iiif-builder-database
+      description: DDS Postgres; the health check depends on it
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Calls the storage and catalogue APIs
 ---
 apiVersion: backplane/v1
 kind: Component
@@ -56,3 +95,75 @@ spec:
   owner: team:digital-platform
   lifecycle: production
   system: system:iiif-builder
+  dependsOn:
+    - ref: component:born-digital-listener
+      type: data
+      description: Born-digital bag notifications
+    - ref: component:goobi
+      type: data
+      description: Digitised bag notifications
+    - component:storage-bags-api
+    - ref: component:catalogue-api-search
+      description: No catalogue work, no manifest; the job errors without retrying
+    - resource:dlcs
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads METS and ALTO directly
+    - ref: resource:iiif-builder-database
+      description: DDS Postgres; the health check depends on it
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Calls the storage and catalogue APIs
+---
+apiVersion: backplane/v1
+kind: Component
+metadata:
+  name: iiif-builder-text
+  title: IIIF builder text services
+  description: Serves /text, the ALTO-derived text and search services (Wellcome.Dds.Server with TextServices on)
+spec:
+  type: service
+  owner: team:digital-platform
+  lifecycle: production
+  system: system:iiif-builder
+  dependsOn:
+    - ref: resource:storage-replica-primary
+      type: data
+      description: Reads ALTO directly
+    - ref: resource:iiif-builder-database
+      description: DDS Postgres; the health check depends on it
+    - ref: resource:api-wellcomecollection-org-cloudfront
+      description: Serves /text behind it
+---
+apiVersion: backplane/v1
+kind: Resource
+metadata:
+  name: iiif-builder-database
+  description: DDS Postgres 14 RDS (Dds and DdsInstrumentation) used by every iiif-builder service
+spec:
+  type: database
+  owner: team:digital-platform
+  system: system:iiif-builder
+---
+apiVersion: backplane/v1
+kind: System
+metadata:
+  name: dlcs
+  description: Digirati's DLCS, which Collection's IIIF services and edge depend on
+spec:
+  owner: team:digirati
+---
+apiVersion: backplane/v1
+kind: Resource
+metadata:
+  name: dlcs
+  description: Digirati's DLCS image, AV and auth services at dlcs.io
+spec:
+  type: external
+  owner: team:digirati
+  system: system:dlcs
+  dependsOn:
+    - ref: component:iiif-builder
+      criticality: soft
+      description: Fetches PDF cover pages from /pdf-cover
+    - ref: component:platform-infrastructure-iiif
+      description: dlcs.io origins served behind iiif.wellcomecollection.org
