@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FluentAssertions;
@@ -36,25 +38,57 @@ namespace Wellcome.Dds.Server.Tests.Controllers
         [Fact]
         public async Task Alto_Returns404_WhenIdentifierCannotBeParsed()
         {
-            A.CallTo(() => identityService.GetIdentity("nonsense"))
+            // Only malformed b numbers fail to parse (here, a wrong check digit); anything that
+            // isn't a b number parses as a CALM ref - see the PackageNotInStorage case.
+            A.CallTo(() => identityService.GetIdentity("b99999999"))
                 .Throws(new FormatException("Not a valid identifier"));
 
-            var result = await sut.Alto("nonsense", "nonsense.jp2");
+            var result = await sut.Alto("b99999999", "b99999999_0001.jp2");
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Theory]
+        [InlineData("zzzzzzzz")]  // catalogue work id shape; parses as a CALM ref
+        [InlineData("b99999997")] // valid check digit, no such package
+        public async Task Alto_Returns404_WhenPackageNotInStorage(string identifier)
+        {
+            var ddsId = MakeIdentity(identifier);
+            A.CallTo(() => identityService.GetIdentity(identifier)).Returns(ddsId);
+            A.CallTo(() => metsRepository.GetAsync(ddsId))
+                .Throws(new HttpRequestException("Response status code does not indicate success: 404 (Not Found).",
+                    null, HttpStatusCode.NotFound));
+
+            var result = await sut.Alto(identifier, $"{identifier}_0001.jp2");
 
             result.Should().BeOfType<NotFoundObjectResult>();
         }
 
         [Fact]
-        public async Task Alto_Returns404_WhenPackageDoesNotExist()
+        public async Task Alto_Returns404_WhenStorageMapIsNull()
         {
-            var ddsId = MakeIdentity("b99999999");
-            A.CallTo(() => identityService.GetIdentity("b99999999")).Returns(ddsId);
+            var ddsId = MakeIdentity("b99999997");
+            A.CallTo(() => identityService.GetIdentity("b99999997")).Returns(ddsId);
             A.CallTo(() => metsRepository.GetAsync(ddsId))
-                .Throws(new InvalidOperationException("Could not retrieve storage map for b99999999"));
+                .Throws(new InvalidOperationException("Could not retrieve storage map for b99999997"));
 
-            var result = await sut.Alto("b99999999", "x.jp2");
+            var result = await sut.Alto("b99999997", "x.jp2");
 
             result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task Alto_Throws_WhenStorageServiceFails()
+        {
+            // A storage service outage is a real 5xx, not a missing resource
+            var ddsId = MakeIdentity("b30309700");
+            A.CallTo(() => identityService.GetIdentity("b30309700")).Returns(ddsId);
+            A.CallTo(() => metsRepository.GetAsync(ddsId))
+                .Throws(new HttpRequestException("Service Unavailable", null, HttpStatusCode.ServiceUnavailable));
+
+            var action = () => sut.Alto("b30309700", "b30309700_0001.jp2");
+
+            await action.Should().ThrowAsync<HttpRequestException>();
         }
 
         [Fact]
