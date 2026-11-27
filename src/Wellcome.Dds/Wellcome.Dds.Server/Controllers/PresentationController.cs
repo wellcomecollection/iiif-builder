@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement.Mvc;
+using Newtonsoft.Json.Linq;
 using Utils;
 using Utils.Web;
 using Wellcome.Dds.Catalogue;
@@ -48,6 +49,16 @@ namespace Wellcome.Dds.Server.Controllers
         /// </summary>
         private static readonly Regex NonDereferenceableResource = new(
             @"^.+/(canvases/[^/]+(/painting(/anno)?|/supplementing(/[^/]+)?|/classifying(/[^/]+)?)?|ranges/.+)/?$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// A multi-copy work whose copies have more than one volume gets a Collection per copy, minted as
+        /// "{work collection id}-copy-{n}" (MultiCopyState). Copy Collections are only stored embedded in the
+        /// work's Collection, so they are served by extracting them from it. Multi-copy works are always
+        /// b-numbers, which have no hyphens or slashes.
+        /// </summary>
+        private static readonly Regex CopyCollection = new(
+            @"^(?<parent>[^/]+)-copy-(?<copy>\d+)/?$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private readonly DdsOptions ddsOptions;
@@ -100,6 +111,11 @@ namespace Wellcome.Dds.Server.Controllers
                 // Let the CDN absorb repeat crawls; CDN-only, so a rebuild's invalidation clears it everywhere
                 Response.CdnCacheForDays(30);
                 return NotFound($"Not a dereferenceable resource: {id}");
+            }
+            if (id != null && CopyCollection.IsMatch(id))
+            {
+                var requestedVersion = Request.GetTypedHeaders().Accept.GetIIIFPresentationType(Version.V3);
+                return await ServeCopyCollection(id, requestedVersion == Version.V2 ? Version.V2 : Version.V3);
             }
             DdsIdentity ddsId;
             try
@@ -171,7 +187,9 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
         [HttpGet("v2/{*id}")]
-        public Task<IActionResult> V2(string id) => GetIIIFResource($"v2/{id}", IIIFPresentation.ContentTypes.V2);
+        public Task<IActionResult> V2(string id) => id != null && CopyCollection.IsMatch(id)
+            ? ServeCopyCollection(id, Version.V2)
+            : GetIIIFResource($"v2/{id}", IIIFPresentation.ContentTypes.V2);
 
         /// <summary>
         /// Non conneg explicit path for IIIF 3.0
@@ -179,11 +197,69 @@ namespace Wellcome.Dds.Server.Controllers
         /// <param name="id">The resource identifier</param>
         /// <returns></returns>
         [HttpGet("v3/{*id}")]
-        public Task<IActionResult> V3(string id) => GetIIIFResource($"v3/{id}", IIIFPresentation.ContentTypes.V3);
+        public Task<IActionResult> V3(string id) => id != null && CopyCollection.IsMatch(id)
+            ? ServeCopyCollection(id, Version.V3)
+            : GetIIIFResource($"v3/{id}", IIIFPresentation.ContentTypes.V3);
+
+        /// <summary>
+        /// Serve a copy Collection (see <see cref="CopyCollection"/>) by extracting it from its work's stored
+        /// Collection: from "items" in IIIF 3, where it gains a "partOf" pointing back to the work, or from
+        /// "collections" in IIIF 2, where it already has "within". It takes the work's "@context".
+        /// </summary>
+        private async Task<IActionResult> ServeCopyCollection(string id, Version version)
+        {
+            var match = CopyCollection.Match(id);
+            DdsIdentity parentId;
+            try
+            {
+                parentId = identityService.GetIdentity(match.Groups["parent"].Value);
+            }
+            catch (FormatException)
+            {
+                return NotFound($"Not a valid identifier: {id}");
+            }
+
+            var isV2 = version == Version.V2;
+            var parent = await helpers.LoadAsJson(ddsOptions.PresentationContainer, $"{(isV2 ? "v2" : "v3")}/{parentId}");
+            if (parent == null)
+            {
+                return NotFound($"No IIIF resource found for {id}");
+            }
+
+            // Compare on the last path segment, so the stored domain doesn't matter
+            var copySegment = $"/{parentId}-copy-{match.Groups["copy"].Value}";
+            var idProperty = isV2 ? "@id" : "id";
+            var copy = (parent[isV2 ? "collections" : "items"] as JArray)?
+                .OfType<JObject>()
+                .FirstOrDefault(item =>
+                    item[idProperty]?.Value<string>()?.EndsWith(copySegment, StringComparison.OrdinalIgnoreCase) == true);
+            if (copy == null)
+            {
+                return NotFound($"No IIIF resource found for {id}");
+            }
+
+            var result = new JObject { ["@context"] = parent["@context"]?.DeepClone() };
+            foreach (var property in copy.Properties())
+            {
+                result[property.Name] = property.Value.DeepClone();
+            }
+            if (!isV2 && result["partOf"] == null)
+            {
+                result["partOf"] = new JArray(new JObject
+                {
+                    ["id"] = parent["id"]?.DeepClone(),
+                    ["type"] = "Collection",
+                    ["label"] = parent["label"]?.DeepClone()
+                });
+            }
+
+            return CollectionContent(result.ToString(Newtonsoft.Json.Formatting.Indented),
+                isV2 ? IIIFPresentation.ContentTypes.V2 : IIIFPresentation.ContentTypes.V3);
+        }
 
         private async Task<IActionResult> GetIIIFResource(string path, string contentType)
         {
-            logger.LogDebug("Serving IIIF Content for {path}", path);
+            logger.LogDebug("Serving IIIF Content for {path}", path.LogSafe());
             return await helpers.ServeIIIFContent(ddsOptions.PresentationContainer, path, contentType, this);
         }
 
