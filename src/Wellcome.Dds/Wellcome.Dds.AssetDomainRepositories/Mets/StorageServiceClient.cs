@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using OAuth2;
+using Utils;
 
 namespace Wellcome.Dds.AssetDomainRepositories.Mets
 {
@@ -64,7 +66,17 @@ namespace Wellcome.Dds.AssetDomainRepositories.Mets
                 {
                     if (!IsProtocolError(ex))
                     {
-                        logger.LogError(ex, "Could not get storage manifest");
+                        if (ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound })
+                        {
+                            // No bag for this identifier in this space. Callers turn that into a 404
+                            // or try another space; OAuth2ApiConsumer has already logged the call.
+                            logger.LogWarning("No storage manifest for {identifier} in {storageSpace}",
+                                packageIdentifier.LogSafe(), storageSpace);
+                        }
+                        else
+                        {
+                            logger.LogError(ex, "Could not get storage manifest");
+                        }
                         throw;
                     }
 
